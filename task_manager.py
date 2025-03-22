@@ -81,6 +81,7 @@ class TaskResourceManager:
                 "col": 1,
                 "duration": 3,
                 "description": "Task 1",
+                "url": "https://www.google.com",
                 "resources": ["Resource A"],
             },
             {
@@ -88,6 +89,7 @@ class TaskResourceManager:
                 "col": 5,
                 "duration": 4,
                 "description": "Task 2",
+                "url": "https://www.google.com",
                 "resources": ["Resource B", "Resource C"],
             },
             {
@@ -95,6 +97,7 @@ class TaskResourceManager:
                 "col": 2,
                 "duration": 5,
                 "description": "Task 3",
+                "url": "https://www.google.com",
                 "resources": ["Resource A", "Resource B"],
             },
             {

@@ -81,7 +81,23 @@ class TaskOperations:
                 self.manager.task_canvas.config(cursor="sb_h_double_arrow")
                 return
 
-            # Task body (for moving)
+            # Task body (for moving or URL hover)
+            if (
+                task["x1"] < canvas_x < task["x2"]
+                and task["y1"] < canvas_y < task["y2"]
+            ):
+                if "text" in task:  # Check if hovering over the task description text
+                    text_bbox = self.manager.task_canvas.bbox(task["text"])
+                    if (
+                        text_bbox
+                        and text_bbox[0] <= canvas_x <= text_bbox[2]
+                        and text_bbox[1] <= canvas_y <= text_bbox[3]
+                    ):
+                        if "url" in task and task["url"]:  # Check if task has a URL
+                            self.manager.task_canvas.config(cursor="hand2")
+                            return
+                self.manager.task_canvas.config(cursor="fleur")
+                return
             if (
                 task["x1"] < canvas_x < task["x2"]
                 and task["y1"] < canvas_y < task["y2"]
@@ -442,6 +458,27 @@ class TaskOperations:
                 # Update the displayed text
                 if "text" in task:
                     self.manager.task_canvas.itemconfig(task["text"], text=new_name)
+
+    def edit_task_url(self, task=None):
+        """Edit the url of the selected task"""
+        if task is None:
+            task = self.manager.selected_task
+
+        if task:
+            # Ensure the task has a 'url' key with a default blank value
+            task.setdefault("url", "")
+            new_url = simpledialog.askstring(
+                "Edit Task URL",
+                "Enter new task URL:",
+                initialvalue=task["url"],
+            )
+            if new_url is not None:
+                # Update the task description
+                task["url"] = new_url
+
+                # Update the displayed text
+                if "url" in task:
+                    self.manager.task_canvas.itemconfig(task["url"], text=new_url)
 
     def edit_task_resources(self, task=None):
         """Edit resources for the selected task"""
