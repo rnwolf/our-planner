@@ -1,40 +1,27 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox, filedialog
-import json
-import os
-
+from model import TaskResourceModel
 from ui_components import UIComponents
 from file_operations import FileOperations
 from task_operations import TaskOperations
 
 
 class TaskResourceManager:
+    """Controller class that connects the model and view components."""
+
     def __init__(self, root):
         self.root = root
         self.root.title("Task Resource Manager")
         self.root.geometry("1000x600")
 
-        # Configuration
-        self.days = 100
-        self.max_tasks = 50
-        self.resources = [
-            "Resource A",
-            "Resource B",
-            "Resource C",
-            "Resource D",
-            "Resource E",
-            "Resource F",
-            "Resource G",
-            "Resource H",
-            "Resource I",
-            "Resource J",
-        ]
+        # Initialize the model
+        self.model = TaskResourceModel()
+
+        # UI configuration constants
         self.cell_width = 45
         self.task_height = 30
         self.timeline_height = 30
         self.resource_grid_height = 150
-        self.task_grid_height = 300  # Default height for task grid
-        self.task_id_counter = 0  # Initialize the task ID counter
+        self.task_grid_height = 300
 
         # Dragging state for resizing panes
         self.dragging_task = None
@@ -46,22 +33,25 @@ class TaskResourceManager:
         self.new_task_in_progress = False
         self.new_task_start = None
         self.rubberband = None
-
-        # Data structures
-        self.tasks = []
         self.selected_task = None
-
-        # Current file path for save/load operations
-        self.current_file_path = None
-
-        # Initialize handlers
-        self.task_ops = TaskOperations(self)
-        self.ui = UIComponents(self)
-        self.file_ops = FileOperations(self)
 
         # Create main container frame
         self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Initialize canvas references (will be populated by UI component)
+        self.timeline_canvas = None
+        self.task_canvas = None
+        self.resource_canvas = None
+        self.task_label_canvas = None
+        self.resource_label_canvas = None
+        self.h_scrollbar = None
+        self.v_scrollbar = None
+
+        # Initialize handlers
+        self.task_ops = TaskOperations(self, self.model)
+        self.ui = UIComponents(self, self.model)
+        self.file_ops = FileOperations(self, self.model)
 
         # Create UI elements
         self.ui.create_menu_bar()
@@ -69,66 +59,45 @@ class TaskResourceManager:
         self.ui.create_task_grid_frame()
         self.ui.create_resource_grid_frame()
 
-        # Create context menu for tasks
-        # self.ui.create_context_menu()
-
-        # Create sample tasks
-        self.create_sample_tasks()
+        # Create sample tasks in the model
+        self.model.create_sample_tasks()
 
         # Render initial state
+        self.update_view()
+
+    def update_view(self):
+        """Update all view components to reflect current model state."""
         self.ui.draw_timeline()
         self.ui.draw_task_grid()
         self.ui.draw_resource_grid()
-        self.task_ops.calculate_resource_loading()
+        self.update_resource_loading()
 
-    def get_next_task_id(self):
-        """Generate a unique task ID."""
-        self.task_id_counter += 1
-        return self.task_id_counter
+    def update_resource_loading(self):
+        """Calculate resource loading and update display."""
+        # Get loading data from model
+        resource_loading = self.model.calculate_resource_loading()
+        # Pass to UI to display
+        self.ui.display_resource_loading(resource_loading)
 
-    def create_sample_tasks(self):
-        """Create some sample tasks."""
-        task1 = {
-            "task_id": self.get_next_task_id(),  # Assign a unique ID
-            "description": "Task A",
-            "url": "https://www.google.com",
-            "row": 1,
-            "col": 5,
-            "duration": 5,
-            "resources": ["Resource A", "Resource B"],
-            "predecessors": [],  # Initialize predecessors list
-            "successors": [],  # Initialize successors list
-        }
-        task2 = {
-            "task_id": self.get_next_task_id(),
-            "description": "Task B",
-            "url": "https://www.google.com",
-            "row": 2,
-            "col": 12,
-            "duration": 4,
-            "resources": ["Resource A", "Resource B", "Resource C"],
-            "predecessors": [],
-            "successors": [],
-        }
-        task3 = {
-            "task_id": self.get_next_task_id(),
-            "description": "Task C",
-            "url": "https://www.google.com",
-            "row": 3,
-            "col": 2,
-            "duration": 3,
-            "resources": ["Resource A"],
-            "predecessors": [],
-            "successors": [],
-        }
-        task4 = {
-            "task_id": self.get_next_task_id(),
-            "description": "Task D",
-            "row": 4,
-            "col": 1,
-            "duration": 2,
-            "resources": ["Resource A", "Resource D"],
-            "predecessors": [],
-            "successors": [],
-        }
-        self.tasks.extend([task1, task2, task3, task4])
+    def update_window_title(self, file_path=None):
+        """Update the window title based on current file path."""
+        import os
+
+        if file_path:
+            self.root.title(f"Task Resource Manager - {os.path.basename(file_path)}")
+        else:
+            self.root.title("Task Resource Manager - New Project")
+
+    def get_task_ui_coordinates(self, task):
+        """Convert task data model coordinates to UI coordinates."""
+        x1 = task["col"] * self.cell_width
+        y1 = task["row"] * self.task_height
+        x2 = x1 + task["duration"] * self.cell_width
+        y2 = y1 + self.task_height
+        return x1, y1, x2, y2
+
+    def convert_ui_to_model_coordinates(self, x, y):
+        """Convert UI coordinates to model coordinates (row, col)."""
+        col = int(x / self.cell_width)
+        row = int(y / self.task_height)
+        return row, col

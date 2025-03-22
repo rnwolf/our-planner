@@ -3,450 +3,63 @@ from tkinter import simpledialog, messagebox
 
 
 class TaskOperations:
-    def __init__(self, manager):
-        self.manager = manager
-
-    def calculate_resource_loading(self):
-        """Calculate and display resource loading based on task positions"""
-        # Initialize resource loading grid
-        resource_loading = {}
-        for resource in self.manager.resources:
-            resource_loading[resource] = [0] * self.manager.days
-
-        # Calculate resource usage for each day based on tasks
-        for task in self.manager.tasks:
-            col = task["col"]
-            duration = task["duration"]
-            for resource in task["resources"]:
-                for day in range(duration):
-                    if 0 <= col + day < self.manager.days:  # Ensure we're within bounds
-                        resource_loading[resource][col + day] += 1
-
-        # Clear previous loading display
-        self.manager.resource_canvas.delete("loading")
-
-        # Display resource loading
-        for i, resource in enumerate(self.manager.resources):
-            for day in range(self.manager.days):
-                load = resource_loading[resource][day]
-                x = day * self.manager.cell_width
-                y = i * self.manager.task_height
-
-                # Choose color based on load
-                color = "white"
-                if load > 0:
-                    intensity = min(load * 50, 200)  # Cap intensity
-                    color = f"#{255-intensity:02x}{255-intensity:02x}ff"  # Bluish color
-
-                # Create cell
-                self.manager.resource_canvas.create_rectangle(
-                    x,
-                    y,
-                    x + self.manager.cell_width,
-                    y + self.manager.task_height,
-                    fill=color,
-                    outline="gray",
-                    tags="loading",
-                )
-
-                # Display load number
-                if load > 0:
-                    self.manager.resource_canvas.create_text(
-                        x + self.manager.cell_width / 2,
-                        y + self.manager.task_height / 2,
-                        text=str(load),
-                        tags="loading",
-                    )
+    def __init__(self, controller, model):
+        self.controller = controller
+        self.model = model
 
     def on_task_hover(self, event):
         """Handle mouse hover to change cursor"""
         x, y = event.x, event.y
 
         # Convert canvas coordinates to account for scrolling
-        canvas_x = self.manager.task_canvas.canvasx(x)
-        canvas_y = self.manager.task_canvas.canvasy(y)
+        canvas_x = self.controller.task_canvas.canvasx(x)
+        canvas_y = self.controller.task_canvas.canvasy(y)
 
-        # Check if we're over a task edge (for resizing)
-        for task in self.manager.tasks:
-            if "x1" not in task:
-                continue
+        # Check if we're over a task edge or body
+        task_ui_elements = self.controller.ui.task_ui_elements
 
-            # Left edge
-            if abs(canvas_x - task["x1"]) < 5 and task["y1"] < canvas_y < task["y2"]:
-                self.manager.task_canvas.config(cursor="sb_h_double_arrow")
+        for task_id, ui_elements in task_ui_elements.items():
+            x1, y1, x2, y2 = (
+                ui_elements["x1"],
+                ui_elements["y1"],
+                ui_elements["x2"],
+                ui_elements["y2"],
+            )
+
+            # Left edge (for resizing)
+            if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
+                self.controller.task_canvas.config(cursor="sb_h_double_arrow")
                 return
 
-            # Right edge
-            if abs(canvas_x - task["x2"]) < 5 and task["y1"] < canvas_y < task["y2"]:
-                self.manager.task_canvas.config(cursor="sb_h_double_arrow")
+            # Right edge (for resizing)
+            if abs(canvas_x - x2) < 5 and y1 < canvas_y < y2:
+                self.controller.task_canvas.config(cursor="sb_h_double_arrow")
                 return
 
             # Task body (for moving or URL hover)
-            if (
-                task["x1"] < canvas_x < task["x2"]
-                and task["y1"] < canvas_y < task["y2"]
-            ):
-                if "text" in task:  # Check if hovering over the task description text
-                    text_bbox = self.manager.task_canvas.bbox(task["text"])
+            if x1 < canvas_x < x2 and y1 < canvas_y < y2:
+                task = self.model.get_task(task_id)
+
+                if task and task.get("url"):  # Check if task has a URL
+                    text_bbox = self.controller.task_canvas.bbox(ui_elements["text"])
                     if (
                         text_bbox
                         and text_bbox[0] <= canvas_x <= text_bbox[2]
                         and text_bbox[1] <= canvas_y <= text_bbox[3]
                     ):
-                        if "url" in task and task["url"]:  # Check if task has a URL
-                            self.manager.task_canvas.config(cursor="hand2")
-                            return
-                self.manager.task_canvas.config(cursor="fleur")
-                return
-            if (
-                task["x1"] < canvas_x < task["x2"]
-                and task["y1"] < canvas_y < task["y2"]
-            ):
-                self.manager.task_canvas.config(cursor="fleur")
+                        self.controller.task_canvas.config(cursor="hand2")
+                        return
+
+                self.controller.task_canvas.config(cursor="fleur")
                 return
 
         # Reset cursor if not over a task
-        self.manager.task_canvas.config(cursor="")
-
-    def on_task_press(self, event):
-        """Handle mouse press on tasks or grid"""
-        x, y = event.x, event.y
-
-        # Convert canvas coordinates to account for scrolling
-        canvas_x = self.manager.task_canvas.canvasx(x)
-        canvas_y = self.manager.task_canvas.canvasy(y)
-
-        self.manager.drag_start_x = canvas_x
-        self.manager.drag_start_y = canvas_y
-
-        # Check if clicking on a task
-        task_clicked = False
-        for task in self.manager.tasks:
-            if "x1" not in task:
-                continue
-
-            # Check if clicking on left edge (for left resize)
-            if abs(canvas_x - task["x1"]) < 5 and task["y1"] < canvas_y < task["y2"]:
-                self.manager.selected_task = task
-                self.manager.resize_edge = "left"
-                task_clicked = True
-                break
-
-            # Check if clicking on right edge (for right resize)
-            if abs(canvas_x - task["x2"]) < 5 and task["y1"] < canvas_y < task["y2"]:
-                self.manager.selected_task = task
-                self.manager.resize_edge = "right"
-                task_clicked = True
-                break
-
-            # Check if clicking on task body (for moving)
-            if (
-                task["x1"] < canvas_x < task["x2"]
-                and task["y1"] < canvas_y < task["y2"]
-            ):
-                self.manager.selected_task = task
-                self.manager.resize_edge = None
-                task_clicked = True
-                break
-
-        # If no task was clicked and we're in the grid area, start creating a new task
-        if (
-            not task_clicked
-            and canvas_y >= 0
-            and canvas_y <= self.manager.max_tasks * self.manager.task_height
-        ):
-            # Snap to grid
-            col = int(canvas_x / self.manager.cell_width)
-            row = int(canvas_y / self.manager.task_height)
-
-            # Set starting point for new task
-            self.manager.new_task_in_progress = True
-            self.manager.new_task_start = (col, row)
-
-            # Create rubberband rectangle for visual feedback
-            x1 = col * self.manager.cell_width
-            y1 = row * self.manager.task_height
-            self.manager.rubberband = self.manager.task_canvas.create_rectangle(
-                x1,
-                y1,
-                x1,
-                y1 + self.manager.task_height,
-                outline="blue",
-                width=2,
-                dash=(4, 4),
-            )
-
-    def on_task_drag(self, event):
-        """Handle mouse drag to move, resize tasks or create new task"""
-        x, y = event.x, event.y
-
-        # Convert canvas coordinates to account for scrolling
-        canvas_x = self.manager.task_canvas.canvasx(x)
-        canvas_y = self.manager.task_canvas.canvasy(y)
-
-        if self.manager.selected_task:  # Existing task manipulation
-            dx = canvas_x - self.manager.drag_start_x
-            dy = canvas_y - self.manager.drag_start_y
-
-            task = self.manager.selected_task
-
-            if self.manager.resize_edge == "left":
-                # Resize from left edge
-                new_width = task["x2"] - (task["x1"] + dx)
-                if new_width >= self.manager.cell_width:  # Minimum task width
-                    self.manager.task_canvas.move(task["left_edge"], dx, 0)
-                    self.manager.task_canvas.coords(
-                        task["box"], task["x1"] + dx, task["y1"], task["x2"], task["y2"]
-                    )
-                    # Update stored coordinates
-                    task["x1"] += dx
-
-                    # Update text position
-                    self.manager.task_canvas.coords(
-                        task["text"],
-                        (task["x1"] + task["x2"]) / 2,
-                        (task["y1"] + task["y2"]) / 2,
-                    )
-
-            elif self.manager.resize_edge == "right":
-                # Resize from right edge
-                new_width = task["x2"] + dx - task["x1"]
-                if new_width >= self.manager.cell_width:  # Minimum task width
-                    self.manager.task_canvas.move(task["right_edge"], dx, 0)
-                    self.manager.task_canvas.coords(
-                        task["box"], task["x1"], task["y1"], task["x2"] + dx, task["y2"]
-                    )
-                    # Update stored coordinates
-                    task["x2"] += dx
-
-                    # Update text position
-                    self.manager.task_canvas.coords(
-                        task["text"],
-                        (task["x1"] + task["x2"]) / 2,
-                        (task["y1"] + task["y2"]) / 2,
-                    )
-
-            else:
-                # Move entire task
-                self.manager.task_canvas.move(task["box"], dx, dy)
-                self.manager.task_canvas.move(task["left_edge"], dx, dy)
-                self.manager.task_canvas.move(task["right_edge"], dx, dy)
-                self.manager.task_canvas.move(task["text"], dx, dy)
-
-                # Update stored coordinates
-                task["x1"] += dx
-                task["y1"] += dy
-                task["x2"] += dx
-                task["y2"] += dy
-
-            self.manager.drag_start_x = canvas_x
-            self.manager.drag_start_y = canvas_y
-
-        elif self.manager.new_task_in_progress:  # New task creation in progress
-            # Update rubberband to show the task being created
-            start_col, start_row = self.manager.new_task_start
-            current_col = max(
-                0, min(self.manager.days - 1, int(canvas_x / self.manager.cell_width))
-            )
-
-            # Determine the left and right columns based on drag direction
-            left_col = min(start_col, current_col)
-            right_col = max(start_col, current_col)
-
-            # Update rubberband rectangle
-            x1 = left_col * self.manager.cell_width
-            y1 = start_row * self.manager.task_height
-            x2 = (right_col + 1) * self.manager.cell_width
-            y2 = y1 + self.manager.task_height
-
-            self.manager.task_canvas.coords(self.manager.rubberband, x1, y1, x2, y2)
-
-    def on_task_release(self, event):
-        """Handle mouse release to finalize task position/size or create new task"""
-        x, y = event.x, event.y
-
-        # Convert canvas coordinates to account for scrolling
-        canvas_x = self.manager.task_canvas.canvasx(x)
-        canvas_y = self.manager.task_canvas.canvasy(y)
-
-        if self.manager.selected_task:  # Existing task manipulation
-            task = self.manager.selected_task
-
-            # Snap to grid
-            if self.manager.resize_edge == "left":
-                # Snap left edge
-                grid_col = round(task["x1"] / self.manager.cell_width)
-                new_x1 = grid_col * self.manager.cell_width
-                dx = new_x1 - task["x1"]
-
-                # Update visuals
-                self.manager.task_canvas.move(task["left_edge"], dx, 0)
-                self.manager.task_canvas.coords(
-                    task["box"], new_x1, task["y1"], task["x2"], task["y2"]
-                )
-
-                # Update stored coordinates
-                task["x1"] = new_x1
-                task["col"] = grid_col
-                task["duration"] = round(
-                    (task["x2"] - task["x1"]) / self.manager.cell_width
-                )
-
-            elif self.manager.resize_edge == "right":
-                # Snap right edge
-                grid_col = round(task["x2"] / self.manager.cell_width)
-                new_x2 = grid_col * self.manager.cell_width
-                dx = new_x2 - task["x2"]
-
-                # Update visuals
-                self.manager.task_canvas.move(task["right_edge"], dx, 0)
-                self.manager.task_canvas.coords(
-                    task["box"], task["x1"], task["y1"], new_x2, task["y2"]
-                )
-
-                # Update stored coordinates
-                task["x2"] = new_x2
-                task["duration"] = round(
-                    (task["x2"] - task["x1"]) / self.manager.cell_width
-                )
-
-            else:
-                # Snap entire task
-                grid_row = round(task["y1"] / self.manager.task_height)
-                grid_col = round(task["x1"] / self.manager.cell_width)
-
-                new_x1 = grid_col * self.manager.cell_width
-                new_y1 = grid_row * self.manager.task_height
-                new_x2 = new_x1 + task["duration"] * self.manager.cell_width
-                new_y2 = new_y1 + self.manager.task_height
-
-                # Keep task within bounds
-                if grid_row >= self.manager.max_tasks:
-                    grid_row = self.manager.max_tasks - 1
-                    new_y1 = grid_row * self.manager.task_height
-                    new_y2 = new_y1 + self.manager.task_height
-
-                if grid_row < 0:
-                    grid_row = 0
-                    new_y1 = 0
-                    new_y2 = self.manager.task_height
-
-                if grid_col < 0:
-                    grid_col = 0
-                    new_x1 = 0
-                    new_x2 = new_x1 + task["duration"] * self.manager.cell_width
-
-                if grid_col + task["duration"] > self.manager.days:
-                    grid_col = self.manager.days - task["duration"]
-                    new_x1 = grid_col * self.manager.cell_width
-                    new_x2 = new_x1 + task["duration"] * self.manager.cell_width
-
-                # Update visuals
-                self.manager.task_canvas.coords(
-                    task["box"], new_x1, new_y1, new_x2, new_y2
-                )
-                self.manager.task_canvas.coords(
-                    task["left_edge"], new_x1, new_y1, new_x1, new_y2
-                )
-                self.manager.task_canvas.coords(
-                    task["right_edge"], new_x2, new_y1, new_x2, new_y2
-                )
-                self.manager.task_canvas.coords(
-                    task["text"], (new_x1 + new_x2) / 2, (new_y1 + new_y2) / 2
-                )
-
-                # Update stored coordinates
-                task["x1"], task["y1"] = new_x1, new_y1
-                task["x2"], task["y2"] = new_x2, new_y2
-                task["row"], task["col"] = grid_row, grid_col
-
-            # Update text position
-            self.manager.task_canvas.coords(
-                task["text"],
-                (task["x1"] + task["x2"]) / 2,
-                (task["y1"] + task["y2"]) / 2,
-            )
-
-            # Reset selection
-            self.manager.selected_task = None
-            self.manager.resize_edge = None
-
-        elif self.manager.new_task_in_progress:  # New task creation
-            # Get the start and end columns
-            start_col, row = self.manager.new_task_start
-            end_col = max(
-                0, min(self.manager.days - 1, int(canvas_x / self.manager.cell_width))
-            )
-
-            # Determine the left column and duration
-            left_col = min(start_col, end_col)
-            right_col = max(start_col, end_col)
-            duration = right_col - left_col + 1
-
-            # Only create task if it has a valid size
-            if duration >= 1:
-                # Create new task
-                task_name = simpledialog.askstring("New Task", "Enter task name:")
-                if task_name:
-                    # Create a new task dictionary
-                    new_task = {
-                        "task_id": self.manager.get_next_task_id(),  # Assign a unique ID
-                        "row": row,
-                        "col": left_col,
-                        "duration": duration,
-                        "description": task_name,
-                        "resources": [],  # Default empty resources
-                        "predecessors": [],
-                        "successors": [],
-                    }
-
-                    # Add to tasks list
-                    self.manager.tasks.append(new_task)
-
-                    # Draw the new task
-                    self.manager.ui.draw_task(new_task)
-
-                    # Prompt for resources
-                    self.edit_task_resources(new_task)
-
-            # Remove the rubberband
-            if self.manager.rubberband:
-                self.manager.task_canvas.delete(self.manager.rubberband)
-                self.manager.rubberband = None
-
-            # Reset new task flags
-            self.manager.new_task_in_progress = False
-            self.manager.new_task_start = None
-
-        # Update resource loading
-        self.calculate_resource_loading()
-
-    def on_right_click(self, event):
-        """Handle right-click to show context menu"""
-        x, y = event.x, event.y
-
-        # Convert canvas coordinates to account for scrolling
-        canvas_x = self.manager.task_canvas.canvasx(x)
-        canvas_y = self.manager.task_canvas.canvasy(y)
-
-        # Check if right-clicking on a task
-        for task in self.manager.tasks:
-            if "x1" not in task:
-                continue
-
-            if (
-                task["x1"] < canvas_x < task["x2"]
-                and task["y1"] < canvas_y < task["y2"]
-            ):
-                self.manager.selected_task = task
-                # Show context menu
-                self.manager.ui.context_menu.post(event.x_root, event.y_root)
-                return
+        self.controller.task_canvas.config(cursor="")
 
     def edit_task_name(self, task=None):
         """Edit the name of the selected task"""
         if task is None:
-            task = self.manager.selected_task
+            task = self.controller.selected_task
 
         if task:
             new_name = simpledialog.askstring(
@@ -455,17 +68,21 @@ class TaskOperations:
                 initialvalue=task["description"],
             )
             if new_name:
-                # Update the task description
+                # Update the task description in model
                 task["description"] = new_name
 
-                # Update the displayed text
-                if "text" in task:
-                    self.manager.task_canvas.itemconfig(task["text"], text=new_name)
+                # Update the displayed text in view
+                task_id = task["task_id"]
+                if task_id in self.controller.ui.task_ui_elements:
+                    text_id = self.controller.ui.task_ui_elements[task_id]["text"]
+                    self.controller.task_canvas.itemconfig(
+                        text_id, text=f"{task_id} - {new_name}"
+                    )
 
     def edit_task_url(self, task=None):
         """Edit the url of the selected task"""
         if task is None:
-            task = self.manager.selected_task
+            task = self.controller.selected_task
 
         if task:
             # Ensure the task has a 'url' key with a default blank value
@@ -476,67 +93,53 @@ class TaskOperations:
                 initialvalue=task["url"],
             )
             if new_url is not None:
-                # Update the task description
+                # Update the task url in model
                 task["url"] = new_url
 
-                # Update the displayed text
-                if "url" in task:
-                    self.manager.task_canvas.itemconfig(task["url"], text=new_url)
+                # Redraw the task to update the URL behavior
+                self.controller.ui.draw_task_grid()
 
     def add_predecessor(self, task):
         """Add a predecessor to a task."""
+        if not task:
+            return
+
         predecessor_id = simpledialog.askinteger(
             "Add Predecessor", "Enter the ID of the predecessor task:"
         )
         if predecessor_id is not None:
-            predecessor = self.find_task_by_id(predecessor_id)
-            if predecessor:
-                if predecessor["task_id"] not in task["predecessors"]:
-                    task["predecessors"].append(predecessor["task_id"])
-                    if task["task_id"] not in predecessor["successors"]:
-                        predecessor["successors"].append(task["task_id"])
-                    self.manager.ui.draw_task_grid()
-                else:
-                    messagebox.showwarning("Warning", "Task is already a predecessor.")
+            if self.model.add_predecessor(task["task_id"], predecessor_id):
+                # Redraw to show dependencies
+                self.controller.ui.draw_dependencies()
             else:
                 messagebox.showerror("Error", "Predecessor task not found.")
 
     def add_successor(self, task):
         """Add a successor to a task."""
+        if not task:
+            return
+
         successor_id = simpledialog.askinteger(
             "Add Successor", "Enter the ID of the successor task:"
         )
         if successor_id is not None:
-            successor = self.find_task_by_id(successor_id)
-            if successor:
-                if successor["task_id"] not in task["successors"]:
-                    task["successors"].append(successor["task_id"])
-                    if task["task_id"] not in successor["predecessors"]:
-                        successor["predecessors"].append(task["task_id"])
-                    self.manager.ui.draw_task_grid()
-                else:
-                    messagebox.showwarning("Warning", "Task is already a successor.")
+            if self.model.add_successor(task["task_id"], successor_id):
+                # Redraw to show dependencies
+                self.controller.ui.draw_dependencies()
             else:
                 messagebox.showerror("Error", "Successor task not found.")
-
-    def find_task_by_id(self, task_id):
-        """Find a task by its ID."""
-        for task in self.manager.tasks:
-            if task["task_id"] == task_id:
-                return task
-        return None
 
     def edit_task_resources(self, task=None):
         """Edit resources for the selected task"""
         if task is None:
-            task = self.manager.selected_task
+            task = self.controller.selected_task
 
         if task:
             # Create a dialog for resource selection
-            dialog = tk.Toplevel(self.manager.root)
+            dialog = tk.Toplevel(self.controller.root)
             dialog.title("Edit Task Resources")
             dialog.geometry("300x200")
-            dialog.transient(self.manager.root)
+            dialog.transient(self.controller.root)
             dialog.grab_set()
 
             # Track selected resources
@@ -545,7 +148,7 @@ class TaskOperations:
             # Create checkboxes for each resource
             tk.Label(dialog, text="Select resources for this task:").pack(pady=5)
 
-            for resource in self.manager.resources:
+            for resource in self.model.resources:
                 var = tk.BooleanVar(value=(resource in task["resources"]))
                 resource_vars[resource] = var
                 tk.Checkbutton(dialog, text=resource, variable=var).pack(
@@ -556,7 +159,7 @@ class TaskOperations:
             def save_resources():
                 task["resources"] = [r for r, v in resource_vars.items() if v.get()]
                 dialog.destroy()
-                self.calculate_resource_loading()
+                self.controller.update_resource_loading()
 
             # Add Save button
             tk.Button(dialog, text="Save", command=save_resources).pack(pady=10)
@@ -564,47 +167,62 @@ class TaskOperations:
             # Center the dialog on the main window
             dialog.update_idletasks()
             x = (
-                self.manager.root.winfo_x()
-                + (self.manager.root.winfo_width() - dialog.winfo_width()) // 2
+                self.controller.root.winfo_x()
+                + (self.controller.root.winfo_width() - dialog.winfo_width()) // 2
             )
             y = (
-                self.manager.root.winfo_y()
-                + (self.manager.root.winfo_height() - dialog.winfo_height()) // 2
+                self.controller.root.winfo_y()
+                + (self.controller.root.winfo_height() - dialog.winfo_height()) // 2
             )
             dialog.geometry(f"+{x}+{y}")
 
     def delete_task(self):
         """Delete the selected task"""
-        if self.manager.selected_task:
-            # Remove task canvas items
-            for key in ["box", "left_edge", "right_edge", "text"]:
-                if key in self.manager.selected_task:
-                    self.manager.task_canvas.delete(self.manager.selected_task[key])
+        if self.controller.selected_task:
+            task_id = self.controller.selected_task["task_id"]
 
-            # Remove from tasks list
-            self.manager.tasks.remove(self.manager.selected_task)
-            self.manager.selected_task = None
+            # Remove the task from the model
+            if self.model.delete_task(task_id):
+                # Clean up UI elements
+                if task_id in self.controller.ui.task_ui_elements:
+                    ui_elements = self.controller.ui.task_ui_elements[task_id]
+                    for element_id in ui_elements.values():
+                        if isinstance(
+                            element_id, int
+                        ):  # Check if it's a canvas item ID
+                            self.controller.task_canvas.delete(element_id)
 
-            # Update resource loading
-            self.calculate_resource_loading()
+                    # Remove from UI elements tracking
+                    del self.controller.ui.task_ui_elements[task_id]
+
+                # Reset selected task
+                self.controller.selected_task = None
+
+                # Redraw dependencies
+                self.controller.ui.draw_dependencies()
+
+                # Update resource loading
+                self.controller.update_resource_loading()
 
     def add_resource(self):
         """Add a new resource to the project"""
         resource_name = simpledialog.askstring(
             "Add Resource", "Enter new resource name:"
         )
-        if resource_name and resource_name not in self.manager.resources:
-            self.manager.resources.append(resource_name)
-            self.manager.ui.draw_resource_grid()
-            self.calculate_resource_loading()
+        if resource_name:
+            if self.model.add_resource(resource_name):
+                self.controller.ui.draw_resource_grid()
+                self.controller.update_resource_loading()
+            else:
+                messagebox.showinfo("Information", "Resource already exists.")
 
     def edit_resources(self):
         """Edit the list of resources"""
         # Create a dialog for resource editing
-        dialog = tk.Toplevel(self.manager.root)
+        dialog = tk.Toplevel(self.controller.root)
         dialog.title("Edit Resources")
         dialog.geometry("400x300")
-        dialog.transient(self.manager.root)
+        dialog.transient(self.controller.root)
         dialog.grab_set()
 
         # Create a frame for the resource list
@@ -621,7 +239,7 @@ class TaskOperations:
         scrollbar.config(command=resource_listbox.yview)
 
         # Populate the listbox
-        for resource in self.manager.resources:
+        for resource in self.model.resources:
             resource_listbox.insert(tk.END, resource)
 
         # Create buttons for actions
@@ -633,8 +251,8 @@ class TaskOperations:
             resource_name = simpledialog.askstring(
                 "Add Resource", "Enter new resource name:", parent=dialog
             )
-            if resource_name and resource_name not in self.manager.resources:
-                self.manager.resources.append(resource_name)
+            if resource_name and resource_name not in self.model.resources:
+                self.model.resources.append(resource_name)
                 resource_listbox.insert(tk.END, resource_name)
 
         def remove_selected_resource():
@@ -652,7 +270,7 @@ class TaskOperations:
             ):
                 # Check if resource is used by any tasks
                 used_by_tasks = []
-                for task in self.manager.tasks:
+                for task in self.model.tasks:
                     if resource in task["resources"]:
                         used_by_tasks.append(task["description"])
 
@@ -660,24 +278,23 @@ class TaskOperations:
                     # Resource is in use - ask what to do
                     message = f"Resource '{resource}' is used by {len(used_by_tasks)} tasks. Remove it from tasks too?"
                     if messagebox.askyesno("Resource in Use", message, parent=dialog):
-                        # Remove from tasks
-                        for task in self.manager.tasks:
-                            if resource in task["resources"]:
-                                task["resources"].remove(resource)
+                        # Remove resource using model method (will remove from tasks too)
+                        self.model.remove_resource(resource)
+                        resource_listbox.delete(index)
                     else:
                         # Cancel deletion
                         return
-
-                # Remove the resource
-                self.manager.resources.remove(resource)
-                resource_listbox.delete(index)
+                else:
+                    # Remove the resource
+                    self.model.remove_resource(resource)
+                    resource_listbox.delete(index)
 
         def save_resources():
             # Apply changes and close dialog
             dialog.destroy()
             # Redraw grids to reflect changes
-            self.manager.ui.draw_resource_grid()
-            self.calculate_resource_loading()
+            self.controller.ui.draw_resource_grid()
+            self.controller.update_resource_loading()
 
         # Add buttons
         tk.Button(button_frame, text="Add...", command=add_resource_from_dialog).pack(
@@ -693,10 +310,10 @@ class TaskOperations:
     def edit_project_settings(self):
         """Edit project settings like number of days"""
         # Create a dialog for project settings
-        dialog = tk.Toplevel(self.manager.root)
+        dialog = tk.Toplevel(self.controller.root)
         dialog.title("Project Settings")
         dialog.geometry("300x150")
-        dialog.transient(self.manager.root)
+        dialog.transient(self.controller.root)
         dialog.grab_set()
 
         # Create form fields
@@ -707,7 +324,7 @@ class TaskOperations:
         tk.Label(settings_frame, text="Number of Days:").grid(
             row=0, column=0, sticky="w", pady=5
         )
-        days_var = tk.IntVar(value=self.manager.days)
+        days_var = tk.IntVar(value=self.model.days)
         days_entry = tk.Entry(settings_frame, textvariable=days_var, width=10)
         days_entry.grid(row=0, column=1, sticky="w", pady=5)
 
@@ -715,7 +332,7 @@ class TaskOperations:
         tk.Label(settings_frame, text="Maximum Tasks:").grid(
             row=1, column=0, sticky="w", pady=5
         )
-        max_tasks_var = tk.IntVar(value=self.manager.max_tasks)
+        max_tasks_var = tk.IntVar(value=self.model.max_tasks)
         max_tasks_entry = tk.Entry(settings_frame, textvariable=max_tasks_var, width=10)
         max_tasks_entry.grid(row=1, column=1, sticky="w", pady=5)
 
@@ -746,7 +363,7 @@ class TaskOperations:
 
                 # Check if any tasks would be outside the new bounds
                 tasks_out_of_bounds = False
-                for task in self.manager.tasks:
+                for task in self.model.tasks:
                     if (
                         task["col"] + task["duration"] > new_days
                         or task["row"] >= new_max_tasks
@@ -763,14 +380,11 @@ class TaskOperations:
                         return
 
                 # Apply the settings
-                self.manager.days = new_days
-                self.manager.max_tasks = new_max_tasks
+                self.model.days = new_days
+                self.model.max_tasks = new_max_tasks
 
                 # Update the UI
-                self.manager.ui.draw_timeline()
-                self.manager.ui.draw_task_grid()
-                self.manager.ui.draw_resource_grid()
-                self.calculate_resource_loading()
+                self.controller.update_view()
 
                 dialog.destroy()
 
@@ -786,3 +400,372 @@ class TaskOperations:
         tk.Button(button_frame, text="Save", command=save_settings).pack(
             side=tk.RIGHT, padx=5
         )
+
+    def on_task_press(self, event):
+        """Handle mouse press on tasks or grid"""
+        x, y = event.x, event.y
+
+        # Convert canvas coordinates to account for scrolling
+        canvas_x = self.controller.task_canvas.canvasx(x)
+        canvas_y = self.controller.task_canvas.canvasy(y)
+
+        self.controller.drag_start_x = canvas_x
+        self.controller.drag_start_y = canvas_y
+
+        # Check if clicking on a task
+        task_clicked = False
+        task_ui_elements = self.controller.ui.task_ui_elements
+
+        for task_id, ui_elements in task_ui_elements.items():
+            x1, y1, x2, y2 = (
+                ui_elements["x1"],
+                ui_elements["y1"],
+                ui_elements["x2"],
+                ui_elements["y2"],
+            )
+
+            # Check if clicking on left edge (for left resize)
+            if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
+                self.controller.selected_task = self.model.get_task(task_id)
+                self.controller.resize_edge = "left"
+                task_clicked = True
+                break
+
+            # Check if clicking on right edge (for right resize)
+            if abs(canvas_x - x2) < 5 and y1 < canvas_y < y2:
+                self.controller.selected_task = self.model.get_task(task_id)
+                self.controller.resize_edge = "right"
+                task_clicked = True
+                break
+
+            # Check if clicking on task body (for moving)
+            if x1 < canvas_x < x2 and y1 < canvas_y < y2:
+                self.controller.selected_task = self.model.get_task(task_id)
+                self.controller.resize_edge = None
+                task_clicked = True
+                break
+
+        # If no task was clicked and we're in the grid area, start creating a new task
+        if (
+            not task_clicked
+            and canvas_y >= 0
+            and canvas_y <= self.model.max_tasks * self.controller.task_height
+        ):
+            # Snap to grid
+            row, col = self.controller.convert_ui_to_model_coordinates(
+                canvas_x, canvas_y
+            )
+
+            # Set starting point for new task
+            self.controller.new_task_in_progress = True
+            self.controller.new_task_start = (col, row)
+
+            # Create rubberband rectangle for visual feedback
+            x1 = col * self.controller.cell_width
+            y1 = row * self.controller.task_height
+            self.controller.rubberband = self.controller.task_canvas.create_rectangle(
+                x1,
+                y1,
+                x1,
+                y1 + self.controller.task_height,
+                outline="blue",
+                width=2,
+                dash=(4, 4),
+            )
+
+    def on_task_drag(self, event):
+        """Handle mouse drag to move, resize tasks or create new task"""
+        x, y = event.x, event.y
+
+        # Convert canvas coordinates to account for scrolling
+        canvas_x = self.controller.task_canvas.canvasx(x)
+        canvas_y = self.controller.task_canvas.canvasy(y)
+
+        if self.controller.selected_task:  # Existing task manipulation
+            dx = canvas_x - self.controller.drag_start_x
+            dy = canvas_y - self.controller.drag_start_y
+
+            task = self.controller.selected_task
+            task_id = task["task_id"]
+            ui_elements = self.controller.ui.task_ui_elements.get(task_id)
+
+            if not ui_elements:
+                return
+
+            if self.controller.resize_edge == "left":
+                # Resize from left edge
+                new_width = ui_elements["x2"] - (ui_elements["x1"] + dx)
+                if new_width >= self.controller.cell_width:  # Minimum task width
+                    self.controller.task_canvas.move(ui_elements["left_edge"], dx, 0)
+                    self.controller.task_canvas.coords(
+                        ui_elements["box"],
+                        ui_elements["x1"] + dx,
+                        ui_elements["y1"],
+                        ui_elements["x2"],
+                        ui_elements["y2"],
+                    )
+                    # Update stored coordinates
+                    ui_elements["x1"] += dx
+
+                    # Update text position
+                    self.controller.task_canvas.coords(
+                        ui_elements["text"],
+                        (ui_elements["x1"] + ui_elements["x2"]) / 2,
+                        (ui_elements["y1"] + ui_elements["y2"]) / 2,
+                    )
+
+            elif self.controller.resize_edge == "right":
+                # Resize from right edge
+                new_width = ui_elements["x2"] + dx - ui_elements["x1"]
+                if new_width >= self.controller.cell_width:  # Minimum task width
+                    self.controller.task_canvas.move(ui_elements["right_edge"], dx, 0)
+                    self.controller.task_canvas.coords(
+                        ui_elements["box"],
+                        ui_elements["x1"],
+                        ui_elements["y1"],
+                        ui_elements["x2"] + dx,
+                        ui_elements["y2"],
+                    )
+                    # Update stored coordinates
+                    ui_elements["x2"] += dx
+
+                    # Update text position
+                    self.controller.task_canvas.coords(
+                        ui_elements["text"],
+                        (ui_elements["x1"] + ui_elements["x2"]) / 2,
+                        (ui_elements["y1"] + ui_elements["y2"]) / 2,
+                    )
+
+            else:
+                # Move entire task
+                self.controller.task_canvas.move(ui_elements["box"], dx, dy)
+                self.controller.task_canvas.move(ui_elements["left_edge"], dx, dy)
+                self.controller.task_canvas.move(ui_elements["right_edge"], dx, dy)
+                self.controller.task_canvas.move(ui_elements["text"], dx, dy)
+
+                # Update stored coordinates
+                ui_elements["x1"] += dx
+                ui_elements["y1"] += dy
+                ui_elements["x2"] += dx
+                ui_elements["y2"] += dy
+
+            self.controller.drag_start_x = canvas_x
+            self.controller.drag_start_y = canvas_y
+
+        elif self.controller.new_task_in_progress:  # New task creation in progress
+            # Update rubberband to show the task being created
+            start_col, start_row = self.controller.new_task_start
+            current_col = max(
+                0, min(self.model.days - 1, int(canvas_x / self.controller.cell_width))
+            )
+
+            # Determine the left and right columns based on drag direction
+            left_col = min(start_col, current_col)
+            right_col = max(start_col, current_col)
+
+            # Update rubberband rectangle
+            x1 = left_col * self.controller.cell_width
+            y1 = start_row * self.controller.task_height
+            x2 = (right_col + 1) * self.controller.cell_width
+            y2 = y1 + self.controller.task_height
+
+            self.controller.task_canvas.coords(
+                self.controller.rubberband, x1, y1, x2, y2
+            )
+
+    def on_task_release(self, event):
+        """Handle mouse release to finalize task position/size or create new task"""
+        x, y = event.x, event.y
+
+        # Convert canvas coordinates to account for scrolling
+        canvas_x = self.controller.task_canvas.canvasx(x)
+        canvas_y = self.controller.task_canvas.canvasy(y)
+
+        if self.controller.selected_task:  # Existing task manipulation
+            task = self.controller.selected_task
+            task_id = task["task_id"]
+            ui_elements = self.controller.ui.task_ui_elements.get(task_id)
+
+            if not ui_elements:
+                return
+
+            # Snap to grid
+            if self.controller.resize_edge == "left":
+                # Snap left edge
+                grid_col = round(ui_elements["x1"] / self.controller.cell_width)
+                new_x1 = grid_col * self.controller.cell_width
+                dx = new_x1 - ui_elements["x1"]
+
+                # Update visuals
+                self.controller.task_canvas.move(ui_elements["left_edge"], dx, 0)
+                self.controller.task_canvas.coords(
+                    ui_elements["box"],
+                    new_x1,
+                    ui_elements["y1"],
+                    ui_elements["x2"],
+                    ui_elements["y2"],
+                )
+
+                # Update stored coordinates
+                ui_elements["x1"] = new_x1
+
+                # Update model
+                task["col"] = grid_col
+                task["duration"] = round(
+                    (ui_elements["x2"] - ui_elements["x1"]) / self.controller.cell_width
+                )
+
+            elif self.controller.resize_edge == "right":
+                # Snap right edge
+                grid_col = round(ui_elements["x2"] / self.controller.cell_width)
+                new_x2 = grid_col * self.controller.cell_width
+                dx = new_x2 - ui_elements["x2"]
+
+                # Update visuals
+                self.controller.task_canvas.move(ui_elements["right_edge"], dx, 0)
+                self.controller.task_canvas.coords(
+                    ui_elements["box"],
+                    ui_elements["x1"],
+                    ui_elements["y1"],
+                    new_x2,
+                    ui_elements["y2"],
+                )
+
+                # Update stored coordinates
+                ui_elements["x2"] = new_x2
+
+                # Update model
+                task["duration"] = round(
+                    (ui_elements["x2"] - ui_elements["x1"]) / self.controller.cell_width
+                )
+
+            else:
+                # Snap entire task
+                grid_row = round(ui_elements["y1"] / self.controller.task_height)
+                grid_col = round(ui_elements["x1"] / self.controller.cell_width)
+
+                new_x1 = grid_col * self.controller.cell_width
+                new_y1 = grid_row * self.controller.task_height
+                new_x2 = new_x1 + task["duration"] * self.controller.cell_width
+                new_y2 = new_y1 + self.controller.task_height
+
+                # Keep task within bounds
+                if grid_row >= self.model.max_tasks:
+                    grid_row = self.model.max_tasks - 1
+                    new_y1 = grid_row * self.controller.task_height
+                    new_y2 = new_y1 + self.controller.task_height
+
+                if grid_row < 0:
+                    grid_row = 0
+                    new_y1 = 0
+                    new_y2 = self.controller.task_height
+
+                if grid_col < 0:
+                    grid_col = 0
+                    new_x1 = 0
+                    new_x2 = new_x1 + task["duration"] * self.controller.cell_width
+
+                if grid_col + task["duration"] > self.model.days:
+                    grid_col = self.model.days - task["duration"]
+                    new_x1 = grid_col * self.controller.cell_width
+                    new_x2 = new_x1 + task["duration"] * self.controller.cell_width
+
+                # Update visuals
+                self.controller.task_canvas.coords(
+                    ui_elements["box"], new_x1, new_y1, new_x2, new_y2
+                )
+                self.controller.task_canvas.coords(
+                    ui_elements["left_edge"], new_x1, new_y1, new_x1, new_y2
+                )
+                self.controller.task_canvas.coords(
+                    ui_elements["right_edge"], new_x2, new_y1, new_x2, new_y2
+                )
+                self.controller.task_canvas.coords(
+                    ui_elements["text"], (new_x1 + new_x2) / 2, (new_y1 + new_y2) / 2
+                )
+
+                # Update stored coordinates
+                ui_elements["x1"], ui_elements["y1"] = new_x1, new_y1
+                ui_elements["x2"], ui_elements["y2"] = new_x2, new_y2
+
+                # Update model
+                task["row"], task["col"] = grid_row, grid_col
+
+            # Update text position
+            self.controller.task_canvas.coords(
+                ui_elements["text"],
+                (ui_elements["x1"] + ui_elements["x2"]) / 2,
+                (ui_elements["y1"] + ui_elements["y2"]) / 2,
+            )
+
+            # Reset selection
+            self.controller.selected_task = None
+            self.controller.resize_edge = None
+
+            # Redraw dependencies
+            self.controller.ui.draw_dependencies()
+
+        elif self.controller.new_task_in_progress:  # New task creation
+            # Get the start and end columns
+            start_col, row = self.controller.new_task_start
+            end_col = max(
+                0, min(self.model.days - 1, int(canvas_x / self.controller.cell_width))
+            )
+
+            # Determine the left column and duration
+            left_col = min(start_col, end_col)
+            right_col = max(start_col, end_col)
+            duration = right_col - left_col + 1
+
+            # Only create task if it has a valid size
+            if duration >= 1:
+                # Create new task
+                task_name = simpledialog.askstring("New Task", "Enter task name:")
+                if task_name:
+                    # Create a new task in the model
+                    new_task = self.model.add_task(
+                        row=row, col=left_col, duration=duration, description=task_name
+                    )
+
+                    # Draw the new task
+                    self.controller.ui.draw_task(new_task)
+
+                    # Prompt for resources
+                    self.edit_task_resources(new_task)
+
+            # Remove the rubberband
+            if self.controller.rubberband:
+                self.controller.task_canvas.delete(self.controller.rubberband)
+                self.controller.rubberband = None
+
+            # Reset new task flags
+            self.controller.new_task_in_progress = False
+            self.controller.new_task_start = None
+
+        # Update resource loading
+        self.controller.update_resource_loading()
+
+    def on_right_click(self, event):
+        """Handle right-click to show context menu"""
+        x, y = event.x, event.y
+
+        # Convert canvas coordinates to account for scrolling
+        canvas_x = self.controller.task_canvas.canvasx(x)
+        canvas_y = self.controller.task_canvas.canvasy(y)
+
+        # Check if right-clicking on a task
+        task_ui_elements = self.controller.ui.task_ui_elements
+
+        for task_id, ui_elements in task_ui_elements.items():
+            x1, y1, x2, y2 = (
+                ui_elements["x1"],
+                ui_elements["y1"],
+                ui_elements["x2"],
+                ui_elements["y2"],
+            )
+
+            if x1 < canvas_x < x2 and y1 < canvas_y < y2:
+                self.controller.selected_task = self.model.get_task(task_id)
+                # Show context menu
+                self.controller.ui.context_menu.post(event.x_root, event.y_root)
+                return
