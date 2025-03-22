@@ -390,11 +390,14 @@ class TaskOperations:
                 if task_name:
                     # Create a new task dictionary
                     new_task = {
+                        "task_id": self.manager.get_next_task_id(),  # Assign a unique ID
                         "row": row,
                         "col": left_col,
                         "duration": duration,
                         "description": task_name,
                         "resources": [],  # Default empty resources
+                        "predecessors": [],
+                        "successors": [],
                     }
 
                     # Add to tasks list
@@ -437,7 +440,7 @@ class TaskOperations:
             ):
                 self.manager.selected_task = task
                 # Show context menu
-                self.manager.context_menu.post(event.x_root, event.y_root)
+                self.manager.ui.context_menu.post(event.x_root, event.y_root)
                 return
 
     def edit_task_name(self, task=None):
@@ -479,6 +482,49 @@ class TaskOperations:
                 # Update the displayed text
                 if "url" in task:
                     self.manager.task_canvas.itemconfig(task["url"], text=new_url)
+
+    def add_predecessor(self, task):
+        """Add a predecessor to a task."""
+        predecessor_id = simpledialog.askinteger(
+            "Add Predecessor", "Enter the ID of the predecessor task:"
+        )
+        if predecessor_id is not None:
+            predecessor = self.find_task_by_id(predecessor_id)
+            if predecessor:
+                if predecessor["task_id"] not in task["predecessors"]:
+                    task["predecessors"].append(predecessor["task_id"])
+                    if task["task_id"] not in predecessor["successors"]:
+                        predecessor["successors"].append(task["task_id"])
+                    self.manager.ui.draw_task_grid()
+                else:
+                    messagebox.showwarning("Warning", "Task is already a predecessor.")
+            else:
+                messagebox.showerror("Error", "Predecessor task not found.")
+
+    def add_successor(self, task):
+        """Add a successor to a task."""
+        successor_id = simpledialog.askinteger(
+            "Add Successor", "Enter the ID of the successor task:"
+        )
+        if successor_id is not None:
+            successor = self.find_task_by_id(successor_id)
+            if successor:
+                if successor["task_id"] not in task["successors"]:
+                    task["successors"].append(successor["task_id"])
+                    if task["task_id"] not in successor["predecessors"]:
+                        successor["predecessors"].append(task["task_id"])
+                    self.manager.ui.draw_task_grid()
+                else:
+                    messagebox.showwarning("Warning", "Task is already a successor.")
+            else:
+                messagebox.showerror("Error", "Successor task not found.")
+
+    def find_task_by_id(self, task_id):
+        """Find a task by its ID."""
+        for task in self.manager.tasks:
+            if task["task_id"] == task_id:
+                return task
+        return None
 
     def edit_task_resources(self, task=None):
         """Edit resources for the selected task"""

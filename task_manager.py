@@ -34,47 +34,43 @@ class TaskResourceManager:
         self.timeline_height = 30
         self.resource_grid_height = 150
         self.task_grid_height = 300  # Default height for task grid
+        self.task_id_counter = 0  # Initialize the task ID counter
 
         # Dragging state for resizing panes
+        self.dragging_task = None
         self.resizing_pane = False
         self.resize_y = 0
-
-        # Data structures
-        self.task_id_counter = 0  # Initialize the task ID counter
-        self.tasks = []
-        self.selected_task = None
         self.drag_start_x = 0
         self.drag_start_y = 0
         self.resize_edge = None
         self.new_task_in_progress = False
         self.new_task_start = None
+        self.rubberband = None
+
+        # Data structures
+        self.tasks = []
+        self.selected_task = None
 
         # Current file path for save/load operations
         self.current_file_path = None
 
-        # Initialize the UI components handler
-        self.ui = UIComponents(self)
-
-        # Initialize file operations handler
-        self.file_ops = FileOperations(self)
-
-        # Initialize task operations handler
+        # Initialize handlers
         self.task_ops = TaskOperations(self)
-
-        # Create menu bar
-        self.ui.create_menu_bar()
+        self.ui = UIComponents(self)
+        self.file_ops = FileOperations(self)
 
         # Create main container frame
         self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Create frames for our three main areas with scrollbars
+        # Create UI elements
+        self.ui.create_menu_bar()
         self.ui.create_timeline_frame()
         self.ui.create_task_grid_frame()
         self.ui.create_resource_grid_frame()
 
         # Create context menu for tasks
-        self.ui.create_context_menu()
+        # self.ui.create_context_menu()
 
         # Create sample tasks
         self.create_sample_tasks()

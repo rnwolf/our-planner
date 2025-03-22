@@ -5,6 +5,7 @@ from tkinter import ttk, simpledialog, messagebox
 class UIComponents:
     def __init__(self, manager):
         self.manager = manager
+        self.create_context_menu()
 
     def create_menu_bar(self):
         """Create the menu bar with file operations"""
@@ -245,21 +246,40 @@ class UIComponents:
         )
 
     def create_context_menu(self):
-        """Create right-click context menu for tasks"""
-        self.manager.context_menu = tk.Menu(self.manager.root, tearoff=0)
-        self.manager.context_menu.add_command(
+        """Create the right-click context menu."""
+        self.context_menu = tk.Menu(self.manager.root, tearoff=0)
+        self.context_menu.add_command(
             label="Edit Task Name", command=self.manager.task_ops.edit_task_name
         )
-        self.manager.context_menu.add_command(
-            label="Edit Task Url", command=self.manager.task_ops.edit_task_url
+        self.context_menu.add_command(
+            label="Edit Task URL", command=self.manager.task_ops.edit_task_url
         )
-        self.manager.context_menu.add_command(
+        self.context_menu.add_command(
             label="Edit Task Resources",
             command=self.manager.task_ops.edit_task_resources,
         )
-        self.manager.context_menu.add_separator()
-        self.manager.context_menu.add_command(
+        self.context_menu.add_command(
+            label="Add Predecessor",
+            command=lambda: self.manager.task_ops.add_predecessor(
+                self.manager.selected_task
+            ),
+        )
+        self.context_menu.add_command(
+            label="Add Successor",
+            command=lambda: self.manager.task_ops.add_successor(
+                self.manager.selected_task
+            ),
+        )
+        self.context_menu.add_command(
             label="Delete Task", command=self.manager.task_ops.delete_task
+        )
+        self.context_menu.add_separator()
+        self.context_menu.add_command(
+            label="Edit Resources", command=self.manager.task_ops.edit_resources
+        )
+        self.context_menu.add_command(
+            label="Edit Project Settings",
+            command=self.manager.task_ops.edit_project_settings,
         )
 
     def sync_horizontal_scroll(self, *args):
