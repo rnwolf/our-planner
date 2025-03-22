@@ -8,89 +8,58 @@ The Task Resource Manager application...
 
 The application is structuredinto a modular structure with multiple files to make it more maintainable and to avoid hitting token limits.
 
-Here's what each file contains:
+Implementation Guidelines
+Step 1: Create the Model Layer
 
-### 1. `main.py` - Entry Point
+Create a new file model.py with the TaskResourceModel class
+Move all data-related code from existing files to the model
+Add proper methods for data access and manipulation
+Remove UI dependencies from the model
 
-- Contains the `main()` function and application startup code
-- Very clean and minimal - just launches the application
+Step 2: Refactor the Controller
 
-### 2. `task_manager.py` - Core Class
+Update task_manager.py to use the new model
+Remove direct data manipulation code
+Keep UI interaction state in the controller
+Add methods to coordinate between model and view
 
-- The main `TaskResourceManager` class
-- Initializes all components and configuration
-- Creates the container frame structure
-- Holds shared data and state
+Step 3: Update UI Components
 
-### 3. `ui_components.py` - UI-Related Code
+Modify ui_components.py to reference the model through the controller
+Focus on rendering and UI behavior
+Handle user input and delegate model changes to the controller
+Keep track of UI-specific elements (canvas items, coordinates)
 
-- UI creation and drawing functions
-- Handles scrolling synchronization
-- Manages the resizer between grids
-- Drawing and rendering of all visual elements
+Step 4: Update Operations Classes
 
-### 4. `task_operations.py` - Task Functionality
+Modify file_operations.py and task_operations.py to work with the model
+Remove direct data manipulation
+Use model methods for data operations
+Update UI through the controller
 
-- Task manipulation (create, move, resize)
-- Resource loading calculation
-- Mouse event handlers for tasks
-- Dialog handling for task properties
+Step 5: Test Each Component
 
-### 5. `file_operations.py` - File Handling
+Test the model independently
+Test UI components with mock data
+Test operations with model and UI integration
+Verify full functionality
 
-- Project saving and loading
-- File dialog management
-- Serialization/deserialization of project data
+Best Practices To Follow
+For the Model
 
-This modular approach has several advantages:
+No UI dependencies: The model should never import Tkinter or other UI libraries
+Complete API: Provide all necessary methods for data access and manipulation
+Encapsulation: Keep internal data structures private when possible
+Validation: Validate inputs before making changes to the model
 
-1. **Better Organization**: Related functionality is grouped together
-2. **Easier Maintenance**: Smaller files are easier to understand and modify
-3. **Avoids Token Limits**: The code is split across multiple files, which prevents hitting token limits during development
-4. **Easier Navigation**: Developers can focus on specific aspects of the application
-5. **Better Collaboration**: Multiple people can work on different components simultaneously
-6. **Extensibility**: New features can be added by extending existing modules or adding new ones
+For the Controller
 
-### How to Run the Application
+Minimal state: Keep only necessary state for user interactions
+Coordinate, don't implement: Delegate implementations to appropriate classes
+Keep UI and model separate: Never let model directly access UI or vice versa
 
-To run the application with this modular structure:
+For the View
 
-1. Save all the files in the same directory:
-
-    - `main.py`
-    - `task_manager.py`
-    - `ui_components.py`
-    - `task_operations.py`
-    - `file_operations.py`
-
-2. Run the application by executing `main.py`
-
-### How the Components Work Together
-
-The application uses a reference-based architecture:
-
-1. The `TaskResourceManager` instance is created in `main.py`
-2. This instance is passed to each component (UI, task operations, file operations)
-3. Each component can access the manager's properties and other components
-4. This allows for coordinated functionality while maintaining separation of concerns
-
-For example, when the user clicks "Save" in the menu:
-
-- The menu calls `file_ops.save_file()`
-- The `file_ops` component accesses the manager's task data
-- After saving, it updates the manager's current file path and window title
-
-### Key Improvements in This Design
-
-1. **Clear Responsibility Boundaries**:
-    - UI components handle only drawing and user interaction
-    - Task operations focus on business logic
-    - File operations concentrate on persistence
-2. **Reduced Coupling**:
-    - Each module depends only on what it needs
-    - Changes in one area have minimal impact on others
-3. **State Management**:
-    - Core state is maintained in the manager
-    - Components operate on shared state through the manager reference
-
-This structure not only solves the immediate issue with token limits but also provides a more robust foundation for future development of the Task Resource Manager.
+Render, don't change data: UI components should focus on rendering, not data manipulation
+Delegate actions: Pass user actions to the controller
+Manage UI state: Keep track of UI-specific elements and states
