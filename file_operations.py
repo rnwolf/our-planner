@@ -122,12 +122,15 @@ class FileOperations:
         for task in self.manager.tasks:
             # Create a copy of the task without canvas-specific items
             task_data = {
+                "task_id": task["task_id"],
                 "row": task["row"],
                 "col": task["col"],
                 "duration": task["duration"],
                 "description": task.get("description", ""),
                 "url": task.get("url", ""),
                 "resources": task["resources"],
+                "predecessors": task["predecessors"],
+                "successors": task["successors"],
             }
             serialized_tasks.append(task_data)
 

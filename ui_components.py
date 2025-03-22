@@ -453,7 +453,12 @@ class UIComponents:
 
     def draw_task(self, task):
         """Draw a single task box with its information"""
-        row, col, duration = task["row"], task["col"], task["duration"]
+        row, col, task_id, duration = (
+            task["row"],
+            task["col"],
+            task["task_id"],
+            task["duration"],
+        )
 
         # Calculate position
         x1 = col * self.manager.cell_width
@@ -497,5 +502,8 @@ class UIComponents:
         else:
             # Regular description
             task["text"] = self.manager.task_canvas.create_text(
-                (x1 + x2) / 2, (y1 + y2) / 2, text=task["description"], tags=("task",)
+                (x1 + x2) / 2,
+                (y1 + y2) / 2,
+                text=task["description"],
+                tags=("task", "task_text", str(task_id)),
             )

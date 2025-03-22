@@ -17,7 +17,18 @@ class TaskResourceManager:
         # Configuration
         self.days = 100
         self.max_tasks = 50
-        self.resources = ["Resource A", "Resource B", "Resource C"]
+        self.resources = [
+            "Resource A",
+            "Resource B",
+            "Resource C",
+            "Resource D",
+            "Resource E",
+            "Resource F",
+            "Resource G",
+            "Resource H",
+            "Resource I",
+            "Resource J",
+        ]
         self.cell_width = 45
         self.task_height = 30
         self.timeline_height = 30
@@ -29,6 +40,7 @@ class TaskResourceManager:
         self.resize_y = 0
 
         # Data structures
+        self.task_id_counter = 0  # Initialize the task ID counter
         self.tasks = []
         self.selected_task = None
         self.drag_start_x = 0
@@ -73,113 +85,54 @@ class TaskResourceManager:
         self.ui.draw_resource_grid()
         self.task_ops.calculate_resource_loading()
 
-    def create_sample_tasks(self):
-        """Create sample tasks across the timeline to demonstrate scrolling"""
-        sample_tasks = [
-            {
-                "row": 0,
-                "col": 1,
-                "duration": 3,
-                "description": "Task 1",
-                "url": "https://www.google.com",
-                "resources": ["Resource A"],
-            },
-            {
-                "row": 1,
-                "col": 5,
-                "duration": 4,
-                "description": "Task 2",
-                "url": "https://www.google.com",
-                "resources": ["Resource B", "Resource C"],
-            },
-            {
-                "row": 2,
-                "col": 2,
-                "duration": 5,
-                "description": "Task 3",
-                "url": "https://www.google.com",
-                "resources": ["Resource A", "Resource B"],
-            },
-            {
-                "row": 3,
-                "col": 8,
-                "duration": 2,
-                "description": "Task 4",
-                "resources": ["Resource C"],
-            },
-            {
-                "row": 4,
-                "col": 12,
-                "duration": 6,
-                "description": "Task 5",
-                "resources": ["Resource A", "Resource B", "Resource C"],
-            },
-            # Add tasks further out in the timeline to demonstrate scrolling
-            {
-                "row": 6,
-                "col": 25,
-                "duration": 4,
-                "description": "Task 6",
-                "resources": ["Resource A"],
-            },
-            {
-                "row": 8,
-                "col": 40,
-                "duration": 8,
-                "description": "Task 7",
-                "resources": ["Resource B"],
-            },
-            {
-                "row": 10,
-                "col": 70,
-                "duration": 10,
-                "description": "Task 8",
-                "resources": ["Resource C"],
-            },
-            {
-                "row": 15,
-                "col": 90,
-                "duration": 5,
-                "description": "Task 9",
-                "resources": ["Resource A", "Resource B"],
-            },
-            # Add tasks in different rows to demonstrate vertical scrolling
-            {
-                "row": 20,
-                "col": 15,
-                "duration": 7,
-                "description": "Task 10",
-                "resources": ["Resource A"],
-            },
-            {
-                "row": 25,
-                "col": 30,
-                "duration": 6,
-                "description": "Task 11",
-                "resources": ["Resource B"],
-            },
-            {
-                "row": 30,
-                "col": 50,
-                "duration": 8,
-                "description": "Task 12",
-                "resources": ["Resource C"],
-            },
-            {
-                "row": 40,
-                "col": 60,
-                "duration": 9,
-                "description": "Task 13",
-                "resources": ["Resource A", "Resource C"],
-            },
-            {
-                "row": 45,
-                "col": 80,
-                "duration": 4,
-                "description": "Task 14",
-                "resources": ["Resource B"],
-            },
-        ]
+    def get_next_task_id(self):
+        """Generate a unique task ID."""
+        self.task_id_counter += 1
+        return self.task_id_counter
 
-        for task_data in sample_tasks:
-            self.tasks.append(task_data)
+    def create_sample_tasks(self):
+        """Create some sample tasks."""
+        task1 = {
+            "task_id": self.get_next_task_id(),  # Assign a unique ID
+            "description": "Task A",
+            "url": "https://www.google.com",
+            "row": 1,
+            "col": 5,
+            "duration": 5,
+            "resources": ["Resource A", "Resource B"],
+            "predecessors": [],  # Initialize predecessors list
+            "successors": [],  # Initialize successors list
+        }
+        task2 = {
+            "task_id": self.get_next_task_id(),
+            "description": "Task B",
+            "url": "https://www.google.com",
+            "row": 2,
+            "col": 12,
+            "duration": 4,
+            "resources": ["Resource A", "Resource B", "Resource C"],
+            "predecessors": [],
+            "successors": [],
+        }
+        task3 = {
+            "task_id": self.get_next_task_id(),
+            "description": "Task C",
+            "url": "https://www.google.com",
+            "row": 3,
+            "col": 2,
+            "duration": 3,
+            "resources": ["Resource A"],
+            "predecessors": [],
+            "successors": [],
+        }
+        task4 = {
+            "task_id": self.get_next_task_id(),
+            "description": "Task D",
+            "row": 4,
+            "col": 1,
+            "duration": 2,
+            "resources": ["Resource A", "Resource D"],
+            "predecessors": [],
+            "successors": [],
+        }
+        self.tasks.extend([task1, task2, task3, task4])
