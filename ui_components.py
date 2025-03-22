@@ -419,6 +419,10 @@ class UIComponents:
 
     def draw_dependencies(self):
         """Draw arrows for task dependencies"""
+        # First delete all existing dependency arrows
+        self.controller.task_canvas.delete("dependency")
+
+        # Then redraw all dependencies
         for task in self.model.tasks:
             # Draw links to successors
             for successor_id in task["successors"]:
