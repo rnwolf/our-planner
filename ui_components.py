@@ -503,13 +503,13 @@ class UIComponents:
             x2, y1, x2, y2, fill="black", width=2, tags=("task", "resize", "right")
         )
 
-        # Draw task description
+        # Draw task ID and description
         if task.get("url") and isinstance(task["url"], str) and task["url"].strip():
             # Make the description a clickable URL
             task["text"] = self.manager.task_canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2,
-                text=task["description"],
+                text=f"{task_id} - {task["description"]}",
                 fill="blue",
                 tags=("task", "url"),
             )
@@ -520,10 +520,10 @@ class UIComponents:
                 lambda e, url=task["url"]: self.open_url(url),
             )
         else:
-            # Regular description
+            # Regular task ID and description
             task["text"] = self.manager.task_canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2,
-                text=task["description"],
+                text=f"{task_id} - {task["description"]}",
                 tags=("task", "task_text", str(task_id)),
             )
