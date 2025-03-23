@@ -34,6 +34,8 @@ class TaskResourceManager:
         self.new_task_start = None
         self.rubberband = None
         self.selected_task = None
+        self.dragging_connector = False
+        self.connector_line = None
 
         # Create main container frame
         self.main_frame = tk.Frame(self.root)

@@ -19,12 +19,27 @@ class TaskOperations:
         task_ui_elements = self.controller.ui.task_ui_elements
 
         for task_id, ui_elements in task_ui_elements.items():
-            x1, y1, x2, y2 = (
+            x1, y1, x2, y2, connector_x, connector_y = (
                 ui_elements["x1"],
                 ui_elements["y1"],
                 ui_elements["x2"],
                 ui_elements["y2"],
+                ui_elements["connector_x"],
+                ui_elements["connector_y"],
             )
+            connector_radius = 5
+
+            # Connector (for adding dependencies)
+            if (
+                connector_x - connector_radius
+                < canvas_x
+                < connector_x + connector_radius
+                and connector_y - connector_radius
+                < canvas_y
+                < connector_y + connector_radius
+            ):
+                self.controller.task_canvas.config(cursor="hand2")
+                return
 
             # Left edge (for resizing)
             if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
@@ -101,7 +116,7 @@ class TaskOperations:
                 # Redraw the task to update the URL behavior
                 self.controller.ui.draw_task_grid()
 
-    def add_predecessor(self, task):
+    def add_predecessor_dialog(self, task):
         """Add a predecessor to a task."""
         if not task:
             return
@@ -118,8 +133,19 @@ class TaskOperations:
             else:
                 messagebox.showerror("Error", "Predecessor task not found.")
 
-    def add_successor(self, task):
+    def add_successor(self, task, target_task):
         """Add a successor to a task."""
+        if not task or not target_task:
+            return
+
+        if self.model.add_successor(task["task_id"], target_task["task_id"]):
+            # Redraw to show dependencies
+            self.controller.ui.draw_dependencies()
+        else:
+            messagebox.showerror("Error", "Successor task not found.")
+
+    def add_successor_dialog(self, task):
+        """Add a successor to a task using a dialog box."""
         if not task:
             return
 
@@ -435,12 +461,38 @@ class TaskOperations:
         task_ui_elements = self.controller.ui.task_ui_elements
 
         for task_id, ui_elements in task_ui_elements.items():
-            x1, y1, x2, y2 = (
+            x1, y1, x2, y2, connector_x, connector_y = (
                 ui_elements["x1"],
                 ui_elements["y1"],
                 ui_elements["x2"],
                 ui_elements["y2"],
+                ui_elements["connector_x"],
+                ui_elements["connector_y"],
             )
+            connector_radius = 5
+
+            if (
+                connector_x - connector_radius
+                < canvas_x
+                < connector_x + connector_radius
+                and connector_y - connector_radius
+                < canvas_y
+                < connector_y + connector_radius
+            ):
+                self.controller.selected_task = self.model.get_task(task_id)
+                self.controller.dragging_connector = True
+                self.controller.connector_line = (
+                    self.controller.task_canvas.create_line(
+                        connector_x,
+                        connector_y,
+                        connector_x,
+                        connector_y,
+                        fill="blue",
+                        width=2,
+                        tags=("connector_line",),
+                    )
+                )
+                return
 
             # Check if clicking on left edge (for left resize)
             if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
@@ -499,6 +551,21 @@ class TaskOperations:
         canvas_x = self.controller.task_canvas.canvasx(x)
         canvas_y = self.controller.task_canvas.canvasy(y)
 
+        if self.controller.dragging_connector:
+            task_id = self.controller.selected_task["task_id"]
+            ui_elements = self.controller.ui.task_ui_elements.get(task_id)
+            if ui_elements:  # Check if ui_elements exists for this task
+                connector_x = ui_elements["connector_x"]
+                connector_y = ui_elements["connector_y"]
+                self.controller.task_canvas.coords(
+                    self.controller.connector_line,
+                    connector_x,
+                    connector_y,
+                    canvas_x,
+                    canvas_y,
+                )
+            return
+
         if self.controller.selected_task:  # Existing task manipulation
             dx = canvas_x - self.controller.drag_start_x
             dy = canvas_y - self.controller.drag_start_y
@@ -547,6 +614,10 @@ class TaskOperations:
                     # Update stored coordinates
                     ui_elements["x2"] += dx
 
+                    # Update connector position
+                    ui_elements["connector_x"] += dx
+                    self.controller.task_canvas.move(ui_elements["connector"], dx, 0)
+
                     # Update text position
                     self.controller.task_canvas.coords(
                         ui_elements["text"],
@@ -566,6 +637,12 @@ class TaskOperations:
                 ui_elements["y1"] += dy
                 ui_elements["x2"] += dx
                 ui_elements["y2"] += dy
+                # Update connector position in UI elements dictionary
+                ui_elements["connector_x"] += dx
+                ui_elements["connector_y"] += dy
+
+                # Update connector position on canvas
+                self.controller.task_canvas.move(ui_elements["connector"], dx, dy)
 
             self.controller.drag_start_x = canvas_x
             self.controller.drag_start_y = canvas_y
@@ -598,6 +675,19 @@ class TaskOperations:
         # Convert canvas coordinates to account for scrolling
         canvas_x = self.controller.task_canvas.canvasx(x)
         canvas_y = self.controller.task_canvas.canvasy(y)
+
+        if self.controller.dragging_connector:
+            # Check for collision with another task
+            target_task = self.find_task_at(canvas_x, canvas_y)
+
+            if target_task:
+                self.add_successor(self.controller.selected_task, target_task)
+
+            # Delete connector line
+            self.controller.task_canvas.delete(self.controller.connector_line)
+            self.controller.connector_line = None
+            self.controller.dragging_connector = False
+            return
 
         if self.controller.selected_task:  # Existing task manipulation
             task = self.controller.selected_task
@@ -702,6 +792,17 @@ class TaskOperations:
                     ui_elements["text"], (new_x1 + new_x2) / 2, (new_y1 + new_y2) / 2
                 )
 
+                # Update connector position AFTER snapping
+                ui_elements["connector_x"] = new_x2
+                ui_elements["connector_y"] = (new_y1 + new_y2) / 2
+                self.controller.task_canvas.coords(
+                    ui_elements["connector"],
+                    ui_elements["connector_x"] - 5,
+                    ui_elements["connector_y"] - 5,
+                    ui_elements["connector_x"] + 5,
+                    ui_elements["connector_y"] + 5,
+                )
+
                 # Update stored coordinates
                 ui_elements["x1"], ui_elements["y1"] = new_x1, new_y1
                 ui_elements["x2"], ui_elements["y2"] = new_x2, new_y2
@@ -789,3 +890,16 @@ class TaskOperations:
                 # Show context menu
                 self.controller.ui.context_menu.post(event.x_root, event.y_root)
                 return
+
+    def find_task_at(self, x, y):
+        """Finds the task at the given coordinates."""
+        for task_id, ui_elements in self.controller.ui.task_ui_elements.items():
+            x1, y1, x2, y2 = (
+                ui_elements["x1"],
+                ui_elements["y1"],
+                ui_elements["x2"],
+                ui_elements["y2"],
+            )
+            if x1 < x < x2 and y1 < y < y2:
+                return self.model.get_task(task_id)
+        return None

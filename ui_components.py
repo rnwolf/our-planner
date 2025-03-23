@@ -268,13 +268,13 @@ class UIComponents:
         )
         self.context_menu.add_command(
             label="Add Predecessor",
-            command=lambda: self.controller.task_ops.add_predecessor(
+            command=lambda: self.controller.task_ops.add_predecessor_dialog(
                 self.controller.selected_task
             ),
         )
         self.context_menu.add_command(
             label="Add Successor",
-            command=lambda: self.controller.task_ops.add_successor(
+            command=lambda: self.controller.task_ops.add_successor_dialog(
                 self.controller.selected_task
             ),
         )
@@ -454,63 +454,51 @@ class UIComponents:
                     task_ui = self.task_ui_elements[task["task_id"]]
                     successor_ui = self.task_ui_elements[successor_id]
 
-                    # Draw an arrow from task to successor
+                    # Check for same row and adjacency AND predecessor-successor relationship
+                    if (
+                        task_ui["y1"] == successor_ui["y1"]
+                        and task_ui["x2"] == successor_ui["x1"]
+                        and successor_id in task["successors"]
+                    ):
+                        continue  # Skip drawing the line if adjacent in same row and predecessor-successor
+
                     x1 = task_ui["x2"]
                     y1 = (task_ui["y1"] + task_ui["y2"]) / 2
                     x2 = successor_ui["x1"]
                     y2 = (successor_ui["y1"] + successor_ui["y2"]) / 2
+                    self.draw_arrow(x1, y1, x2, y2, task, successor)
 
-                    # Create arrow with appropriate curve
-                    self.draw_arrow(x1, y1, x2, y2)
+    def draw_arrow(self, x1, y1, x2, y2, task, successor):
+        """Draw an arrow between tasks, coloring based on dependency direction."""
 
-    def draw_arrow(self, x1, y1, x2, y2):
-        """Draw an arrow between tasks"""
+        # Calculate the end date of the predecessor and start date of the successor
+        predecessor_end_date = task["col"] + task["duration"]
+        successor_start_date = successor["col"]
+
+        # Determine the color based on the dependency direction
+        color = "darkblue"  # Default to blue (forward dependency)
+        if predecessor_end_date > successor_start_date:
+            color = "darkred"  # Red for backward dependency
+
         # Calculate control points for a curved line
-        if x2 > x1:  # Forward dependency
-            cp_x = (x1 + x2) / 2
+        cp_x = (x1 + x2) / 2
 
-            # Draw the arrow line
-            arrow_id = self.controller.task_canvas.create_line(
-                x1,
-                y1,
-                cp_x,
-                y1,
-                cp_x,
-                y2,
-                x2,
-                y2,
-                smooth=True,
-                arrow=tk.LAST,
-                fill="darkblue",
-                width=1.5,
-                tags=("dependency",),
-            )
-        else:  # Backward dependency (needs more curve)
-            # Calculate control points for a more pronounced curve
-            cp_x1 = x1 + 20
-            cp_x2 = x2 - 20
-            offset = abs(y2 - y1) / 2
-
-            arrow_id = self.controller.task_canvas.create_line(
-                x1,
-                y1,
-                cp_x1,
-                y1,
-                cp_x1,
-                y1 - offset,
-                cp_x2,
-                y2 + offset,
-                cp_x2,
-                y2,
-                x2,
-                y2,
-                smooth=True,
-                arrow=tk.LAST,
-                fill="darkred",
-                width=1.5,
-                tags=("dependency",),
-            )
-
+        # Draw the arrow line
+        arrow_id = self.controller.task_canvas.create_line(
+            x1,
+            y1,
+            cp_x,
+            y1,
+            cp_x,
+            y2,
+            x2,
+            y2,
+            smooth=True,
+            arrow=tk.LAST,
+            fill=color,
+            width=1.5,
+            tags=("dependency",),
+        )
         return arrow_id
 
     def draw_resource_grid(self):
@@ -653,6 +641,26 @@ class UIComponents:
                 tags=("task", "task_text", f"task_{task_id}"),
             )
 
+        # Add grab connector circle
+        connector_radius = 5
+        connector_x = x2
+        connector_y = (y1 + y2) / 2
+        connector_id = self.controller.task_canvas.create_oval(
+            connector_x - connector_radius,
+            connector_y - connector_radius,
+            connector_x + connector_radius,
+            connector_y + connector_radius,
+            fill="lightgray",
+            outline="black",
+            width=1,
+            tags=("task", "connector", f"connector_{task_id}"),
+        )
+
+        # Update UI elements dictionary
+        # self.task_ui_elements[task_id]["connector"] = connector_id
+        # self.task_ui_elements[task_id]["connector_x"] = connector_x
+        # self.task_ui_elements[task_id]["connector_y"] = connector_y
+
         # Store UI elements for this task
         self.task_ui_elements[task_id] = {
             "box": box_id,
@@ -663,4 +671,7 @@ class UIComponents:
             "y1": y1,
             "x2": x2,
             "y2": y2,
+            "connector": connector_id,
+            "connector_x": connector_x,
+            "connector_y": connector_y,
         }
