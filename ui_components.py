@@ -158,7 +158,7 @@ class UIComponents:
                 0,
                 0,
                 self.controller.cell_width * self.model.days,
-                self.model.max_tasks * self.controller.task_height,
+                self.model.max_rows * self.controller.task_height,
             ),
         )
 
@@ -396,7 +396,7 @@ class UIComponents:
 
         # Calculate width and height
         canvas_width = self.controller.cell_width * self.model.days
-        canvas_height = self.model.max_tasks * self.controller.task_height
+        canvas_height = self.model.max_rows * self.controller.task_height
         self.controller.task_canvas.config(
             scrollregion=(0, 0, canvas_width, canvas_height)
         )
@@ -409,12 +409,12 @@ class UIComponents:
             x = i * self.controller.cell_width
             self.controller.task_canvas.create_line(x, 0, x, canvas_height, fill="gray")
 
-        for i in range(self.model.max_tasks + 1):
+        for i in range(self.model.max_rows + 1):
             y = i * self.controller.task_height
             self.controller.task_canvas.create_line(0, y, canvas_width, y, fill="gray")
 
             # Draw row labels in the label canvas
-            if i < self.model.max_tasks:
+            if i < self.model.max_rows:
                 self.controller.task_label_canvas.create_line(0, y, 100, y, fill="gray")
                 self.controller.task_label_canvas.create_text(
                     50,

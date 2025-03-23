@@ -720,12 +720,12 @@ class TaskOperations:
         days_entry.grid(row=0, column=1, sticky="w", pady=5)
 
         # Max tasks setting
-        tk.Label(settings_frame, text="Maximum Tasks:").grid(
+        tk.Label(settings_frame, text="Maximum Rows:").grid(
             row=1, column=0, sticky="w", pady=5
         )
-        max_tasks_var = tk.IntVar(value=self.model.max_tasks)
-        max_tasks_entry = tk.Entry(settings_frame, textvariable=max_tasks_var, width=10)
-        max_tasks_entry.grid(row=1, column=1, sticky="w", pady=5)
+        max_rows_var = tk.IntVar(value=self.model.max_rows)
+        max_rows_entry = tk.Entry(settings_frame, textvariable=max_rows_var, width=10)
+        max_rows_entry.grid(row=1, column=1, sticky="w", pady=5)
 
         # Button frame
         button_frame = tk.Frame(dialog)
@@ -734,7 +734,7 @@ class TaskOperations:
         def save_settings():
             try:
                 new_days = int(days_var.get())
-                new_max_tasks = int(max_tasks_var.get())
+                new_max_rows = int(max_rows_var.get())
 
                 if new_days < 1:
                     messagebox.showerror(
@@ -744,10 +744,10 @@ class TaskOperations:
                     )
                     return
 
-                if new_max_tasks < 1:
+                if new_max_rows < 1:
                     messagebox.showerror(
                         "Invalid Value",
-                        "Maximum tasks must be at least 1.",
+                        "Maximum rows must be at least 1.",
                         parent=dialog,
                     )
                     return
@@ -757,7 +757,7 @@ class TaskOperations:
                 for task in self.model.tasks:
                     if (
                         task["col"] + task["duration"] > new_days
-                        or task["row"] >= new_max_tasks
+                        or task["row"] >= new_max_rows
                     ):
                         tasks_out_of_bounds = True
                         break
@@ -772,7 +772,7 @@ class TaskOperations:
 
                 # Apply the settings
                 self.model.days = new_days
-                self.model.max_tasks = new_max_tasks
+                self.model.max_rows = new_max_rows
 
                 # Update resource capacities to match new days if needed
                 for resource in self.model.resources:
@@ -877,7 +877,7 @@ class TaskOperations:
         if (
             not task_clicked
             and canvas_y >= 0
-            and canvas_y <= self.model.max_tasks * self.controller.task_height
+            and canvas_y <= self.model.max_rows * self.controller.task_height
         ):
             # Snap to grid
             row, col = self.controller.convert_ui_to_model_coordinates(
@@ -1148,8 +1148,8 @@ class TaskOperations:
                 new_y2 = new_y1 + self.controller.task_height
 
                 # Keep task within bounds
-                if grid_row >= self.model.max_tasks:
-                    grid_row = self.model.max_tasks - 1
+                if grid_row >= self.model.max_rows:
+                    grid_row = self.model.max_rows - 1
                     new_y1 = grid_row * self.controller.task_height
                     new_y2 = new_y1 + self.controller.task_height
 

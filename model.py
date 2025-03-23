@@ -6,7 +6,7 @@ class TaskResourceModel:
     def __init__(self):
         # Configuration
         self.days = 100
-        self.max_tasks = 50
+        self.max_rows = 50
 
         # Resource management with IDs
         self.resource_id_counter = 0
@@ -349,7 +349,7 @@ class TaskResourceModel:
                 "tasks": self.tasks,
                 "resources": self.resources,
                 "days": self.days,
-                "max_tasks": self.max_tasks,
+                "max_rows": self.max_rows,
             }
 
             with open(file_path, "w") as f:
