@@ -56,7 +56,7 @@ class TaskOperations:
         # Reset cursor if not over a task
         self.controller.task_canvas.config(cursor="")
 
-    def edit_task_name(self, task=None):
+    def edit_task_name(self, parent=None, task=None):
         """Edit the name of the selected task"""
         if task is None:
             task = self.controller.selected_task
@@ -66,6 +66,7 @@ class TaskOperations:
                 "Edit Task Name",
                 "Enter new task name:",
                 initialvalue=task["description"],
+                parent=parent or self.controller.root,
             )
             if new_name:
                 # Update the task description in model
@@ -91,6 +92,7 @@ class TaskOperations:
                 "Edit Task URL",
                 "Enter new task URL:",
                 initialvalue=task["url"],
+                parent=self.controller.root,
             )
             if new_url is not None:
                 # Update the task url in model
@@ -105,7 +107,9 @@ class TaskOperations:
             return
 
         predecessor_id = simpledialog.askinteger(
-            "Add Predecessor", "Enter the ID of the predecessor task:"
+            "Add Predecessor",
+            "Enter the ID of the predecessor task:",
+            parent=self.controller.root,
         )
         if predecessor_id is not None:
             if self.model.add_predecessor(task["task_id"], predecessor_id):
@@ -120,7 +124,9 @@ class TaskOperations:
             return
 
         successor_id = simpledialog.askinteger(
-            "Add Successor", "Enter the ID of the successor task:"
+            "Add Successor",
+            "Enter the ID of the successor task:",
+            parent=self.controller.root,
         )
         if successor_id is not None:
             if self.model.add_successor(task["task_id"], successor_id):
@@ -204,10 +210,12 @@ class TaskOperations:
                 # Update resource loading
                 self.controller.update_resource_loading()
 
-    def add_resource(self):
+    def add_resource(self, parent=None):
         """Add a new resource to the project"""
+        parent = parent or self.controller.root
+
         resource_name = simpledialog.askstring(
-            "Add Resource", "Enter new resource name:"
+            "Add Resource", "Enter new resource name:", parent=parent
         )
         if resource_name:
             if self.model.add_resource(resource_name):
@@ -216,14 +224,19 @@ class TaskOperations:
             else:
                 messagebox.showinfo("Information", "Resource already exists.")
 
-    def edit_resources(self):
+    def edit_resources(self, parent=None):
         """Edit the list of resources"""
         # Create a dialog for resource editing
-        dialog = tk.Toplevel(self.controller.root)
+        parent = parent or self.controller.root
+
+        dialog = tk.Toplevel(parent)
         dialog.title("Edit Resources")
-        dialog.geometry("400x300")
-        dialog.transient(self.controller.root)
-        dialog.grab_set()
+        # Position the dialog relative to the parent window
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        dialog.geometry(f"400x300+{x}+{y}")
+        dialog.transient(parent)
+        dialog.grab_set()  # Important: Prevents interaction with the main window
 
         # Create a frame for the resource list
         list_frame = tk.Frame(dialog)
@@ -307,14 +320,19 @@ class TaskOperations:
             side=tk.RIGHT, padx=5
         )
 
-    def edit_project_settings(self):
+    def edit_project_settings(self, parent=None):
         """Edit project settings like number of days"""
         # Create a dialog for project settings
-        dialog = tk.Toplevel(self.controller.root)
+        parent = parent or self.controller.root
+
+        dialog = tk.Toplevel(parent)
         dialog.title("Project Settings")
-        dialog.geometry("300x150")
-        dialog.transient(self.controller.root)
-        dialog.grab_set()
+        # Position the dialog relative to the parent window
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        dialog.geometry(f"300x150+{x}+{y}")
+        dialog.transient(parent)
+        dialog.grab_set()  # Prevent interaction with the main window
 
         # Create form fields
         settings_frame = tk.Frame(dialog)
@@ -720,7 +738,9 @@ class TaskOperations:
             # Only create task if it has a valid size
             if duration >= 1:
                 # Create new task
-                task_name = simpledialog.askstring("New Task", "Enter task name:")
+                task_name = simpledialog.askstring(
+                    "New Task", "Enter task name:", parent=self.controller.root
+                )
                 if task_name:
                     # Create a new task in the model
                     new_task = self.model.add_task(

@@ -43,15 +43,23 @@ class UIComponents:
 
         # Edit operations
         self.edit_menu.add_command(
-            label="Add Resource...", command=self.controller.task_ops.add_resource
+            label="Add Resource...",
+            command=lambda: self.controller.task_ops.add_resource(
+                parent=self.controller.root
+            ),
         )
         self.edit_menu.add_command(
-            label="Edit Resources...", command=self.controller.task_ops.edit_resources
+            label="Edit Resources...",
+            command=lambda: self.controller.task_ops.edit_resources(
+                parent=self.controller.root
+            ),
         )
         self.edit_menu.add_separator()
         self.edit_menu.add_command(
             label="Project Settings...",
-            command=self.controller.task_ops.edit_project_settings,
+            command=lambda: self.controller.task_ops.edit_project_settings(
+                parent=self.controller.root
+            ),
         )
 
     def create_timeline_frame(self):
@@ -244,14 +252,19 @@ class UIComponents:
         """Create the right-click context menu."""
         self.context_menu = tk.Menu(self.controller.root, tearoff=0)
         self.context_menu.add_command(
-            label="Edit Task Name", command=self.controller.task_ops.edit_task_name
+            label="Edit Task Name",
+            command=lambda: self.controller.task_ops.edit_task_name(
+                parent=self.controller.root
+            ),
         )
         self.context_menu.add_command(
             label="Edit Task URL", command=self.controller.task_ops.edit_task_url
         )
         self.context_menu.add_command(
             label="Edit Task Resources",
-            command=self.controller.task_ops.edit_task_resources,
+            command=lambda: self.controller.task_ops.edit_task_resources(
+                self.controller.selected_task
+            ),
         )
         self.context_menu.add_command(
             label="Add Predecessor",
@@ -270,11 +283,16 @@ class UIComponents:
         )
         self.context_menu.add_separator()
         self.context_menu.add_command(
-            label="Edit Resources", command=self.controller.task_ops.edit_resources
+            label="Edit Resources",
+            command=lambda: self.controller.task_ops.edit_resources(
+                parent=self.controller.root
+            ),
         )
         self.context_menu.add_command(
             label="Edit Project Settings",
-            command=self.controller.task_ops.edit_project_settings,
+            command=lambda: self.controller.task_ops.edit_project_settings(
+                parent=self.controller.root
+            ),
         )
 
     def sync_horizontal_scroll(self, *args):
