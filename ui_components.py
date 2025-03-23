@@ -675,3 +675,38 @@ class UIComponents:
             "connector_x": connector_x,
             "connector_y": connector_y,
         }
+
+    def update_task_ui(self, task):
+        """Updates the UI elements for a specific task."""
+        task_id = task["task_id"]
+        if task_id in self.task_ui_elements:
+            ui_elements = self.task_ui_elements[task_id]
+            x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
+            self.controller.task_canvas.coords(ui_elements["box"], x1, y1, x2, y2)
+            self.controller.task_canvas.coords(ui_elements["left_edge"], x1, y1, x1, y2)
+            self.controller.task_canvas.coords(
+                ui_elements["right_edge"], x2, y1, x2, y2
+            )
+            self.controller.task_canvas.coords(
+                ui_elements["text"], (x1 + x2) / 2, (y1 + y2) / 2
+            )
+            (
+                ui_elements["x1"],
+                ui_elements["y1"],
+                ui_elements["x2"],
+                ui_elements["y2"],
+            ) = (
+                x1,
+                y1,
+                x2,
+                y2,
+            )
+            ui_elements["connector_x"] = x2
+            ui_elements["connector_y"] = (y1 + y2) / 2
+            self.controller.task_canvas.coords(
+                ui_elements["connector"],
+                ui_elements["connector_x"] - 5,
+                ui_elements["connector_y"] - 5,
+                ui_elements["connector_x"] + 5,
+                ui_elements["connector_y"] + 5,
+            )
