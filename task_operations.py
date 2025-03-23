@@ -1066,19 +1066,25 @@ class TaskOperations:
 
     def handle_task_collisions(self, task, x1, y1, x2, y2):
         """Handles collisions between tasks, shifting existing tasks as needed."""
+        # Keep track of which tasks have been processed to avoid infinite loops
+        processed_tasks = set([task["task_id"]])
+
+        # Continue shifting tasks until no more collisions are detected
         while True:
-            collisions_resolved = False
+            # Find all tasks that need to be shifted in this iteration
             tasks_to_shift = []
 
             for other_task in self.model.tasks:
-                if other_task["task_id"] == task["task_id"]:
+                # Skip the original task and already processed tasks
+                if other_task["task_id"] in processed_tasks:
                     continue
 
+                # Get UI coordinates for the other task
                 other_x1, other_y1, other_x2, other_y2 = (
                     self.controller.get_task_ui_coordinates(other_task)
                 )
 
-                # Check for overlap
+                # Check for overlap (same row and overlapping columns)
                 if (
                     x1 < other_x2
                     and x2 > other_x1
@@ -1086,21 +1092,43 @@ class TaskOperations:
                     and y2 > other_y1
                     and other_task["row"] == task["row"]
                 ):
-                    tasks_to_shift.append(other_task)
+                    tasks_to_shift.append(
+                        (other_task, other_x1, other_y1, other_x2, other_y2)
+                    )
 
-            for other_task in tasks_to_shift:
-                shift_amount = x2 - other_task["col"] * self.controller.cell_width + 10
-                new_col = other_task["col"] + (
-                    shift_amount // self.controller.cell_width
-                )
-                new_col = max(
-                    0, min(new_col, self.controller.model.days - other_task["duration"])
-                )
-                self.model.move_task(other_task["task_id"], other_task["row"], new_col)
-                self.controller.ui.update_task_ui(other_task)
-                collisions_resolved = True
-
-            if not collisions_resolved:
+            # If no tasks need shifting, we're done
+            if not tasks_to_shift:
                 break
 
+            # Process all tasks that need shifting in this iteration
+            for other_task, other_x1, other_y1, other_x2, other_y2 in tasks_to_shift:
+                # Mark this task as processed
+                processed_tasks.add(other_task["task_id"])
+
+                # Calculate shift amount (move past the right edge of the current task)
+                shift_amount = x2 - other_x1 + 5  # Small buffer
+
+                # Calculate new column position
+                grid_col = max(
+                    0, (other_x1 + shift_amount) // self.controller.cell_width
+                )
+
+                # Ensure task stays within bounds
+                if grid_col + other_task["duration"] > self.model.days:
+                    grid_col = self.model.days - other_task["duration"]
+
+                # Update the model
+                other_task["col"] = grid_col
+
+                # Update UI position
+                self.controller.ui.update_task_ui(other_task)
+
+                # For the next iteration, this shifted task becomes the one that might cause collisions
+                x1 = grid_col * self.controller.cell_width
+                x2 = x1 + other_task["duration"] * self.controller.cell_width
+                y1 = other_y1
+                y2 = other_y2
+                task = other_task
+
+        # Redraw dependencies after all shifts are complete
         self.controller.ui.draw_dependencies()
