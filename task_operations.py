@@ -792,6 +792,10 @@ class TaskOperations:
                     ui_elements["text"], (new_x1 + new_x2) / 2, (new_y1 + new_y2) / 2
                 )
 
+                # Collision detection and task shifting
+                x1, y1, x2, y2 = new_x1, new_y1, new_x2, new_y2
+                self.handle_task_collisions(task, new_x1, new_y1, new_x2, new_y2)
+
                 # Update connector position AFTER snapping
                 ui_elements["connector_x"] = new_x2
                 ui_elements["connector_y"] = (new_y1 + new_y2) / 2
@@ -809,6 +813,26 @@ class TaskOperations:
 
                 # Update model
                 task["row"], task["col"] = grid_row, grid_col
+
+            # Call handle_task_collisions with correct coordinates based on operation type
+            if self.controller.resize_edge == "left":
+                x1, y1, x2, y2 = (
+                    ui_elements["x1"],
+                    ui_elements["y1"],
+                    ui_elements["x2"],
+                    ui_elements["y2"],
+                )
+                self.handle_task_collisions(task, x1, y1, x2, y2)
+            elif self.controller.resize_edge == "right":
+                x1, y1, x2, y2 = (
+                    ui_elements["x1"],
+                    ui_elements["y1"],
+                    ui_elements["x2"],
+                    ui_elements["y2"],
+                )
+                self.handle_task_collisions(task, x1, y1, x2, y2)
+            else:  # Move operation
+                self.handle_task_collisions(task, new_x1, new_y1, new_x2, new_y2)
 
             # Update text position
             self.controller.task_canvas.coords(
@@ -865,6 +889,213 @@ class TaskOperations:
 
         # Update resource loading
         self.controller.update_resource_loading()
+
+        """Handles collisions between tasks, shifting existing tasks as needed."""
+        collisions_resolved = False  # Flag to track if any collisions were resolved
+        for other_task in self.model.tasks:
+            if other_task["task_id"] == task["task_id"]:
+                continue  # Skip self-comparison
+
+            other_x1, other_y1, other_x2, other_y2 = (
+                self.controller.get_task_ui_coordinates(other_task)
+            )
+
+            # Check for overlap
+            if (
+                x1 < other_x2
+                and x2 > other_x1
+                and y1 < other_y2
+                and y2 > other_y1
+                and other_task["row"] == task["row"]
+            ):
+                # Overlap detected - shift the other task to the right
+                shift_amount = x2 - other_x1 + 10  # Add a small buffer
+                other_x1 += shift_amount
+                other_x2 += shift_amount
+
+                # Snap to grid AFTER shifting
+                grid_col = round(other_x1 / self.controller.cell_width)
+                other_x1 = grid_col * self.controller.cell_width
+                other_x2 = other_x1 + (other_x2 - other_x1)  # Maintain width
+
+                # Update UI elements and model
+                other_task_id = other_task["task_id"]
+                other_ui_elements = self.controller.ui.task_ui_elements[other_task_id]
+                other_ui_elements["x1"] = other_x1
+                other_ui_elements["x2"] = other_x2
+                other_ui_elements["connector_x"] = other_x2
+                self.controller.task_canvas.coords(
+                    other_ui_elements["box"], other_x1, other_y1, other_x2, other_y2
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["left_edge"],
+                    other_x1,
+                    other_y1,
+                    other_x1,
+                    other_y2,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["right_edge"],
+                    other_x2,
+                    other_y1,
+                    other_x2,
+                    other_y2,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["connector"],
+                    other_x2 - 5,
+                    other_ui_elements["connector_y"] - 5,
+                    other_x2 + 5,
+                    other_ui_elements["connector_y"] + 5,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["text"],
+                    (other_x1 + other_x2) / 2,
+                    (other_y1 + other_y2) / 2,
+                )
+                other_task["col"] = other_x1 // self.controller.cell_width
+                collisions_resolved = True  # Set flag to indicate collision resolved
+
+        # Recursive call ONLY if collisions were resolved in this iteration
+        if collisions_resolved:
+            self.handle_task_collisions(task, x1, y1, x2, y2)
+        """Handles collisions between tasks, shifting existing tasks as needed."""
+        for other_task in self.model.tasks:
+            if other_task["task_id"] == task["task_id"]:
+                continue  # Skip self-comparison
+
+            other_x1, other_y1, other_x2, other_y2 = (
+                self.controller.get_task_ui_coordinates(other_task)
+            )
+
+            # Check for overlap
+            if (
+                x1 < other_x2
+                and x2 > other_x1
+                and y1 < other_y2
+                and y2 > other_y1
+                and other_task["row"] == task["row"]
+            ):
+                # Overlap detected - shift the other task to the right
+                shift_amount = x2 - other_x1 + 10  # Add a small buffer
+                other_x1 += shift_amount
+                other_x2 += shift_amount
+
+                # Snap to grid AFTER shifting
+                grid_col = round(other_x1 / self.controller.cell_width)
+                other_x1 = grid_col * self.controller.cell_width
+                other_x2 = other_x1 + (other_x2 - other_x1)  # Maintain width
+
+                # Update UI elements and model
+                other_task_id = other_task["task_id"]
+                other_ui_elements = self.controller.ui.task_ui_elements[other_task_id]
+                other_ui_elements["x1"] = other_x1
+                other_ui_elements["x2"] = other_x2
+                other_ui_elements["connector_x"] = other_x2
+                self.controller.task_canvas.coords(
+                    other_ui_elements["box"], other_x1, other_y1, other_x2, other_y2
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["left_edge"],
+                    other_x1,
+                    other_y1,
+                    other_x1,
+                    other_y2,
+                )  # Update left edge coordinates
+                self.controller.task_canvas.coords(
+                    other_ui_elements["right_edge"],
+                    other_x2,
+                    other_y1,
+                    other_x2,
+                    other_y2,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["connector"],
+                    other_x2 - 5,
+                    other_ui_elements["connector_y"] - 5,
+                    other_x2 + 5,
+                    other_ui_elements["connector_y"] + 5,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["text"],
+                    (other_x1 + other_x2) / 2,
+                    (other_y1 + other_y2) / 2,
+                )
+                other_task["col"] = other_x1 // self.controller.cell_width
+
+                # Recursively check for further collisions after shifting
+                self.handle_task_collisions(task, x1, y1, x2, y2)
+
+    def handle_task_collisions(self, task, x1, y1, x2, y2):
+        """Handles collisions between tasks, shifting existing tasks as needed."""
+        collisions_resolved = False  # Flag to track if any collisions were resolved
+        for other_task in self.model.tasks:
+            if other_task["task_id"] == task["task_id"]:
+                continue  # Skip self-comparison
+
+            other_x1, other_y1, other_x2, other_y2 = (
+                self.controller.get_task_ui_coordinates(other_task)
+            )
+
+            # Check for overlap
+            if (
+                x1 < other_x2
+                and x2 > other_x1
+                and y1 < other_y2
+                and y2 > other_y1
+                and other_task["row"] == task["row"]
+            ):
+                # Overlap detected - shift the other task to the right
+                shift_amount = x2 - other_x1 + 10  # Add a small buffer
+                other_x1 += shift_amount
+                other_x2 += shift_amount
+
+                # Snap to grid AFTER shifting
+                grid_col = round(other_x1 / self.controller.cell_width)
+                other_x1 = grid_col * self.controller.cell_width
+                other_x2 = other_x1 + (other_x2 - other_x1)  # Maintain width
+
+                # Update UI elements and model
+                other_task_id = other_task["task_id"]
+                other_ui_elements = self.controller.ui.task_ui_elements[other_task_id]
+                other_ui_elements["x1"] = other_x1
+                other_ui_elements["x2"] = other_x2
+                other_ui_elements["connector_x"] = other_x2
+                self.controller.task_canvas.coords(
+                    other_ui_elements["box"], other_x1, other_y1, other_x2, other_y2
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["left_edge"],
+                    other_x1,
+                    other_y1,
+                    other_x1,
+                    other_y2,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["right_edge"],
+                    other_x2,
+                    other_y1,
+                    other_x2,
+                    other_y2,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["connector"],
+                    other_x2 - 5,
+                    other_ui_elements["connector_y"] - 5,
+                    other_x2 + 5,
+                    other_ui_elements["connector_y"] + 5,
+                )
+                self.controller.task_canvas.coords(
+                    other_ui_elements["text"],
+                    (other_x1 + other_x2) / 2,
+                    (other_y1 + other_y2) / 2,
+                )
+                other_task["col"] = other_x1 // self.controller.cell_width
+                collisions_resolved = True  # Set flag to indicate collision resolved
+
+        # Recursive call ONLY if collisions were resolved in this iteration
+        if collisions_resolved:
+            self.handle_task_collisions(task, x1, y1, x2, y2)
 
     def on_right_click(self, event):
         """Handle right-click to show context menu"""
