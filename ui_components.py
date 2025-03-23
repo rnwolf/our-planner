@@ -540,7 +540,10 @@ class UIComponents:
             # Draw resource names in the label canvas
             self.controller.resource_label_canvas.create_line(0, y, 100, y, fill="gray")
             self.controller.resource_label_canvas.create_text(
-                50, y + self.controller.task_height / 2, text=resource, anchor="center"
+                50,
+                y + self.controller.task_height / 2,
+                text=resource["name"],  # Use resource["name"] instead of resource
+                anchor="center",
             )
 
         # Draw bottom line
@@ -558,16 +561,31 @@ class UIComponents:
 
         # Display resource loading
         for i, resource in enumerate(self.model.resources):
+            resource_id = resource[
+                "id"
+            ]  # Get the resource ID which is the key in resource_loading
+
             for day in range(self.model.days):
-                load = resource_loading[resource][day]
+                # Get resource capacity and loading
+                capacity = resource["capacity"][day]
+                load = resource_loading[resource_id][day]  # Use resource_id as the key
+
+                # Calculate usage percentage
+                usage_pct = (load / capacity) if capacity > 0 else float("inf")
+
                 x = day * self.controller.cell_width
                 y = i * self.controller.task_height
 
-                # Choose color based on load
-                color = "white"
-                if load > 0:
-                    intensity = min(load * 50, 200)  # Cap intensity
+                # Choose color based on load vs capacity
+                if usage_pct == 0:  # No usage
+                    color = "white"
+                elif usage_pct < 0.8:  # Normal usage (< 80%)
+                    intensity = min(int(usage_pct * 200), 200)
                     color = f"#{255-intensity:02x}{255-intensity:02x}ff"  # Bluish color
+                elif usage_pct < 1.0:  # High usage (80-99%)
+                    color = "#ffffcc"  # Light yellow
+                else:  # Overloaded (>= 100%)
+                    color = "#ffcccc"  # Light red
 
                 # Create cell
                 self.controller.resource_canvas.create_rectangle(
@@ -580,13 +598,20 @@ class UIComponents:
                     tags="loading",
                 )
 
-                # Display load number
+                # Display load number if there is any loading
                 if load > 0:
+                    # Format load to show decimals only if needed
+                    load_text = f"{load:.1f}" if load != int(load) else str(int(load))
+
+                    # Show as fraction of capacity
+                    display_text = f"{load_text}/{capacity}"
+
                     self.controller.resource_canvas.create_text(
                         x + self.controller.cell_width / 2,
                         y + self.controller.task_height / 2,
-                        text=str(load),
+                        text=display_text,
                         tags="loading",
+                        font=("Arial", 8),  # Smaller font to fit more text
                     )
 
     def open_url(self, url):
