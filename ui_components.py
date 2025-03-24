@@ -363,7 +363,7 @@ class UIComponents:
         self.controller.update_resource_loading()
 
     def draw_timeline(self):
-        """Draw the timeline with calendar dates and day numbers"""
+        """Draw the timeline with calendar dates and day numbers, with alternating week colors"""
         self.controller.timeline_canvas.delete("all")
 
         # Calculate width
@@ -411,18 +411,60 @@ class UIComponents:
                 day_center_x, day_center_y, text=str(i + 1), anchor="center"
             )
 
-        # Draw calendar dates (middle row)
+        # Draw calendar dates (middle row) with alternating week backgrounds
+        current_week_is_odd = False  # Start with even week
+        last_weekday = None
+
         for i in range(self.model.days):
             date = self.model.get_date_for_day(i)
-            x = i * self.controller.cell_width
-            date_center_x = x + self.controller.cell_width / 2
+            weekday = date.weekday()  # 0 = Monday, 6 = Sunday
+
+            # Check if we're starting a new week (Monday)
+            if weekday == 0 or last_weekday is None:
+                current_week_is_odd = not current_week_is_odd
+
+            last_weekday = weekday
+
+            # Determine cell background color based on week parity
+            if current_week_is_odd:
+                bg_color = "#e6e6e6"  # Light gray for odd weeks
+            else:
+                bg_color = "#f8f8f8"  # Very light gray for even weeks
+
+            # Draw the cell background for the date row
+            x1 = i * self.controller.cell_width
+            y1 = month_row_height
+            x2 = (i + 1) * self.controller.cell_width
+            y2 = month_row_height + date_row_height
+
+            self.controller.timeline_canvas.create_rectangle(
+                x1, y1, x2, y2, fill=bg_color, outline="gray"
+            )
+
+            # Add special color for weekends (Saturday and Sunday)
+            if weekday >= 5:  # 5 = Saturday, 6 = Sunday
+                self.controller.timeline_canvas.create_rectangle(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    fill="#ffe6e6",  # Light red for weekends
+                    outline="gray",
+                )
+
+            # Display date in day format
+            date_center_x = x1 + self.controller.cell_width / 2
             date_center_y = month_row_height + date_row_height / 2
 
-            # Display date in day format (e.g., "15")
+            # Add weekday letter as a hint
+            weekday_letters = ["M", "T", "W", "T", "F", "S", "S"]
+            date_text = f"{date.day}"  # Remove day of week indicator
+            # date_text = f"{date.day}\n{weekday_letters[weekday]}"
+
             self.controller.timeline_canvas.create_text(
                 date_center_x,
                 date_center_y,
-                text=date.strftime("%d"),
+                text=date_text,
                 anchor="center",
                 font=("Arial", 8),  # Smaller font for dates
             )

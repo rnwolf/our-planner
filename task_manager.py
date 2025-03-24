@@ -19,7 +19,7 @@ class TaskResourceManager:
         # UI configuration constants
         self.cell_width = 45
         self.task_height = 30
-        self.timeline_height = 30
+        self.timeline_height = 60
         self.resource_grid_height = 150
         self.task_grid_height = 300
 
