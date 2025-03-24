@@ -694,7 +694,7 @@ class TaskOperations:
                         )
 
     def edit_project_settings(self, parent=None):
-        """Edit project settings like number of days"""
+        """Edit project settings like number of days and start date"""
         # Create a dialog for project settings
         parent = parent or self.controller.root
 
@@ -703,7 +703,7 @@ class TaskOperations:
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        dialog.geometry(f"300x150+{x}+{y}")
+        dialog.geometry(f"400x250+{x}+{y}")
         dialog.transient(parent)
         dialog.grab_set()  # Prevent interaction with the main window
 
@@ -719,13 +719,84 @@ class TaskOperations:
         days_entry = tk.Entry(settings_frame, textvariable=days_var, width=10)
         days_entry.grid(row=0, column=1, sticky="w", pady=5)
 
-        # Max tasks setting
+        # Max rows setting
         tk.Label(settings_frame, text="Maximum Rows:").grid(
             row=1, column=0, sticky="w", pady=5
         )
         max_rows_var = tk.IntVar(value=self.model.max_rows)
         max_rows_entry = tk.Entry(settings_frame, textvariable=max_rows_var, width=10)
         max_rows_entry.grid(row=1, column=1, sticky="w", pady=5)
+
+        # Start date setting
+        tk.Label(settings_frame, text="Start Date:").grid(
+            row=2, column=0, sticky="w", pady=5
+        )
+
+        date_frame = tk.Frame(settings_frame)
+        date_frame.grid(row=2, column=1, sticky="w", pady=5)
+
+        # Create separate entry fields for year, month, day
+        year_var = tk.StringVar(value=str(self.model.start_date.year))
+        month_var = tk.StringVar(value=str(self.model.start_date.month))
+        day_var = tk.StringVar(value=str(self.model.start_date.day))
+
+        year_entry = tk.Entry(date_frame, textvariable=year_var, width=5)
+        year_entry.pack(side=tk.LEFT, padx=(0, 5))
+        tk.Label(date_frame, text="-").pack(side=tk.LEFT)
+
+        month_entry = tk.Entry(date_frame, textvariable=month_var, width=3)
+        month_entry.pack(side=tk.LEFT, padx=(5, 5))
+        tk.Label(date_frame, text="-").pack(side=tk.LEFT)
+
+        day_entry = tk.Entry(date_frame, textvariable=day_var, width=3)
+        day_entry.pack(side=tk.LEFT, padx=(5, 0))
+
+        # Date format explanation
+        tk.Label(settings_frame, text="Format: YYYY-MM-DD", fg="gray").grid(
+            row=3, column=1, sticky="w", pady=(0, 10)
+        )
+
+        # Calendar picker button
+        def open_calendar_dialog():
+            from tkcalendar import Calendar
+
+            try:
+                cal_dialog = tk.Toplevel(dialog)
+                cal_dialog.title("Select Start Date")
+                cal_dialog.geometry(
+                    f"+{dialog.winfo_rootx()+50}+{dialog.winfo_rooty()+50}"
+                )
+                cal_dialog.transient(dialog)
+                cal_dialog.grab_set()
+
+                # Create calendar widget initialized with current start date
+                cal = Calendar(
+                    cal_dialog,
+                    selectmode="day",
+                    year=int(year_var.get()),
+                    month=int(month_var.get()),
+                    day=int(day_var.get()),
+                )
+                cal.pack(padx=10, pady=10)
+
+                def set_date():
+                    selected_date = cal.selection_get()
+                    year_var.set(str(selected_date.year))
+                    month_var.set(str(selected_date.month))
+                    day_var.set(str(selected_date.day))
+                    cal_dialog.destroy()
+
+                tk.Button(cal_dialog, text="Select", command=set_date).pack(pady=10)
+            except ImportError:
+                messagebox.showwarning(
+                    "Calendar Not Available",
+                    "The tkcalendar package is not installed. Please enter the date manually.",
+                    parent=dialog,
+                )
+
+        tk.Button(
+            settings_frame, text="Pick Date...", command=open_calendar_dialog
+        ).grid(row=2, column=2, padx=5, pady=5, sticky="w")
 
         # Button frame
         button_frame = tk.Frame(dialog)
@@ -736,6 +807,7 @@ class TaskOperations:
                 new_days = int(days_var.get())
                 new_max_rows = int(max_rows_var.get())
 
+                # Validate days and rows
                 if new_days < 1:
                     messagebox.showerror(
                         "Invalid Value",
@@ -748,6 +820,23 @@ class TaskOperations:
                     messagebox.showerror(
                         "Invalid Value",
                         "Maximum rows must be at least 1.",
+                        parent=dialog,
+                    )
+                    return
+
+                # Validate date
+                try:
+                    year = int(year_var.get())
+                    month = int(month_var.get())
+                    day = int(day_var.get())
+
+                    from datetime import datetime
+
+                    new_start_date = datetime(year, month, day)
+                except ValueError:
+                    messagebox.showerror(
+                        "Invalid Date",
+                        "Please enter a valid date in format YYYY-MM-DD.",
                         parent=dialog,
                     )
                     return
@@ -773,6 +862,7 @@ class TaskOperations:
                 # Apply the settings
                 self.model.days = new_days
                 self.model.max_rows = new_max_rows
+                self.model.start_date = new_start_date
 
                 # Update resource capacities to match new days if needed
                 for resource in self.model.resources:

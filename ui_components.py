@@ -363,28 +363,92 @@ class UIComponents:
         self.controller.update_resource_loading()
 
     def draw_timeline(self):
-        """Draw the timeline with day numbers"""
+        """Draw the timeline with calendar dates and day numbers"""
         self.controller.timeline_canvas.delete("all")
 
         # Calculate width
         canvas_width = self.controller.cell_width * self.model.days
+
+        # Increase timeline height to accommodate three rows of information
+        timeline_height = self.controller.timeline_height  # This should now be taller
+
+        # Configure canvas scrollregion
         self.controller.timeline_canvas.config(
-            scrollregion=(0, 0, canvas_width, self.controller.timeline_height)
+            scrollregion=(0, 0, canvas_width, timeline_height)
         )
 
-        # Draw the timeline grid
+        # Calculate row heights (divide the total height into 3 rows)
+        month_row_height = timeline_height * 0.33
+        date_row_height = timeline_height * 0.33
+        day_row_height = timeline_height * 0.34
+
+        # Draw horizontal dividers for the three rows
+        self.controller.timeline_canvas.create_line(
+            0, month_row_height, canvas_width, month_row_height, fill="gray"
+        )
+        self.controller.timeline_canvas.create_line(
+            0,
+            month_row_height + date_row_height,
+            canvas_width,
+            month_row_height + date_row_height,
+            fill="gray",
+        )
+
+        # Draw the vertical grid lines
         for i in range(self.model.days + 1):
             x = i * self.controller.cell_width
             self.controller.timeline_canvas.create_line(
-                x, 0, x, self.controller.timeline_height, fill="gray"
+                x, 0, x, timeline_height, fill="gray"
             )
 
-            if i < self.model.days:
-                self.controller.timeline_canvas.create_text(
-                    x + self.controller.cell_width / 2,
-                    self.controller.timeline_height / 2,
-                    text=str(i + 1),
-                )
+        # Draw day numbers (bottom row)
+        for i in range(self.model.days):
+            x = i * self.controller.cell_width
+            day_center_x = x + self.controller.cell_width / 2
+            day_center_y = month_row_height + date_row_height + day_row_height / 2
+
+            self.controller.timeline_canvas.create_text(
+                day_center_x, day_center_y, text=str(i + 1), anchor="center"
+            )
+
+        # Draw calendar dates (middle row)
+        for i in range(self.model.days):
+            date = self.model.get_date_for_day(i)
+            x = i * self.controller.cell_width
+            date_center_x = x + self.controller.cell_width / 2
+            date_center_y = month_row_height + date_row_height / 2
+
+            # Display date in day format (e.g., "15")
+            self.controller.timeline_canvas.create_text(
+                date_center_x,
+                date_center_y,
+                text=date.strftime("%d"),
+                anchor="center",
+                font=("Arial", 8),  # Smaller font for dates
+            )
+
+        # Draw month headers (top row with merged cells)
+        month_ranges = self.model.get_month_ranges()
+        for month_range in month_ranges:
+            start_x = month_range["start"] * self.controller.cell_width
+            end_x = (month_range["end"] + 1) * self.controller.cell_width
+            month_center_x = (start_x + end_x) / 2
+            month_center_y = month_row_height / 2
+
+            # Draw month background to visually separate months
+            fill_color = "#f0f0f0" if month_range["start"] % 2 == 0 else "#e0e0e0"
+            self.controller.timeline_canvas.create_rectangle(
+                start_x, 0, end_x, month_row_height, fill=fill_color, outline="gray"
+            )
+
+            # Draw month label
+            self.controller.timeline_canvas.create_text(
+                month_center_x,
+                month_center_y,
+                text=month_range["label"],
+                anchor="center",
+                font=("Arial", 9, "bold"),  # Make month headers bold
+            )
 
     def draw_task_grid(self):
         """Draw the task grid"""

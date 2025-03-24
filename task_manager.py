@@ -44,6 +44,7 @@ class TaskResourceManager:
         # Initialize canvas references (will be populated by UI component)
         self.timeline_canvas = None
         self.task_canvas = None
+        self.timeline_canvas = None
         self.resource_canvas = None
         self.task_label_canvas = None
         self.resource_label_canvas = None

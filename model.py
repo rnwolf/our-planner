@@ -1,5 +1,6 @@
 import json
 from typing import List, Dict, Any, Optional, Tuple
+from datetime import datetime, timedelta
 
 
 class TaskResourceModel:
@@ -7,6 +8,9 @@ class TaskResourceModel:
         # Configuration
         self.days = 100
         self.max_rows = 50
+        self.start_date = datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
 
         # Resource management with IDs
         self.resource_id_counter = 0
@@ -79,6 +83,55 @@ class TaskResourceModel:
         """Generate a unique task ID."""
         self.task_id_counter += 1
         return self.task_id_counter
+
+    def get_date_for_day(self, day: int) -> datetime:
+        """Get the calendar date for a specific day in the timeline."""
+        return self.start_date + timedelta(days=day)
+
+    def get_day_for_date(self, date: datetime) -> int:
+        """Get the day index in the timeline for a specific calendar date."""
+        delta = date - self.start_date
+        return delta.days
+
+    def get_month_ranges(self) -> List[Dict[str, Any]]:
+        """Get a list of month ranges for the timeline."""
+        month_ranges = []
+        current_month = None
+        start_col = 0
+        month_format = "%Y-%m (%b)"
+
+        for day in range(self.days):
+            date = self.get_date_for_day(day)
+            month_key = date.strftime("%Y-%m")  # Year-Month as key
+
+            if month_key != current_month:
+                # If there was a previous month, add it to the ranges
+                if current_month is not None:
+                    month_ranges.append(
+                        {
+                            "label": self.get_date_for_day(start_col).strftime(
+                                month_format
+                            ),
+                            "start": start_col,
+                            "end": day - 1,
+                        }
+                    )
+
+                # Start a new month
+                current_month = month_key
+                start_col = day
+
+        # Add the last month
+        if current_month is not None:
+            month_ranges.append(
+                {
+                    "label": self.get_date_for_day(start_col).strftime(month_format),
+                    "start": start_col,
+                    "end": self.days - 1,
+                }
+            )
+
+        return month_ranges
 
     def add_task(
         self,
@@ -300,6 +353,22 @@ class TaskResourceModel:
             self.resources = data["resources"]
             self.days = data["days"]
 
+            # Load start_date if available
+            if "start_date" in data:
+                try:
+                    self.start_date = datetime.fromisoformat(data["start_date"])
+                except ValueError:
+                    # If there's an error parsing the date, use the current date
+                    self.start_date = datetime.now().replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+
+            # Load max_rows (previously max_tasks)
+            if "max_rows" in data:
+                self.max_rows = data["max_rows"]
+            elif "max_tasks" in data:  # For backward compatibility
+                self.max_rows = data["max_tasks"]
+
             # Ensure resource capacity arrays are proper length
             for resource in self.resources:
                 if "capacity" not in resource or len(resource["capacity"]) != self.days:
@@ -350,6 +419,7 @@ class TaskResourceModel:
                 "resources": self.resources,
                 "days": self.days,
                 "max_rows": self.max_rows,
+                "start_date": self.start_date.isoformat(),
             }
 
             with open(file_path, "w") as f:
