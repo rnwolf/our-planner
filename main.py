@@ -9,7 +9,7 @@ def main():
     root.title("Task Resource Manager")
 
     # Create the main application
-    app = TaskResourceManager(root)
+    TaskResourceManager(root)
 
     # Start the main loop
     root.mainloop()
