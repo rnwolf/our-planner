@@ -1,5 +1,5 @@
 import json
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime, timedelta
 
 
@@ -19,51 +19,61 @@ class TaskResourceModel:
                 "id": self._get_next_resource_id(),
                 "name": "Resource A",
                 "capacity": [1.0] * 100,
+                "tags": [],  # Add tags list to resources
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource B",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource C",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource D",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource E",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource F",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource G",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource H",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource I",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
             {
                 "id": self._get_next_resource_id(),
                 "name": "Resource J",
                 "capacity": [1.0] * 100,
+                "tags": [],
             },
         ]
 
@@ -73,6 +83,9 @@ class TaskResourceModel:
 
         # File path
         self.current_file_path = None
+
+        # All tags in the system for easy reference and autocomplete
+        self.all_tags = set()
 
     def _get_next_resource_id(self) -> int:
         """Generate a unique resource ID."""
@@ -143,8 +156,15 @@ class TaskResourceModel:
         url: str = "",
         predecessors: List[int] = None,
         successors: List[int] = None,
+        tags: List[str] = None,  # Add tags parameter
     ) -> Dict[str, Any]:
         """Add a new task to the model."""
+        tags = tags or []  # Default to empty list if None
+
+        # Update all_tags with any new tags
+        for tag in tags:
+            self.all_tags.add(tag)
+
         task = {
             "task_id": self.get_next_task_id(),
             "row": row,
@@ -155,9 +175,182 @@ class TaskResourceModel:
             "resources": resources or {},  # Changed to Dict[resource_id, allocation]
             "predecessors": predecessors or [],
             "successors": successors or [],
+            "tags": tags,  # Add tags to task dictionary
         }
         self.tasks.append(task)
         return task
+
+    def add_tags_to_task(self, task_id: int, tags: List[str]) -> bool:
+        """Add tags to a task."""
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        # Make sure task has a tags list
+        if "tags" not in task:
+            task["tags"] = []
+
+        # Add new tags that aren't already present
+        for tag in tags:
+            if tag not in task["tags"]:
+                task["tags"].append(tag)
+                self.all_tags.add(tag)
+
+        return True
+
+    def remove_tags_from_task(self, task_id: int, tags: List[str]) -> bool:
+        """Remove tags from a task."""
+        task = self.get_task(task_id)
+        if not task or "tags" not in task:
+            return False
+
+        # Remove specified tags
+        task["tags"] = [tag for tag in task["tags"] if tag not in tags]
+        return True
+
+    def set_task_tags(self, task_id: int, tags: List[str]) -> bool:
+        """Replace all tags for a task."""
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        # Update all_tags
+        for tag in tags:
+            self.all_tags.add(tag)
+
+        # Set the tags
+        task["tags"] = tags
+        return True
+
+    def add_tags_to_resource(self, resource_id: int, tags: List[str]) -> bool:
+        """Add tags to a resource."""
+        resource = self.get_resource_by_id(resource_id)
+        if not resource:
+            return False
+
+        # Make sure resource has a tags list
+        if "tags" not in resource:
+            resource["tags"] = []
+
+        # Add new tags that aren't already present
+        for tag in tags:
+            if tag not in resource["tags"]:
+                resource["tags"].append(tag)
+                self.all_tags.add(tag)
+
+        return True
+
+    def remove_tags_from_resource(self, resource_id: int, tags: List[str]) -> bool:
+        """Remove tags from a resource."""
+        resource = self.get_resource_by_id(resource_id)
+        if not resource or "tags" not in resource:
+            return False
+
+        # Remove specified tags
+        resource["tags"] = [tag for tag in resource["tags"] if tag not in tags]
+        return True
+
+    def set_resource_tags(self, resource_id: int, tags: List[str]) -> bool:
+        """Replace all tags for a resource."""
+        resource = self.get_resource_by_id(resource_id)
+        if not resource:
+            return False
+
+        # Update all_tags
+        for tag in tags:
+            self.all_tags.add(tag)
+
+        # Set the tags
+        resource["tags"] = tags
+        return True
+
+    def get_tasks_by_tags(
+        self, tags: List[str], match_all: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Get tasks that match the specified tags.
+
+        Args:
+            tags: List of tags to match
+            match_all: If True, task must have all specified tags. If False, task must have at least one.
+
+        Returns:
+            List of matching tasks
+        """
+        if not tags:
+            return self.tasks.copy()
+
+        matching_tasks = []
+        for task in self.tasks:
+            # Skip tasks without tags
+            if "tags" not in task or not task["tags"]:
+                continue
+
+            # Check for tag matches
+            if match_all:
+                # Task must have all specified tags
+                if all(tag in task["tags"] for tag in tags):
+                    matching_tasks.append(task)
+            else:
+                # Task must have at least one of the specified tags
+                if any(tag in task["tags"] for tag in tags):
+                    matching_tasks.append(task)
+
+        return matching_tasks
+
+    def get_resources_by_tags(
+        self, tags: List[str], match_all: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Get resources that match the specified tags.
+
+        Args:
+            tags: List of tags to match
+            match_all: If True, resource must have all specified tags. If False, resource must have at least one.
+
+        Returns:
+            List of matching resources
+        """
+        if not tags:
+            return self.resources.copy()
+
+        matching_resources = []
+        for resource in self.resources:
+            # Skip resources without tags
+            if "tags" not in resource or not resource["tags"]:
+                continue
+
+            # Check for tag matches
+            if match_all:
+                # Resource must have all specified tags
+                if all(tag in resource["tags"] for tag in tags):
+                    matching_resources.append(resource)
+            else:
+                # Resource must have at least one of the specified tags
+                if any(tag in resource["tags"] for tag in tags):
+                    matching_resources.append(resource)
+
+        return matching_resources
+
+    def get_all_tags(self) -> List[str]:
+        """Get all tags used in the project."""
+        return sorted(list(self.all_tags))
+
+    def refresh_all_tags(self) -> None:
+        """Rebuild the all_tags set by scanning all tasks and resources."""
+        self.all_tags = set()
+
+        # Collect tags from tasks
+        for task in self.tasks:
+            if "tags" in task:
+                for tag in task["tags"]:
+                    self.all_tags.add(tag)
+
+        # Collect tags from resources
+        for resource in self.resources:
+            if "tags" in resource:
+                for tag in resource["tags"]:
+                    self.all_tags.add(tag)
 
     def delete_task(self, task_id: int) -> bool:
         """Delete a task by its ID."""
@@ -338,6 +531,7 @@ class TaskResourceModel:
             return False  # Prevent self-linking
         return self.add_predecessor(successor_id, task_id)
 
+    # Update load_from_file to handle tags
     def load_from_file(self, file_path: str) -> bool:
         """Load project data from a file."""
         try:
@@ -374,22 +568,14 @@ class TaskResourceModel:
                 if "capacity" not in resource or len(resource["capacity"]) != self.days:
                     resource["capacity"] = [1.0] * self.days
 
+                # Ensure resources have tags field
+                if "tags" not in resource:
+                    resource["tags"] = []
+
             # Ensure resources have IDs
             for resource in self.resources:
                 if "id" not in resource:
                     resource["id"] = self._get_next_resource_id()
-
-            # Convert legacy resource format if needed
-            for task in self.tasks:
-                if isinstance(task["resources"], list):
-                    # Convert from old list format to new dict format
-                    old_resources = task["resources"]
-                    task["resources"] = {}
-                    for resource in self.resources:
-                        if resource["name"] in old_resources:
-                            task["resources"][resource["id"]] = (
-                                1.0  # Default to 1.0 allocation
-                            )
 
             # Find highest task ID to update counter
             max_task_id = 0
@@ -404,6 +590,9 @@ class TaskResourceModel:
                 if resource["id"] > max_resource_id:
                     max_resource_id = resource["id"]
             self.resource_id_counter = max_resource_id
+
+            # Rebuild all_tags
+            self.refresh_all_tags()
 
             self.current_file_path = file_path
             return True
@@ -431,6 +620,7 @@ class TaskResourceModel:
             print(f"Error saving file: {e}")
             return False
 
+    # Add tags to existing tasks during sample creation
     def create_sample_tasks(self) -> None:
         """Create some sample tasks for demo purposes."""
         # Get resource IDs for easier reference
@@ -439,7 +629,7 @@ class TaskResourceModel:
         resource_c_id = self.resources[2]["id"]  # Resource C
         resource_d_id = self.resources[3]["id"]  # Resource D
 
-        # Add tasks with fractional resource allocations
+        # Add tasks with fractional resource allocations and tags
         self.add_task(
             row=1,
             col=5,
@@ -447,6 +637,7 @@ class TaskResourceModel:
             description="Task A",
             resources={resource_a_id: 0.5, resource_b_id: 1.5},
             url="https://www.google.com",
+            tags=["important", "phase1"],
         )
         self.add_task(
             row=2,
@@ -455,6 +646,7 @@ class TaskResourceModel:
             description="Task B",
             resources={resource_a_id: 1.0, resource_b_id: 0.75, resource_c_id: 0.25},
             url="https://www.google.com",
+            tags=["phase1"],
         )
         self.add_task(
             row=3,
@@ -463,6 +655,7 @@ class TaskResourceModel:
             description="Task C",
             resources={resource_a_id: 2.0},
             url="https://www.google.com",
+            tags=["phase2", "critical"],
         )
         self.add_task(
             row=4,
@@ -470,4 +663,14 @@ class TaskResourceModel:
             duration=2,
             description="Task D",
             resources={resource_a_id: 0.5, resource_d_id: 0.5},
+            tags=["phase2"],
         )
+
+        # Add tags to resources as well
+        self.set_resource_tags(resource_a_id, ["team1", "developer"])
+        self.set_resource_tags(resource_b_id, ["team1", "designer"])
+        self.set_resource_tags(resource_c_id, ["team2", "developer"])
+        self.set_resource_tags(resource_d_id, ["team2", "qa"])
+
+        # Make sure all_tags is updated
+        self.refresh_all_tags()
