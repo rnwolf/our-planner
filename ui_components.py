@@ -93,7 +93,10 @@ class UIComponents:
             label="Select Tasks by Tags...",
             command=self.controller.tag_ops.select_tasks_by_tag,
         )
-
+        self.tags_menu.add_command(
+            label="Toggle Multi-Select Mode",
+            command=self.controller.toggle_multi_select_mode,
+        )
         self.tags_menu.add_separator()
         self.tags_menu.add_command(
             label="Clear All Filters", command=self.controller.clear_all_filters

@@ -52,6 +52,11 @@ class TaskOperations:
         self.controller = controller
         self.model = model
 
+        # Keep track of selection rectangle for multi-select
+        self.selection_rect = None
+        self.selection_start_x = None
+        self.selection_start_y = None
+
     def on_task_hover(self, event):
         """Handle mouse hover to change cursor"""
         x, y = event.x, event.y

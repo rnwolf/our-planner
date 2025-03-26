@@ -39,6 +39,9 @@ class TaskResourceManager:
         self.dragging_connector = False
         self.connector_line = None
 
+        # Task selection mode
+        self.multi_select_mode = False
+
         # Create main container frame
         self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -165,3 +168,18 @@ class TaskResourceManager:
         col = int(x / self.cell_width)
         row = int(y / self.task_height)
         return row, col
+
+    def toggle_multi_select_mode(self):
+        """Toggle multiple task selection mode."""
+        self.multi_select_mode = not self.multi_select_mode
+
+        # Update cursor to indicate mode
+        if self.multi_select_mode:
+            self.task_canvas.config(cursor="crosshair")
+        else:
+            self.task_canvas.config(cursor="")
+
+        # Clear selected tasks when disabling multi-select
+        if not self.multi_select_mode:
+            self.selected_tasks = []
+            self.ui.remove_task_selections()
