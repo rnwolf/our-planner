@@ -224,6 +224,15 @@ class TaskOperations:
             dialog.transient(self.controller.root)
             dialog.grab_set()
 
+            # Bind ESC key to close dialog
+            dialog.bind("<Escape>", lambda e: dialog.destroy())
+
+            # Ensure the dialog gets focus when opened
+            dialog.focus_set()
+
+            # Wait for the dialog to be visible before setting focus
+            dialog.wait_visibility()
+
             # Create a frame with scrollbar for the resource list
             resource_frame = tk.Frame(dialog)
             resource_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -1756,8 +1765,84 @@ class TaskOperations:
                 # Update the model
                 other_task["col"] = grid_col
 
-                # Update UI position
-                self.controller.ui.update_task_ui(other_task)
+                # Get UI elements for this task
+                task_id = other_task["task_id"]
+                ui_elements = self.controller.ui.task_ui_elements.get(task_id)
+
+                if ui_elements:
+                    # Calculate new positions
+                    new_x1 = grid_col * self.controller.cell_width
+                    new_x2 = (
+                        new_x1 + other_task["duration"] * self.controller.cell_width
+                    )
+
+                    # Update box position
+                    self.controller.task_canvas.coords(
+                        ui_elements["box"],
+                        new_x1,
+                        ui_elements["y1"],
+                        new_x2,
+                        ui_elements["y2"],
+                    )
+
+                    # Update edge positions
+                    self.controller.task_canvas.coords(
+                        ui_elements["left_edge"],
+                        new_x1,
+                        ui_elements["y1"],
+                        new_x1,
+                        ui_elements["y2"],
+                    )
+
+                    self.controller.task_canvas.coords(
+                        ui_elements["right_edge"],
+                        new_x2,
+                        ui_elements["y1"],
+                        new_x2,
+                        ui_elements["y2"],
+                    )
+
+                    # Update text position
+                    self.controller.task_canvas.coords(
+                        ui_elements["text"],
+                        (new_x1 + new_x2) / 2,
+                        (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
+                    )
+
+                    # Update tag text position if it exists
+                    if "tag_text" in ui_elements:
+                        self.controller.task_canvas.coords(
+                            ui_elements["tag_text"],
+                            (new_x1 + new_x2) / 2,
+                            (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
+                        )
+
+                    # Update connector position
+                    connector_x = new_x2
+                    connector_y = (ui_elements["y1"] + ui_elements["y2"]) / 2
+                    self.controller.task_canvas.coords(
+                        ui_elements["connector"],
+                        connector_x - 5,
+                        connector_y - 5,
+                        connector_x + 5,
+                        connector_y + 5,
+                    )
+
+                    # Update highlight position if it exists
+                    if "highlight" in ui_elements:
+                        self.controller.task_canvas.coords(
+                            ui_elements["highlight"],
+                            new_x1 - 2,
+                            ui_elements["y1"] - 2,
+                            new_x2 + 2,
+                            ui_elements["y2"] + 2,
+                        )
+
+                    # Update stored coordinates
+                    ui_elements["x1"] = new_x1
+                    ui_elements["x2"] = new_x2
+                    ui_elements["connector_x"] = connector_x
+                    ui_elements["connector_y"] = connector_y
 
                 # For the next iteration, this shifted task becomes the one that might cause collisions
                 x1 = grid_col * self.controller.cell_width
@@ -1766,5 +1851,5 @@ class TaskOperations:
                 y2 = other_y2
                 task = other_task
 
-        # Redraw dependencies after all shifts are complete
-        self.controller.ui.draw_dependencies()
+            # Redraw dependencies after all shifts are complete
+            self.controller.ui.draw_dependencies()

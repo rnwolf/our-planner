@@ -1,19 +1,78 @@
 {
   "tasks": [
     {
-      "task_id": 5,
+      "task_id": 1,
       "row": 4,
-      "col": 2,
+      "col": 8,
       "duration": 5,
-      "description": "dddd",
-      "url": "",
+      "description": "Task A",
+      "url": "https://www.google.com",
       "resources": {
-        "1": 5.0
+        "1": 0.5,
+        "2": 1.5
       },
       "predecessors": [],
       "successors": [],
       "tags": [
-        "important"
+        "important",
+        "phase1",
+        "team1",
+        "phase2",
+        "critical",
+        "hello",
+        "team2"
+      ]
+    },
+    {
+      "task_id": 2,
+      "row": 2,
+      "col": 12,
+      "duration": 4,
+      "description": "Task B",
+      "url": "https://www.google.com",
+      "resources": {
+        "1": 1.0,
+        "2": 0.75,
+        "3": 0.25
+      },
+      "predecessors": [],
+      "successors": [],
+      "tags": [
+        "phase1"
+      ]
+    },
+    {
+      "task_id": 3,
+      "row": 3,
+      "col": 2,
+      "duration": 3,
+      "description": "Task C",
+      "url": "https://www.google.com",
+      "resources": {
+        "1": 2.0
+      },
+      "predecessors": [],
+      "successors": [],
+      "tags": [
+        "phase2",
+        "critical"
+      ]
+    },
+    {
+      "task_id": 4,
+      "row": 4,
+      "col": 1,
+      "duration": 2,
+      "description": "Task D",
+      "url": "",
+      "resources": {
+        "1": 0.5,
+        "4": 0.5
+      },
+      "predecessors": [],
+      "successors": [],
+      "tags": [
+        "phase2"
       ]
     }
   ],
@@ -22,16 +81,16 @@
       "id": 1,
       "name": "Resource A",
       "capacity": [
-        7.0,
-        7.0,
-        7.0,
-        7.0,
-        7.0,
-        7.0,
-        7.0,
-        7.0,
-        7.0,
-        7.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
         1.0,
         1.0,
         1.0,

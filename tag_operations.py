@@ -29,7 +29,9 @@ class TagsDialog(tk.Toplevel):
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        self.geometry(f"400x350+{x}+{y}")
+
+        # Increase the default size of the dialog to make buttons visible
+        self.geometry(f"500x500+{x}+{y}")
 
         self.create_widgets()
 
@@ -63,9 +65,9 @@ class TagsDialog(tk.Toplevel):
         self.tags_button_frame = tk.Frame(tags_frame)
         self.tags_button_frame.pack(fill=tk.X, pady=5)
 
-        # Scrollable frame for tags
+        # Scrollable frame for tags with REDUCED HEIGHT (previously was expand=True)
         tag_scroll_frame = tk.Frame(tags_frame)
-        tag_scroll_frame.pack(fill=tk.BOTH, expand=True)
+        tag_scroll_frame.pack(fill=tk.X, pady=5, ipady=40)  # Fixed height with ipady
 
         scrollbar = ttk.Scrollbar(tag_scroll_frame, orient="vertical")
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -75,6 +77,7 @@ class TagsDialog(tk.Toplevel):
             yscrollcommand=scrollbar.set,
             highlightthickness=1,
             highlightbackground="gray",
+            height=80,  # Set a fixed height to reduce vertical size
         )
         self.tag_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -105,52 +108,71 @@ class TagsDialog(tk.Toplevel):
         self.add_button.pack(side=tk.LEFT)
 
         # Suggestions for common tags
+        # Suggestions section in the TagsDialog.create_widgets method
+        # Replace the entire suggestions section with this improved version
+
+        # Suggestions for common tags
         if self.all_tags:
             suggestions_frame = tk.Frame(main_frame)
             suggestions_frame.pack(fill=tk.X, pady=(0, 10))
 
             tk.Label(suggestions_frame, text="Suggestions:", anchor="w").pack(fill=tk.X)
 
-            # Create a scrollable frame for suggestions
+            # Create a scrollable frame for suggestions with vertical scrolling
             suggestion_scroll_frame = tk.Frame(suggestions_frame)
-            suggestion_scroll_frame.pack(fill=tk.X, pady=5)
+            suggestion_scroll_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+            # Add vertical scrollbar instead of horizontal
+            suggestion_scrollbar = ttk.Scrollbar(
+                suggestion_scroll_frame, orient="vertical"
+            )
+            suggestion_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
             suggestion_canvas = tk.Canvas(
                 suggestion_scroll_frame,
-                height=100,
+                height=120,  # Increased height for multiple rows
                 highlightthickness=1,
                 highlightbackground="gray",
+                yscrollcommand=suggestion_scrollbar.set,  # Use vertical scrolling
             )
-            suggestion_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-            suggestion_scrollbar = ttk.Scrollbar(
-                suggestion_scroll_frame,
-                orient="horizontal",
-                command=suggestion_canvas.xview,
-            )
-            suggestion_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-            suggestion_canvas.configure(xscrollcommand=suggestion_scrollbar.set)
+            suggestion_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            suggestion_scrollbar.config(command=suggestion_canvas.yview)
 
             suggestion_container = tk.Frame(suggestion_canvas)
             suggestion_canvas_window = suggestion_canvas.create_window(
                 (0, 0), window=suggestion_container, anchor="nw"
             )
 
-            # Add suggestion buttons
+            # Configure suggestion container to fit the canvas width
+            suggestion_canvas.bind(
+                "<Configure>", lambda e: suggestion_container.configure(width=e.width)
+            )
+
+            # Track the current row and column for placing buttons
+            row_frame = tk.Frame(suggestion_container)
+            row_frame.pack(fill=tk.X, pady=2)
+            col_count = 0
+            max_cols = 4  # Number of buttons per row before wrapping
+
+            # Add suggestion buttons in a grid pattern that wraps
             for tag in sorted(self.all_tags):
                 if tag not in self.current_tags:
+                    # Start a new row if needed
+                    if col_count >= max_cols:
+                        row_frame = tk.Frame(suggestion_container)
+                        row_frame.pack(fill=tk.X, pady=2)
+                        col_count = 0
+
+                    # Create and add the button
                     btn = tk.Button(
-                        suggestion_container,
+                        row_frame,
                         text=tag,
                         command=lambda t=tag: self.add_tag_from_suggestion(t),
                     )
-                    btn.pack(side=tk.LEFT, padx=2, pady=2)
+                    btn.pack(side=tk.LEFT, padx=2, pady=2, fill=tk.X, expand=True)
+                    col_count += 1
 
             # Update the scroll region when the size changes
-            suggestion_container.update_idletasks()
-            suggestion_canvas.config(scrollregion=suggestion_canvas.bbox("all"))
-
-            # Make sure the container expands to show all buttons
             suggestion_container.bind(
                 "<Configure>",
                 lambda e: suggestion_canvas.configure(
@@ -158,9 +180,9 @@ class TagsDialog(tk.Toplevel):
                 ),
             )
 
-        # Button frame
+        # Button frame - increased padding to ensure visibility
         button_frame = tk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
+        button_frame.pack(fill=tk.X, pady=(20, 10))
 
         save_button = tk.Button(button_frame, text="Save", command=self.save_tags)
         save_button.pack(side=tk.RIGHT, padx=5)
@@ -497,12 +519,47 @@ class TagOperations:
         # Update the model
         self.model.set_task_tags(task["task_id"], tags)
 
-        # Update the UI if selected task is displayed
-        # The complete implementation will come in the UI updates
+        # Update the UI element if the task is displayed
+        task_id = task["task_id"]
+        if task_id in self.controller.ui.task_ui_elements:
+            ui_elements = self.controller.ui.task_ui_elements[task_id]
+
+            # Remove existing tag text if it exists
+            if "tag_text" in ui_elements:
+                self.controller.task_canvas.delete(ui_elements["tag_text"])
+
+            # Only add tag text if there are tags and show_tags is enabled
+            if tags and self.controller.ui.show_tags_var.get():
+                tag_text = ", ".join(tags)
+                x1, y1, x2, y2 = (
+                    ui_elements["x1"],
+                    ui_elements["y1"],
+                    ui_elements["x2"],
+                    ui_elements["y2"],
+                )
+
+                # Create new tag text
+                new_tag_id = self.controller.task_canvas.create_text(
+                    (x1 + x2) / 2,
+                    (y1 + y2) / 2 + 8,
+                    text=f"[{tag_text}]",
+                    fill="blue",
+                    font=("Arial", 7),
+                    tags=("task", "task_tags", f"task_tags_{task_id}"),
+                )
+
+                # Update the UI elements dictionary with the new tag text ID
+                ui_elements["tag_text"] = new_tag_id
+
+            # Refresh tooltips
+            self.controller.ui.add_task_tag_tooltips(task)
 
         # Refresh the view if we're using tag filters
         if self.task_tag_filters:
             self.controller.update_view()
+        else:
+            # If not using filters, just update resource loading which might be affected by tags
+            self.controller.update_resource_loading()
 
     def edit_resource_tags(self, resource_id):
         """Edit tags for a resource."""
@@ -531,9 +588,42 @@ class TagOperations:
         # Update the model
         self.model.set_resource_tags(resource_id, tags)
 
-        # Refresh the view if we're using tag filters
+        # Get the resource's position in the filtered resources list
+        resources = self.controller.tag_ops.get_filtered_resources()
+        resource_index = None
+
+        for i, resource in enumerate(resources):
+            if resource["id"] == resource_id:
+                resource_index = i
+                break
+
+        if resource_index is not None:
+            # Calculate y position
+            y = resource_index * self.controller.task_height
+            tag_y = y + self.controller.task_height / 2
+
+            # Remove existing tag text if it exists
+            self.controller.resource_label_canvas.delete(f"resource_tags_{resource_id}")
+
+            # Only add tag text if there are tags and show_tags is enabled
+            if tags and self.controller.ui.show_tags_var.get():
+                tag_text = ", ".join(tags)
+                tag_id = self.controller.resource_label_canvas.create_text(
+                    50,
+                    tag_y + 10,
+                    text=f"[{tag_text}]",
+                    anchor="center",
+                    font=("Arial", 7),
+                    fill="blue",
+                    tags=(f"resource_tags_{resource_id}",),
+                )
+
+        # Refresh the view if we're using resource tag filters
         if self.resource_tag_filters:
             self.controller.update_view()
+        else:
+            # If not using filters, just update resource loading which might be affected by tags
+            self.controller.update_resource_loading()
 
     def filter_tasks_by_tags(self):
         """Open dialog to filter tasks by tags."""

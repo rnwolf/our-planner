@@ -12,19 +12,6 @@ class UIComponents:
         # Track UI-specific task data
         self.task_ui_elements = {}  # Maps task_id to UI elements
 
-        # Color scheme for tags
-        self.tag_colors = {
-            "important": "#ffcccc",  # Light red
-            "critical": "#ff9999",  # Stronger red
-            "phase1": "#ccffcc",  # Light green
-            "phase2": "#99ff99",  # Stronger green
-            "team1": "#cce5ff",  # Light blue
-            "team2": "#99ccff",  # Stronger blue
-            "developer": "#e6ccff",  # Light purple
-            "designer": "#ffccff",  # Light pink
-            "qa": "#ffffcc",  # Light yellow
-        }
-
     def create_menu_bar(self):
         """Create the menu bar with file operations"""
         self.menu_bar = tk.Menu(self.controller.root)
@@ -807,9 +794,6 @@ class UIComponents:
             # Create resource name with tag indicators
             resource_text = resource["name"]
 
-            # Create a frame for the resource with background color based on tags
-            label_bg = "lightgray"
-
             # Bind right-click event to show context menu
             tag_y = y + self.controller.task_height / 2
             resource_id = resource["id"]
@@ -830,7 +814,7 @@ class UIComponents:
                 lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
             )
 
-            # Draw tags if present
+            # Draw tags if present - without colored indicators
             if "tags" in resource and resource["tags"] and self.show_tags_var.get():
                 tag_text = ", ".join(resource["tags"])
                 tag_id = self.controller.resource_label_canvas.create_text(
@@ -842,31 +826,6 @@ class UIComponents:
                     fill="blue",
                     tags=(f"resource_tags_{resource_id}",),
                 )
-
-                # Create tag indicators - small colored squares beside the resource name
-                tag_x = 95
-                for tag in resource["tags"]:
-                    if tag in self.tag_colors:
-                        # Create small color square for each tag
-                        square_id = (
-                            self.controller.resource_label_canvas.create_rectangle(
-                                tag_x - 8,
-                                tag_y - 4,
-                                tag_x - 2,
-                                tag_y + 4,
-                                fill=self.tag_colors.get(tag, "#dddddd"),
-                                outline="gray",
-                                tags=(f"resource_tag_indicator_{resource_id}_{tag}",),
-                            )
-                        )
-                        tag_x -= 8  # Move left for the next indicator
-
-                        # Add tooltip for the tag
-                        self.add_tag_tooltip(
-                            self.controller.resource_label_canvas,
-                            f"resource_tag_indicator_{resource_id}_{tag}",
-                            tag,
-                        )
 
         # Draw bottom line
         self.controller.resource_canvas.create_line(
@@ -1198,38 +1157,137 @@ class UIComponents:
             )
 
     def add_tag_to_selected_tasks(self):
-        """Add a tag to all selected tasks"""
+        """Add a tag to all selected tasks with improved tag selection dialog"""
         if not self.controller.selected_tasks:
             return
 
-        # Prompt for tag
-        from tkinter import simpledialog
+        # Create a custom dialog for tag selection
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title("Add Tag to Selected Tasks")
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
 
-        tag = simpledialog.askstring(
-            "Add Tag",
-            "Enter tag to add to selected tasks:",
-            parent=self.controller.root,
+        # Position the dialog
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f"400x400+{x}+{y}")
+
+        # Main frame with padding
+        main_frame = tk.Frame(dialog, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Instruction label
+        tk.Label(
+            main_frame,
+            text=f"Add tag to {len(self.controller.selected_tasks)} selected tasks:",
+            anchor="w",
+        ).pack(fill=tk.X, pady=(0, 10))
+
+        # Create frame for entry and suggestions
+        entry_frame = tk.Frame(main_frame)
+        entry_frame.pack(fill=tk.X, pady=5)
+
+        # Input for new tag
+        tk.Label(entry_frame, text="Tag:", anchor="w").pack(side=tk.LEFT, padx=(0, 5))
+        tag_var = tk.StringVar()
+        tag_entry = tk.Entry(entry_frame, textvariable=tag_var)
+        tag_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        tag_entry.focus_set()
+
+        # Function to validate and add tag
+        def add_tag():
+            tag = tag_var.get().strip()
+            if not tag:
+                return
+
+            # Validate tag (only letters, numbers, underscore, hyphen, no spaces)
+            import re
+
+            if not re.match(r"^[\w\-]+$", tag):
+                tk.messagebox.showerror(
+                    "Invalid Tag",
+                    "Tags can only contain letters, numbers, underscores, and hyphens.",
+                    parent=dialog,
+                )
+                return
+
+            # Add tag to all selected tasks
+            for task in self.controller.selected_tasks:
+                self.controller.model.add_tags_to_task(task["task_id"], [tag])
+
+            # Refresh the view
+            self.controller.update_view()
+            dialog.destroy()
+
+        # Suggestions section
+        suggestion_frame = tk.Frame(main_frame)
+        suggestion_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        tk.Label(
+            suggestion_frame, text="Or select from existing tags:", anchor="w"
+        ).pack(fill=tk.X)
+
+        # Create scrollable frame for existing tags
+        suggestion_scroll_frame = tk.Frame(suggestion_frame)
+        suggestion_scroll_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        scroll_y = ttk.Scrollbar(suggestion_scroll_frame, orient="vertical")
+        scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Listbox for tag suggestions
+        existing_tags = sorted(self.controller.model.get_all_tags())
+        tag_listbox = tk.Listbox(suggestion_scroll_frame, yscrollcommand=scroll_y.set)
+        tag_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scroll_y.config(command=tag_listbox.yview)
+
+        # Populate listbox with existing tags
+        for tag in existing_tags:
+            tag_listbox.insert(tk.END, tag)
+
+        # Handle selection from listbox
+        def on_tag_select(event):
+            # Get selected tag from listbox
+            if tag_listbox.curselection():
+                selected_tag = tag_listbox.get(tag_listbox.curselection()[0])
+                tag_var.set(selected_tag)
+
+        tag_listbox.bind("<<ListboxSelect>>", on_tag_select)
+
+        # Double-click to select and close
+        def on_tag_double_click(event):
+            on_tag_select(event)
+            add_tag()
+
+        tag_listbox.bind("<Double-1>", on_tag_double_click)
+
+        # Button frame
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        # Add buttons
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text="Add Tag", command=add_tag).pack(
+            side=tk.RIGHT, padx=5
         )
 
-        if not tag:
-            return
+        # Bind Enter key to add_tag function
+        dialog.bind("<Return>", lambda e: add_tag())
 
-        # Validate tag (only letters, numbers, underscore, hyphen, no spaces)
-        import re
-
-        if not re.match(r"^[\w\-]+$", tag):
-            tk.messagebox.showerror(
-                "Invalid Tag",
-                "Tags can only contain letters, numbers, underscores, and hyphens.",
-            )
-            return
-
-        # Add tag to all selected tasks
-        for task in self.controller.selected_tasks:
-            self.controller.model.add_tags_to_task(task["task_id"], [tag])
-
-        # Refresh the view
-        self.controller.update_view()
+        # Make sure dialog is centered
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (
+            self.controller.root.winfo_rootx()
+            + (self.controller.root.winfo_width() - width) // 2
+        )
+        y = (
+            self.controller.root.winfo_rooty()
+            + (self.controller.root.winfo_height() - height) // 2
+        )
+        dialog.geometry(f"+{x}+{y}")
 
     def remove_tag_from_selected_tasks(self):
         """Remove a tag from all selected tasks"""
@@ -1256,7 +1314,7 @@ class UIComponents:
         # Position the dialog
         x = self.controller.root.winfo_rootx() + 50
         y = self.controller.root.winfo_rooty() + 50
-        dialog.geometry(f"300x200+{x}+{y}")
+        dialog.geometry(f"300x300+{x}+{y}")
 
         tk.Label(dialog, text="Select tag to remove:").pack(pady=10)
 
