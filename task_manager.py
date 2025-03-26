@@ -176,10 +176,18 @@ class TaskResourceManager:
         # Update cursor to indicate mode
         if self.multi_select_mode:
             self.task_canvas.config(cursor="crosshair")
+            self.status_bar.config(
+                bg="#ffeecc"
+            )  # Light orange background to indicate mode
+            self.filter_status.config(
+                text="Multi-select mode: ON - Use Ctrl+click to select multiple tasks"
+            )
         else:
             self.task_canvas.config(cursor="")
+            self.status_bar.config(bg="SystemButtonFace")  # Default background
+            self.update_filter_status()  # Reset to standard filter status display
 
-        # Clear selected tasks when disabling multi-select
+        # Clear selected tasks when disabling multi-select mode
         if not self.multi_select_mode:
             self.selected_tasks = []
             self.ui.remove_task_selections()

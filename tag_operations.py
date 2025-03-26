@@ -548,6 +548,11 @@ class TagOperations:
         """Apply a tag filter to tasks."""
         self.task_tag_filters = tags
         self.task_match_all = match_all
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
         self.controller.update_view()
 
     def filter_resources_by_tags(self):
@@ -563,6 +568,11 @@ class TagOperations:
         """Apply a tag filter to resources."""
         self.resource_tag_filters = tags
         self.resource_match_all = match_all
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
         self.controller.update_view()
 
     def get_filtered_tasks(self):
@@ -587,12 +597,22 @@ class TagOperations:
         """Clear all task filters."""
         self.task_tag_filters = []
         self.task_match_all = False
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
         self.controller.update_view()
 
     def clear_resource_filters(self):
         """Clear all resource filters."""
         self.resource_tag_filters = []
         self.resource_match_all = False
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
         self.controller.update_view()
 
     def has_active_filters(self):

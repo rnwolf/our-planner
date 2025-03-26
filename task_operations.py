@@ -909,6 +909,9 @@ class TaskOperations:
         self.controller.drag_start_x = canvas_x
         self.controller.drag_start_y = canvas_y
 
+        # Track if Ctrl key is pressed for multi-select
+        ctrl_pressed = event.state & 0x4  # Check for Control key
+
         # Check if clicking on a task
         task_clicked = False
         task_ui_elements = self.controller.ui.task_ui_elements
@@ -949,21 +952,69 @@ class TaskOperations:
 
             # Check if clicking on left edge (for left resize)
             if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
-                self.controller.selected_task = self.model.get_task(task_id)
+                task = self.model.get_task(task_id)
+                self.controller.selected_task = task
+
+                # If not multi-selecting, clear previous selections
+                if not (ctrl_pressed and self.controller.multi_select_mode):
+                    self.controller.selected_tasks = [task]
+                elif task not in self.controller.selected_tasks:
+                    self.controller.selected_tasks.append(task)
+
+                # Update highlighting
+                self.controller.ui.highlight_selected_tasks()
+
                 self.controller.resize_edge = "left"
                 task_clicked = True
                 break
 
             # Check if clicking on right edge (for right resize)
             if abs(canvas_x - x2) < 5 and y1 < canvas_y < y2:
-                self.controller.selected_task = self.model.get_task(task_id)
+                task = self.model.get_task(task_id)
+                self.controller.selected_task = task
+
+                # If not multi-selecting, clear previous selections
+                if not (ctrl_pressed and self.controller.multi_select_mode):
+                    self.controller.selected_tasks = [task]
+                elif task not in self.controller.selected_tasks:
+                    self.controller.selected_tasks.append(task)
+
+                # Update highlighting
+                self.controller.ui.highlight_selected_tasks()
+
                 self.controller.resize_edge = "right"
                 task_clicked = True
                 break
 
-            # Check if clicking on task body (for moving)
+            # Check if clicking on task body (for moving or selecting)
             if x1 < canvas_x < x2 and y1 < canvas_y < y2:
-                self.controller.selected_task = self.model.get_task(task_id)
+                task = self.model.get_task(task_id)
+
+                # Handle multi-select with Ctrl key
+                if ctrl_pressed and self.controller.multi_select_mode:
+                    # Toggle task selection without affecting other selected tasks
+                    if task in self.controller.selected_tasks:
+                        self.controller.selected_tasks.remove(task)
+                    else:
+                        self.controller.selected_tasks.append(task)
+
+                    # Also update the single selected task
+                    self.controller.selected_task = task
+                else:
+                    # Single task selection - clear previous selections if not Ctrl+click
+                    if not ctrl_pressed:
+                        self.controller.selected_tasks = [task]
+                    else:
+                        # Add to multi-select list if not already there
+                        if task not in self.controller.selected_tasks:
+                            self.controller.selected_tasks.append(task)
+
+                    self.controller.selected_task = task
+
+                # Update highlighting for all tasks
+                self.controller.ui.highlight_selected_tasks()
+
+                # Only set resize_edge to None if we're just selecting, not for edge resizing
                 self.controller.resize_edge = None
                 task_clicked = True
                 break
@@ -974,6 +1025,11 @@ class TaskOperations:
             and canvas_y >= 0
             and canvas_y <= self.model.max_rows * self.controller.task_height
         ):
+            # Clear selections when clicking on empty space
+            if not ctrl_pressed:
+                self.controller.selected_tasks = []
+                self.controller.ui.remove_task_selections()
+
             # Snap to grid
             row, col = self.controller.convert_ui_to_model_coordinates(
                 canvas_x, canvas_y
@@ -1052,12 +1108,22 @@ class TaskOperations:
                         (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
                     )
 
-                    # Update resource text position if it exists
-                    if ui_elements.get("resource_text"):
+                    # Update tag text position if it exists
+                    if ui_elements.get("tag_text"):
                         self.controller.task_canvas.coords(
-                            ui_elements["resource_text"],
+                            ui_elements["tag_text"],
                             (ui_elements["x1"] + ui_elements["x2"]) / 2,
                             (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
+                        )
+
+                    # Update highlight position if it exists
+                    if ui_elements.get("highlight"):
+                        self.controller.task_canvas.coords(
+                            ui_elements["highlight"],
+                            ui_elements["x1"] - 2,
+                            ui_elements["y1"] - 2,
+                            ui_elements["x2"] + 2,
+                            ui_elements["y2"] + 2,
                         )
 
             elif self.controller.resize_edge == "right":
@@ -1086,12 +1152,22 @@ class TaskOperations:
                         (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
                     )
 
-                    # Update resource text position if it exists
-                    if ui_elements.get("resource_text"):
+                    # Update tag text position if it exists
+                    if ui_elements.get("tag_text"):
                         self.controller.task_canvas.coords(
-                            ui_elements["resource_text"],
+                            ui_elements["tag_text"],
                             (ui_elements["x1"] + ui_elements["x2"]) / 2,
                             (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
+                        )
+
+                    # Update highlight position if it exists
+                    if ui_elements.get("highlight"):
+                        self.controller.task_canvas.coords(
+                            ui_elements["highlight"],
+                            ui_elements["x1"] - 2,
+                            ui_elements["y1"] - 2,
+                            ui_elements["x2"] + 2,
+                            ui_elements["y2"] + 2,
                         )
 
             else:
@@ -1101,11 +1177,16 @@ class TaskOperations:
                 self.controller.task_canvas.move(ui_elements["right_edge"], dx, dy)
                 self.controller.task_canvas.move(ui_elements["text"], dx, dy)
 
-                # Move resource text if it exists
-                if ui_elements.get("resource_text"):
-                    self.controller.task_canvas.move(
-                        ui_elements["resource_text"], dx, dy
-                    )
+                # Move tag text if it exists
+                if ui_elements.get("tag_text"):
+                    self.controller.task_canvas.move(ui_elements["tag_text"], dx, dy)
+
+                # Move highlight if it exists
+                if ui_elements.get("highlight"):
+                    self.controller.task_canvas.move(ui_elements["highlight"], dx, dy)
+
+                # Update connector
+                self.controller.task_canvas.move(ui_elements["connector"], dx, dy)
 
                 # Update stored coordinates
                 ui_elements["x1"] += dx
@@ -1115,9 +1196,6 @@ class TaskOperations:
                 # Update connector position in UI elements dictionary
                 ui_elements["connector_x"] += dx
                 ui_elements["connector_y"] += dy
-
-                # Update connector position on canvas
-                self.controller.task_canvas.move(ui_elements["connector"], dx, dy)
 
             self.controller.drag_start_x = canvas_x
             self.controller.drag_start_y = canvas_y
@@ -1356,12 +1434,20 @@ class TaskOperations:
                     (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
                 )
 
-            # Reset selection
-            self.controller.selected_task = None
+            # Note: We don't clear selected_task here when in multi-select mode
+            # This keeps the task selected after manipulation
+            if not self.controller.multi_select_mode:
+                self.controller.selected_task = None
+
             self.controller.resize_edge = None
 
             # Redraw dependencies
             self.controller.ui.draw_dependencies()
+
+            # Important: Re-highlight selected tasks to ensure orange border is correctly positioned
+            # This regenerates all highlights to ensure they match the final grid-snapped positions
+            self.controller.ui.remove_task_selections()
+            self.controller.ui.highlight_selected_tasks()
 
         elif self.controller.new_task_in_progress:  # New task creation
             # Get the start and end columns
@@ -1401,6 +1487,11 @@ class TaskOperations:
                     # Optionally prompt for tags
                     self.controller.tag_ops.edit_task_tags(new_task)
 
+                    # Select the newly created task
+                    self.controller.selected_task = new_task
+                    self.controller.selected_tasks = [new_task]
+                    self.controller.ui.highlight_selected_tasks()
+
             # Remove the rubberband
             if self.controller.rubberband:
                 self.controller.task_canvas.delete(self.controller.rubberband)
@@ -1414,7 +1505,7 @@ class TaskOperations:
         self.controller.update_resource_loading()
 
     def on_right_click(self, event):
-        """Handle right-click to show context menu"""
+        """Handle right-click to show context menu without changing selection"""
         x, y = event.x, event.y
 
         # Convert canvas coordinates to account for scrolling
@@ -1433,9 +1524,21 @@ class TaskOperations:
             )
 
             if x1 < canvas_x < x2 and y1 < canvas_y < y2:
-                self.controller.selected_task = self.model.get_task(task_id)
-                # Show context menu
-                self.controller.ui.context_menu.post(event.x_root, event.y_root)
+                task = self.model.get_task(task_id)
+
+                # Don't change selection, just set selected_task for context menu operations
+                self.controller.selected_task = task
+
+                # Check if we have multiple tasks selected and the right-clicked task is among them
+                if (
+                    len(self.controller.selected_tasks) > 1
+                    and task in self.controller.selected_tasks
+                ):
+                    # Show the multi-task context menu
+                    self.controller.ui.multi_task_menu.post(event.x_root, event.y_root)
+                else:
+                    # Show single task context menu
+                    self.controller.ui.context_menu.post(event.x_root, event.y_root)
                 return
 
     def find_task_at(self, x, y):

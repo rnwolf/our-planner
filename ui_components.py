@@ -238,6 +238,13 @@ class UIComponents:
         )
         self.grid_resizer_frame.pack(fill=tk.X, pady=1)
 
+        # Add keyboard shortcuts for multi-select
+        # Bind Ctrl+A to select all tasks
+        self.controller.root.bind("<Control-a>", lambda e: self.select_all_tasks())
+
+        # Bind Escape to clear selections
+        self.controller.root.bind("<Escape>", lambda e: self.clear_selections())
+
         # Bind events for resizing
         self.grid_resizer_frame.bind("<ButtonPress-1>", self.on_resizer_press)
         self.grid_resizer_frame.bind("<B1-Motion>", self.on_resizer_drag)
@@ -950,6 +957,22 @@ class UIComponents:
         # Calculate position
         x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
 
+        # Check if this task is selected and should have a highlight
+        is_selected = task in self.controller.selected_tasks
+
+        # Draw highlight first if task is selected (so it appears behind the task)
+        highlight_id = None
+        if is_selected:
+            highlight_id = self.controller.task_canvas.create_rectangle(
+                x1 - 2,
+                y1 - 2,
+                x2 + 2,
+                y2 + 2,
+                outline="orange",
+                width=2,
+                tags=("selection_highlight",),
+            )
+
         # Draw task box
         box_id = self.controller.task_canvas.create_rectangle(
             x1, y1, x2, y2, fill="lightblue", outline="black", width=1, tags=("task",)
@@ -1046,6 +1069,10 @@ class UIComponents:
         if tag_id:
             self.task_ui_elements[task_id]["tag_text"] = tag_id
 
+        # Add highlight to UI elements if it exists
+        if highlight_id:
+            self.task_ui_elements[task_id]["highlight"] = highlight_id
+
         # Add tooltips for tags
         if "tags" in task and task["tags"]:
             self.add_task_tag_tooltips(task)
@@ -1084,3 +1111,205 @@ class UIComponents:
                 ui_elements["connector_x"] + 5,
                 ui_elements["connector_y"] + 5,
             )
+
+            # Update highlight if this task is selected
+            if "highlight" in ui_elements:
+                self.controller.task_canvas.coords(
+                    ui_elements["highlight"], x1 - 2, y1 - 2, x2 + 2, y2 + 2
+                )
+
+    def highlight_selected_tasks(self):
+        """Highlight all selected tasks with an orange border"""
+        # First remove any existing highlights
+        self.remove_task_selections()
+
+        # Highlight all tasks in the selected_tasks list
+        for task in self.controller.selected_tasks:
+            task_id = task["task_id"]
+            if task_id in self.task_ui_elements:
+                ui_elements = self.task_ui_elements[task_id]
+                x1, y1, x2, y2 = (
+                    ui_elements["x1"],
+                    ui_elements["y1"],
+                    ui_elements["x2"],
+                    ui_elements["y2"],
+                )
+
+                # Create orange highlight border (slightly larger than the task)
+                highlight_id = self.controller.task_canvas.create_rectangle(
+                    x1 - 2,
+                    y1 - 2,
+                    x2 + 2,
+                    y2 + 2,
+                    outline="orange",
+                    width=2,
+                    tags=("selection_highlight",),
+                )
+
+                # Store the highlight ID in the UI elements dictionary
+                ui_elements["highlight"] = highlight_id
+
+                # Ensure the highlight is behind the task
+                self.controller.task_canvas.tag_lower(highlight_id)
+
+        # Update status bar with selection count if in multi-select mode
+        if (
+            self.controller.multi_select_mode
+            and len(self.controller.selected_tasks) > 0
+        ):
+            self.controller.filter_status.config(
+                text=f"Multi-select mode: {len(self.controller.selected_tasks)} tasks selected"
+            )
+
+    def remove_task_selections(self):
+        """Remove highlighting from all tasks"""
+        # Delete all selection highlights
+        self.controller.task_canvas.delete("selection_highlight")
+
+        # Remove highlight references from UI elements
+        for task_id, ui_elements in self.task_ui_elements.items():
+            if "highlight" in ui_elements:
+                del ui_elements["highlight"]
+
+    def select_all_tasks(self):
+        """Select all visible tasks"""
+        if not self.controller.multi_select_mode:
+            # Enable multi-select mode if not already enabled
+            self.controller.toggle_multi_select_mode()
+
+        # Get the filtered tasks (visible tasks)
+        visible_tasks = self.controller.tag_ops.get_filtered_tasks()
+
+        # Set as selected tasks
+        self.controller.selected_tasks = visible_tasks.copy()
+
+        # Update highlighting
+        self.highlight_selected_tasks()
+
+    def clear_selections(self):
+        """Clear all task selections"""
+        self.controller.selected_tasks = []
+        self.remove_task_selections()
+
+        # Update status if in multi-select mode
+        if self.controller.multi_select_mode:
+            self.controller.filter_status.config(
+                text="Multi-select mode: ON - Use Ctrl+click to select multiple tasks"
+            )
+
+    def add_tag_to_selected_tasks(self):
+        """Add a tag to all selected tasks"""
+        if not self.controller.selected_tasks:
+            return
+
+        # Prompt for tag
+        from tkinter import simpledialog
+
+        tag = simpledialog.askstring(
+            "Add Tag",
+            "Enter tag to add to selected tasks:",
+            parent=self.controller.root,
+        )
+
+        if not tag:
+            return
+
+        # Validate tag (only letters, numbers, underscore, hyphen, no spaces)
+        import re
+
+        if not re.match(r"^[\w\-]+$", tag):
+            tk.messagebox.showerror(
+                "Invalid Tag",
+                "Tags can only contain letters, numbers, underscores, and hyphens.",
+            )
+            return
+
+        # Add tag to all selected tasks
+        for task in self.controller.selected_tasks:
+            self.controller.model.add_tags_to_task(task["task_id"], [tag])
+
+        # Refresh the view
+        self.controller.update_view()
+
+    def remove_tag_from_selected_tasks(self):
+        """Remove a tag from all selected tasks"""
+        if not self.controller.selected_tasks:
+            return
+
+        # Collect all unique tags from selected tasks
+        all_tags = set()
+        for task in self.controller.selected_tasks:
+            if "tags" in task and task["tags"]:
+                for tag in task["tags"]:
+                    all_tags.add(tag)
+
+        if not all_tags:
+            tk.messagebox.showinfo("No Tags", "The selected tasks don't have any tags.")
+            return
+
+        # Create a dialog to choose which tag to remove
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title("Remove Tag")
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+
+        # Position the dialog
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f"300x200+{x}+{y}")
+
+        tk.Label(dialog, text="Select tag to remove:").pack(pady=10)
+
+        listbox = tk.Listbox(dialog)
+        listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        for tag in sorted(all_tags):
+            listbox.insert(tk.END, tag)
+
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(fill=tk.X, pady=10)
+
+        def on_remove():
+            selected_indices = listbox.curselection()
+            if not selected_indices:
+                return
+
+            tag = listbox.get(selected_indices[0])
+
+            # Remove tag from all selected tasks
+            for task in self.controller.selected_tasks:
+                self.controller.model.remove_tags_from_task(task["task_id"], [tag])
+
+            # Refresh the view
+            self.controller.update_view()
+            dialog.destroy()
+
+        tk.Button(button_frame, text="Remove", command=on_remove).pack(
+            side=tk.RIGHT, padx=10
+        )
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(
+            side=tk.RIGHT
+        )
+
+    def delete_selected_tasks(self):
+        """Delete all selected tasks"""
+        if not self.controller.selected_tasks:
+            return
+
+        # Confirm deletion
+        count = len(self.controller.selected_tasks)
+        if not tk.messagebox.askyesno(
+            "Confirm Delete",
+            f"Are you sure you want to delete {count} selected task{'s' if count > 1 else ''}?",
+            parent=self.controller.root,
+        ):
+            return
+
+        # Delete tasks
+        for task in self.controller.selected_tasks.copy():
+            self.controller.model.delete_task(task["task_id"])
+
+        # Clear selection and update view
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+        self.controller.update_view()
