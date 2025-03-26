@@ -384,9 +384,14 @@ class TaskOperations:
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        dialog.geometry(f"500x400+{x}+{y}")
+        dialog.geometry(f"600x500+{x}+{y}")
         dialog.transient(parent)
         dialog.grab_set()  # Important: Prevents interaction with the main window
+        dialog.focus_set()  # Ensure dialog gets focus
+        dialog.wait_visibility()  # Wait for dialog to be visible before proceeding
+
+        # Bind ESC key to close dialog
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
 
         # Create a frame for the resource list
         list_frame = tk.Frame(dialog)
@@ -405,20 +410,232 @@ class TaskOperations:
         notebook.add(capacity_tab, text="Capacity")
 
         # ---- Resources Tab ----
+        resource_management_frame = tk.Frame(resources_tab)
+        resource_management_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Add a label for instructions
+        tk.Label(
+            resource_management_frame,
+            text="Manage Resources:",
+            font=("Helvetica", 10, "bold"),
+        ).pack(anchor="w", pady=(0, 10))
+
+        # Create frame for listbox and scrollbar
+        listbox_frame = tk.Frame(resource_management_frame)
+        listbox_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
         # Scrollbar for the listbox
-        scrollbar = tk.Scrollbar(resources_tab)
+        scrollbar = tk.Scrollbar(listbox_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Create a listbox to display resources
-        resource_listbox = tk.Listbox(resources_tab, yscrollcommand=scrollbar.set)
+        resource_listbox = tk.Listbox(
+            listbox_frame, yscrollcommand=scrollbar.set, font=("Helvetica", 10)
+        )
         resource_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=resource_listbox.yview)
 
+        # Create a frame for resource details editing
+        details_frame = tk.Frame(resource_management_frame)
+        details_frame.pack(fill=tk.X, pady=10)
+
+        # Resource name editing
+        tk.Label(details_frame, text="Resource Name:").grid(
+            row=0, column=0, sticky="w", padx=5, pady=5
+        )
+        resource_name_var = tk.StringVar()
+        name_entry = tk.Entry(details_frame, textvariable=resource_name_var, width=30)
+        name_entry.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+
         # Populate the listbox
-        for resource in self.model.resources:
-            resource_listbox.insert(tk.END, f"{resource['id']} - {resource['name']}")
+        def populate_resource_listbox():
+            resource_listbox.delete(0, tk.END)
+            for resource in self.model.resources:
+                resource_listbox.insert(
+                    tk.END, f"{resource['id']} - {resource['name']}"
+                )
+
+        populate_resource_listbox()
+
+        # Create buttons for actions on resources
+        button_frame = tk.Frame(resource_management_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+
+        # Function to update selected resource
+        def update_selected_resource():
+            selected_indices = resource_listbox.curselection()
+            if not selected_indices:
+                messagebox.showwarning(
+                    "No Selection", "Please select a resource to update.", parent=dialog
+                )
+                return
+
+            # Get the resource to update
+            index = selected_indices[0]
+            resource_text = resource_listbox.get(index)
+            resource_id = int(resource_text.split(" - ")[0])
+            resource = self.model.get_resource_by_id(resource_id)
+
+            if resource:
+                new_name = resource_name_var.get().strip()
+                if not new_name:
+                    messagebox.showwarning(
+                        "Invalid Name", "Resource name cannot be empty.", parent=dialog
+                    )
+                    return
+
+                if new_name != resource["name"]:
+                    if self.model.update_resource_name(resource_id, new_name):
+                        # Update the listbox
+                        resource_listbox.delete(index)
+                        resource_listbox.insert(index, f"{resource_id} - {new_name}")
+                        resource_listbox.selection_set(index)
+                        messagebox.showinfo(
+                            "Success",
+                            f"Resource renamed to '{new_name}'.",
+                            parent=dialog,
+                        )
+
+                        # Update the resource grid in the main UI
+                        self.controller.ui.draw_resource_grid()
+                        self.controller.update_resource_loading()
+                    else:
+                        messagebox.showwarning(
+                            "Error",
+                            "A resource with this name already exists.",
+                            parent=dialog,
+                        )
+
+        # Define button actions for resources
+        # For the add_resource_from_dialog function:
+        def add_resource_from_dialog():
+            resource_name = resource_name_var.get().strip()
+            if not resource_name:
+                messagebox.showwarning(
+                    "Invalid Name", "Please enter a resource name.", parent=dialog
+                )
+                return
+
+            if self.model.get_resource_by_name(resource_name):
+                messagebox.showwarning(
+                    "Duplicate Name",
+                    "A resource with this name already exists.",
+                    parent=dialog,
+                )
+                return
+
+            self.model.add_resource(resource_name)
+            # Refresh the listbox
+            populate_resource_listbox()
+            messagebox.showinfo(
+                "Success", f"Resource '{resource_name}' added.", parent=dialog
+            )
+            resource_name_var.set("")  # Clear the entry field
+
+            # Update the resource grid in the main UI
+            self.controller.ui.draw_resource_grid()
+            self.controller.update_resource_loading()
+
+        # For the remove_selected_resource function:
+        def remove_selected_resource():
+            selected_indices = resource_listbox.curselection()
+            if not selected_indices:
+                messagebox.showwarning(
+                    "No Selection", "Please select a resource to delete.", parent=dialog
+                )
+                return
+
+            # Get the resource to remove
+            index = selected_indices[0]
+            resource_text = resource_listbox.get(index)
+            resource_id = int(resource_text.split(" - ")[0])
+            resource = self.model.get_resource_by_id(resource_id)
+
+            if resource:
+                # Confirm deletion
+                if messagebox.askyesno(
+                    "Confirm Delete",
+                    f"Delete resource '{resource['name']}'?",
+                    parent=dialog,
+                ):
+                    # Check if resource is used by any tasks
+                    used_by_tasks = []
+                    for task in self.model.tasks:
+                        if (
+                            str(resource_id) in task["resources"]
+                            or resource_id in task["resources"]
+                        ):
+                            used_by_tasks.append(task["description"])
+
+                    if used_by_tasks:
+                        # Resource is in use - ask what to do
+                        message = f"Resource '{resource['name']}' is used by {len(used_by_tasks)} tasks. Remove it from tasks too?"
+                        if messagebox.askyesno(
+                            "Resource in Use", message, parent=dialog
+                        ):
+                            # Remove resource using model method (will remove from tasks too)
+                            self.model.remove_resource(resource_id)
+                            resource_listbox.delete(index)
+                            messagebox.showinfo(
+                                "Success",
+                                f"Resource '{resource['name']}' deleted.",
+                                parent=dialog,
+                            )
+
+                            # Update the resource grid in the main UI
+                            self.controller.ui.draw_resource_grid()
+                            self.controller.update_resource_loading()
+                        else:
+                            # Cancel deletion
+                            return
+                    else:
+                        # Remove the resource
+                        self.model.remove_resource(resource_id)
+                        resource_listbox.delete(index)
+                        messagebox.showinfo(
+                            "Success",
+                            f"Resource '{resource['name']}' deleted.",
+                            parent=dialog,
+                        )
+
+                        # Update the resource grid in the main UI
+                        self.controller.ui.draw_resource_grid()
+                        self.controller.update_resource_loading()
+
+        def on_dialog_close():
+            # Update the main UI when dialog closes
+            self.controller.ui.draw_resource_grid()
+            self.controller.update_resource_loading()
+            dialog.destroy()
+
+        def on_resource_select(event):
+            """When a resource is selected, populate the name entry field"""
+            selected_indices = resource_listbox.curselection()
+            if selected_indices:
+                index = selected_indices[0]
+                resource_text = resource_listbox.get(index)
+                resource_id = int(resource_text.split(" - ")[0])
+                resource = self.model.get_resource_by_id(resource_id)
+                if resource:
+                    resource_name_var.set(resource["name"])
+
+        # Bind selection event
+        resource_listbox.bind("<<ListboxSelect>>", on_resource_select)
+
+        # Add buttons for resource management
+        tk.Button(
+            button_frame, text="Add Resource", command=add_resource_from_dialog
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Button(
+            button_frame, text="Update Resource", command=update_selected_resource
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Button(
+            button_frame, text="Remove Resource", command=remove_selected_resource
+        ).pack(side=tk.LEFT, padx=5)
 
         # ---- Capacity Tab ----
+        # (Keep the capacity tab functionality as is)
+        # ... rest of the capacity tab code from the original method ...
         capacity_frame = tk.Frame(capacity_tab)
         capacity_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
@@ -619,93 +836,52 @@ class TaskOperations:
         )
         update_button.grid(row=0, column=6, padx=10)
 
-        # Create buttons for actions on resources tab
-        button_frame = tk.Frame(resources_tab)
-        button_frame.pack(fill=tk.X, padx=10, pady=5)
+        # Add "Close" button at the bottom
+        close_button_frame = tk.Frame(dialog)
+        close_button_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        # Define button actions for resources
-        def add_resource_from_dialog():
-            resource_name = simpledialog.askstring(
-                "Add Resource", "Enter new resource name:", parent=dialog
-            )
-            if resource_name and not self.model.get_resource_by_name(resource_name):
-                self.model.add_resource(resource_name)
-                # Refresh the listbox
-                resource_listbox.delete(0, tk.END)
-                for resource in self.model.resources:
-                    resource_listbox.insert(
-                        tk.END, f"{resource['id']} - {resource['name']}"
-                    )
+        # Get a reference to the Close button
+        close_button = tk.Button(
+            close_button_frame, text="Close", command=on_dialog_close, width=10
+        )
+        close_button.pack(side=tk.RIGHT)
 
-        def remove_selected_resource():
-            selected_indices = resource_listbox.curselection()
-            if not selected_indices:
+        # Bind the Return/Enter key to the dialog globally
+        dialog.bind("<Return>", lambda event: handle_enter_key(event))
+
+        # Function to handle Enter key press
+        def handle_enter_key(event):
+            # Check if the Close button has focus
+            if event.widget == close_button:
+                on_dialog_close()
+            # If in a text entry field, don't trigger close
+            elif isinstance(event.widget, tk.Entry):
                 return
+            # For other widgets like buttons, simulate a click if they have focus
+            elif isinstance(event.widget, tk.Button):
+                event.widget.invoke()
 
-            # Get the resource to remove
-            index = selected_indices[0]
-            resource_text = resource_listbox.get(index)
-            resource_id = int(resource_text.split(" - ")[0])
-            resource = self.model.get_resource_by_id(resource_id)
+        # Also update the protocol handler for window close (X button)
+        dialog.protocol("WM_DELETE_WINDOW", on_dialog_close)
 
-            if resource:
-                # Confirm deletion
-                if messagebox.askyesno(
-                    "Confirm Delete",
-                    f"Delete resource '{resource['name']}'?",
-                    parent=dialog,
-                ):
-                    # Check if resource is used by any tasks
-                    used_by_tasks = []
-                    for task in self.model.tasks:
-                        if resource_id in task["resources"]:
-                            used_by_tasks.append(task["description"])
+        # Draw the initial capacity chart if a resource is selected
+        if self.model.resources:
+            draw_capacity_chart()
 
-                    if used_by_tasks:
-                        # Resource is in use - ask what to do
-                        message = f"Resource '{resource['name']}' is used by {len(used_by_tasks)} tasks. Remove it from tasks too?"
-                        if messagebox.askyesno(
-                            "Resource in Use", message, parent=dialog
-                        ):
-                            # Remove resource using model method (will remove from tasks too)
-                            self.model.remove_resource(resource_id)
-                            resource_listbox.delete(index)
-                        else:
-                            # Cancel deletion
-                            return
-                    else:
-                        # Remove the resource
-                        self.model.remove_resource(resource_id)
-                        resource_listbox.delete(index)
+        # Connect the notebook tabs to update functions
+        def on_tab_changed(event):
+            tab = event.widget.select()
+            tab_text = event.widget.tab(tab, "text")
+            if tab_text == "Resources":
+                # Refresh resource list when switching to resources tab
+                populate_resource_listbox()
+            elif tab_text == "Capacity":
+                # Refresh capacity dropdown when switching to capacity tab
+                update_resource_dropdown()
+                # Redraw capacity chart
+                draw_capacity_chart()
 
-        def rename_selected_resource():
-            selected_indices = resource_listbox.curselection()
-            if not selected_indices:
-                return
-
-            # Get the resource to rename
-            index = selected_indices[0]
-            resource_text = resource_listbox.get(index)
-            resource_id = int(resource_text.split(" - ")[0])
-            resource = self.model.get_resource_by_id(resource_id)
-
-            if resource:
-                new_name = simpledialog.askstring(
-                    "Rename Resource",
-                    "Enter new resource name:",
-                    initialvalue=resource["name"],
-                    parent=dialog,
-                )
-                if new_name and new_name != resource["name"]:
-                    if self.model.update_resource_name(resource_id, new_name):
-                        # Update the listbox
-                        resource_listbox.delete(index)
-                        resource_listbox.insert(index, f"{resource_id} - {new_name}")
-                        resource_listbox.selection_set(index)
-                    else:
-                        messagebox.showwarning(
-                            "Warning", "A resource with this name already exists."
-                        )
+        notebook.bind("<<NotebookTabChanged>>", on_tab_changed)
 
     def edit_project_settings(self, parent=None):
         """Edit project settings like number of days and start date"""
