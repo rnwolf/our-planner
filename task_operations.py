@@ -1273,16 +1273,25 @@ class TaskOperations:
                 self.controller.task_canvas.coords(
                     ui_elements["text"],
                     (new_x1 + new_x2) / 2,
-                    (new_y1 + new_y2) / 2
-                    - (8 if ui_elements.get("resource_text") else 0),
+                    (new_y1 + new_y2) / 2 - 8,
                 )
 
-                # Update resource text position if it exists
-                if ui_elements.get("resource_text"):
+                # Update tag text position if it exists
+                if ui_elements.get("tag_text"):
                     self.controller.task_canvas.coords(
-                        ui_elements["resource_text"],
+                        ui_elements["tag_text"],
                         (new_x1 + new_x2) / 2,
                         (new_y1 + new_y2) / 2 + 8,
+                    )
+
+                # Update highlight position if it exists
+                if "highlight" in ui_elements:
+                    self.controller.task_canvas.coords(
+                        ui_elements["highlight"],
+                        new_x1 - 2,
+                        new_y1 - 2,
+                        new_x2 + 2,
+                        new_y2 + 2,
                     )
 
                 # Collision detection and task shifting
@@ -1334,10 +1343,10 @@ class TaskOperations:
                 (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
             )
 
-            # Update resource text position if it exists
-            if ui_elements.get("resource_text"):
+            # Update tag text position if it exists
+            if ui_elements.get("tag_text"):
                 self.controller.task_canvas.coords(
-                    ui_elements["resource_text"],
+                    ui_elements["tag_text"],
                     (ui_elements["x1"] + ui_elements["x2"]) / 2,
                     (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
                 )
@@ -1375,6 +1384,7 @@ class TaskOperations:
                         duration=duration,
                         description=task_name,
                         resources={},
+                        tags=[],  # Add empty tags list
                     )
 
                     # Draw the new task
@@ -1382,6 +1392,9 @@ class TaskOperations:
 
                     # Prompt for resources
                     self.edit_task_resources(new_task)
+
+                    # Optionally prompt for tags
+                    self.controller.tag_ops.edit_task_tags(new_task)
 
             # Remove the rubberband
             if self.controller.rubberband:

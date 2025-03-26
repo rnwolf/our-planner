@@ -3,6 +3,7 @@ from model import TaskResourceModel
 from ui_components import UIComponents
 from file_operations import FileOperations
 from task_operations import TaskOperations
+from tag_operations import TagOperations
 
 
 class TaskResourceManager:
@@ -34,6 +35,7 @@ class TaskResourceManager:
         self.new_task_start = None
         self.rubberband = None
         self.selected_task = None
+        self.selected_tasks = []
         self.dragging_connector = False
         self.connector_line = None
 
@@ -53,6 +55,7 @@ class TaskResourceManager:
 
         # Initialize handlers
         self.task_ops = TaskOperations(self, self.model)
+        self.tag_ops = TagOperations(self, self.model)
         self.ui = UIComponents(self, self.model)
         self.file_ops = FileOperations(self, self.model)
 
@@ -62,11 +65,68 @@ class TaskResourceManager:
         self.ui.create_task_grid_frame()
         self.ui.create_resource_grid_frame()
 
+        # Add status bar for showing filter information
+        self.create_status_bar()
+
         # Create sample tasks in the model
         self.model.create_sample_tasks()
 
+        # After UI creation but before update_view
+        self.ui.update_menu_commands()
+
         # Render initial state
         self.update_view()
+
+    def create_status_bar(self):
+        """Create a status bar at the bottom of the window."""
+        self.status_bar = tk.Frame(self.root, height=25, relief=tk.SUNKEN, bd=1)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # Status message for filters
+        self.filter_status = tk.Label(
+            self.status_bar, text="No filters active", anchor=tk.W, padx=5
+        )
+        self.filter_status.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # Clear filters button
+        self.clear_filters_btn = tk.Button(
+            self.status_bar,
+            text="Clear All Filters",
+            command=self.clear_all_filters,
+            state=tk.DISABLED,
+        )
+        self.clear_filters_btn.pack(side=tk.RIGHT, padx=5, pady=2)
+
+    def clear_all_filters(self):
+        """Clear all active filters."""
+        self.tag_ops.clear_task_filters()
+        self.tag_ops.clear_resource_filters()
+        self.update_filter_status()
+
+    def update_filter_status(self):
+        """Update the filter status display in the status bar."""
+        task_filters = self.tag_ops.task_tag_filters
+        resource_filters = self.tag_ops.resource_tag_filters
+
+        if not task_filters and not resource_filters:
+            self.filter_status.config(text="No filters active")
+            self.clear_filters_btn.config(state=tk.DISABLED)
+        else:
+            status_text = []
+            if task_filters:
+                match_type = "ALL" if self.tag_ops.task_match_all else "ANY"
+                status_text.append(
+                    f"Tasks: {match_type} of [{', '.join(task_filters)}]"
+                )
+
+            if resource_filters:
+                match_type = "ALL" if self.tag_ops.resource_match_all else "ANY"
+                status_text.append(
+                    f"Resources: {match_type} of [{', '.join(resource_filters)}]"
+                )
+
+            self.filter_status.config(text=" | ".join(status_text))
+            self.clear_filters_btn.config(state=tk.NORMAL)
 
     def update_view(self):
         """Update all view components to reflect current model state."""
@@ -74,6 +134,7 @@ class TaskResourceManager:
         self.ui.draw_task_grid()
         self.ui.draw_resource_grid()
         self.update_resource_loading()
+        self.update_filter_status()
 
     def update_resource_loading(self):
         """Calculate resource loading and update display."""

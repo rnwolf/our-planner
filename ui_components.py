@@ -12,6 +12,19 @@ class UIComponents:
         # Track UI-specific task data
         self.task_ui_elements = {}  # Maps task_id to UI elements
 
+        # Color scheme for tags
+        self.tag_colors = {
+            "important": "#ffcccc",  # Light red
+            "critical": "#ff9999",  # Stronger red
+            "phase1": "#ccffcc",  # Light green
+            "phase2": "#99ff99",  # Stronger green
+            "team1": "#cce5ff",  # Light blue
+            "team2": "#99ccff",  # Stronger blue
+            "developer": "#e6ccff",  # Light purple
+            "designer": "#ffccff",  # Light pink
+            "qa": "#ffffcc",  # Light yellow
+        }
+
     def create_menu_bar(self):
         """Create the menu bar with file operations"""
         self.menu_bar = tk.Menu(self.controller.root)
@@ -62,8 +75,45 @@ class UIComponents:
             ),
         )
 
+        # Tags menu (new)
+        self.tags_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Tags", menu=self.tags_menu)
+
+        # Tags operations
+        self.tags_menu.add_command(
+            label="Filter Tasks by Tags...",
+            command=self.controller.tag_ops.filter_tasks_by_tags,
+        )
+        self.tags_menu.add_command(
+            label="Filter Resources by Tags...",
+            command=self.controller.tag_ops.filter_resources_by_tags,
+        )
+        self.tags_menu.add_separator()
+        self.tags_menu.add_command(
+            label="Select Tasks by Tags...",
+            command=self.controller.tag_ops.select_tasks_by_tag,
+        )
+
+        self.tags_menu.add_separator()
+        self.tags_menu.add_command(
+            label="Clear All Filters", command=self.controller.clear_all_filters
+        )
+
+        # View menu (new)
+        self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
+
+        # View options for tags
+        self.show_tags_var = tk.BooleanVar(value=True)
+        self.view_menu.add_checkbutton(
+            label="Show Tags on Tasks",
+            variable=self.show_tags_var,
+            command=self.controller.update_view,
+        )
+
     def create_timeline_frame(self):
         """Create the timeline canvas with horizontal scrolling"""
+        # This method remains unchanged
         self.timeline_frame = tk.Frame(self.controller.main_frame)
         self.timeline_frame.pack(fill=tk.X, pady=(0, 5))
 
@@ -266,6 +316,14 @@ class UIComponents:
                 self.controller.selected_task
             ),
         )
+        # Add tag editing menu item
+        self.context_menu.add_command(
+            label="Edit Task Tags",
+            command=lambda: self.controller.tag_ops.edit_task_tags(
+                self.controller.selected_task
+            ),
+        )
+        self.context_menu.add_separator()
         self.context_menu.add_command(
             label="Add Predecessor",
             command=lambda: self.controller.task_ops.add_predecessor_dialog(
@@ -278,6 +336,7 @@ class UIComponents:
                 self.controller.selected_task
             ),
         )
+        self.context_menu.add_separator()
         self.context_menu.add_command(
             label="Delete Task", command=self.controller.task_ops.delete_task
         )
@@ -293,6 +352,40 @@ class UIComponents:
             command=lambda: self.controller.task_ops.edit_project_settings(
                 parent=self.controller.root
             ),
+        )
+
+        # Create resource context menu (new)
+        self.resource_context_menu = tk.Menu(self.controller.root, tearoff=0)
+        self.resource_context_menu.add_command(
+            label="Edit Resource Tags",
+            command=lambda: self.controller.tag_ops.edit_resource_tags(
+                self.selected_resource_id
+            ),
+        )
+
+        # Create multiple task selection context menu (new)
+        self.multi_task_menu = tk.Menu(self.controller.root, tearoff=0)
+
+        # We'll set up the commands after the methods are defined
+        self.multi_task_menu.add_command(
+            label="Add Tag to Selected Tasks...",
+            command=lambda: None,  # Placeholder to be updated
+        )
+        self.multi_task_menu.add_command(
+            label="Remove Tag from Selected Tasks...",
+            command=lambda: None,  # Placeholder to be updated
+        )
+
+    def update_menu_commands(self):
+        """Update the commands in the menus after initialization"""
+        # Update the multi-task menu to use the correct methods
+        self.multi_task_menu.entryconfig(
+            0,  # First item (Add Tag)
+            command=lambda: self.add_tag_to_selected_tasks(),
+        )
+        self.multi_task_menu.entryconfig(
+            1,  # Second item (Remove Tag)
+            command=lambda: self.remove_tag_from_selected_tasks(),
         )
 
     def sync_horizontal_scroll(self, *args):
@@ -534,12 +627,64 @@ class UIComponents:
             0, canvas_height, 100, canvas_height, fill="gray"
         )
 
+        # Get filtered tasks if filters are active
+        tasks_to_draw = self.controller.tag_ops.get_filtered_tasks()
+
         # Draw the tasks
-        for task in self.model.tasks:
+        for task in tasks_to_draw:
             self.draw_task(task)
 
         # Draw dependencies
         self.draw_dependencies()
+
+    def add_tag_tooltip(self, canvas, item_id, tooltip_text):
+        """Add a tooltip to a canvas item."""
+        tooltip_window = None
+
+        def enter(event):
+            nonlocal tooltip_window
+            x, y = event.x_root, event.y_root
+
+            # Create tooltip window
+            tooltip_window = tk.Toplevel(self.controller.root)
+            tooltip_window.wm_overrideredirect(True)
+            tooltip_window.wm_geometry(f"+{x+10}+{y+10}")
+
+            # Create tooltip content
+            label = tk.Label(
+                tooltip_window,
+                text=tooltip_text,
+                justify=tk.LEFT,
+                background="#ffffe0",
+                relief=tk.SOLID,
+                borderwidth=1,
+                padx=3,
+                pady=2,
+            )
+            label.pack()
+
+        def leave(event):
+            nonlocal tooltip_window
+            if tooltip_window:
+                tooltip_window.destroy()
+                tooltip_window = None
+
+        # Bind tooltip events
+        canvas.tag_bind(item_id, "<Enter>", enter)
+        canvas.tag_bind(item_id, "<Leave>", leave)
+
+    def add_task_tag_tooltips(self, task):
+        """Add tooltips for task tags."""
+        task_id = task["task_id"]
+        if task_id in self.task_ui_elements:
+            ui_elements = self.task_ui_elements[task_id]
+            box_id = ui_elements["box"]
+
+            # Create tooltip text
+            tooltip_text = "Tags: " + ", ".join(task["tags"])
+
+            # Add tooltip to the task box
+            self.add_tag_tooltip(self.controller.task_canvas, box_id, tooltip_text)
 
     def draw_dependencies(self):
         """Draw arrows for task dependencies"""
@@ -612,9 +757,12 @@ class UIComponents:
         self.controller.resource_canvas.delete("all")
         self.controller.resource_label_canvas.delete("all")
 
+        # Get filtered resources if filters are active
+        resources_to_draw = self.controller.tag_ops.get_filtered_resources()
+
         # Calculate width and height
         canvas_width = self.controller.cell_width * self.model.days
-        canvas_height = len(self.model.resources) * self.controller.task_height
+        canvas_height = len(resources_to_draw) * self.controller.task_height
         self.controller.resource_canvas.config(
             scrollregion=(0, 0, canvas_width, canvas_height)
         )
@@ -635,7 +783,7 @@ class UIComponents:
             )
 
         # Draw row lines and resource names
-        for i, resource in enumerate(self.model.resources):
+        for i, resource in enumerate(resources_to_draw):
             y = i * self.controller.task_height
 
             # Draw lines in resource canvas
@@ -643,14 +791,72 @@ class UIComponents:
                 0, y, canvas_width, y, fill="gray"
             )
 
-            # Draw resource names in the label canvas
+            # Draw resource names and tags in the label canvas
             self.controller.resource_label_canvas.create_line(0, y, 100, y, fill="gray")
-            self.controller.resource_label_canvas.create_text(
+
+            # Create resource name with tag indicators
+            resource_text = resource["name"]
+
+            # Create a frame for the resource with background color based on tags
+            label_bg = "lightgray"
+
+            # Bind right-click event to show context menu
+            tag_y = y + self.controller.task_height / 2
+            resource_id = resource["id"]
+
+            # Draw resource name
+            name_id = self.controller.resource_label_canvas.create_text(
                 50,
-                y + self.controller.task_height / 2,
-                text=resource["name"],  # Use resource["name"] instead of resource
+                tag_y,
+                text=resource_text,
                 anchor="center",
+                tags=(f"resource_{resource_id}",),
             )
+
+            # Bind event to the resource name
+            self.controller.resource_label_canvas.tag_bind(
+                f"resource_{resource_id}",
+                "<ButtonPress-3>",
+                lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
+            )
+
+            # Draw tags if present
+            if "tags" in resource and resource["tags"] and self.show_tags_var.get():
+                tag_text = ", ".join(resource["tags"])
+                tag_id = self.controller.resource_label_canvas.create_text(
+                    50,
+                    tag_y + 10,
+                    text=f"[{tag_text}]",
+                    anchor="center",
+                    font=("Arial", 7),
+                    fill="blue",
+                    tags=(f"resource_tags_{resource_id}",),
+                )
+
+                # Create tag indicators - small colored squares beside the resource name
+                tag_x = 95
+                for tag in resource["tags"]:
+                    if tag in self.tag_colors:
+                        # Create small color square for each tag
+                        square_id = (
+                            self.controller.resource_label_canvas.create_rectangle(
+                                tag_x - 8,
+                                tag_y - 4,
+                                tag_x - 2,
+                                tag_y + 4,
+                                fill=self.tag_colors.get(tag, "#dddddd"),
+                                outline="gray",
+                                tags=(f"resource_tag_indicator_{resource_id}_{tag}",),
+                            )
+                        )
+                        tag_x -= 8  # Move left for the next indicator
+
+                        # Add tooltip for the tag
+                        self.add_tag_tooltip(
+                            self.controller.resource_label_canvas,
+                            f"resource_tag_indicator_{resource_id}_{tag}",
+                            tag,
+                        )
 
         # Draw bottom line
         self.controller.resource_canvas.create_line(
@@ -665,8 +871,11 @@ class UIComponents:
         # Clear previous loading display
         self.controller.resource_canvas.delete("loading")
 
-        # Display resource loading
-        for i, resource in enumerate(self.model.resources):
+        # Get filtered resources
+        filtered_resources = self.controller.tag_ops.get_filtered_resources()
+
+        # Display resource loading for filtered resources
+        for i, resource in enumerate(filtered_resources):
             resource_id = resource[
                 "id"
             ]  # Get the resource ID which is the key in resource_loading
@@ -719,6 +928,11 @@ class UIComponents:
                         tags="loading",
                         font=("Arial", 8),  # Smaller font to fit more text
                     )
+
+    def show_resource_context_menu(self, event, resource_id):
+        """Show the context menu for a resource."""
+        self.selected_resource_id = resource_id
+        self.resource_context_menu.post(event.x_root, event.y_root)
 
     def open_url(self, url):
         """Open a URL in the default web browser"""
