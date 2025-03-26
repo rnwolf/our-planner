@@ -399,7 +399,10 @@ class TaskResourceModel:
             duration = task["duration"]
 
             # For each resource allocation in the task
-            for resource_id, allocation in task["resources"].items():
+            for resource_id_str, allocation in task["resources"].items():
+                # Convert string resource_id to integer
+                resource_id = int(resource_id_str)
+
                 for day in range(duration):
                     if 0 <= col + day < self.days:
                         resource_loading[resource_id][col + day] += allocation
