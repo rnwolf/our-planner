@@ -1,60 +1,20 @@
 {
   "tasks": [
     {
-      "task_id": 1,
-      "row": 1,
-      "col": 5,
-      "duration": 5,
-      "description": "Task A",
-      "url": "https://www.google.com",
-      "resources": {
-        "1": 0.5,
-        "2": 1.5
-      },
-      "predecessors": [],
-      "successors": []
-    },
-    {
-      "task_id": 2,
-      "row": 2,
-      "col": 12,
-      "duration": 4,
-      "description": "Task B",
-      "url": "https://www.google.com",
-      "resources": {
-        "1": 1.0,
-        "2": 0.75,
-        "3": 0.25
-      },
-      "predecessors": [],
-      "successors": []
-    },
-    {
-      "task_id": 3,
-      "row": 3,
-      "col": 4,
-      "duration": 3,
-      "description": "Task C",
-      "url": "https://www.google.com",
-      "resources": {
-        "1": 2.0
-      },
-      "predecessors": [],
-      "successors": []
-    },
-    {
-      "task_id": 4,
+      "task_id": 5,
       "row": 4,
-      "col": 1,
-      "duration": 2,
-      "description": "Task D",
+      "col": 2,
+      "duration": 5,
+      "description": "dddd",
       "url": "",
       "resources": {
-        "1": 0.5,
-        "4": 0.5
+        "1": 5.0
       },
       "predecessors": [],
-      "successors": []
+      "successors": [],
+      "tags": [
+        "important"
+      ]
     }
   ],
   "resources": [
@@ -62,16 +22,16 @@
       "id": 1,
       "name": "Resource A",
       "capacity": [
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
-        1.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
+        7.0,
         1.0,
         1.0,
         1.0,
@@ -162,6 +122,10 @@
         1.0,
         1.0,
         1.0
+      ],
+      "tags": [
+        "team1",
+        "developer"
       ]
     },
     {
@@ -268,6 +232,10 @@
         1.0,
         1.0,
         1.0
+      ],
+      "tags": [
+        "team1",
+        "designer"
       ]
     },
     {
@@ -374,6 +342,10 @@
         1.0,
         1.0,
         1.0
+      ],
+      "tags": [
+        "team2",
+        "developer"
       ]
     },
     {
@@ -480,6 +452,10 @@
         1.0,
         1.0,
         1.0
+      ],
+      "tags": [
+        "team2",
+        "qa"
       ]
     },
     {
@@ -586,7 +562,8 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "tags": []
     },
     {
       "id": 6,
@@ -692,7 +669,8 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "tags": []
     },
     {
       "id": 7,
@@ -798,7 +776,8 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "tags": []
     },
     {
       "id": 8,
@@ -904,7 +883,8 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "tags": []
     },
     {
       "id": 9,
@@ -1010,7 +990,8 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "tags": []
     },
     {
       "id": 10,
@@ -1116,9 +1097,11 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "tags": []
     }
   ],
   "days": 100,
-  "max_rows": 50
+  "max_rows": 50,
+  "start_date": "2025-03-26T00:00:00"
 }
