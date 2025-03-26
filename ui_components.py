@@ -961,12 +961,17 @@ class UIComponents:
             x2, y1, x2, y2, fill="black", width=2, tags=("task", "resize", "right")
         )
 
+        # Determine vertical position for text elements based on whether we show tags
+        text_y_offset = (
+            -4 if self.show_tags_var.get() and "tags" in task and task["tags"] else 0
+        )
+
         # Draw task text
         if task.get("url") and isinstance(task["url"], str) and task["url"].strip():
             # Make the description a clickable URL
             text_id = self.controller.task_canvas.create_text(
                 (x1 + x2) / 2,
-                (y1 + y2) / 2,
+                (y1 + y2) / 2 + text_y_offset,
                 text=f"{task_id} - {description}",
                 fill="blue",
                 tags=("task", "url", f"task_{task_id}"),
@@ -981,9 +986,22 @@ class UIComponents:
             # Regular task ID and description
             text_id = self.controller.task_canvas.create_text(
                 (x1 + x2) / 2,
-                (y1 + y2) / 2,
+                (y1 + y2) / 2 + text_y_offset,
                 text=f"{task_id} - {description}",
                 tags=("task", "task_text", f"task_{task_id}"),
+            )
+
+        # Draw tags if present and enabled
+        tag_id = None
+        if "tags" in task and task["tags"] and self.show_tags_var.get():
+            tag_text = ", ".join(task["tags"])
+            tag_id = self.controller.task_canvas.create_text(
+                (x1 + x2) / 2,
+                (y1 + y2) / 2 + 8,
+                text=f"[{tag_text}]",
+                fill="blue",
+                font=("Arial", 7),
+                tags=("task", "task_tags", f"task_tags_{task_id}"),
             )
 
         # Add grab connector circle
@@ -1020,6 +1038,14 @@ class UIComponents:
             "connector_x": connector_x,
             "connector_y": connector_y,
         }
+
+        # Add tag element to UI elements if it exists
+        if tag_id:
+            self.task_ui_elements[task_id]["tag_text"] = tag_id
+
+        # Add tooltips for tags
+        if "tags" in task and task["tags"]:
+            self.add_task_tag_tooltips(task)
 
     def update_task_ui(self, task):
         """Updates the UI elements for a specific task."""
