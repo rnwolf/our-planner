@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import webbrowser
+from datetime import datetime, timedelta
 
 
 class UIComponents:
@@ -11,6 +12,148 @@ class UIComponents:
 
         # Track UI-specific task data
         self.task_ui_elements = {}  # Maps task_id to UI elements
+
+    def is_setdate_in_range(self):
+        """Check if the setdate is within the visible timeline range"""
+        timeline_end_date = self.model.start_date + timedelta(days=self.model.days - 1)
+        return self.model.start_date <= self.model.setdate <= timeline_end_date
+
+    def update_setdate_display(self):
+        """Update the setdate display in the top-left corner"""
+        # Update the text
+        self.timeline_label_canvas.itemconfig(
+            self.setdate_text, text=self.model.setdate.strftime("%Y-%m-%d")
+        )
+
+        # Update the background color based on whether the date is in range
+        in_range = self.is_setdate_in_range()
+        self.timeline_label_canvas.itemconfig(
+            self.setdate_bg, fill="green" if in_range else "red"
+        )
+
+    def edit_setdate(self):
+        """Open dialog to edit the setdate"""
+        try:
+            # Try to import tkcalendar for date selection
+            from tkcalendar import Calendar
+
+            # Create calendar dialog
+            cal_dialog = tk.Toplevel(self.controller.root)
+            cal_dialog.title("Set Current Date")
+            cal_dialog.transient(self.controller.root)
+            cal_dialog.grab_set()
+
+            # Center dialog on parent window
+            x = self.controller.root.winfo_rootx() + 50
+            y = self.controller.root.winfo_rooty() + 50
+            cal_dialog.geometry(f"+{x}+{y}")
+
+            # Create calendar widget initialized with current setdate
+            cal = Calendar(
+                cal_dialog,
+                selectmode="day",
+                year=self.model.setdate.year,
+                month=self.model.setdate.month,
+                day=self.model.setdate.day,
+            )
+            cal.pack(padx=10, pady=10)
+
+            def set_date():
+                selected_date = cal.selection_get()
+                # Update model setdate
+                self.model.setdate = datetime(
+                    selected_date.year, selected_date.month, selected_date.day
+                )
+                # Update display
+                self.update_setdate_display()
+                # Update timeline view to highlight the date if in range
+                self.draw_timeline()
+                cal_dialog.destroy()
+
+            # Add buttons
+            button_frame = tk.Frame(cal_dialog)
+            button_frame.pack(pady=10)
+
+            tk.Button(button_frame, text="Set Date", command=set_date).pack(
+                side=tk.LEFT, padx=5
+            )
+            tk.Button(button_frame, text="Cancel", command=cal_dialog.destroy).pack(
+                side=tk.LEFT, padx=5
+            )
+
+        except ImportError:
+            # If tkcalendar is not available, use a simple date entry dialog
+            self._manual_date_entry_dialog()
+
+    def _manual_date_entry_dialog(self):
+        """Fallback method for date entry if tkcalendar is not available"""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title("Set Current Date")
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+
+        # Center dialog on parent window
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f"300x150+{x}+{y}")
+
+        # Create form fields
+        frame = tk.Frame(dialog, padx=20, pady=20)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # Instruction
+        tk.Label(frame, text="Enter date (YYYY-MM-DD):").pack(anchor="w", pady=(0, 10))
+
+        # Date entry
+        date_var = tk.StringVar(value=self.model.setdate.strftime("%Y-%m-%d"))
+        date_entry = tk.Entry(frame, textvariable=date_var, width=15)
+        date_entry.pack(fill=tk.X, pady=5)
+        date_entry.select_range(0, tk.END)
+        date_entry.focus_set()
+
+        def set_date():
+            try:
+                # Parse date from string
+                date_str = date_var.get().strip()
+                year, month, day = map(int, date_str.split("-"))
+                new_date = datetime(year, month, day)
+
+                # Update model setdate
+                self.model.setdate = new_date
+                # Update display
+                self.update_setdate_display()
+                # Update timeline view to highlight the date if in range
+                self.draw_timeline()
+                dialog.destroy()
+            except (ValueError, IndexError):
+                tk.messagebox.showerror(
+                    "Invalid Date Format",
+                    "Please enter a valid date in YYYY-MM-DD format.",
+                    parent=dialog,
+                )
+
+        # Add buttons
+        button_frame = tk.Frame(frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        tk.Button(button_frame, text="Set Date", command=set_date).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
+
+        # Bind Enter key
+        dialog.bind("<Return>", lambda e: set_date())
+
+    def reset_setdate_to_today(self):
+        """Reset the setdate to today's date"""
+        self.model.setdate = datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        self.update_setdate_display()
+        # Update timeline view to highlight the date if in range
+        self.draw_timeline()
 
     def create_menu_bar(self):
         """Create the menu bar with file operations"""
@@ -101,9 +244,20 @@ class UIComponents:
             command=self.controller.update_view,
         )
 
+        # Date menu
+        self.date_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="Date", menu=self.date_menu)
+
+        # Date operations
+        self.date_menu.add_command(
+            label="Set Current Date...", command=self.edit_setdate
+        )
+        self.date_menu.add_command(
+            label="Reset to Today", command=self.reset_setdate_to_today
+        )
+
     def create_timeline_frame(self):
         """Create the timeline canvas with horizontal scrolling"""
-        # This method remains unchanged
         self.timeline_frame = tk.Frame(self.controller.main_frame)
         self.timeline_frame.pack(fill=tk.X, pady=(0, 5))
 
@@ -118,8 +272,35 @@ class UIComponents:
             highlightthickness=0,
         )
         self.timeline_label_canvas.pack(fill=tk.BOTH)
+
+        # Create setdate display with initial background
+        # Lightgreen #c0f0c0
+        # Lightred #ffd0d0
+        self.setdate_bg = self.timeline_label_canvas.create_rectangle(
+            0,
+            0,
+            100,
+            self.controller.timeline_height,
+            fill="blue" if self.is_setdate_in_range() else "lightred",
+            outline="",
+        )
+
+        # Add "Current Date" label
         self.timeline_label_canvas.create_text(
-            50, self.controller.timeline_height / 2, text="Timeline", anchor="center"
+            50,
+            self.controller.timeline_height / 3,
+            text="Current Date",
+            anchor="center",
+            font=("Arial", 8, "bold"),
+        )
+
+        # Add the actual date
+        self.setdate_text = self.timeline_label_canvas.create_text(
+            50,
+            self.controller.timeline_height * 2 / 3,
+            text=self.model.setdate.strftime("%Y-%m-%d"),
+            anchor="center",
+            font=("Arial", 9, "bold"),
         )
 
         # Create timeline canvas with horizontal scrollbar
@@ -509,6 +690,14 @@ class UIComponents:
             date = self.model.get_date_for_day(i)
             weekday = date.weekday()  # 0 = Monday, 6 = Sunday
 
+            # Highlight current setdate if it matches this day
+            current_date = self.model.start_date + timedelta(days=i)
+            is_setdate = (
+                current_date.year == self.model.setdate.year
+                and current_date.month == self.model.setdate.month
+                and current_date.day == self.model.setdate.day
+            )
+
             # Check if we're starting a new week (Monday)
             if weekday == 0 or last_weekday is None:
                 current_week_is_odd = not current_week_is_odd
@@ -540,6 +729,18 @@ class UIComponents:
                     y2,
                     fill="#ffe6e6",  # Light red for weekends
                     outline="gray",
+                )
+
+            if is_setdate:
+                # Highlight the current setdate with green background
+                self.controller.timeline_canvas.create_rectangle(
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                    fill="green",  # Green highlight for setdate
+                    outline="darkgreen",
+                    stipple="gray50",  # Use stipple for semi-transparency
                 )
 
             # Display date in day format

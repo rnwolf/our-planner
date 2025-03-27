@@ -11,6 +11,8 @@ class TaskResourceModel:
         self.start_date = datetime.now().replace(
             hour=0, minute=0, second=0, microsecond=0
         )
+        # Set date for tracking task status
+        self.setdate = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Resource management with IDs
         self.resource_id_counter = 0
@@ -560,6 +562,16 @@ class TaskResourceModel:
                         hour=0, minute=0, second=0, microsecond=0
                     )
 
+            # Load setdate if available
+            if "setdate" in data:
+                try:
+                    self.setdate = datetime.fromisoformat(data["setdate"])
+                except ValueError:
+                    # If there's an error parsing the date, use the current date
+                    self.setdate = datetime.now().replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+
             # Load max_rows (previously max_tasks)
             if "max_rows" in data:
                 self.max_rows = data["max_rows"]
@@ -612,6 +624,7 @@ class TaskResourceModel:
                 "days": self.days,
                 "max_rows": self.max_rows,
                 "start_date": self.start_date.isoformat(),
+                "setdate": self.setdate.isoformat(),
             }
 
             with open(file_path, "w") as f:

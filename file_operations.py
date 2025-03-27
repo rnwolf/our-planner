@@ -1,5 +1,6 @@
 from tkinter import filedialog, messagebox
 import os
+from datetime import datetime
 
 
 class FileOperations:
@@ -16,6 +17,11 @@ class FileOperations:
             # Reset model data
             self.model.tasks = []
             self.model.current_file_path = None
+
+            # Reset setdate to today
+            self.model.setdate = datetime.now().replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
 
             # Update UI
             self.controller.update_window_title()

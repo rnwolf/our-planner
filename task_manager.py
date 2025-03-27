@@ -138,6 +138,7 @@ class TaskResourceManager:
         self.ui.draw_resource_grid()
         self.update_resource_loading()
         self.update_filter_status()
+        self.ui.update_setdate_display()
 
     def update_resource_loading(self):
         """Calculate resource loading and update display."""

@@ -2,8 +2,8 @@
   "tasks": [
     {
       "task_id": 1,
-      "row": 4,
-      "col": 8,
+      "row": 1,
+      "col": 5,
       "duration": 5,
       "description": "Task A",
       "url": "https://www.google.com",
@@ -15,12 +15,7 @@
       "successors": [],
       "tags": [
         "important",
-        "phase1",
-        "team1",
-        "phase2",
-        "critical",
-        "hello",
-        "team2"
+        "phase1"
       ]
     },
     {
@@ -1162,5 +1157,6 @@
   ],
   "days": 100,
   "max_rows": 50,
-  "start_date": "2025-03-26T00:00:00"
+  "start_date": "2025-03-27T00:00:00",
+  "setdate": "2025-03-30T00:00:00"
 }
