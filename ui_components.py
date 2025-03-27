@@ -244,6 +244,12 @@ class UIComponents:
             command=self.controller.update_view,
         )
 
+        # Add zoom options
+        self.view_menu.add_separator()
+        self.view_menu.add_command(
+            label="Reset Zoom (Ctrl+0)", command=self.controller.reset_zoom
+        )
+
         # Date menu
         self.date_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Date", menu=self.date_menu)
@@ -417,6 +423,26 @@ class UIComponents:
         self.grid_resizer_frame.bind("<ButtonPress-1>", self.on_resizer_press)
         self.grid_resizer_frame.bind("<B1-Motion>", self.on_resizer_drag)
         self.grid_resizer_frame.bind("<ButtonRelease-1>", self.on_resizer_release)
+
+        """Bind zoom-related events to the task canvas"""
+        # Bind Ctrl+mousewheel for zoom
+        self.controller.task_canvas.bind("<MouseWheel>", self.controller.on_zoom)
+
+        # For Linux, which uses Button-4 and Button-5 for scroll wheel
+        self.controller.task_canvas.bind("<Button-4>", self.controller.on_zoom)
+        self.controller.task_canvas.bind(
+            "<Button-5>",
+            lambda e: self.controller.on_zoom(
+                type(
+                    "event",
+                    (),
+                    {"delta": -120, "x": e.x, "y": e.y, "state": e.state},
+                )
+            ),
+        )
+
+        # Add Ctrl+0 keyboard shortcut to reset zoom
+        self.controller.root.bind("<Control-0>", lambda e: self.controller.reset_zoom())
 
     def create_resource_grid_frame(self):
         """Create the resource loading grid canvas"""
@@ -644,8 +670,9 @@ class UIComponents:
         timeline_height = self.controller.timeline_height  # This should now be taller
 
         # Configure canvas scrollregion
+        # Ensure the timeline canvas has the correct scrollregion size
         self.controller.timeline_canvas.config(
-            scrollregion=(0, 0, canvas_width, timeline_height)
+            scrollregion=(0, 0, canvas_width, self.controller.timeline_height)
         )
 
         # Calculate row heights (divide the total height into 3 rows)

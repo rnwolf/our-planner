@@ -24,6 +24,13 @@ class TaskResourceManager:
         self.resource_grid_height = 150
         self.task_grid_height = 300
 
+        # Zoom and scaling properties
+        self.zoom_level = 1.0  # Default zoom level (no zoom)
+        self.min_zoom = 0.5  # Minimum zoom level (zoomed out)
+        self.max_zoom = 3.0  # Maximum zoom level (zoomed in)
+        self.zoom_step = 0.1  # Zoom increment/decrement per scroll
+        self.base_cell_width = 45  # Store the original cell width for scaling
+
         # Dragging state for resizing panes
         self.dragging_task = None
         self.resizing_pane = False
@@ -147,14 +154,21 @@ class TaskResourceManager:
         # Pass to UI to display
         self.ui.display_resource_loading(resource_loading)
 
-    def update_window_title(self, file_path=None):
-        """Update the window title based on current file path."""
+    def update_window_title(self, file_path=None, show_zoom=False):
+        """Update the window title based on current file path and zoom level."""
         import os
 
+        # Base title
         if file_path:
-            self.root.title(f"Task Resource Manager - {os.path.basename(file_path)}")
+            title = f"Task Resource Manager - {os.path.basename(file_path)}"
         else:
-            self.root.title("Task Resource Manager - New Project")
+            title = "Task Resource Manager - New Project"
+
+        # Add zoom info if requested or if not at 100%
+        if show_zoom or self.zoom_level != 1.0:
+            title += f" (Zoom: {int(self.zoom_level * 100)}%)"
+
+        self.root.title(title)
 
     def get_task_ui_coordinates(self, task):
         """Convert task data model coordinates to UI coordinates."""
@@ -192,3 +206,102 @@ class TaskResourceManager:
         if not self.multi_select_mode:
             self.selected_tasks = []
             self.ui.remove_task_selections()
+
+    def on_zoom(self, event):
+        """Handle zoom in/out with Ctrl+mouse wheel"""
+        # Check if Ctrl key is pressed
+        if event.state & 0x4:  # 0x4 is the state for Ctrl key
+            # Get the current position in the canvas
+            canvas_x = self.task_canvas.canvasx(event.x)
+            canvas_y = self.task_canvas.canvasy(event.y)
+
+            # Calculate the logical position before zoom
+            old_cell_width = self.cell_width
+            logical_x = canvas_x / old_cell_width
+
+            # Store current view fractions for all canvases
+            task_view = self.task_canvas.xview()
+            timeline_view = self.timeline_canvas.xview()
+            resource_view = self.resource_canvas.xview()
+
+            # Determine zoom direction
+            if event.delta > 0:
+                # Zoom in
+                self.zoom_level = min(self.max_zoom, self.zoom_level + self.zoom_step)
+            else:
+                # Zoom out
+                self.zoom_level = max(self.min_zoom, self.zoom_level - self.zoom_step)
+
+            # Update cell width based on zoom level
+            self.cell_width = int(self.base_cell_width * self.zoom_level)
+
+            # Calculate the new canvas position
+            new_canvas_x = logical_x * self.cell_width
+
+            # Update all canvas scrollregions
+            self.update_all_scrollregions()
+
+            # Redraw everything with the new cell size
+            self.update_view()
+
+            # Calculate new view fractions based on zoom change
+            new_fraction = task_view[0] * (old_cell_width / self.cell_width)
+
+            # Update all canvas views to maintain synchronization
+            self.task_canvas.xview_moveto(new_fraction)
+            self.timeline_canvas.xview_moveto(new_fraction)
+            self.resource_canvas.xview_moveto(new_fraction)
+
+            # Update title to show current zoom level
+            self.update_window_title(self.model.current_file_path, show_zoom=True)
+
+    # Add a method to reset zoom to 100%
+    def reset_zoom(self):
+        """Reset zoom level to 100%"""
+        # Store current view fractions
+        old_cell_width = self.cell_width
+        task_view = self.task_canvas.xview()
+
+        # Reset zoom level
+        self.zoom_level = 1.0
+        self.cell_width = self.base_cell_width
+
+        # Update scrollregions
+        self.update_all_scrollregions()
+
+        # Update view
+        self.update_view()
+
+        # Calculate and set new view position to maintain proper alignment
+        new_fraction = task_view[0] * (old_cell_width / self.cell_width)
+        self.task_canvas.xview_moveto(new_fraction)
+        self.timeline_canvas.xview_moveto(new_fraction)
+        self.resource_canvas.xview_moveto(new_fraction)
+
+        # Update window title
+        self.update_window_title(self.model.current_file_path)
+
+    def update_all_scrollregions(self):
+        """Update scrollregions for all canvases based on the current zoom level"""
+        # Calculate canvas widths
+        canvas_width = self.cell_width * self.model.days
+
+        # Update timeline canvas scrollregion
+        self.timeline_canvas.config(
+            scrollregion=(0, 0, canvas_width, self.timeline_height)
+        )
+
+        # Update task canvas scrollregion
+        self.task_canvas.config(
+            scrollregion=(0, 0, canvas_width, self.model.max_rows * self.task_height)
+        )
+
+        # Update resource canvas scrollregion
+        self.resource_canvas.config(
+            scrollregion=(
+                0,
+                0,
+                canvas_width,
+                len(self.tag_ops.get_filtered_resources()) * self.task_height,
+            )
+        )
