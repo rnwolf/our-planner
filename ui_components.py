@@ -19,16 +19,27 @@ class UIComponents:
         return self.model.start_date <= self.model.setdate <= timeline_end_date
 
     def update_setdate_display(self):
-        """Update the setdate display in the top-left corner"""
-        # Update the text
-        self.timeline_label_canvas.itemconfig(
-            self.setdate_text, text=self.model.setdate.strftime("%Y-%m-%d")
+        """Update the setdate display in the top-left corner with wider column"""
+        # Update the text with dynamic font size
+        self.controller.timeline_label_canvas.itemconfig(
+            self.setdate_text,
+            text=self.model.setdate.strftime("%Y-%m-%d"),
+            font=("Arial", self.controller.timeline_font_size + 1, "bold"),
         )
 
         # Update the background color based on whether the date is in range
         in_range = self.is_setdate_in_range()
-        self.timeline_label_canvas.itemconfig(
-            self.setdate_bg, fill="green" if in_range else "red"
+        self.controller.timeline_label_canvas.itemconfig(
+            self.setdate_bg, fill="lightgreen" if in_range else "red"
+        )
+
+        # Make sure the background rectangle covers the entire wider column
+        self.controller.timeline_label_canvas.coords(
+            self.setdate_bg,
+            0,
+            0,
+            self.controller.label_column_width,
+            self.controller.timeline_height,
         )
 
     def edit_setdate(self):
@@ -263,50 +274,50 @@ class UIComponents:
         )
 
     def create_timeline_frame(self):
-        """Create the timeline canvas with horizontal scrolling"""
+        """Create the timeline canvas with horizontal scrolling and wider label column"""
         self.timeline_frame = tk.Frame(self.controller.main_frame)
         self.timeline_frame.pack(fill=tk.X, pady=(0, 5))
 
-        # Create a fixed label column on the left
-        self.timeline_label_frame = tk.Frame(self.timeline_frame, width=100)
-        self.timeline_label_frame.pack(side=tk.LEFT, fill=tk.Y)
-        self.timeline_label_canvas = tk.Canvas(
-            self.timeline_label_frame,
-            width=100,
+        # Create a fixed label column on the left with wider width
+        self.controller.timeline_label_frame = tk.Frame(
+            self.timeline_frame, width=self.controller.label_column_width
+        )
+        self.controller.timeline_label_frame.pack(side=tk.LEFT, fill=tk.Y)
+        self.controller.timeline_label_canvas = tk.Canvas(
+            self.controller.timeline_label_frame,
+            width=self.controller.label_column_width,
             height=self.controller.timeline_height,
             bg="lightgray",
             highlightthickness=0,
         )
-        self.timeline_label_canvas.pack(fill=tk.BOTH)
+        self.controller.timeline_label_canvas.pack(fill=tk.BOTH)
 
         # Create setdate display with initial background
-        # Lightgreen #c0f0c0
-        # Lightred #ffd0d0
-        self.setdate_bg = self.timeline_label_canvas.create_rectangle(
+        self.setdate_bg = self.controller.timeline_label_canvas.create_rectangle(
             0,
             0,
-            100,
+            self.controller.label_column_width,
             self.controller.timeline_height,
-            fill="blue" if self.is_setdate_in_range() else "lightred",
+            fill="green" if self.is_setdate_in_range() else "red",
             outline="",
         )
 
-        # Add "Current Date" label
-        self.timeline_label_canvas.create_text(
-            50,
+        # Add "Current Date" label with dynamic font size
+        self.controller.timeline_label_canvas.create_text(
+            self.controller.label_column_width / 2,
             self.controller.timeline_height / 3,
             text="Current Date",
             anchor="center",
-            font=("Arial", 8, "bold"),
+            font=("Arial", self.controller.timeline_font_size, "bold"),
         )
 
-        # Add the actual date
-        self.setdate_text = self.timeline_label_canvas.create_text(
-            50,
+        # Add the actual date with dynamic font size
+        self.setdate_text = self.controller.timeline_label_canvas.create_text(
+            self.controller.label_column_width / 2,
             self.controller.timeline_height * 2 / 3,
             text=self.model.setdate.strftime("%Y-%m-%d"),
             anchor="center",
-            font=("Arial", 9, "bold"),
+            font=("Arial", self.controller.timeline_font_size + 1, "bold"),
         )
 
         # Create timeline canvas with horizontal scrollbar
@@ -342,18 +353,23 @@ class UIComponents:
         )
 
     def create_task_grid_frame(self):
-        """Create the task grid canvas with both horizontal and vertical scrolling"""
+        """Create the task grid canvas with both horizontal and vertical scrolling and wider label column"""
         self.task_frame = tk.Frame(
             self.controller.main_frame, height=self.controller.task_grid_height
         )
         self.task_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
         self.task_frame.pack_propagate(False)  # Prevent frame from shrinking
 
-        # Create a fixed label column on the left
-        self.task_label_frame = tk.Frame(self.task_frame, width=100)
-        self.task_label_frame.pack(side=tk.LEFT, fill=tk.Y)
+        # Create a fixed label column on the left with wider width
+        self.controller.task_label_frame = tk.Frame(
+            self.task_frame, width=self.controller.label_column_width
+        )
+        self.controller.task_label_frame.pack(side=tk.LEFT, fill=tk.Y)
         self.controller.task_label_canvas = tk.Canvas(
-            self.task_label_frame, width=100, bg="lightgray", highlightthickness=0
+            self.controller.task_label_frame,
+            width=self.controller.label_column_width,
+            bg="lightgray",
+            highlightthickness=0,
         )
         self.controller.task_label_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -445,16 +461,18 @@ class UIComponents:
         self.controller.root.bind("<Control-0>", lambda e: self.controller.reset_zoom())
 
     def create_resource_grid_frame(self):
-        """Create the resource loading grid canvas"""
+        """Create the resource loading grid canvas with wider label column"""
         self.resource_frame = tk.Frame(self.controller.main_frame)
         self.resource_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
 
-        # Create a fixed label column on the left
-        self.resource_label_frame = tk.Frame(self.resource_frame, width=100)
-        self.resource_label_frame.pack(side=tk.LEFT, fill=tk.Y)
+        # Create a fixed label column on the left with wider width
+        self.controller.resource_label_frame = tk.Frame(
+            self.resource_frame, width=self.controller.label_column_width
+        )
+        self.controller.resource_label_frame.pack(side=tk.LEFT, fill=tk.Y)
         self.controller.resource_label_canvas = tk.Canvas(
-            self.resource_label_frame,
-            width=100,
+            self.controller.resource_label_frame,
+            width=self.controller.label_column_width,
             height=self.controller.resource_grid_height,
             bg="lightgray",
             highlightthickness=0,
@@ -822,7 +840,7 @@ class UIComponents:
             )
 
     def draw_task_grid(self):
-        """Draw the task grid with dynamic row height"""
+        """Draw the task grid with wider label column"""
         self.controller.task_canvas.delete("all")
         self.controller.task_label_canvas.delete("all")
 
@@ -838,7 +856,7 @@ class UIComponents:
             scrollregion=(0, 0, canvas_width, canvas_height)
         )
         self.controller.task_label_canvas.config(
-            scrollregion=(0, 0, 100, canvas_height)
+            scrollregion=(0, 0, self.controller.label_column_width, canvas_height)
         )
 
         # Draw the grid lines with dynamic row height
@@ -852,9 +870,11 @@ class UIComponents:
 
             # Draw row labels in the label canvas
             if i < self.model.max_rows:
-                self.controller.task_label_canvas.create_line(0, y, 100, y, fill="gray")
+                self.controller.task_label_canvas.create_line(
+                    0, y, self.controller.label_column_width, y, fill="gray"
+                )
                 self.controller.task_label_canvas.create_text(
-                    50,
+                    self.controller.label_column_width / 2,  # Center in wider column
                     y + self.controller.task_height / 2,
                     text=f"Row {i+1}",
                     anchor="center",
@@ -866,7 +886,11 @@ class UIComponents:
 
         # Draw the bottom line in the label canvas
         self.controller.task_label_canvas.create_line(
-            0, canvas_height, 100, canvas_height, fill="gray"
+            0,
+            canvas_height,
+            self.controller.label_column_width,
+            canvas_height,
+            fill="gray",
         )
 
         # Get filtered tasks if filters are active
@@ -995,7 +1019,7 @@ class UIComponents:
         return arrow_id
 
     def draw_resource_grid(self):
-        """Draw the resource loading grid with dynamic row height"""
+        """Draw the resource loading grid with wider label column"""
         self.controller.resource_canvas.delete("all")
         self.controller.resource_label_canvas.delete("all")
 
@@ -1011,7 +1035,7 @@ class UIComponents:
             scrollregion=(0, 0, canvas_width, canvas_height)
         )
         self.controller.resource_label_canvas.config(
-            scrollregion=(0, 0, 100, canvas_height)
+            scrollregion=(0, 0, self.controller.label_column_width, canvas_height)
         )
 
         # Ensure the resource label canvas has the right height
@@ -1036,7 +1060,9 @@ class UIComponents:
             )
 
             # Draw resource names and tags in the label canvas
-            self.controller.resource_label_canvas.create_line(0, y, 100, y, fill="gray")
+            self.controller.resource_label_canvas.create_line(
+                0, y, self.controller.label_column_width, y, fill="gray"
+            )
 
             # Create resource name with tag indicators
             resource_text = resource["name"]
@@ -1045,9 +1071,9 @@ class UIComponents:
             tag_y = y + self.controller.task_height / 2
             resource_id = resource["id"]
 
-            # Draw resource name
+            # Draw resource name centered in wider column
             name_id = self.controller.resource_label_canvas.create_text(
-                50,
+                self.controller.label_column_width / 2,  # Center in wider column
                 tag_y,
                 text=resource_text,
                 anchor="center",
@@ -1065,11 +1091,11 @@ class UIComponents:
                 lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
             )
 
-            # Draw tags if present - without colored indicators
+            # Draw tags if present - centered in wider column
             if "tags" in resource and resource["tags"] and self.show_tags_var.get():
                 tag_text = ", ".join(resource["tags"])
                 tag_id = self.controller.resource_label_canvas.create_text(
-                    50,
+                    self.controller.label_column_width / 2,  # Center in wider column
                     tag_y
                     + self.controller.tag_font_size
                     + 3,  # Scale the spacing with font
@@ -1084,98 +1110,11 @@ class UIComponents:
             0, canvas_height, canvas_width, canvas_height, fill="gray"
         )
         self.controller.resource_label_canvas.create_line(
-            0, canvas_height, 100, canvas_height, fill="gray"
-        )
-
-        """Draw the resource loading grid"""
-        self.controller.resource_canvas.delete("all")
-        self.controller.resource_label_canvas.delete("all")
-
-        # Get filtered resources if filters are active
-        resources_to_draw = self.controller.tag_ops.get_filtered_resources()
-
-        # Calculate width and height
-        canvas_width = self.controller.cell_width * self.model.days
-        canvas_height = len(resources_to_draw) * self.controller.task_height
-        self.controller.resource_canvas.config(
-            scrollregion=(0, 0, canvas_width, canvas_height)
-        )
-        self.controller.resource_label_canvas.config(
-            scrollregion=(0, 0, 100, canvas_height)
-        )
-
-        # Ensure the resource label canvas has the right height
-        self.controller.resource_label_canvas.config(
-            height=self.controller.resource_grid_height
-        )
-
-        # Draw column lines
-        for i in range(self.model.days + 1):
-            x = i * self.controller.cell_width
-            self.controller.resource_canvas.create_line(
-                x, 0, x, canvas_height, fill="gray"
-            )
-
-        # Draw row lines and resource names
-        for i, resource in enumerate(resources_to_draw):
-            y = i * self.controller.task_height
-
-            # Draw lines in resource canvas
-            self.controller.resource_canvas.create_line(
-                0, y, canvas_width, y, fill="gray"
-            )
-
-            # Draw resource names and tags in the label canvas
-            self.controller.resource_label_canvas.create_line(0, y, 100, y, fill="gray")
-
-            # Create resource name with tag indicators
-            resource_text = resource["name"]
-
-            # Bind right-click event to show context menu
-            tag_y = y + self.controller.task_height / 2
-            resource_id = resource["id"]
-
-            # Draw resource name
-            name_id = self.controller.resource_label_canvas.create_text(
-                50,
-                tag_y,
-                text=resource_text,
-                anchor="center",
-                font=(
-                    "Arial",
-                    self.controller.resource_font_size,
-                ),  # Use dynamic font size
-                tags=(f"resource_{resource_id}",),
-            )
-
-            # Bind event to the resource name
-            self.controller.resource_label_canvas.tag_bind(
-                f"resource_{resource_id}",
-                "<ButtonPress-3>",
-                lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
-            )
-
-            # Draw tags if present - without colored indicators
-            if "tags" in resource and resource["tags"] and self.show_tags_var.get():
-                tag_text = ", ".join(resource["tags"])
-                tag_id = self.controller.resource_label_canvas.create_text(
-                    50,
-                    tag_y + 10,
-                    text=f"[{tag_text}]",
-                    anchor="center",
-                    font=(
-                        "Arial",
-                        self.controller.tag_font_size,
-                    ),  # Use dynamic font size
-                    tags=(f"resource_tags_{resource_id}",),
-                )
-
-        # Draw bottom line
-        self.controller.resource_canvas.create_line(
-            0, canvas_height, canvas_width, canvas_height, fill="gray"
-        )
-        self.controller.resource_label_canvas.create_line(
-            0, canvas_height, 100, canvas_height, fill="gray"
+            0,
+            canvas_height,
+            self.controller.label_column_width,
+            canvas_height,
+            fill="gray",
         )
 
     def display_resource_loading(self, resource_loading):

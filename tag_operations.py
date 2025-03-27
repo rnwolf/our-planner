@@ -614,7 +614,6 @@ class TagOperations:
                     text=f"[{tag_text}]",
                     anchor="center",
                     font=("Arial", 7),
-                    fill="blue",
                     tags=(f"resource_tags_{resource_id}",),
                 )
 
