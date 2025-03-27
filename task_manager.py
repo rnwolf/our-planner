@@ -4,6 +4,7 @@ from ui_components import UIComponents
 from file_operations import FileOperations
 from task_operations import TaskOperations
 from tag_operations import TagOperations
+from export_operations import ExportOperations
 
 
 class TaskResourceManager:
@@ -87,6 +88,7 @@ class TaskResourceManager:
         self.tag_ops = TagOperations(self, self.model)
         self.ui = UIComponents(self, self.model)
         self.file_ops = FileOperations(self, self.model)
+        self.export_ops = ExportOperations(self, self.model)
 
         # Create UI elements
         self.ui.create_menu_bar()

@@ -191,6 +191,12 @@ class UIComponents:
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self.controller.root.quit)
 
+        # Add separator and export commands
+        self.file_menu.add_separator()
+        self.file_menu.add_command(
+            label="Export...", command=self.controller.export_ops.open_export_dialog
+        )
+
         # Edit menu
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Edit", menu=self.edit_menu)
@@ -459,6 +465,11 @@ class UIComponents:
 
         # Add Ctrl+0 keyboard shortcut to reset zoom
         self.controller.root.bind("<Control-0>", lambda e: self.controller.reset_zoom())
+
+        # Add Ctrl+E for export
+        self.controller.root.bind(
+            "<Control-e>", lambda e: self.controller.export_ops.open_export_dialog()
+        )
 
     def create_resource_grid_frame(self):
         """Create the resource loading grid canvas with wider label column"""
