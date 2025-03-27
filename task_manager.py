@@ -30,6 +30,19 @@ class TaskResourceManager:
         self.max_zoom = 3.0  # Maximum zoom level (zoomed in)
         self.zoom_step = 0.1  # Zoom increment/decrement per scroll
         self.base_cell_width = 45  # Store the original cell width for scaling
+        self.base_task_height = 30  # Base height for rows at zoom level 1.0
+
+        # Base font sizes (at zoom level 1.0)
+        self.base_task_font_size = 9  # Base font size for task text
+        self.base_tag_font_size = 7  # Base font size for tag text
+        self.base_timeline_font_size = 8  # Base font size for timeline text
+        self.base_resource_font_size = 8  # Base font size for resource labels
+
+        # Current font sizes (will be scaled with zoom)
+        self.task_font_size = self.base_task_font_size
+        self.tag_font_size = self.base_tag_font_size
+        self.timeline_font_size = self.base_timeline_font_size
+        self.resource_font_size = self.base_resource_font_size
 
         # Dragging state for resizing panes
         self.dragging_task = None
@@ -171,7 +184,7 @@ class TaskResourceManager:
         self.root.title(title)
 
     def get_task_ui_coordinates(self, task):
-        """Convert task data model coordinates to UI coordinates."""
+        """Convert task data model coordinates to UI coordinates, accounting for dynamic row height."""
         x1 = task["col"] * self.cell_width
         y1 = task["row"] * self.task_height
         x2 = x1 + task["duration"] * self.cell_width
@@ -208,21 +221,22 @@ class TaskResourceManager:
             self.ui.remove_task_selections()
 
     def on_zoom(self, event):
-        """Handle zoom in/out with Ctrl+mouse wheel"""
+        """Handle zoom in/out with Ctrl+mouse wheel, ensuring the column under cursor stays fixed
+        and scaling fonts and row heights appropriately"""
         # Check if Ctrl key is pressed
         if event.state & 0x4:  # 0x4 is the state for Ctrl key
-            # Get the current position in the canvas
+            # Store the old cell width and zoom level for calculations
+            old_cell_width = self.cell_width
+            old_task_height = self.task_height
+            old_zoom_level = self.zoom_level
+
+            # Get the current position in the canvas (accounting for scroll)
             canvas_x = self.task_canvas.canvasx(event.x)
             canvas_y = self.task_canvas.canvasy(event.y)
 
-            # Calculate the logical position before zoom
-            old_cell_width = self.cell_width
-            logical_x = canvas_x / old_cell_width
-
-            # Store current view fractions for all canvases
-            task_view = self.task_canvas.xview()
-            timeline_view = self.timeline_canvas.xview()
-            resource_view = self.resource_canvas.xview()
+            # Calculate which column and row are under the mouse cursor
+            column_under_cursor = canvas_x / old_cell_width
+            row_under_cursor = canvas_y / old_task_height
 
             # Determine zoom direction
             if event.delta > 0:
@@ -232,39 +246,104 @@ class TaskResourceManager:
                 # Zoom out
                 self.zoom_level = max(self.min_zoom, self.zoom_level - self.zoom_step)
 
-            # Update cell width based on zoom level
+            # Calculate new cell width and row height based on updated zoom level
             self.cell_width = int(self.base_cell_width * self.zoom_level)
+            self.task_height = int(self.base_task_height * self.zoom_level)
 
-            # Calculate the new canvas position
-            new_canvas_x = logical_x * self.cell_width
+            # Update font sizes based on zoom level
+            # We'll scale the font size with the zoom level, but use a slightly smaller
+            # scaling factor to prevent fonts from becoming too large
+            font_scale_factor = max(
+                1.0, self.zoom_level * 0.8
+            )  # Adjust this multiplier as needed
+
+            self.task_font_size = max(
+                7, int(self.base_task_font_size * font_scale_factor)
+            )
+            self.tag_font_size = max(
+                6, int(self.base_tag_font_size * font_scale_factor)
+            )
+            self.timeline_font_size = max(
+                6, int(self.base_timeline_font_size * font_scale_factor)
+            )
+            self.resource_font_size = max(
+                6, int(self.base_resource_font_size * font_scale_factor)
+            )
 
             # Update all canvas scrollregions
             self.update_all_scrollregions()
 
-            # Redraw everything with the new cell size
+            # Calculate new positions after zoom
+            new_column_x = column_under_cursor * self.cell_width
+            new_row_y = row_under_cursor * self.task_height
+
+            # Calculate how much the view needs to shift to keep column and row under cursor
+            x_view_offset = canvas_x - new_column_x
+            y_view_offset = canvas_y - new_row_y
+
+            # Calculate the new horizontal view position (fraction of total width)
+            total_width = self.cell_width * self.model.days
+            current_left = self.task_canvas.xview()[0] * total_width
+            new_left = current_left + x_view_offset
+            new_left_fraction = max(0, min(1.0, new_left / total_width))
+
+            # Calculate the new vertical view position (fraction of total height)
+            total_height = self.task_height * self.model.max_rows
+            current_top = self.task_canvas.yview()[0] * total_height
+            new_top = current_top + y_view_offset
+            new_top_fraction = max(0, min(1.0, new_top / total_height))
+
+            # Redraw everything with the new cell size, row height, and font sizes
             self.update_view()
 
-            # Calculate new view fractions based on zoom change
-            new_fraction = task_view[0] * (old_cell_width / self.cell_width)
+            # Apply the new horizontal view position to all canvases
+            self.task_canvas.xview_moveto(new_left_fraction)
+            self.timeline_canvas.xview_moveto(new_left_fraction)
+            self.resource_canvas.xview_moveto(new_left_fraction)
 
-            # Update all canvas views to maintain synchronization
-            self.task_canvas.xview_moveto(new_fraction)
-            self.timeline_canvas.xview_moveto(new_fraction)
-            self.resource_canvas.xview_moveto(new_fraction)
+            # Apply the new vertical view position to task and resource canvases
+            self.task_canvas.yview_moveto(new_top_fraction)
+            self.task_label_canvas.yview_moveto(new_top_fraction)
+
+            # Update resource canvas vertical position if needed
+            # The resource canvas may need separate calculation if it has a different row structure
+            resource_row_under_cursor = canvas_y / old_task_height
+            new_resource_row_y = resource_row_under_cursor * self.task_height
+            resource_height = (
+                len(self.tag_ops.get_filtered_resources()) * self.task_height
+            )
+            if resource_height > 0:  # Prevent division by zero
+                new_resource_top = (current_top + y_view_offset) * (
+                    total_height / resource_height
+                )
+                new_resource_top_fraction = max(
+                    0, min(1.0, new_resource_top / resource_height)
+                )
+                self.resource_canvas.yview_moveto(new_resource_top_fraction)
+                self.resource_label_canvas.yview_moveto(new_resource_top_fraction)
 
             # Update title to show current zoom level
             self.update_window_title(self.model.current_file_path, show_zoom=True)
 
     # Add a method to reset zoom to 100%
     def reset_zoom(self):
-        """Reset zoom level to 100%"""
+        """Reset zoom level to 100% and restore default sizes and fonts"""
         # Store current view fractions
         old_cell_width = self.cell_width
-        task_view = self.task_canvas.xview()
+        old_task_height = self.task_height
+        task_x_view = self.task_canvas.xview()
+        task_y_view = self.task_canvas.yview()
 
         # Reset zoom level
         self.zoom_level = 1.0
         self.cell_width = self.base_cell_width
+        self.task_height = self.base_task_height
+
+        # Reset font sizes to base values
+        self.task_font_size = self.base_task_font_size
+        self.tag_font_size = self.base_tag_font_size
+        self.timeline_font_size = self.base_timeline_font_size
+        self.resource_font_size = self.base_resource_font_size
 
         # Update scrollregions
         self.update_all_scrollregions()
@@ -273,18 +352,34 @@ class TaskResourceManager:
         self.update_view()
 
         # Calculate and set new view position to maintain proper alignment
-        new_fraction = task_view[0] * (old_cell_width / self.cell_width)
-        self.task_canvas.xview_moveto(new_fraction)
-        self.timeline_canvas.xview_moveto(new_fraction)
-        self.resource_canvas.xview_moveto(new_fraction)
+        new_x_fraction = task_x_view[0] * (old_cell_width / self.cell_width)
+        new_y_fraction = task_y_view[0] * (old_task_height / self.task_height)
+
+        # Apply horizontal position
+        self.task_canvas.xview_moveto(new_x_fraction)
+        self.timeline_canvas.xview_moveto(new_x_fraction)
+        self.resource_canvas.xview_moveto(new_x_fraction)
+
+        # Apply vertical position
+        self.task_canvas.yview_moveto(new_y_fraction)
+        self.task_label_canvas.yview_moveto(new_y_fraction)
+
+        # Resource canvas needs separate calculation if it has a different structure
+        # For now, just reset it to the top
+        self.resource_canvas.yview_moveto(0)
+        self.resource_label_canvas.yview_moveto(0)
 
         # Update window title
         self.update_window_title(self.model.current_file_path)
 
     def update_all_scrollregions(self):
-        """Update scrollregions for all canvases based on the current zoom level"""
-        # Calculate canvas widths
+        """Update scrollregions for all canvases based on the current zoom level and row height"""
+        # Calculate canvas widths and heights
         canvas_width = self.cell_width * self.model.days
+        task_canvas_height = self.task_height * self.model.max_rows
+        resource_canvas_height = self.task_height * len(
+            self.tag_ops.get_filtered_resources()
+        )
 
         # Update timeline canvas scrollregion
         self.timeline_canvas.config(
@@ -292,16 +387,17 @@ class TaskResourceManager:
         )
 
         # Update task canvas scrollregion
-        self.task_canvas.config(
-            scrollregion=(0, 0, canvas_width, self.model.max_rows * self.task_height)
-        )
+        self.task_canvas.config(scrollregion=(0, 0, canvas_width, task_canvas_height))
+
+        # Update task label canvas scrollregion
+        self.task_label_canvas.config(scrollregion=(0, 0, 100, task_canvas_height))
 
         # Update resource canvas scrollregion
         self.resource_canvas.config(
-            scrollregion=(
-                0,
-                0,
-                canvas_width,
-                len(self.tag_ops.get_filtered_resources()) * self.task_height,
-            )
+            scrollregion=(0, 0, canvas_width, resource_canvas_height)
+        )
+
+        # Update resource label canvas scrollregion
+        self.resource_label_canvas.config(
+            scrollregion=(0, 0, 100, resource_canvas_height)
         )

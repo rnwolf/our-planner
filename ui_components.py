@@ -706,7 +706,11 @@ class UIComponents:
             day_center_y = month_row_height + date_row_height + day_row_height / 2
 
             self.controller.timeline_canvas.create_text(
-                day_center_x, day_center_y, text=str(i + 1), anchor="center"
+                day_center_x,
+                day_center_y,
+                text=str(i + 1),
+                anchor="center",
+                font=("Arial", self.controller.timeline_font_size),
             )
 
         # Draw calendar dates (middle row) with alternating week backgrounds
@@ -784,7 +788,10 @@ class UIComponents:
                 date_center_y,
                 text=date_text,
                 anchor="center",
-                font=("Arial", 8),  # Smaller font for dates
+                font=(
+                    "Arial",
+                    self.controller.timeline_font_size,
+                ),  # Smaller font for dates
             )
 
         # Draw month headers (top row with merged cells)
@@ -807,20 +814,26 @@ class UIComponents:
                 month_center_y,
                 text=month_range["label"],
                 anchor="center",
-                font=("Arial", 9, "bold"),  # Make month headers bold
+                font=(
+                    "Arial",
+                    self.controller.timeline_font_size,
+                    "bold",
+                ),  # Make month headers bold
             )
 
     def draw_task_grid(self):
-        """Draw the task grid"""
+        """Draw the task grid with dynamic row height"""
         self.controller.task_canvas.delete("all")
         self.controller.task_label_canvas.delete("all")
 
         # Clear task UI elements tracking
         self.task_ui_elements = {}
 
-        # Calculate width and height
+        # Calculate width and height with dynamic row height
         canvas_width = self.controller.cell_width * self.model.days
         canvas_height = self.model.max_rows * self.controller.task_height
+
+        # Configure canvas scrollregions
         self.controller.task_canvas.config(
             scrollregion=(0, 0, canvas_width, canvas_height)
         )
@@ -828,7 +841,7 @@ class UIComponents:
             scrollregion=(0, 0, 100, canvas_height)
         )
 
-        # Draw the grid lines
+        # Draw the grid lines with dynamic row height
         for i in range(self.model.days + 1):
             x = i * self.controller.cell_width
             self.controller.task_canvas.create_line(x, 0, x, canvas_height, fill="gray")
@@ -845,6 +858,10 @@ class UIComponents:
                     y + self.controller.task_height / 2,
                     text=f"Row {i+1}",
                     anchor="center",
+                    font=(
+                        "Arial",
+                        self.controller.resource_font_size,
+                    ),  # Use dynamic font size
                 )
 
         # Draw the bottom line in the label canvas
@@ -978,6 +995,98 @@ class UIComponents:
         return arrow_id
 
     def draw_resource_grid(self):
+        """Draw the resource loading grid with dynamic row height"""
+        self.controller.resource_canvas.delete("all")
+        self.controller.resource_label_canvas.delete("all")
+
+        # Get filtered resources if filters are active
+        resources_to_draw = self.controller.tag_ops.get_filtered_resources()
+
+        # Calculate width and height
+        canvas_width = self.controller.cell_width * self.model.days
+        canvas_height = len(resources_to_draw) * self.controller.task_height
+
+        # Configure canvas scrollregions
+        self.controller.resource_canvas.config(
+            scrollregion=(0, 0, canvas_width, canvas_height)
+        )
+        self.controller.resource_label_canvas.config(
+            scrollregion=(0, 0, 100, canvas_height)
+        )
+
+        # Ensure the resource label canvas has the right height
+        self.controller.resource_label_canvas.config(
+            height=self.controller.resource_grid_height
+        )
+
+        # Draw column lines
+        for i in range(self.model.days + 1):
+            x = i * self.controller.cell_width
+            self.controller.resource_canvas.create_line(
+                x, 0, x, canvas_height, fill="gray"
+            )
+
+        # Draw row lines and resource names
+        for i, resource in enumerate(resources_to_draw):
+            y = i * self.controller.task_height
+
+            # Draw lines in resource canvas
+            self.controller.resource_canvas.create_line(
+                0, y, canvas_width, y, fill="gray"
+            )
+
+            # Draw resource names and tags in the label canvas
+            self.controller.resource_label_canvas.create_line(0, y, 100, y, fill="gray")
+
+            # Create resource name with tag indicators
+            resource_text = resource["name"]
+
+            # Bind right-click event to show context menu
+            tag_y = y + self.controller.task_height / 2
+            resource_id = resource["id"]
+
+            # Draw resource name
+            name_id = self.controller.resource_label_canvas.create_text(
+                50,
+                tag_y,
+                text=resource_text,
+                anchor="center",
+                font=(
+                    "Arial",
+                    self.controller.resource_font_size,
+                ),  # Use dynamic font size
+                tags=(f"resource_{resource_id}",),
+            )
+
+            # Bind event to the resource name
+            self.controller.resource_label_canvas.tag_bind(
+                f"resource_{resource_id}",
+                "<ButtonPress-3>",
+                lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
+            )
+
+            # Draw tags if present - without colored indicators
+            if "tags" in resource and resource["tags"] and self.show_tags_var.get():
+                tag_text = ", ".join(resource["tags"])
+                tag_id = self.controller.resource_label_canvas.create_text(
+                    50,
+                    tag_y
+                    + self.controller.tag_font_size
+                    + 3,  # Scale the spacing with font
+                    text=f"[{tag_text}]",
+                    anchor="center",
+                    font=("Arial", self.controller.tag_font_size),
+                    tags=(f"resource_tags_{resource_id}",),
+                )
+
+        # Draw bottom line
+        self.controller.resource_canvas.create_line(
+            0, canvas_height, canvas_width, canvas_height, fill="gray"
+        )
+        self.controller.resource_label_canvas.create_line(
+            0, canvas_height, 100, canvas_height, fill="gray"
+        )
+
         """Draw the resource loading grid"""
         self.controller.resource_canvas.delete("all")
         self.controller.resource_label_canvas.delete("all")
@@ -1032,6 +1141,10 @@ class UIComponents:
                 tag_y,
                 text=resource_text,
                 anchor="center",
+                font=(
+                    "Arial",
+                    self.controller.resource_font_size,
+                ),  # Use dynamic font size
                 tags=(f"resource_{resource_id}",),
             )
 
@@ -1050,8 +1163,10 @@ class UIComponents:
                     tag_y + 10,
                     text=f"[{tag_text}]",
                     anchor="center",
-                    font=("Arial", 7),
-                    fill="blue",
+                    font=(
+                        "Arial",
+                        self.controller.tag_font_size,
+                    ),  # Use dynamic font size
                     tags=(f"resource_tags_{resource_id}",),
                 )
 
@@ -1064,7 +1179,7 @@ class UIComponents:
         )
 
     def display_resource_loading(self, resource_loading):
-        """Display resource loading based on data from the model"""
+        """Display resource loading based on data from the model with dynamic row height"""
         # Clear previous loading display
         self.controller.resource_canvas.delete("loading")
 
@@ -1123,7 +1238,10 @@ class UIComponents:
                         y + self.controller.task_height / 2,
                         text=display_text,
                         tags="loading",
-                        font=("Arial", 8),  # Smaller font to fit more text
+                        font=(
+                            "Arial",
+                            self.controller.resource_font_size,
+                        ),  # Use dynamic font size
                     )
 
     def show_resource_context_menu(self, event, resource_id):
@@ -1136,12 +1254,12 @@ class UIComponents:
         webbrowser.open(url)
 
     def draw_task(self, task):
-        """Draw a single task box with its information"""
+        """Draw a single task box with its information, accounting for dynamic row height"""
         task_id = task["task_id"]
         row, col, duration = task["row"], task["col"], task["duration"]
         description = task.get("description", "No Description")
 
-        # Calculate position
+        # Calculate position with dynamic row height
         x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
 
         # Check if this task is selected and should have a highlight
@@ -1175,8 +1293,11 @@ class UIComponents:
         )
 
         # Determine vertical position for text elements based on whether we show tags
+        # Scale the offset based on font size
         text_y_offset = (
-            -4 if self.show_tags_var.get() and "tags" in task and task["tags"] else 0
+            -self.controller.task_font_size / 2
+            if (self.show_tags_var.get() and "tags" in task and task["tags"])
+            else 0
         )
 
         # Draw task text
@@ -1187,6 +1308,7 @@ class UIComponents:
                 (y1 + y2) / 2 + text_y_offset,
                 text=f"{task_id} - {description}",
                 fill="blue",
+                font=("Arial", self.controller.task_font_size),  # Use dynamic font size
                 tags=("task", "url", f"task_{task_id}"),
             )
             # Bind click event to open the URL
@@ -1201,24 +1323,27 @@ class UIComponents:
                 (x1 + x2) / 2,
                 (y1 + y2) / 2 + text_y_offset,
                 text=f"{task_id} - {description}",
+                font=("Arial", self.controller.task_font_size),  # Use dynamic font size
                 tags=("task", "task_text", f"task_{task_id}"),
             )
 
-        # Draw tags if present and enabled
+        # Draw tags if present and enabled with dynamic font size and position
         tag_id = None
         if "tags" in task and task["tags"] and self.show_tags_var.get():
             tag_text = ", ".join(task["tags"])
             tag_id = self.controller.task_canvas.create_text(
                 (x1 + x2) / 2,
-                (y1 + y2) / 2 + 8,
+                (y1 + y2) / 2
+                + self.controller.task_font_size,  # Scale offset with font size
                 text=f"[{tag_text}]",
-                fill="blue",
-                font=("Arial", 7),
+                font=("Arial", self.controller.tag_font_size),  # Use dynamic font size
                 tags=("task", "task_tags", f"task_tags_{task_id}"),
             )
 
-        # Add grab connector circle
-        connector_radius = 5
+        # Add grab connector circle - scale the size with zoom
+        connector_radius = max(
+            4, min(8, 5 * self.controller.zoom_level / 2)
+        )  # Scale with zoom, with min/max limits
         connector_x = x2
         connector_y = (y1 + y2) / 2
         connector_id = self.controller.task_canvas.create_oval(
@@ -1231,11 +1356,6 @@ class UIComponents:
             width=1,
             tags=("task", "connector", f"connector_{task_id}"),
         )
-
-        # Update UI elements dictionary
-        # self.task_ui_elements[task_id]["connector"] = connector_id
-        # self.task_ui_elements[task_id]["connector_x"] = connector_x
-        # self.task_ui_elements[task_id]["connector_y"] = connector_y
 
         # Store UI elements for this task
         self.task_ui_elements[task_id] = {
