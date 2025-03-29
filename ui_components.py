@@ -957,18 +957,62 @@ class UIComponents:
         canvas.tag_bind(item_id, "<Enter>", enter)
         canvas.tag_bind(item_id, "<Leave>", leave)
 
-    def add_task_tag_tooltips(self, task):
-        """Add tooltips for task tags."""
+    # def add_task_tag_tooltips(self, task):
+    #     """Add tooltips for task tags."""
+    #     task_id = task["task_id"]
+    #     if task_id in self.task_ui_elements:
+    #         ui_elements = self.task_ui_elements[task_id]
+    #         box_id = ui_elements["box"]
+
+    #         # Create tooltip text
+    #         tooltip_text = "hello Tags: " + ", ".join(task["tags"])
+
+    #         # Add tooltip to the task box
+    #         self.add_tag_tooltip(self.controller.task_canvas, box_id, tooltip_text)
+
+    def add_task_tooltips(self, task):
+        """Add tooltips for task tags and resource information."""
         task_id = task["task_id"]
         if task_id in self.task_ui_elements:
             ui_elements = self.task_ui_elements[task_id]
             box_id = ui_elements["box"]
 
-            # Create tooltip text
-            tooltip_text = "Tags: " + ", ".join(task["tags"])
+            # Create tooltip text with tags
+            tooltip_parts = []
 
-            # Add tooltip to the task box
-            self.add_tag_tooltip(self.controller.task_canvas, box_id, tooltip_text)
+            # Add tags section if task has tags
+            if "tags" in task and task["tags"]:
+                tooltip_parts.append("Tags: " + ", ".join(task["tags"]))
+
+            # Add resource section if task has resources
+            if "resources" in task and task["resources"]:
+                tooltip_parts.append("Resources:")
+                # Sort resources by allocation (highest first) for better readability
+                sorted_resources = []
+                for resource_id_str, allocation in task["resources"].items():
+                    resource_id = (
+                        int(resource_id_str)
+                        if isinstance(resource_id_str, str)
+                        else resource_id_str
+                    )
+                    resource = self.controller.model.get_resource_by_id(resource_id)
+                    if resource:
+                        sorted_resources.append((allocation, resource["name"]))
+
+                # Sort by allocation (highest first)
+                sorted_resources.sort(reverse=True)
+
+                # Add each resource to tooltip
+                for allocation, name in sorted_resources:
+                    tooltip_parts.append(f"  {allocation} × {name}")
+
+            # Join all parts to create the complete tooltip text
+            tooltip_text = "\n".join(tooltip_parts)
+
+            # Only add tooltip if we have content
+            if tooltip_text:
+                # Add tooltip to the task box
+                self.add_tag_tooltip(self.controller.task_canvas, box_id, tooltip_text)
 
     def draw_dependencies(self):
         """Draw arrows for task dependencies"""
@@ -1339,7 +1383,7 @@ class UIComponents:
 
         # Add tooltips for tags
         if "tags" in task and task["tags"]:
-            self.add_task_tag_tooltips(task)
+            self.add_task_tooltips(task)
 
     def update_task_ui(self, task):
         """Updates the UI elements for a specific task."""

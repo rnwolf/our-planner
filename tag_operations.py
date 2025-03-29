@@ -552,7 +552,7 @@ class TagOperations:
                 ui_elements["tag_text"] = new_tag_id
 
             # Refresh tooltips
-            self.controller.ui.add_task_tag_tooltips(task)
+            self.controller.ui.add_task_tooltips(task)
 
         # Refresh the view if we're using tag filters
         if self.task_tag_filters:
