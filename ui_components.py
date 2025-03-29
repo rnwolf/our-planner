@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import webbrowser
 from datetime import datetime, timedelta
+from help_menu import HelpMenu
 
 
 class UIComponents:
@@ -12,6 +13,9 @@ class UIComponents:
 
         # Track UI-specific task data
         self.task_ui_elements = {}  # Maps task_id to UI elements
+
+        # Reference to help menu
+        self.help_menu = None
 
     def is_setdate_in_range(self):
         """Check if the setdate is within the visible timeline range"""
@@ -278,6 +282,9 @@ class UIComponents:
         self.date_menu.add_command(
             label="Reset to Today", command=self.reset_setdate_to_today
         )
+
+        # Add Help menu
+        self.help_menu = HelpMenu(self.controller, self.controller.root, self.menu_bar)
 
     def create_timeline_frame(self):
         """Create the timeline canvas with horizontal scrolling and wider label column"""
@@ -737,7 +744,7 @@ class UIComponents:
             self.controller.timeline_canvas.create_text(
                 day_center_x,
                 day_center_y,
-                text=str(i + 1),
+                text=str(i),
                 anchor="center",
                 font=("Arial", self.controller.timeline_font_size),
             )
@@ -887,7 +894,7 @@ class UIComponents:
                 self.controller.task_label_canvas.create_text(
                     self.controller.label_column_width / 2,  # Center in wider column
                     y + self.controller.task_height / 2,
-                    text=f"Row {i+1}",
+                    text=f"Row {i}",
                     anchor="center",
                     font=(
                         "Arial",
