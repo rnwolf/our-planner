@@ -199,11 +199,49 @@ class NetworkMenu:
             # Make text area read-only
             text_area.config(state=tk.DISABLED)
 
+            # # Close button
+            # close_button = tk.Button(
+            #     frame, text="Close", command=cp_dialog.destroy, width=10
+            # )
+            # close_button.pack(pady=(10, 0))
+
+            # Button frame to hold both buttons
+            button_frame = tk.Frame(frame)
+            button_frame.pack(pady=(10, 0))
+
+            # Function to tag critical path tasks
+            def tag_critical_path():
+                if critical_path:
+                    # Add "CriticalPath" tag to each task in the critical path
+                    for task_id in critical_path:
+                        self.controller.model.add_tags_to_task(
+                            task_id, ["CriticalPath"]
+                        )
+
+                    # Show confirmation message
+                    tk.messagebox.showinfo(
+                        "Critical Path Tagged",
+                        f"Added 'CriticalPath' tag to {len(critical_path)} tasks.",
+                        parent=cp_dialog,
+                    )
+
+                    # Update view to refresh task display with new tags
+                    self.controller.update_view()
+
+            # Tag Critical Path button
+            tag_button = tk.Button(
+                button_frame,
+                text="Tag Critical Path",
+                command=tag_critical_path,
+                width=15,
+            )
+            tag_button.pack(side=tk.LEFT, padx=5)
+
             # Close button
             close_button = tk.Button(
-                frame, text="Close", command=cp_dialog.destroy, width=10
+                button_frame, text="Close", command=cp_dialog.destroy, width=10
             )
-            close_button.pack(pady=(10, 0))
+            close_button.pack(side=tk.LEFT, padx=5)
 
             # Bind Escape key to close dialog
             cp_dialog.bind("<Escape>", lambda e: cp_dialog.destroy())
