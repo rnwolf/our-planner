@@ -159,9 +159,11 @@ class TaskResourceModel:
         predecessors: List[int] = None,
         successors: List[int] = None,
         tags: List[str] = None,  # Add tags parameter
+        color: str = None,  # Add color parameter with None default
     ) -> Dict[str, Any]:
         """Add a new task to the model."""
         tags = tags or []  # Default to empty list if None
+        color = color or "Cyan"  # Default color if None
 
         # Update all_tags with any new tags
         for tag in tags:
@@ -178,6 +180,7 @@ class TaskResourceModel:
             "predecessors": predecessors or [],
             "successors": successors or [],
             "tags": tags,  # Add tags to task dictionary
+            "color": color,  # Add color to task dictionary
         }
         self.tasks.append(task)
         return task
@@ -645,7 +648,7 @@ class TaskResourceModel:
         resource_c_id = self.resources[2]["id"]  # Resource C
         resource_d_id = self.resources[3]["id"]  # Resource D
 
-        # Add tasks with fractional resource allocations and tags
+        # Add tasks with fractional resource allocations, tags, and colors
         self.add_task(
             row=1,
             col=5,
@@ -654,6 +657,7 @@ class TaskResourceModel:
             resources={resource_a_id: 0.5, resource_b_id: 1.5},
             url="https://www.google.com",
             tags=["important", "phase1"],
+            color="LightBlue",  # Add color attribute
         )
         self.add_task(
             row=2,
@@ -663,6 +667,7 @@ class TaskResourceModel:
             resources={resource_a_id: 1.0, resource_b_id: 0.75, resource_c_id: 0.25},
             url="https://www.google.com",
             tags=["phase1"],
+            color="LightGreen",  # Add color attribute
         )
         self.add_task(
             row=3,
@@ -672,6 +677,7 @@ class TaskResourceModel:
             resources={resource_a_id: 2.0},
             url="https://www.google.com",
             tags=["phase2", "critical"],
+            color="Salmon",  # Add color attribute
         )
         self.add_task(
             row=4,
@@ -680,6 +686,7 @@ class TaskResourceModel:
             description="Task D",
             resources={resource_a_id: 0.5, resource_d_id: 0.5},
             tags=["phase2"],
+            color="Gold",  # Add color attribute
         )
 
         # Add tags to resources as well
@@ -690,3 +697,36 @@ class TaskResourceModel:
 
         # Make sure all_tags is updated
         self.refresh_all_tags()
+
+    def set_task_color(self, task_id: int, color: str) -> bool:
+        """Set the color for a specific task.
+
+        Args:
+            task_id: ID of the task to update
+            color: Color name to set (must be a valid web color name)
+
+        Returns:
+            bool: True if successful, False if task not found
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task["color"] = color
+        return True
+
+    def set_task_colors(self, task_ids: List[int], color: str) -> int:
+        """Set the color for multiple tasks.
+
+        Args:
+            task_ids: List of task IDs to update
+            color: Color name to set (must be a valid web color name)
+
+        Returns:
+            int: Number of tasks successfully updated
+        """
+        count = 0
+        for task_id in task_ids:
+            if self.set_task_color(task_id, color):
+                count += 1
+        return count

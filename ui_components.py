@@ -4,6 +4,7 @@ import webbrowser
 from datetime import datetime, timedelta
 from network_menu import NetworkMenu
 from help_menu import HelpMenu
+from colors import COLOR_NAMES, DEFAULT_TASK_COLOR
 
 
 class UIComponents:
@@ -571,6 +572,19 @@ class UIComponents:
                 self.controller.selected_task
             ),
         )
+
+        # Add color selection submenu
+        self.color_menu = tk.Menu(self.context_menu, tearoff=0)
+        self.context_menu.add_cascade(label="Set Task Color", menu=self.color_menu)
+
+        # Populate color menu with all web colors
+        for color_name in COLOR_NAMES:
+            self.color_menu.add_command(
+                label=color_name,
+                command=lambda c=color_name: self.set_selected_task_color(c),
+                background=color_name,
+            )
+
         self.context_menu.add_separator()
         self.context_menu.add_command(
             label="Add Predecessor",
@@ -614,7 +628,23 @@ class UIComponents:
         # Create multiple task selection context menu (new)
         self.multi_task_menu = tk.Menu(self.controller.root, tearoff=0)
 
-        # We'll set up the commands after the methods are defined
+        # Add color selection submenu for multiple tasks
+        self.multi_color_menu = tk.Menu(self.multi_task_menu, tearoff=0)
+        self.multi_task_menu.add_cascade(
+            label="Set Tasks Color", menu=self.multi_color_menu
+        )
+
+        # Populate color menu with all web colors
+        for color_name in COLOR_NAMES:
+            self.multi_color_menu.add_command(
+                label=color_name,
+                command=lambda c=color_name: self.set_selected_tasks_color(c),
+                background=color_name,
+            )
+
+        self.multi_task_menu.add_separator()
+
+        # Add the other multi-task menu items
         self.multi_task_menu.add_command(
             label="Add Tag to Selected Tasks...",
             command=lambda: None,  # Placeholder to be updated
@@ -627,12 +657,18 @@ class UIComponents:
     def update_menu_commands(self):
         """Update the commands in the menus after initialization"""
         # Update the multi-task menu to use the correct methods
+        # Note: The indexing has changed because we added the color menu
+        # Multi-task menu structure:
+        # 0: Set Tasks Color (cascade menu)
+        # 1: Separator
+        # 2: Add Tag to Selected Tasks...
+        # 3: Remove Tag from Selected Tasks...
         self.multi_task_menu.entryconfig(
-            0,  # First item (Add Tag)
+            2,  # Third item (Add Tag)
             command=lambda: self.add_tag_to_selected_tasks(),
         )
         self.multi_task_menu.entryconfig(
-            1,  # Second item (Remove Tag)
+            3,  # Fourth item (Remove Tag)
             command=lambda: self.remove_tag_from_selected_tasks(),
         )
 
@@ -1255,6 +1291,9 @@ class UIComponents:
         row, col, duration = task["row"], task["col"], task["duration"]
         description = task.get("description", "No Description")
 
+        # Get task color, default to Cyan if not set
+        task_color = task.get("color", "Cyan")
+
         # Calculate position with dynamic row height
         x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
 
@@ -1276,7 +1315,7 @@ class UIComponents:
 
         # Draw task box
         box_id = self.controller.task_canvas.create_rectangle(
-            x1, y1, x2, y2, fill="lightblue", outline="black", width=1, tags=("task",)
+            x1, y1, x2, y2, fill=task_color, outline="black", width=1, tags=("task",)
         )
 
         # Draw left and right edges (for resizing)
@@ -1386,7 +1425,14 @@ class UIComponents:
         if task_id in self.task_ui_elements:
             ui_elements = self.task_ui_elements[task_id]
             x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
+
+            # Get the task color (default to Cyan if not set)
+            task_color = task.get("color", "Cyan")
+
+            # Update box coordinates and color
             self.controller.task_canvas.coords(ui_elements["box"], x1, y1, x2, y2)
+            self.controller.task_canvas.itemconfig(ui_elements["box"], fill=task_color)
+
             self.controller.task_canvas.coords(ui_elements["left_edge"], x1, y1, x1, y2)
             self.controller.task_canvas.coords(
                 ui_elements["right_edge"], x2, y1, x2, y2
@@ -1394,6 +1440,8 @@ class UIComponents:
             self.controller.task_canvas.coords(
                 ui_elements["text"], (x1 + x2) / 2, (y1 + y2) / 2
             )
+
+            # Update stored coordinates
             (
                 ui_elements["x1"],
                 ui_elements["y1"],
@@ -1715,3 +1763,42 @@ class UIComponents:
         self.controller.selected_tasks = []
         self.controller.selected_task = None
         self.controller.update_view()
+
+    def set_selected_task_color(self, color):
+        """Set the color of the selected task."""
+        if not self.controller.selected_task:
+            return
+
+        task_id = self.controller.selected_task["task_id"]
+
+        # Update the model
+        self.controller.model.set_task_color(task_id, color)
+
+        # Update the UI element
+        if task_id in self.task_ui_elements:
+            box_id = self.task_ui_elements[task_id]["box"]
+            self.controller.task_canvas.itemconfig(box_id, fill=color)
+
+            # Update the task's color in the model
+            self.controller.selected_task["color"] = color
+
+    def set_selected_tasks_color(self, color):
+        """Set the color of all selected tasks."""
+        if not self.controller.selected_tasks:
+            return
+
+        # Get the IDs of all selected tasks
+        task_ids = [task["task_id"] for task in self.controller.selected_tasks]
+
+        # Update the model
+        self.controller.model.set_task_colors(task_ids, color)
+
+        # Update the UI elements
+        for task in self.controller.selected_tasks:
+            task_id = task["task_id"]
+            if task_id in self.task_ui_elements:
+                box_id = self.task_ui_elements[task_id]["box"]
+                self.controller.task_canvas.itemconfig(box_id, fill=color)
+
+                # Update the task's color in the model
+                task["color"] = color
