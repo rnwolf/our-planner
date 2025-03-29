@@ -211,6 +211,416 @@ class TaskOperations:
             else:
                 messagebox.showerror("Error", "Successor task not found.")
 
+    def create_capacity_tab(self, capacity_tab, resource_dropdown):
+        """Create an improved capacity tab with vertical scrollable list."""
+        capacity_frame = tk.Frame(capacity_tab)
+        capacity_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Resource selection for capacity editing
+        tk.Label(capacity_frame, text="Select resource:").pack(anchor="w", pady=(0, 5))
+
+        # Use the existing resource dropdown
+        resource_dropdown.pack(fill=tk.X, pady=(0, 10))
+
+        # Create main content frame with left and right sections
+        content_frame = tk.Frame(capacity_frame)
+        content_frame.pack(fill=tk.BOTH, expand=True)
+
+        # ======= Left section: Vertical scrollable capacity list =======
+        list_frame = tk.Frame(content_frame)
+        list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+
+        tk.Label(list_frame, text="Capacity by Day").pack(anchor="w", pady=(0, 5))
+
+        # Create frame for capacity list with headers
+        headers_frame = tk.Frame(list_frame)
+        headers_frame.pack(fill=tk.X, pady=(0, 5))
+
+        # Create headers
+        tk.Label(
+            headers_frame, text="Index", width=8, anchor="w", font=("Arial", 10, "bold")
+        ).pack(side=tk.LEFT)
+        tk.Label(
+            headers_frame, text="Date", width=15, anchor="w", font=("Arial", 10, "bold")
+        ).pack(side=tk.LEFT)
+        tk.Label(
+            headers_frame,
+            text="Capacity",
+            width=10,
+            anchor="w",
+            font=("Arial", 10, "bold"),
+        ).pack(side=tk.LEFT)
+
+        # Create scrollable capacity list
+        list_container = tk.Frame(list_frame)
+        list_container.pack(fill=tk.BOTH, expand=True)
+
+        capacity_scroll = tk.Scrollbar(list_container, orient="vertical")
+        capacity_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        capacity_canvas = tk.Canvas(
+            list_container, yscrollcommand=capacity_scroll.set, highlightthickness=0
+        )
+        capacity_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        capacity_scroll.config(command=capacity_canvas.yview)
+
+        # Create a frame inside the canvas for the capacity items
+        capacity_list_frame = tk.Frame(capacity_canvas)
+        capacity_canvas.create_window(
+            (0, 0), window=capacity_list_frame, anchor="nw", tags="capacity_frame"
+        )
+
+        # Function to update canvas scroll region when the list changes
+        def update_scrollregion(event):
+            capacity_canvas.configure(scrollregion=capacity_canvas.bbox("all"))
+
+        capacity_list_frame.bind("<Configure>", update_scrollregion)
+        capacity_canvas.bind(
+            "<Configure>",
+            lambda e: capacity_canvas.itemconfig("capacity_frame", width=e.width),
+        )
+
+        # ======= Right section: Capacity edit controls =======
+        control_frame = tk.Frame(content_frame)
+        control_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(10, 0))
+
+        # === Index-based capacity editing ===
+        index_frame = tk.LabelFrame(
+            control_frame, text="Set Capacity by Index", padx=10, pady=10
+        )
+        index_frame.pack(fill=tk.X, pady=(0, 15))
+
+        # Day range
+        day_frame = tk.Frame(index_frame)
+        day_frame.pack(fill=tk.X, pady=5)
+
+        tk.Label(day_frame, text="Day Index:").grid(row=0, column=0, padx=5, sticky="w")
+        day_var = tk.StringVar()
+        day_entry = tk.Entry(day_frame, textvariable=day_var, width=5)
+        day_entry.grid(row=0, column=1, padx=5)
+
+        tk.Label(day_frame, text="To Index:").grid(row=0, column=2, padx=5)
+        end_day_var = tk.StringVar()
+        end_day_entry = tk.Entry(day_frame, textvariable=end_day_var, width=5)
+        end_day_entry.grid(row=0, column=3, padx=5)
+
+        # Capacity entry
+        capacity_frame = tk.Frame(index_frame)
+        capacity_frame.pack(fill=tk.X, pady=5)
+
+        tk.Label(capacity_frame, text="Capacity:").pack(side=tk.LEFT, padx=5)
+        capacity_var = tk.StringVar()
+        capacity_entry = tk.Entry(capacity_frame, textvariable=capacity_var, width=5)
+        capacity_entry.pack(side=tk.LEFT, padx=5)
+
+        # Update button
+        update_button = tk.Button(
+            index_frame, text="Update Capacity", command=lambda: update_capacity()
+        )
+        update_button.pack(anchor="e", pady=(5, 0))
+
+        # === Date-based capacity editing ===
+        date_frame = tk.LabelFrame(
+            control_frame, text="Set Capacity by Date", padx=10, pady=10
+        )
+        date_frame.pack(fill=tk.X, pady=(0, 15))
+
+        # Try to import tkcalendar
+        try:
+            from tkcalendar import DateEntry
+
+            has_calendar = True
+        except ImportError:
+            has_calendar = False
+
+        # Start date
+        start_date_frame = tk.Frame(date_frame)
+        start_date_frame.pack(fill=tk.X, pady=5)
+
+        tk.Label(start_date_frame, text="Start Date:").pack(side=tk.LEFT, padx=5)
+
+        if has_calendar:
+            start_date_var = tk.StringVar()
+            start_date_picker = DateEntry(
+                start_date_frame,
+                width=12,
+                background="darkblue",
+                foreground="white",
+                borderwidth=2,
+                date_pattern="yyyy-mm-dd",  # Specify YYYY-MM-DD format
+                textvariable=start_date_var,
+            )
+            start_date_picker.pack(side=tk.LEFT, padx=5)
+        else:
+            start_date_var = tk.StringVar()
+            start_date_entry = tk.Entry(
+                start_date_frame, textvariable=start_date_var, width=10
+            )
+            start_date_entry.pack(side=tk.LEFT, padx=5)
+            tk.Label(start_date_frame, text="(YYYY-MM-DD)").pack(side=tk.LEFT)
+
+        # End date
+        end_date_frame = tk.Frame(date_frame)
+        end_date_frame.pack(fill=tk.X, pady=5)
+
+        tk.Label(end_date_frame, text="End Date:").pack(side=tk.LEFT, padx=5)
+
+        if has_calendar:
+            end_date_var = tk.StringVar()
+            end_date_picker = DateEntry(
+                end_date_frame,
+                width=12,
+                background="darkblue",
+                foreground="white",
+                borderwidth=2,
+                date_pattern="yyyy-mm-dd",  # Specify YYYY-MM-DD format
+                textvariable=end_date_var,
+            )
+            end_date_picker.pack(side=tk.LEFT, padx=5)
+        else:
+            end_date_var = tk.StringVar()
+            end_date_entry = tk.Entry(
+                end_date_frame, textvariable=end_date_var, width=10
+            )
+            end_date_entry.pack(side=tk.LEFT, padx=5)
+            tk.Label(end_date_frame, text="(YYYY-MM-DD)").pack(side=tk.LEFT)
+
+        # Capacity for date range
+        date_capacity_frame = tk.Frame(date_frame)
+        date_capacity_frame.pack(fill=tk.X, pady=5)
+
+        tk.Label(date_capacity_frame, text="Capacity:").pack(side=tk.LEFT, padx=5)
+        date_capacity_var = tk.StringVar()
+        date_capacity_entry = tk.Entry(
+            date_capacity_frame, textvariable=date_capacity_var, width=5
+        )
+        date_capacity_entry.pack(side=tk.LEFT, padx=5)
+
+        # Update button for date range
+        update_date_button = tk.Button(
+            date_frame,
+            text="Update Capacity",
+            command=lambda: update_capacity_by_date(),
+        )
+        update_date_button.pack(anchor="e", pady=(5, 0))
+
+        # Functions for drawing and updating the capacity list
+        def draw_capacity_list(resource_id):
+            # Clear existing items
+            for widget in capacity_list_frame.winfo_children():
+                widget.destroy()
+
+            resource = self.model.get_resource_by_id(resource_id)
+            if not resource:
+                return
+
+            # Create capacity list entries
+            for i, capacity in enumerate(resource["capacity"]):
+                if i >= self.model.days:
+                    break
+
+                date = self.model.get_date_for_day(i)
+                date_str = date.strftime("%Y-%m-%d")
+
+                row_frame = tk.Frame(capacity_list_frame)
+                row_frame.pack(fill=tk.X, pady=1)
+
+                # Set alternating row color
+                if i % 2 == 0:
+                    row_frame.configure(bg="#f0f0f0")
+                    bg_color = "#f0f0f0"
+                else:
+                    row_frame.configure(bg="#ffffff")
+                    bg_color = "#ffffff"
+
+                # Day index
+                day_label = tk.Label(
+                    row_frame, text=str(i), width=8, anchor="w", bg=bg_color
+                )
+                day_label.pack(side=tk.LEFT)
+
+                # Date
+                date_label = tk.Label(
+                    row_frame, text=date_str, width=15, anchor="w", bg=bg_color
+                )
+                date_label.pack(side=tk.LEFT)
+
+                # Capacity
+                capacity_label = tk.Label(
+                    row_frame, text=str(capacity), width=10, anchor="w", bg=bg_color
+                )
+                capacity_label.pack(side=tk.LEFT)
+
+        # Function to update capacity by index
+        def update_capacity():
+            selected = resource_dropdown.get()
+            if not selected:
+                tk.messagebox.showwarning("Warning", "Please select a resource.")
+                return
+
+            resource_id = int(selected.split(" - ")[0])
+
+            try:
+                # Check if range or single day
+                day = int(day_var.get())
+
+                # Validate day
+                if day < 0 or day >= self.model.days:
+                    tk.messagebox.showwarning(
+                        "Warning",
+                        f"Day index must be between 0 and {self.model.days - 1}.",
+                    )
+                    return
+
+                # Check for end day (range)
+                if end_day_var.get().strip():
+                    end_day = int(end_day_var.get())
+
+                    # Validate end day
+                    if end_day < day or end_day >= self.model.days:
+                        tk.messagebox.showwarning(
+                            "Warning",
+                            f"End day index must be between {day} and {self.model.days - 1}.",
+                        )
+                        return
+
+                    # Get capacity
+                    capacity = float(capacity_var.get())
+                    if capacity < 0:
+                        tk.messagebox.showwarning(
+                            "Warning", "Capacity cannot be negative."
+                        )
+                        return
+
+                    # Update capacity for range
+                    for i in range(day, end_day + 1):
+                        self.model.update_resource_capacity(resource_id, i, capacity)
+
+                    tk.messagebox.showinfo(
+                        "Success", f"Capacity updated for days {day} to {end_day}."
+                    )
+
+                else:
+                    # Single day update
+                    capacity = float(capacity_var.get())
+                    if capacity < 0:
+                        tk.messagebox.showwarning(
+                            "Warning", "Capacity cannot be negative."
+                        )
+                        return
+
+                    # Update capacity
+                    self.model.update_resource_capacity(resource_id, day, capacity)
+                    tk.messagebox.showinfo(
+                        "Success", f"Capacity updated for day {day}."
+                    )
+
+                # Redraw capacity list
+                draw_capacity_list(resource_id)
+
+            except ValueError:
+                tk.messagebox.showwarning("Warning", "Please enter valid numbers.")
+                return
+
+        # Function to update capacity by date
+        def update_capacity_by_date():
+            selected = resource_dropdown.get()
+            if not selected:
+                tk.messagebox.showwarning("Warning", "Please select a resource.")
+                return
+
+            resource_id = int(selected.split(" - ")[0])
+
+            try:
+                # Parse dates
+                from datetime import datetime
+
+                start_date_str = start_date_var.get()
+                end_date_str = end_date_var.get()
+
+                try:
+                    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                except ValueError:
+                    tk.messagebox.showwarning(
+                        "Warning", "Start date must be in YYYY-MM-DD format."
+                    )
+                    return
+
+                # For end date, if not provided, use start date
+                if not end_date_str:
+                    end_date = start_date
+                else:
+                    try:
+                        end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                    except ValueError:
+                        tk.messagebox.showwarning(
+                            "Warning", "End date must be in YYYY-MM-DD format."
+                        )
+                        return
+
+                # Validate date range
+                if end_date < start_date:
+                    tk.messagebox.showwarning(
+                        "Warning", "End date must be after start date."
+                    )
+                    return
+
+                # Convert dates to day indices
+                start_day = self.model.get_day_for_date(start_date)
+                end_day = self.model.get_day_for_date(end_date)
+
+                # Validate indices are within project range
+                if start_day < 0 or start_day >= self.model.days:
+                    tk.messagebox.showwarning(
+                        "Warning", "Start date is outside the project timeline."
+                    )
+                    return
+
+                if end_day < 0 or end_day >= self.model.days:
+                    tk.messagebox.showwarning(
+                        "Warning", "End date is outside the project timeline."
+                    )
+                    return
+
+                # Get capacity
+                capacity = float(date_capacity_var.get())
+                if capacity < 0:
+                    tk.messagebox.showwarning("Warning", "Capacity cannot be negative.")
+                    return
+
+                # Update capacity for date range
+                for i in range(start_day, end_day + 1):
+                    self.model.update_resource_capacity(resource_id, i, capacity)
+
+                tk.messagebox.showinfo(
+                    "Success",
+                    f"Capacity updated for dates from {start_date_str} to {end_date_str}.",
+                )
+
+                # Redraw capacity list
+                draw_capacity_list(resource_id)
+
+            except ValueError as e:
+                tk.messagebox.showwarning("Warning", f"Error: {str(e)}")
+                return
+
+        # Connect events
+        def on_resource_select(event):
+            """When a resource is selected, update the capacity list."""
+            selected = resource_dropdown.get()
+            if selected:
+                resource_id = int(selected.split(" - ")[0])
+                draw_capacity_list(resource_id)
+
+        resource_dropdown.bind("<<ComboboxSelected>>", on_resource_select)
+
+        # Initialize with the first resource if available
+        if self.model.resources:
+            resource_id = self.model.resources[0]["id"]
+            draw_capacity_list(resource_id)
+
+        return capacity_frame, day_var, end_day_var, capacity_var, update_capacity
+
     def edit_task_resources(self, task=None):
         """Edit resources for the selected task with fractional allocations"""
         if task is None:
@@ -384,7 +794,7 @@ class TaskOperations:
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        dialog.geometry(f"600x500+{x}+{y}")
+        dialog.geometry(f"700x500+{x}+{y}")
         dialog.transient(parent)
         dialog.grab_set()  # Important: Prevents interaction with the main window
         dialog.focus_set()  # Ensure dialog gets focus
@@ -636,18 +1046,219 @@ class TaskOperations:
         # ---- Capacity Tab ----
         # (Keep the capacity tab functionality as is)
         # ... rest of the capacity tab code from the original method ...
-        capacity_frame = tk.Frame(capacity_tab)
-        capacity_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # #######################
+        # capacity_frame = tk.Frame(capacity_tab)
+        # capacity_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Resource selection for capacity editing
-        tk.Label(capacity_frame, text="Select resource:").pack(anchor="w", pady=(0, 5))
+        # # Resource selection for capacity editing
+        # tk.Label(capacity_frame, text="Select resource:").pack(anchor="w", pady=(0, 5))
 
-        # Dropdown for resource selection
+        # # Dropdown for resource selection
+        # resource_var = tk.StringVar()
+        # resource_dropdown = tk.ttk.Combobox(
+        #     capacity_frame, textvariable=resource_var, state="readonly"
+        # )
+        # resource_dropdown.pack(fill=tk.X, pady=(0, 10))
+
+        # # Update dropdown values
+        # def update_resource_dropdown():
+        #     resources = [f"{r['id']} - {r['name']}" for r in self.model.resources]
+        #     resource_dropdown["values"] = resources
+        #     if resources:
+        #         resource_dropdown.current(0)
+
+        # update_resource_dropdown()
+
+        # # Frame for capacity editing
+        # capacity_edit_frame = tk.Frame(capacity_frame)
+        # capacity_edit_frame.pack(fill=tk.BOTH, expand=True)
+
+        # # Canvas for showing capacity over time
+        # capacity_canvas_frame = tk.Frame(capacity_edit_frame)
+        # capacity_canvas_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        # # Scrollbar for canvas
+        # capacity_scrollbar = tk.Scrollbar(capacity_canvas_frame, orient="horizontal")
+        # capacity_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+        # capacity_canvas = tk.Canvas(
+        #     capacity_canvas_frame,
+        #     height=100,
+        #     xscrollcommand=capacity_scrollbar.set,
+        #     bg="white",
+        # )
+        # capacity_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        # capacity_scrollbar.config(command=capacity_canvas.xview)
+
+        # # Frame for capacity editing controls
+        # control_frame = tk.Frame(capacity_frame)
+        # control_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+
+        # # Entry fields for capacity editing
+        # tk.Label(control_frame, text="Day:").grid(row=0, column=0, padx=5)
+        # day_var = tk.StringVar()
+        # day_entry = tk.Entry(control_frame, textvariable=day_var, width=5)
+        # day_entry.grid(row=0, column=1, padx=5)
+
+        # tk.Label(control_frame, text="To:").grid(row=0, column=2, padx=5)
+        # end_day_var = tk.StringVar()
+        # end_day_entry = tk.Entry(control_frame, textvariable=end_day_var, width=5)
+        # end_day_entry.grid(row=0, column=3, padx=5)
+
+        # tk.Label(control_frame, text="Capacity:").grid(row=0, column=4, padx=5)
+        # capacity_var = tk.StringVar()
+        # capacity_entry = tk.Entry(control_frame, textvariable=capacity_var, width=5)
+        # capacity_entry.grid(row=0, column=5, padx=5)
+
+        # # Function to draw capacity chart
+        # def draw_capacity_chart():
+        #     capacity_canvas.delete("all")
+
+        #     selected = resource_dropdown.get()
+        #     if not selected:
+        #         return
+
+        #     resource_id = int(selected.split(" - ")[0])
+        #     resource = self.model.get_resource_by_id(resource_id)
+
+        #     if not resource:
+        #         return
+
+        #     # Calculate dimensions
+        #     cell_width = 30
+        #     canvas_width = self.model.days * cell_width
+        #     canvas_height = 100
+
+        #     # Configure canvas
+        #     capacity_canvas.config(scrollregion=(0, 0, canvas_width, canvas_height))
+
+        #     # Draw day numbers
+        #     for i in range(self.model.days):
+        #         capacity_canvas.create_text(
+        #             i * cell_width + cell_width / 2,
+        #             15,
+        #             text=str(i + 1),
+        #             font=("Arial", 8),
+        #         )
+
+        #     # Draw capacity bars
+        #     max_capacity = max(resource["capacity"]) if resource["capacity"] else 1.0
+        #     bar_height_factor = 60 / max_capacity  # Scale to fit in canvas
+
+        #     for i, cap in enumerate(resource["capacity"]):
+        #         if i >= self.model.days:
+        #             break
+
+        #         bar_height = cap * bar_height_factor
+        #         x1 = i * cell_width + 5
+        #         y1 = canvas_height - 20 - bar_height
+        #         x2 = (i + 1) * cell_width - 5
+        #         y2 = canvas_height - 20
+
+        #         capacity_canvas.create_rectangle(
+        #             x1, y1, x2, y2, fill="green", outline="darkgreen"
+        #         )
+
+        #         # Capacity value
+        #         capacity_canvas.create_text(
+        #             i * cell_width + cell_width / 2,
+        #             canvas_height - 20 - bar_height - 10,
+        #             text=str(cap),
+        #             font=("Arial", 8),
+        #         )
+
+        # # Event handler for resource selection
+        # def on_resource_select(event):
+        #     draw_capacity_chart()
+
+        # resource_dropdown.bind("<<ComboboxSelected>>", on_resource_select)
+
+        # # Function to update capacity
+        # def update_capacity():
+        #     selected = resource_dropdown.get()
+        #     if not selected:
+        #         messagebox.showwarning("Warning", "Please select a resource.")
+        #         return
+
+        #     resource_id = int(selected.split(" - ")[0])
+
+        #     try:
+        #         # Check if range or single day
+        #         day = int(day_var.get())
+
+        #         # Validate day
+        #         if day < 1 or day > self.model.days:
+        #             messagebox.showwarning(
+        #                 "Warning", f"Day must be between 1 and {self.model.days}."
+        #             )
+        #             return
+
+        #         # Check for end day (range)
+        #         if end_day_var.get().strip():
+        #             end_day = int(end_day_var.get())
+
+        #             # Validate end day
+        #             if end_day < day or end_day > self.model.days:
+        #                 messagebox.showwarning(
+        #                     "Warning",
+        #                     f"End day must be between {day} and {self.model.days}.",
+        #                 )
+        #                 return
+
+        #             # Get capacity
+        #             capacity = float(capacity_var.get())
+        #             if capacity < 0:
+        #                 messagebox.showwarning(
+        #                     "Warning", "Capacity cannot be negative."
+        #                 )
+        #                 return
+
+        #             # Update capacity for range
+        #             self.model.update_resource_capacity_range(
+        #                 resource_id, day - 1, end_day, capacity
+        #             )
+        #             messagebox.showinfo(
+        #                 "Success", f"Capacity updated for days {day} to {end_day}."
+        #             )
+
+        #         else:
+        #             # Single day update
+        #             capacity = float(capacity_var.get())
+        #             if capacity < 0:
+        #                 messagebox.showwarning(
+        #                     "Warning", "Capacity cannot be negative."
+        #                 )
+        #                 return
+
+        #             # Update capacity
+        #             self.model.update_resource_capacity(resource_id, day - 1, capacity)
+        #             messagebox.showinfo("Success", f"Capacity updated for day {day}.")
+
+        #         # Redraw capacity chart
+        #         draw_capacity_chart()
+
+        #     except ValueError:
+        #         messagebox.showwarning("Warning", "Please enter valid numbers.")
+        #         return
+
+        # # Update capacity button
+        # update_button = tk.Button(
+        #     control_frame, text="Update Capacity", command=update_capacity
+        # )
+        # update_button.grid(row=0, column=6, padx=10)
+
+        ######################################
+
+        # Create the dropdown for resource selection
         resource_var = tk.StringVar()
         resource_dropdown = tk.ttk.Combobox(
-            capacity_frame, textvariable=resource_var, state="readonly"
+            capacity_tab, textvariable=resource_var, state="readonly"
         )
-        resource_dropdown.pack(fill=tk.X, pady=(0, 10))
+
+        # Create the capacity tab with our new implementation
+        capacity_frame, day_var, end_day_var, capacity_var, update_capacity = (
+            self.create_capacity_tab(capacity_tab, resource_dropdown)
+        )
 
         # Update dropdown values
         def update_resource_dropdown():
@@ -656,185 +1267,8 @@ class TaskOperations:
             if resources:
                 resource_dropdown.current(0)
 
+        # Initialize the dropdown
         update_resource_dropdown()
-
-        # Frame for capacity editing
-        capacity_edit_frame = tk.Frame(capacity_frame)
-        capacity_edit_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Canvas for showing capacity over time
-        capacity_canvas_frame = tk.Frame(capacity_edit_frame)
-        capacity_canvas_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        # Scrollbar for canvas
-        capacity_scrollbar = tk.Scrollbar(capacity_canvas_frame, orient="horizontal")
-        capacity_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-
-        capacity_canvas = tk.Canvas(
-            capacity_canvas_frame,
-            height=100,
-            xscrollcommand=capacity_scrollbar.set,
-            bg="white",
-        )
-        capacity_canvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        capacity_scrollbar.config(command=capacity_canvas.xview)
-
-        # Frame for capacity editing controls
-        control_frame = tk.Frame(capacity_frame)
-        control_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
-
-        # Entry fields for capacity editing
-        tk.Label(control_frame, text="Day:").grid(row=0, column=0, padx=5)
-        day_var = tk.StringVar()
-        day_entry = tk.Entry(control_frame, textvariable=day_var, width=5)
-        day_entry.grid(row=0, column=1, padx=5)
-
-        tk.Label(control_frame, text="To:").grid(row=0, column=2, padx=5)
-        end_day_var = tk.StringVar()
-        end_day_entry = tk.Entry(control_frame, textvariable=end_day_var, width=5)
-        end_day_entry.grid(row=0, column=3, padx=5)
-
-        tk.Label(control_frame, text="Capacity:").grid(row=0, column=4, padx=5)
-        capacity_var = tk.StringVar()
-        capacity_entry = tk.Entry(control_frame, textvariable=capacity_var, width=5)
-        capacity_entry.grid(row=0, column=5, padx=5)
-
-        # Function to draw capacity chart
-        def draw_capacity_chart():
-            capacity_canvas.delete("all")
-
-            selected = resource_dropdown.get()
-            if not selected:
-                return
-
-            resource_id = int(selected.split(" - ")[0])
-            resource = self.model.get_resource_by_id(resource_id)
-
-            if not resource:
-                return
-
-            # Calculate dimensions
-            cell_width = 30
-            canvas_width = self.model.days * cell_width
-            canvas_height = 100
-
-            # Configure canvas
-            capacity_canvas.config(scrollregion=(0, 0, canvas_width, canvas_height))
-
-            # Draw day numbers
-            for i in range(self.model.days):
-                capacity_canvas.create_text(
-                    i * cell_width + cell_width / 2,
-                    15,
-                    text=str(i + 1),
-                    font=("Arial", 8),
-                )
-
-            # Draw capacity bars
-            max_capacity = max(resource["capacity"]) if resource["capacity"] else 1.0
-            bar_height_factor = 60 / max_capacity  # Scale to fit in canvas
-
-            for i, cap in enumerate(resource["capacity"]):
-                if i >= self.model.days:
-                    break
-
-                bar_height = cap * bar_height_factor
-                x1 = i * cell_width + 5
-                y1 = canvas_height - 20 - bar_height
-                x2 = (i + 1) * cell_width - 5
-                y2 = canvas_height - 20
-
-                capacity_canvas.create_rectangle(
-                    x1, y1, x2, y2, fill="green", outline="darkgreen"
-                )
-
-                # Capacity value
-                capacity_canvas.create_text(
-                    i * cell_width + cell_width / 2,
-                    canvas_height - 20 - bar_height - 10,
-                    text=str(cap),
-                    font=("Arial", 8),
-                )
-
-        # Event handler for resource selection
-        def on_resource_select(event):
-            draw_capacity_chart()
-
-        resource_dropdown.bind("<<ComboboxSelected>>", on_resource_select)
-
-        # Function to update capacity
-        def update_capacity():
-            selected = resource_dropdown.get()
-            if not selected:
-                messagebox.showwarning("Warning", "Please select a resource.")
-                return
-
-            resource_id = int(selected.split(" - ")[0])
-
-            try:
-                # Check if range or single day
-                day = int(day_var.get())
-
-                # Validate day
-                if day < 1 or day > self.model.days:
-                    messagebox.showwarning(
-                        "Warning", f"Day must be between 1 and {self.model.days}."
-                    )
-                    return
-
-                # Check for end day (range)
-                if end_day_var.get().strip():
-                    end_day = int(end_day_var.get())
-
-                    # Validate end day
-                    if end_day < day or end_day > self.model.days:
-                        messagebox.showwarning(
-                            "Warning",
-                            f"End day must be between {day} and {self.model.days}.",
-                        )
-                        return
-
-                    # Get capacity
-                    capacity = float(capacity_var.get())
-                    if capacity < 0:
-                        messagebox.showwarning(
-                            "Warning", "Capacity cannot be negative."
-                        )
-                        return
-
-                    # Update capacity for range
-                    self.model.update_resource_capacity_range(
-                        resource_id, day - 1, end_day, capacity
-                    )
-                    messagebox.showinfo(
-                        "Success", f"Capacity updated for days {day} to {end_day}."
-                    )
-
-                else:
-                    # Single day update
-                    capacity = float(capacity_var.get())
-                    if capacity < 0:
-                        messagebox.showwarning(
-                            "Warning", "Capacity cannot be negative."
-                        )
-                        return
-
-                    # Update capacity
-                    self.model.update_resource_capacity(resource_id, day - 1, capacity)
-                    messagebox.showinfo("Success", f"Capacity updated for day {day}.")
-
-                # Redraw capacity chart
-                draw_capacity_chart()
-
-            except ValueError:
-                messagebox.showwarning("Warning", "Please enter valid numbers.")
-                return
-
-        # Update capacity button
-        update_button = tk.Button(
-            control_frame, text="Update Capacity", command=update_capacity
-        )
-        update_button.grid(row=0, column=6, padx=10)
 
         # Add "Close" button at the bottom
         close_button_frame = tk.Frame(dialog)
@@ -864,9 +1298,9 @@ class TaskOperations:
         # Also update the protocol handler for window close (X button)
         dialog.protocol("WM_DELETE_WINDOW", on_dialog_close)
 
-        # Draw the initial capacity chart if a resource is selected
-        if self.model.resources:
-            draw_capacity_chart()
+        # # Draw the initial capacity chart if a resource is selected
+        # if self.model.resources:
+        #     draw_capacity_chart()
 
         # Connect the notebook tabs to update functions
         def on_tab_changed(event):
@@ -879,7 +1313,7 @@ class TaskOperations:
                 # Refresh capacity dropdown when switching to capacity tab
                 update_resource_dropdown()
                 # Redraw capacity chart
-                draw_capacity_chart()
+                # draw_capacity_chart()
 
         notebook.bind("<<NotebookTabChanged>>", on_tab_changed)
 
