@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import webbrowser
 from datetime import datetime, timedelta
+from network_menu import NetworkMenu
 from help_menu import HelpMenu
 
 
@@ -14,6 +15,8 @@ class UIComponents:
         # Track UI-specific task data
         self.task_ui_elements = {}  # Maps task_id to UI elements
 
+        # Reference to network menu
+        self.network_menu = None
         # Reference to help menu
         self.help_menu = None
 
@@ -281,6 +284,11 @@ class UIComponents:
         )
         self.date_menu.add_command(
             label="Reset to Today", command=self.reset_setdate_to_today
+        )
+
+        # Add Network menu
+        self.network_menu = NetworkMenu(
+            self.controller, self.controller.root, self.menu_bar
         )
 
         # Add Help menu
@@ -956,19 +964,6 @@ class UIComponents:
         # Bind tooltip events
         canvas.tag_bind(item_id, "<Enter>", enter)
         canvas.tag_bind(item_id, "<Leave>", leave)
-
-    # def add_task_tag_tooltips(self, task):
-    #     """Add tooltips for task tags."""
-    #     task_id = task["task_id"]
-    #     if task_id in self.task_ui_elements:
-    #         ui_elements = self.task_ui_elements[task_id]
-    #         box_id = ui_elements["box"]
-
-    #         # Create tooltip text
-    #         tooltip_text = "hello Tags: " + ", ".join(task["tags"])
-
-    #         # Add tooltip to the task box
-    #         self.add_tag_tooltip(self.controller.task_canvas, box_id, tooltip_text)
 
     def add_task_tooltips(self, task):
         """Add tooltips for task tags and resource information."""
