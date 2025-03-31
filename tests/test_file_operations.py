@@ -5,8 +5,8 @@ import tempfile
 from unittest.mock import MagicMock, patch
 from datetime import datetime
 
-from model import TaskResourceModel
-from file_operations import FileOperations
+from src.model.task_resource_model import TaskResourceModel
+from src.operations.file_operations import FileOperations
 
 
 class TestFileOperations:
@@ -22,13 +22,13 @@ class TestFileOperations:
     def test_save_and_load_file(self):
         """Test saving and loading a file."""
         # Create a temporary file path
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as temp:
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp:
             temp_path = temp.name
 
         try:
             # Add some tasks to the model
-            self.model.add_task(row=1, col=5, duration=3, description="Test Task 1")
-            self.model.add_task(row=2, col=10, duration=4, description="Test Task 2")
+            self.model.add_task(row=1, col=5, duration=3, description='Test Task 1')
+            self.model.add_task(row=2, col=10, duration=4, description='Test Task 2')
 
             # Save the file
             result = self.model.save_to_file(temp_path)
@@ -41,8 +41,8 @@ class TestFileOperations:
             # Verify the file loaded correctly
             assert result is True
             assert len(new_model.tasks) == 2
-            assert new_model.tasks[0]["description"] == "Test Task 1"
-            assert new_model.tasks[1]["description"] == "Test Task 2"
+            assert new_model.tasks[0]['description'] == 'Test Task 1'
+            assert new_model.tasks[1]['description'] == 'Test Task 2'
 
         finally:
             # Clean up the temporary file
@@ -52,11 +52,11 @@ class TestFileOperations:
     def test_new_project(self):
         """Test creating a new project."""
         # Add some tasks to the model
-        self.model.add_task(row=1, col=5, duration=3, description="Test Task")
-        self.model.current_file_path = "/fake/path/file.json"
+        self.model.add_task(row=1, col=5, duration=3, description='Test Task')
+        self.model.current_file_path = '/fake/path/file.json'
 
         # Mock messagebox.askyesno to return True
-        with patch("tkinter.messagebox.askyesno", return_value=True):
+        with patch('tkinter.messagebox.askyesno', return_value=True):
             self.file_ops.new_project()
 
             # Verify the model was reset

@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 
-from model import TaskResourceModel
+from src.model.task_resource_model import TaskResourceModel
 
 
 class TestTaskResourceModel:
@@ -27,25 +27,25 @@ class TestTaskResourceModel:
             row=1,
             col=5,
             duration=3,
-            description="Test Task",
+            description='Test Task',
             resources={},
-            url="https://example.com",
-            tags=["test", "example"],
+            url='https://example.com',
+            tags=['test', 'example'],
         )
 
         # Verify task was added correctly
         assert len(self.model.tasks) == 1
-        assert task["task_id"] == 1
-        assert task["row"] == 1
-        assert task["col"] == 5
-        assert task["duration"] == 3
-        assert task["description"] == "Test Task"
-        assert task["url"] == "https://example.com"
-        assert task["tags"] == ["test", "example"]
+        assert task['task_id'] == 1
+        assert task['row'] == 1
+        assert task['col'] == 5
+        assert task['duration'] == 3
+        assert task['description'] == 'Test Task'
+        assert task['url'] == 'https://example.com'
+        assert task['tags'] == ['test', 'example']
 
         # Verify tags were added to the model's all_tags set
-        assert "test" in self.model.all_tags
-        assert "example" in self.model.all_tags
+        assert 'test' in self.model.all_tags
+        assert 'example' in self.model.all_tags
 
     def test_get_date_for_day(self):
         """Test that get_date_for_day returns the correct date."""
@@ -64,8 +64,8 @@ class TestTaskResourceModel:
     def test_delete_task(self):
         """Test deleting a task from the model."""
         # Add a task
-        task = self.model.add_task(row=1, col=5, duration=3, description="Test Task")
-        task_id = task["task_id"]
+        task = self.model.add_task(row=1, col=5, duration=3, description='Test Task')
+        task_id = task['task_id']
 
         # Verify task was added
         assert len(self.model.tasks) == 1

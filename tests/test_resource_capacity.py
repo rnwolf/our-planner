@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
 
-from model import TaskResourceModel
-from task_operations import TaskOperations
+from src.model.task_resource_model import TaskResourceModel
+from src.operations.task_operations import TaskOperations
 
 
 class TestResourceCapacity:
@@ -23,18 +23,18 @@ class TestResourceCapacity:
 
         # Verify each resource has capacity array of correct length
         for resource in self.model.resources:
-            assert "capacity" in resource
-            assert len(resource["capacity"]) == self.model.days
+            assert 'capacity' in resource
+            assert len(resource['capacity']) == self.model.days
 
             # Default capacity should be 1.0
-            assert resource["capacity"][0] == 1.0
-            assert resource["capacity"][-1] == 1.0
+            assert resource['capacity'][0] == 1.0
+            assert resource['capacity'][-1] == 1.0
 
     def test_update_resource_capacity_single_day(self):
         """Test updating capacity for a single day."""
         # Get the first resource
         resource = self.model.resources[0]
-        resource_id = resource["id"]
+        resource_id = resource['id']
 
         # Update capacity for day 5
         new_capacity = 2.5
@@ -47,17 +47,17 @@ class TestResourceCapacity:
 
         # Verify the capacity was updated
         updated_resource = self.model.get_resource_by_id(resource_id)
-        assert updated_resource["capacity"][day_index] == new_capacity
+        assert updated_resource['capacity'][day_index] == new_capacity
 
         # Other days should remain unchanged
-        assert updated_resource["capacity"][day_index - 1] == 1.0
-        assert updated_resource["capacity"][day_index + 1] == 1.0
+        assert updated_resource['capacity'][day_index - 1] == 1.0
+        assert updated_resource['capacity'][day_index + 1] == 1.0
 
     def test_update_resource_capacity_range(self):
         """Test updating capacity for a range of days."""
         # Get the first resource
         resource = self.model.resources[0]
-        resource_id = resource["id"]
+        resource_id = resource['id']
 
         # Update capacity for days 10-15
         new_capacity = 0.5
@@ -72,21 +72,21 @@ class TestResourceCapacity:
         # Verify the capacity was updated for all days in the range
         updated_resource = self.model.get_resource_by_id(resource_id)
         for day in range(start_day, end_day):
-            assert updated_resource["capacity"][day] == new_capacity
+            assert updated_resource['capacity'][day] == new_capacity
 
         # Days outside the range should remain unchanged
-        assert updated_resource["capacity"][start_day - 1] == 1.0
-        assert updated_resource["capacity"][end_day] == 1.0  # end_day is exclusive
+        assert updated_resource['capacity'][start_day - 1] == 1.0
+        assert updated_resource['capacity'][end_day] == 1.0  # end_day is exclusive
 
     def test_calculate_resource_loading(self):
         """Test calculation of resource loading based on task assignments."""
         # Create a resource
         self.model.resources = []
         resource = {
-            "id": 1,
-            "name": "Test Resource",
-            "capacity": [1.0] * self.model.days,
-            "tags": [],
+            'id': 1,
+            'name': 'Test Resource',
+            'capacity': [1.0] * self.model.days,
+            'tags': [],
         }
         self.model.resources.append(resource)
 
@@ -96,7 +96,7 @@ class TestResourceCapacity:
             row=0,
             col=0,
             duration=3,
-            description="Task 1",
+            description='Task 1',
             resources={1: 0.5},  # Resource 1 with 0.5 allocation
         )
 
@@ -105,7 +105,7 @@ class TestResourceCapacity:
             row=1,
             col=1,
             duration=3,
-            description="Task 2",
+            description='Task 2',
             resources={1: 0.7},  # Resource 1 with 0.7 allocation
         )
 

@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Task Resource Plan: saved_plan.json</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            header {
+                margin-bottom: 20px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+            }
+            h1, h2, h3 {
+                color: #2c3e50;
+            }
+            .info-box {
+                background-color: #f8f9fa;
+                border: 1px solid #ddd;
+                padding: 15px;
+                border-radius: 5px;
+                margin-bottom: 20px;
+            }
+            .timeline {
+                position: relative;
+                background-color: #f5f5f5;
+                padding: 20px;
+                overflow-x: auto;
+                margin-bottom: 30px;
+                border-radius: 5px;
+            }
+            .timeline-grid {
+                position: relative;
+            }
+            .timeline-months {
+                display: flex;
+                border-bottom: 1px solid #ddd;
+                margin-bottom: 5px;
+            }
+            .month {
+                background-color: #e9ecef;
+                padding: 5px;
+                text-align: center;
+                font-weight: bold;
+                border-right: 1px solid #ddd;
+            }
+            .timeline-days {
+                display: flex;
+                border-bottom: 1px solid #ddd;
+                margin-bottom: 10px;
+            }
+            .day {
+                width: 30px;
+                text-align: center;
+                padding: 2px 0;
+                font-size: 12px;
+                border-right: 1px solid #eee;
+            }
+            .weekend {
+                background-color: #f8d7da;
+            }
+            .today {
+                background-color: #d4edda;
+                font-weight: bold;
+            }
+            .task-row {
+                position: relative;
+                height: 40px;
+                border-bottom: 1px solid #eee;
+            }
+            .task-bar {
+                position: absolute;
+                height: 30px;
+                top: 5px;
+                border-radius: 3px;
+                padding: 5px;
+                box-sizing: border-box;
+                font-size: 12px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .task-bar:hover {
+                opacity: 0.9;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+            .task-tooltip {
+                position: absolute;
+                background-color: #fff;
+                border: 1px solid #ddd;
+                padding: 10px;
+                border-radius: 4px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                z-index: 10;
+                display: none;
+                max-width: 300px;
+                font-size: 12px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+            th, td {
+                padding: 10px;
+                border: 1px solid #ddd;
+                text-align: left;
+            }
+            th {
+                background-color: #f5f5f5;
+                font-weight: bold;
+            }
+            tr:nth-child(even) {
+                background-color: #f9f9f9;
+            }
+            .tag {
+                display: inline-block;
+                background-color: #e9ecef;
+                padding: 2px 8px;
+                margin-right: 5px;
+                border-radius: 10px;
+                font-size: 12px;
+                color: #333;
+            }
+            .filter-panel {
+                margin-bottom: 20px;
+                padding: 10px;
+                background-color: #f5f5f5;
+                border-radius: 5px;
+            }
+            .chart-container {
+                width: 100%;
+                height: 250px;
+                margin-bottom: 20px;
+            }
+            .tab {
+                overflow: hidden;
+                border: 1px solid #ccc;
+                background-color: #f1f1f1;
+                border-radius: 5px 5px 0 0;
+            }
+            .tab button {
+                background-color: inherit;
+                float: left;
+                border: none;
+                outline: none;
+                cursor: pointer;
+                padding: 14px 16px;
+                transition: 0.3s;
+                font-size: 14px;
+            }
+            .tab button:hover {
+                background-color: #ddd;
+            }
+            .tab button.active {
+                background-color: #fff;
+                border-bottom: 2px solid #007bff;
+            }
+            .tabcontent {
+                display: none;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-top: none;
+                animation: fadeEffect 1s;
+                border-radius: 0 0 5px 5px;
+            }
+            @keyframes fadeEffect {
+                from {opacity: 0;}
+                to {opacity: 1;}
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>Task Resource Plan: saved_plan.json</h1>
+            <div class="info-box">
+                <p><strong>Generated:</strong> 2025-03-27 22:33</p>
+                <p><strong>Project Period:</strong> 2025-03-27 to 2025-07-04</p>
+                <p><strong>Current Date:</strong> 2025-03-27</p>
+            </div>
+        </header>
+
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'Timeline')">Timeline</button>
+            <button class="tablinks" onclick="openTab(event, 'Tasks')">Tasks</button>
+            <button class="tablinks" onclick="openTab(event, 'Resources')">Resources</button>
+        </div>
+
+        <div id="Timeline" class="tabcontent" style="display: block;">
+            <div class="filter-panel">
+                <h3>Filter by Tag</h3>
+                <div id="tag-filters"></div>
+                <button onclick="clearFilters()">Clear Filters</button>
+            </div>
+
+            <div class="timeline" id="timeline-container">
+                <!-- Timeline will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <div id="Tasks" class="tabcontent">
+            <h2>Task List</h2>
+            <table id="task-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Description</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Duration</th>
+                        <th>Resources</th>
+                        <th>Tags</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Task data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="Resources" class="tabcontent">
+            <h2>Resource Allocation</h2>
+            <table id="resource-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Tags</th>
+                        <th>Average Utilization</th>
+                        <th>Peak Utilization</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Resource data will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <h3>Resource Loading Charts</h3>
+            <div id="resource-charts">
+                <!-- Charts will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+        <script>
+            // Task and resource data from Python
+            const taskData = [{"id": 1, "name": "Task A", "row": 1, "start": "2025-04-01", "end": "2025-04-05", "resources": "Resource A (0.5), Resource B (1.5)", "tags": ["important", "phase1"], "color": "#922822"}, {"id": 2, "name": "Task B", "row": 2, "start": "2025-04-08", "end": "2025-04-11", "resources": "Resource A (1.0), Resource B (0.75), Resource C (0.25)", "tags": ["phase1"], "color": "#062616"}, {"id": 3, "name": "Task C", "row": 3, "start": "2025-03-29", "end": "2025-03-31", "resources": "Resource A (2.0)", "tags": ["phase2", "critical"], "color": "#062617"}, {"id": 4, "name": "Task D", "row": 4, "start": "2025-04-03", "end": "2025-04-04", "resources": "Resource A (0.5), Resource D (0.5)", "tags": ["phase2"], "color": "#062617"}];
+            const resourceData = [{"id": 1, "name": "Resource A", "tags": ["team1", "developer"], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 2.0, "capacity": 1.0, "utilization": 200.0}, {"date": "2025-03-30", "loading": 2.0, "capacity": 1.0, "utilization": 200.0}, {"date": "2025-03-31", "loading": 2.0, "capacity": 1.0, "utilization": 200.0}, {"date": "2025-04-01", "loading": 0.5, "capacity": 1.0, "utilization": 50.0}, {"date": "2025-04-02", "loading": 0.5, "capacity": 1.0, "utilization": 50.0}, {"date": "2025-04-03", "loading": 1.0, "capacity": 1.0, "utilization": 100.0}, {"date": "2025-04-04", "loading": 1.0, "capacity": 1.0, "utilization": 100.0}, {"date": "2025-04-05", "loading": 0.5, "capacity": 1.0, "utilization": 50.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 1.0, "capacity": 1.0, "utilization": 100.0}, {"date": "2025-04-09", "loading": 1.0, "capacity": 1.0, "utilization": 100.0}, {"date": "2025-04-10", "loading": 1.0, "capacity": 1.0, "utilization": 100.0}, {"date": "2025-04-11", "loading": 1.0, "capacity": 1.0, "utilization": 100.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 2, "name": "Resource B", "tags": ["team1", "designer"], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 1.5, "capacity": 1.0, "utilization": 150.0}, {"date": "2025-04-02", "loading": 1.5, "capacity": 1.0, "utilization": 150.0}, {"date": "2025-04-03", "loading": 1.5, "capacity": 1.0, "utilization": 150.0}, {"date": "2025-04-04", "loading": 1.5, "capacity": 1.0, "utilization": 150.0}, {"date": "2025-04-05", "loading": 1.5, "capacity": 1.0, "utilization": 150.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.75, "capacity": 1.0, "utilization": 75.0}, {"date": "2025-04-09", "loading": 0.75, "capacity": 1.0, "utilization": 75.0}, {"date": "2025-04-10", "loading": 0.75, "capacity": 1.0, "utilization": 75.0}, {"date": "2025-04-11", "loading": 0.75, "capacity": 1.0, "utilization": 75.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 3, "name": "Resource C", "tags": ["team2", "developer"], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.25, "capacity": 1.0, "utilization": 25.0}, {"date": "2025-04-09", "loading": 0.25, "capacity": 1.0, "utilization": 25.0}, {"date": "2025-04-10", "loading": 0.25, "capacity": 1.0, "utilization": 25.0}, {"date": "2025-04-11", "loading": 0.25, "capacity": 1.0, "utilization": 25.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 4, "name": "Resource D", "tags": ["team2", "qa"], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.5, "capacity": 1.0, "utilization": 50.0}, {"date": "2025-04-04", "loading": 0.5, "capacity": 1.0, "utilization": 50.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 5, "name": "Resource E", "tags": [], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 6, "name": "Resource F", "tags": [], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 7, "name": "Resource G", "tags": [], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 8, "name": "Resource H", "tags": [], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 9, "name": "Resource I", "tags": [], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}, {"id": 10, "name": "Resource J", "tags": [], "loading": [{"date": "2025-03-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-03-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-04-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-05-31", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-05", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-06", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-07", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-08", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-09", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-10", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-11", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-12", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-13", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-14", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-15", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-16", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-17", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-18", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-19", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-20", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-21", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-22", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-23", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-24", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-25", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-26", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-27", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-28", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-29", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-06-30", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-01", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-02", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-03", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}, {"date": "2025-07-04", "loading": 0.0, "capacity": 1.0, "utilization": 0.0}]}];
+            const allTags = ["important", "developer", "team1", "designer", "phase2", "team2", "qa", "critical", "phase1"];
+            const startDate = new Date('2025-03-27');
+            const endDate = new Date('2025-07-04');
+            const currentDate = new Date('2025-03-27');
+
+            // Filter state
+            let activeFilters = [];
+
+            // Initialize on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                initializeTimeline();
+                populateTaskTable();
+                populateResourceTable();
+                createResourceCharts();
+                initializeTagFilters();
+            });
+
+            // Tab functionality
+            function openTab(evt, tabName) {
+                let tabcontent = document.getElementsByClassName("tabcontent");
+                for (let i = 0; i < tabcontent.length; i++) {
+                    tabcontent[i].style.display = "none";
+                }
+
+                let tablinks = document.getElementsByClassName("tablinks");
+                for (let i = 0; i < tablinks.length; i++) {
+                    tablinks[i].className = tablinks[i].className.replace(" active", "");
+                }
+
+                document.getElementById(tabName).style.display = "block";
+                evt.currentTarget.className += " active";
+            }
+
+            // Timeline functions
+            function initializeTimeline() {
+                const timelineContainer = document.getElementById('timeline-container');
+
+                // Create timeline grid
+                const timelineGrid = document.createElement('div');
+                timelineGrid.className = 'timeline-grid';
+
+                // Create months row
+                const monthsRow = document.createElement('div');
+                monthsRow.className = 'timeline-months';
+
+                // Create days row
+                const daysRow = document.createElement('div');
+                daysRow.className = 'timeline-days';
+
+                // Calculate the number of days in the timeline
+                const dayCount = Math.round((endDate - startDate) / (24 * 60 * 60 * 1000)) + 1;
+
+                // Generate month headers
+                let currentMonth = null;
+                let monthElement = null;
+                let monthWidth = 0;
+
+                for (let i = 0; i < dayCount; i++) {
+                    const date = new Date(startDate);
+                    date.setDate(date.getDate() + i);
+
+                    const month = date.toLocaleString('default', { month: 'short' }) + ' ' + date.getFullYear();
+
+                    // Add day cell
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'day';
+
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                    if (isWeekend) {
+                        dayElement.classList.add('weekend');
+                    }
+
+                    const isToday = date.toDateString() === currentDate.toDateString();
+                    if (isToday) {
+                        dayElement.classList.add('today');
+                    }
+
+                    dayElement.textContent = date.getDate();
+                    daysRow.appendChild(dayElement);
+
+                    // Handle month headers
+                    if (month !== currentMonth) {
+                        if (monthElement) {
+                            monthElement.style.width = (monthWidth * 30) + 'px';
+                        }
+
+                        currentMonth = month;
+                        monthWidth = 1;
+
+                        monthElement = document.createElement('div');
+                        monthElement.className = 'month';
+                        monthElement.textContent = month;
+                        monthsRow.appendChild(monthElement);
+                    } else {
+                        monthWidth++;
+                    }
+                }
+
+                // Set width of last month
+                if (monthElement) {
+                    monthElement.style.width = (monthWidth * 30) + 'px';
+                }
+
+                // Add month and day rows to grid
+                timelineGrid.appendChild(monthsRow);
+                timelineGrid.appendChild(daysRow);
+
+                // Create task rows
+                const tasksByRow = {};
+
+                // Group tasks by row
+                const filteredTasks = filterTasksByTags(taskData);
+                filteredTasks.forEach(task => {
+                    if (!tasksByRow[task.row]) {
+                        tasksByRow[task.row] = [];
+                    }
+                    tasksByRow[task.row].push(task);
+                });
+
+                // Create task rows in order
+                const rows = Object.keys(tasksByRow).sort((a, b) => parseInt(a) - parseInt(b));
+
+                rows.forEach(rowNum => {
+                    const taskRow = document.createElement('div');
+                    taskRow.className = 'task-row';
+                    taskRow.setAttribute('data-row', rowNum);
+
+                    // Add tasks to this row
+                    tasksByRow[rowNum].forEach(task => {
+                        const taskStart = new Date(task.start);
+                        const taskEnd = new Date(task.end);
+
+                        // Calculate position
+                        const startDays = Math.round((taskStart - startDate) / (24 * 60 * 60 * 1000));
+                        const duration = Math.round((taskEnd - taskStart) / (24 * 60 * 60 * 1000)) + 1;
+
+                        const taskBar = document.createElement('div');
+                        taskBar.className = 'task-bar';
+                        taskBar.setAttribute('data-id', task.id);
+                        taskBar.style.left = (startDays * 30) + 'px';
+                        taskBar.style.width = (duration * 30) + 'px';
+                        taskBar.style.backgroundColor = task.color || '#6c757d';
+                        taskBar.textContent = `${task.id} - ${task.name}`;
+
+                        // Create tooltip
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'task-tooltip';
+                        tooltip.innerHTML = `
+                            <strong>ID:</strong> ${task.id}<br>
+                            <strong>Name:</strong> ${task.name}<br>
+                            <strong>Duration:</strong> ${duration} days<br>
+                            <strong>Dates:</strong> ${task.start} to ${task.end}<br>
+                            <strong>Resources:</strong> ${task.resources || 'None'}<br>
+                            <strong>Tags:</strong> ${task.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') || 'None'}
+                        `;
+
+                        // Show tooltip on hover
+                        taskBar.addEventListener('mouseenter', function(e) {
+                            tooltip.style.display = 'block';
+                            tooltip.style.left = e.pageX + 'px';
+                            tooltip.style.top = e.pageY + 'px';
+                        });
+
+                        taskBar.addEventListener('mousemove', function(e) {
+                            tooltip.style.left = (e.pageX + 10) + 'px';
+                            tooltip.style.top = (e.pageY + 10) + 'px';
+                        });
+
+                        taskBar.addEventListener('mouseleave', function() {
+                            tooltip.style.display = 'none';
+                        });
+
+                        taskRow.appendChild(taskBar);
+                        document.body.appendChild(tooltip);
+                    });
+
+                    timelineGrid.appendChild(taskRow);
+                });
+
+                timelineContainer.appendChild(timelineGrid);
+            }
+
+            // Filter tasks by selected tags
+            function filterTasksByTags(tasks) {
+                if (activeFilters.length === 0) {
+                    return tasks;
+                }
+
+                return tasks.filter(task => {
+                    if (!task.tags || task.tags.length === 0) {
+                        return false;
+                    }
+
+                    // Check if task has any of the active filter tags
+                    return task.tags.some(tag => activeFilters.includes(tag));
+                });
+            }
+
+            // Initialize tag filters
+            function initializeTagFilters() {
+                const tagFiltersContainer = document.getElementById('tag-filters');
+
+                allTags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'tag';
+                    tagElement.textContent = tag;
+                    tagElement.style.cursor = 'pointer';
+                    tagElement.style.margin = '5px';
+
+                    tagElement.addEventListener('click', function() {
+                        if (activeFilters.includes(tag)) {
+                            // Remove tag from filters
+                            activeFilters = activeFilters.filter(t => t !== tag);
+                            tagElement.style.backgroundColor = '#e9ecef';
+                        } else {
+                            // Add tag to filters
+                            activeFilters.push(tag);
+                            tagElement.style.backgroundColor = '#007bff';
+                            tagElement.style.color = 'white';
+                        }
+
+                        // Refresh timeline and tables
+                        document.getElementById('timeline-container').innerHTML = '';
+                        initializeTimeline();
+                        populateTaskTable();
+                    });
+
+                    tagFiltersContainer.appendChild(tagElement);
+                });
+            }
+
+            // Clear active filters
+            function clearFilters() {
+                activeFilters = [];
+
+                // Reset tag appearances
+                const tags = document.querySelectorAll('#tag-filters .tag');
+                tags.forEach(tag => {
+                    tag.style.backgroundColor = '#e9ecef';
+                    tag.style.color = '#333';
+                });
+
+                // Refresh timeline and tables
+                document.getElementById('timeline-container').innerHTML = '';
+                initializeTimeline();
+                populateTaskTable();
+            }
+
+            // Populate task table
+            function populateTaskTable() {
+                const tableBody = document.querySelector('#task-table tbody');
+                tableBody.innerHTML = '';
+
+                const filteredTasks = filterTasksByTags(taskData);
+
+                filteredTasks.forEach(task => {
+                    const row = document.createElement('tr');
+
+                    // ID
+                    const idCell = document.createElement('td');
+                    idCell.textContent = task.id;
+                    row.appendChild(idCell);
+
+                    // Description
+                    const descCell = document.createElement('td');
+                    descCell.textContent = task.name;
+                    row.appendChild(descCell);
+
+                    // Start Date
+                    const startCell = document.createElement('td');
+                    startCell.textContent = task.start;
+                    row.appendChild(startCell);
+
+                    // End Date
+                    const endCell = document.createElement('td');
+                    endCell.textContent = task.end;
+                    row.appendChild(endCell);
+
+                    // Duration
+                    const taskStart = new Date(task.start);
+                    const taskEnd = new Date(task.end);
+                    const duration = Math.round((taskEnd - taskStart) / (24 * 60 * 60 * 1000)) + 1;
+
+                    const durationCell = document.createElement('td');
+                    durationCell.textContent = duration + ' days';
+                    row.appendChild(durationCell);
+
+                    // Resources
+                    const resourcesCell = document.createElement('td');
+                    resourcesCell.textContent = task.resources || 'None';
+                    row.appendChild(resourcesCell);
+
+                    // Tags
+                    const tagsCell = document.createElement('td');
+                    if (task.tags && task.tags.length > 0) {
+                        task.tags.forEach(tag => {
+                            const tagSpan = document.createElement('span');
+                            tagSpan.className = 'tag';
+                            tagSpan.textContent = tag;
+                            tagsCell.appendChild(tagSpan);
+                        });
+                    } else {
+                        tagsCell.textContent = 'None';
+                    }
+                    row.appendChild(tagsCell);
+
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // Populate resource table
+            function populateResourceTable() {
+                const tableBody = document.querySelector('#resource-table tbody');
+                tableBody.innerHTML = '';
+
+                resourceData.forEach(resource => {
+                    const row = document.createElement('tr');
+
+                    // ID
+                    const idCell = document.createElement('td');
+                    idCell.textContent = resource.id;
+                    row.appendChild(idCell);
+
+                    // Name
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = resource.name;
+                    row.appendChild(nameCell);
+
+                    // Tags
+                    const tagsCell = document.createElement('td');
+                    if (resource.tags && resource.tags.length > 0) {
+                        resource.tags.forEach(tag => {
+                            const tagSpan = document.createElement('span');
+                            tagSpan.className = 'tag';
+                            tagSpan.textContent = tag;
+                            tagsCell.appendChild(tagSpan);
+                        });
+                    } else {
+                        tagsCell.textContent = 'None';
+                    }
+                    row.appendChild(tagsCell);
+
+                    // Calculate average utilization
+                    let totalUtilization = 0;
+                    let maxUtilization = 0;
+                    let daysWithLoading = 0;
+
+                    resource.loading.forEach(day => {
+                        if (day.loading > 0) {
+                            totalUtilization += day.utilization;
+                            daysWithLoading++;
+
+                            if (day.utilization > maxUtilization) {
+                                maxUtilization = day.utilization;
+                            }
+                        }
+                    });
+
+                    const avgUtilization = daysWithLoading > 0 ? totalUtilization / daysWithLoading : 0;
+
+                    // Average Utilization
+                    const avgCell = document.createElement('td');
+                    avgCell.textContent = avgUtilization.toFixed(1) + '%';
+                    row.appendChild(avgCell);
+
+                    // Peak Utilization
+                    const peakCell = document.createElement('td');
+                    peakCell.textContent = maxUtilization.toFixed(1) + '%';
+                    row.appendChild(peakCell);
+
+                    tableBody.appendChild(row);
+                });
+            }
+
+            // Create resource charts
+            function createResourceCharts() {
+                const chartsContainer = document.getElementById('resource-charts');
+                chartsContainer.innerHTML = '';
+
+                resourceData.forEach(resource => {
+                    // Create chart container
+                    const chartContainer = document.createElement('div');
+                    chartContainer.className = 'chart-container';
+                    chartContainer.style.position = 'relative';
+                    chartContainer.style.height = '200px';
+                    chartContainer.style.marginBottom = '30px';
+
+                    // Create canvas for chart
+                    const canvas = document.createElement('canvas');
+                    canvas.id = 'chart-' + resource.id;
+                    chartContainer.appendChild(canvas);
+
+                    chartsContainer.appendChild(chartContainer);
+
+                    // Prepare data for chart
+                    const dates = [];
+                    const loadingData = [];
+                    const capacityData = [];
+
+                    resource.loading.forEach(day => {
+                        dates.push(day.date);
+                        loadingData.push(day.loading);
+                        capacityData.push(day.capacity);
+                    });
+
+                    // Create chart
+                    new Chart(canvas, {
+                        type: 'bar',
+                        data: {
+                            labels: dates,
+                            datasets: [
+                                {
+                                    label: 'Loading',
+                                    data: loadingData,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Capacity',
+                                    data: capacityData,
+                                    type: 'line',
+                                    fill: false,
+                                    borderColor: 'rgba(255, 99, 132, 1)',
+                                    borderWidth: 2,
+                                    pointRadius: 0
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: resource.name + ' Loading',
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Date'
+                                    },
+                                    ticks: {
+                                        maxRotation: 90,
+                                        minRotation: 90,
+                                        autoSkip: true,
+                                        maxTicksLimit: 20
+                                    }
+                                },
+                                y: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Allocation'
+                                    },
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+
+            // Helper to get color for tags
+            function getColorForTags(tags) {
+                if (!tags || tags.length === 0) {
+                    return '#6c757d'; // Default gray
+                }
+
+                // Use the first tag to determine color
+                const tag = tags[0];
+
+                // Generate color based on tag name
+                let hash = 0;
+                for (let i = 0; i < tag.length; i++) {
+                    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+                }
+
+                const hue = hash % 360;
+                return `hsl(${hue}, 70%, 60%)`;
+            }
+        </script>
+    </body>
+    </html>

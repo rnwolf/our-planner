@@ -18,64 +18,64 @@ class TaskResourceModel:
         self.resource_id_counter = 0
         self.resources = [
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource A",
-                "capacity": [1.0] * 100,
-                "tags": [],  # Add tags list to resources
+                'id': self._get_next_resource_id(),
+                'name': 'Resource A',
+                'capacity': [1.0] * 100,
+                'tags': [],  # Add tags list to resources
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource B",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource B',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource C",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource C',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource D",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource D',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource E",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource E',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource F",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource F',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource G",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource G',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource H",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource H',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource I",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource I',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
             {
-                "id": self._get_next_resource_id(),
-                "name": "Resource J",
-                "capacity": [1.0] * 100,
-                "tags": [],
+                'id': self._get_next_resource_id(),
+                'name': 'Resource J',
+                'capacity': [1.0] * 100,
+                'tags': [],
             },
         ]
 
@@ -113,22 +113,22 @@ class TaskResourceModel:
         month_ranges = []
         current_month = None
         start_col = 0
-        month_format = "%Y-%m (%b)"
+        month_format = '%Y-%m (%b)'
 
         for day in range(self.days):
             date = self.get_date_for_day(day)
-            month_key = date.strftime("%Y-%m")  # Year-Month as key
+            month_key = date.strftime('%Y-%m')  # Year-Month as key
 
             if month_key != current_month:
                 # If there was a previous month, add it to the ranges
                 if current_month is not None:
                     month_ranges.append(
                         {
-                            "label": self.get_date_for_day(start_col).strftime(
+                            'label': self.get_date_for_day(start_col).strftime(
                                 month_format
                             ),
-                            "start": start_col,
-                            "end": day - 1,
+                            'start': start_col,
+                            'end': day - 1,
                         }
                     )
 
@@ -140,9 +140,9 @@ class TaskResourceModel:
         if current_month is not None:
             month_ranges.append(
                 {
-                    "label": self.get_date_for_day(start_col).strftime(month_format),
-                    "start": start_col,
-                    "end": self.days - 1,
+                    'label': self.get_date_for_day(start_col).strftime(month_format),
+                    'start': start_col,
+                    'end': self.days - 1,
                 }
             )
 
@@ -155,7 +155,7 @@ class TaskResourceModel:
         duration: int,
         description: str,
         resources: Dict[int, float] = None,  # Changed to Dict[resource_id, allocation]
-        url: str = "",
+        url: str = '',
         predecessors: List[int] = None,
         successors: List[int] = None,
         tags: List[str] = None,  # Add tags parameter
@@ -163,24 +163,24 @@ class TaskResourceModel:
     ) -> Dict[str, Any]:
         """Add a new task to the model."""
         tags = tags or []  # Default to empty list if None
-        color = color or "Cyan"  # Default color if None
+        color = color or 'Cyan'  # Default color if None
 
         # Update all_tags with any new tags
         for tag in tags:
             self.all_tags.add(tag)
 
         task = {
-            "task_id": self.get_next_task_id(),
-            "row": row,
-            "col": col,
-            "duration": duration,
-            "description": description,
-            "url": url,
-            "resources": resources or {},  # Changed to Dict[resource_id, allocation]
-            "predecessors": predecessors or [],
-            "successors": successors or [],
-            "tags": tags,  # Add tags to task dictionary
-            "color": color,  # Add color to task dictionary
+            'task_id': self.get_next_task_id(),
+            'row': row,
+            'col': col,
+            'duration': duration,
+            'description': description,
+            'url': url,
+            'resources': resources or {},  # Changed to Dict[resource_id, allocation]
+            'predecessors': predecessors or [],
+            'successors': successors or [],
+            'tags': tags,  # Add tags to task dictionary
+            'color': color,  # Add color to task dictionary
         }
         self.tasks.append(task)
         return task
@@ -192,13 +192,13 @@ class TaskResourceModel:
             return False
 
         # Make sure task has a tags list
-        if "tags" not in task:
-            task["tags"] = []
+        if 'tags' not in task:
+            task['tags'] = []
 
         # Add new tags that aren't already present
         for tag in tags:
-            if tag not in task["tags"]:
-                task["tags"].append(tag)
+            if tag not in task['tags']:
+                task['tags'].append(tag)
                 self.all_tags.add(tag)
 
         return True
@@ -206,11 +206,11 @@ class TaskResourceModel:
     def remove_tags_from_task(self, task_id: int, tags: List[str]) -> bool:
         """Remove tags from a task."""
         task = self.get_task(task_id)
-        if not task or "tags" not in task:
+        if not task or 'tags' not in task:
             return False
 
         # Remove specified tags
-        task["tags"] = [tag for tag in task["tags"] if tag not in tags]
+        task['tags'] = [tag for tag in task['tags'] if tag not in tags]
         return True
 
     def set_task_tags(self, task_id: int, tags: List[str]) -> bool:
@@ -224,7 +224,7 @@ class TaskResourceModel:
             self.all_tags.add(tag)
 
         # Set the tags
-        task["tags"] = tags
+        task['tags'] = tags
         return True
 
     def add_tags_to_resource(self, resource_id: int, tags: List[str]) -> bool:
@@ -234,13 +234,13 @@ class TaskResourceModel:
             return False
 
         # Make sure resource has a tags list
-        if "tags" not in resource:
-            resource["tags"] = []
+        if 'tags' not in resource:
+            resource['tags'] = []
 
         # Add new tags that aren't already present
         for tag in tags:
-            if tag not in resource["tags"]:
-                resource["tags"].append(tag)
+            if tag not in resource['tags']:
+                resource['tags'].append(tag)
                 self.all_tags.add(tag)
 
         return True
@@ -248,11 +248,11 @@ class TaskResourceModel:
     def remove_tags_from_resource(self, resource_id: int, tags: List[str]) -> bool:
         """Remove tags from a resource."""
         resource = self.get_resource_by_id(resource_id)
-        if not resource or "tags" not in resource:
+        if not resource or 'tags' not in resource:
             return False
 
         # Remove specified tags
-        resource["tags"] = [tag for tag in resource["tags"] if tag not in tags]
+        resource['tags'] = [tag for tag in resource['tags'] if tag not in tags]
         return True
 
     def set_resource_tags(self, resource_id: int, tags: List[str]) -> bool:
@@ -266,7 +266,7 @@ class TaskResourceModel:
             self.all_tags.add(tag)
 
         # Set the tags
-        resource["tags"] = tags
+        resource['tags'] = tags
         return True
 
     def get_tasks_by_tags(
@@ -288,17 +288,17 @@ class TaskResourceModel:
         matching_tasks = []
         for task in self.tasks:
             # Skip tasks without tags
-            if "tags" not in task or not task["tags"]:
+            if 'tags' not in task or not task['tags']:
                 continue
 
             # Check for tag matches
             if match_all:
                 # Task must have all specified tags
-                if all(tag in task["tags"] for tag in tags):
+                if all(tag in task['tags'] for tag in tags):
                     matching_tasks.append(task)
             else:
                 # Task must have at least one of the specified tags
-                if any(tag in task["tags"] for tag in tags):
+                if any(tag in task['tags'] for tag in tags):
                     matching_tasks.append(task)
 
         return matching_tasks
@@ -322,17 +322,17 @@ class TaskResourceModel:
         matching_resources = []
         for resource in self.resources:
             # Skip resources without tags
-            if "tags" not in resource or not resource["tags"]:
+            if 'tags' not in resource or not resource['tags']:
                 continue
 
             # Check for tag matches
             if match_all:
                 # Resource must have all specified tags
-                if all(tag in resource["tags"] for tag in tags):
+                if all(tag in resource['tags'] for tag in tags):
                     matching_resources.append(resource)
             else:
                 # Resource must have at least one of the specified tags
-                if any(tag in resource["tags"] for tag in tags):
+                if any(tag in resource['tags'] for tag in tags):
                     matching_resources.append(resource)
 
         return matching_resources
@@ -347,20 +347,20 @@ class TaskResourceModel:
 
         # Collect tags from tasks
         for task in self.tasks:
-            if "tags" in task:
-                for tag in task["tags"]:
+            if 'tags' in task:
+                for tag in task['tags']:
                     self.all_tags.add(tag)
 
         # Collect tags from resources
         for resource in self.resources:
-            if "tags" in resource:
-                for tag in resource["tags"]:
+            if 'tags' in resource:
+                for tag in resource['tags']:
                     self.all_tags.add(tag)
 
     def delete_task(self, task_id: int) -> bool:
         """Delete a task by its ID."""
         for i, task in enumerate(self.tasks):
-            if task["task_id"] == task_id:
+            if task['task_id'] == task_id:
                 del self.tasks[i]
                 return True
         return False
@@ -368,7 +368,7 @@ class TaskResourceModel:
     def update_task(self, task_id: int, **updates) -> bool:
         """Update task properties."""
         for task in self.tasks:
-            if task["task_id"] == task_id:
+            if task['task_id'] == task_id:
                 for key, value in updates.items():
                     task[key] = value
                 return True
@@ -377,7 +377,7 @@ class TaskResourceModel:
     def get_task(self, task_id: int) -> Optional[Dict[str, Any]]:
         """Get a task by its ID."""
         for task in self.tasks:
-            if task["task_id"] == task_id:
+            if task['task_id'] == task_id:
                 return task
         return None
 
@@ -395,16 +395,16 @@ class TaskResourceModel:
 
         # Initialize dictionary with resource IDs as keys
         for resource in self.resources:
-            resource_id = resource["id"]
+            resource_id = resource['id']
             resource_loading[resource_id] = [0.0] * self.days
 
         # Calculate loading for each resource on each day
         for task in self.tasks:
-            col = task["col"]
-            duration = task["duration"]
+            col = task['col']
+            duration = task['duration']
 
             # For each resource allocation in the task
-            for resource_id_str, allocation in task["resources"].items():
+            for resource_id_str, allocation in task['resources'].items():
                 # Convert string resource_id to integer
                 resource_id = int(resource_id_str)
 
@@ -417,14 +417,14 @@ class TaskResourceModel:
     def get_resource_by_id(self, resource_id: int) -> Optional[Dict[str, Any]]:
         """Find a resource by its ID."""
         for resource in self.resources:
-            if resource["id"] == resource_id:
+            if resource['id'] == resource_id:
                 return resource
         return None
 
     def get_resource_by_name(self, resource_name: str) -> Optional[Dict[str, Any]]:
         """Find a resource by its name."""
         for resource in self.resources:
-            if resource["name"] == resource_name:
+            if resource['name'] == resource_name:
                 return resource
         return None
 
@@ -436,9 +436,9 @@ class TaskResourceModel:
 
         # Create new resource with default capacity
         new_resource = {
-            "id": self._get_next_resource_id(),
-            "name": resource_name,
-            "capacity": [1.0] * self.days,
+            'id': self._get_next_resource_id(),
+            'name': resource_name,
+            'capacity': [1.0] * self.days,
         }
         self.resources.append(new_resource)
         return True
@@ -451,11 +451,11 @@ class TaskResourceModel:
 
         # Remove resource from all tasks
         for task in self.tasks:
-            if resource_id in task["resources"]:
-                del task["resources"][resource_id]
+            if resource_id in task['resources']:
+                del task['resources'][resource_id]
 
         # Remove from resources list
-        self.resources = [r for r in self.resources if r["id"] != resource_id]
+        self.resources = [r for r in self.resources if r['id'] != resource_id]
         return True
 
     def update_resource_name(self, resource_id: int, new_name: str) -> bool:
@@ -466,7 +466,7 @@ class TaskResourceModel:
 
         resource = self.get_resource_by_id(resource_id)
         if resource:
-            resource["name"] = new_name
+            resource['name'] = new_name
             return True
         return False
 
@@ -476,7 +476,7 @@ class TaskResourceModel:
         """Update the capacity of a resource for a specific day."""
         resource = self.get_resource_by_id(resource_id)
         if resource and 0 <= day < self.days:
-            resource["capacity"][day] = max(0.0, capacity)  # Ensure non-negative
+            resource['capacity'][day] = max(0.0, capacity)  # Ensure non-negative
             return True
         return False
 
@@ -492,7 +492,7 @@ class TaskResourceModel:
         end = min(self.days, end_day)
 
         for day in range(start, end):
-            resource["capacity"][day] = max(0.0, capacity)  # Ensure non-negative
+            resource['capacity'][day] = max(0.0, capacity)  # Ensure non-negative
 
         return True
 
@@ -506,11 +506,11 @@ class TaskResourceModel:
 
         if allocation <= 0:
             # Remove the resource if allocation is zero or negative
-            if resource_id in task["resources"]:
-                del task["resources"][resource_id]
+            if resource_id in task['resources']:
+                del task['resources'][resource_id]
         else:
             # Add or update the resource allocation
-            task["resources"][resource_id] = allocation
+            task['resources'][resource_id] = allocation
 
         return True
 
@@ -525,11 +525,11 @@ class TaskResourceModel:
         if not task or not predecessor:
             return False
 
-        if predecessor_id not in task["predecessors"]:
-            task["predecessors"].append(predecessor_id)
+        if predecessor_id not in task['predecessors']:
+            task['predecessors'].append(predecessor_id)
 
-        if task_id not in predecessor["successors"]:
-            predecessor["successors"].append(task_id)
+        if task_id not in predecessor['successors']:
+            predecessor['successors'].append(task_id)
 
         return True
 
@@ -543,22 +543,22 @@ class TaskResourceModel:
     def load_from_file(self, file_path: str) -> bool:
         """Load project data from a file."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path, 'r') as f:
                 data = json.load(f)
 
             # Basic validation
-            if "tasks" not in data or "resources" not in data or "days" not in data:
+            if 'tasks' not in data or 'resources' not in data or 'days' not in data:
                 return False
 
             # Load project data
-            self.tasks = data["tasks"]
-            self.resources = data["resources"]
-            self.days = data["days"]
+            self.tasks = data['tasks']
+            self.resources = data['resources']
+            self.days = data['days']
 
             # Load start_date if available
-            if "start_date" in data:
+            if 'start_date' in data:
                 try:
-                    self.start_date = datetime.fromisoformat(data["start_date"])
+                    self.start_date = datetime.fromisoformat(data['start_date'])
                 except ValueError:
                     # If there's an error parsing the date, use the current date
                     self.start_date = datetime.now().replace(
@@ -566,9 +566,9 @@ class TaskResourceModel:
                     )
 
             # Load setdate if available
-            if "setdate" in data:
+            if 'setdate' in data:
                 try:
-                    self.setdate = datetime.fromisoformat(data["setdate"])
+                    self.setdate = datetime.fromisoformat(data['setdate'])
                 except ValueError:
                     # If there's an error parsing the date, use the current date
                     self.setdate = datetime.now().replace(
@@ -576,37 +576,37 @@ class TaskResourceModel:
                     )
 
             # Load max_rows (previously max_tasks)
-            if "max_rows" in data:
-                self.max_rows = data["max_rows"]
-            elif "max_tasks" in data:  # For backward compatibility
-                self.max_rows = data["max_tasks"]
+            if 'max_rows' in data:
+                self.max_rows = data['max_rows']
+            elif 'max_tasks' in data:  # For backward compatibility
+                self.max_rows = data['max_tasks']
 
             # Ensure resource capacity arrays are proper length
             for resource in self.resources:
-                if "capacity" not in resource or len(resource["capacity"]) != self.days:
-                    resource["capacity"] = [1.0] * self.days
+                if 'capacity' not in resource or len(resource['capacity']) != self.days:
+                    resource['capacity'] = [1.0] * self.days
 
                 # Ensure resources have tags field
-                if "tags" not in resource:
-                    resource["tags"] = []
+                if 'tags' not in resource:
+                    resource['tags'] = []
 
             # Ensure resources have IDs
             for resource in self.resources:
-                if "id" not in resource:
-                    resource["id"] = self._get_next_resource_id()
+                if 'id' not in resource:
+                    resource['id'] = self._get_next_resource_id()
 
             # Find highest task ID to update counter
             max_task_id = 0
             for task in self.tasks:
-                if task["task_id"] > max_task_id:
-                    max_task_id = task["task_id"]
+                if task['task_id'] > max_task_id:
+                    max_task_id = task['task_id']
             self.task_id_counter = max_task_id
 
             # Find highest resource ID to update counter
             max_resource_id = 0
             for resource in self.resources:
-                if resource["id"] > max_resource_id:
-                    max_resource_id = resource["id"]
+                if resource['id'] > max_resource_id:
+                    max_resource_id = resource['id']
             self.resource_id_counter = max_resource_id
 
             # Rebuild all_tags
@@ -615,85 +615,85 @@ class TaskResourceModel:
             self.current_file_path = file_path
             return True
         except Exception as e:
-            print(f"Error loading file: {e}")
+            print(f'Error loading file: {e}')
             return False
 
     def save_to_file(self, file_path: str) -> bool:
         """Save project data to a file."""
         try:
             project_data = {
-                "tasks": self.tasks,
-                "resources": self.resources,
-                "days": self.days,
-                "max_rows": self.max_rows,
-                "start_date": self.start_date.isoformat(),
-                "setdate": self.setdate.isoformat(),
+                'tasks': self.tasks,
+                'resources': self.resources,
+                'days': self.days,
+                'max_rows': self.max_rows,
+                'start_date': self.start_date.isoformat(),
+                'setdate': self.setdate.isoformat(),
             }
 
-            with open(file_path, "w") as f:
+            with open(file_path, 'w') as f:
                 json.dump(project_data, f, indent=2)
 
             self.current_file_path = file_path
             return True
         except Exception as e:
-            print(f"Error saving file: {e}")
+            print(f'Error saving file: {e}')
             return False
 
     # Add tags to existing tasks during sample creation
     def create_sample_tasks(self) -> None:
         """Create some sample tasks for demo purposes."""
         # Get resource IDs for easier reference
-        resource_a_id = self.resources[0]["id"]  # Resource A
-        resource_b_id = self.resources[1]["id"]  # Resource B
-        resource_c_id = self.resources[2]["id"]  # Resource C
-        resource_d_id = self.resources[3]["id"]  # Resource D
+        resource_a_id = self.resources[0]['id']  # Resource A
+        resource_b_id = self.resources[1]['id']  # Resource B
+        resource_c_id = self.resources[2]['id']  # Resource C
+        resource_d_id = self.resources[3]['id']  # Resource D
 
         # Add tasks with fractional resource allocations, tags, and colors
         self.add_task(
             row=1,
             col=5,
             duration=5,
-            description="Task A",
+            description='Task A',
             resources={resource_a_id: 0.5, resource_b_id: 1.5},
-            url="https://www.google.com",
-            tags=["important", "phase1"],
-            color="LightBlue",  # Add color attribute
+            url='https://www.google.com',
+            tags=['important', 'phase1'],
+            color='LightBlue',  # Add color attribute
         )
         self.add_task(
             row=2,
             col=12,
             duration=4,
-            description="Task B",
+            description='Task B',
             resources={resource_a_id: 1.0, resource_b_id: 0.75, resource_c_id: 0.25},
-            url="https://www.google.com",
-            tags=["phase1"],
-            color="LightGreen",  # Add color attribute
+            url='https://www.google.com',
+            tags=['phase1'],
+            color='LightGreen',  # Add color attribute
         )
         self.add_task(
             row=3,
             col=2,
             duration=3,
-            description="Task C",
+            description='Task C',
             resources={resource_a_id: 2.0},
-            url="https://www.google.com",
-            tags=["phase2", "critical"],
-            color="Salmon",  # Add color attribute
+            url='https://www.google.com',
+            tags=['phase2', 'critical'],
+            color='Salmon',  # Add color attribute
         )
         self.add_task(
             row=4,
             col=1,
             duration=2,
-            description="Task D",
+            description='Task D',
             resources={resource_a_id: 0.5, resource_d_id: 0.5},
-            tags=["phase2"],
-            color="Gold",  # Add color attribute
+            tags=['phase2'],
+            color='Gold',  # Add color attribute
         )
 
         # Add tags to resources as well
-        self.set_resource_tags(resource_a_id, ["team1", "developer"])
-        self.set_resource_tags(resource_b_id, ["team1", "designer"])
-        self.set_resource_tags(resource_c_id, ["team2", "developer"])
-        self.set_resource_tags(resource_d_id, ["team2", "qa"])
+        self.set_resource_tags(resource_a_id, ['team1', 'developer'])
+        self.set_resource_tags(resource_b_id, ['team1', 'designer'])
+        self.set_resource_tags(resource_c_id, ['team2', 'developer'])
+        self.set_resource_tags(resource_d_id, ['team2', 'qa'])
 
         # Make sure all_tags is updated
         self.refresh_all_tags()
@@ -712,7 +712,7 @@ class TaskResourceModel:
         if not task:
             return False
 
-        task["color"] = color
+        task['color'] = color
         return True
 
     def set_task_colors(self, task_ids: List[int], color: str) -> int:

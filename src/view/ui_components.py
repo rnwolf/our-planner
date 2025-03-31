@@ -4,7 +4,7 @@ import webbrowser
 from datetime import datetime, timedelta
 from network_menu import NetworkMenu
 from help_menu import HelpMenu
-from colors import COLOR_NAMES, DEFAULT_TASK_COLOR
+from src.utils.colors import COLOR_NAMES, DEFAULT_TASK_COLOR
 
 
 class UIComponents:

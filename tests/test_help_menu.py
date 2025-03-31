@@ -35,7 +35,7 @@ class TestHelpMenu:
         self.mock_menu.add_command = MagicMock()
 
         # Patch tk.Menu to return our mock menu
-        with patch("tkinter.Menu", return_value=self.mock_menu):
+        with patch('tkinter.Menu', return_value=self.mock_menu):
             # Create the help menu
             self.help_menu = HelpMenu(self.controller, self.root, self.menu_bar)
 
@@ -47,26 +47,26 @@ class TestHelpMenu:
         # Check that the correct menu items were added
         assert (
             self.mock_menu.add_command.call_count == 3
-        ), "Expected 3 menu items to be added"
+        ), 'Expected 3 menu items to be added'
 
         # Verify the first call was for the Website menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[0]
         assert (
-            kwargs["label"] == "Website"
+            kwargs['label'] == 'Website'
         ), f"Expected 'Website' but got {kwargs['label']}"
 
         # Verify the second call was for the About menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[1]
-        assert kwargs["label"] == "About", f"Expected 'About' but got {kwargs['label']}"
+        assert kwargs['label'] == 'About', f"Expected 'About' but got {kwargs['label']}"
 
         # Verify the third call was for the Debug menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[2]
-        assert kwargs["label"] == "Debug", f"Expected 'Debug' but got {kwargs['label']}"
+        assert kwargs['label'] == 'Debug', f"Expected 'Debug' but got {kwargs['label']}"
 
-    @patch("webbrowser.open")
+    @patch('webbrowser.open')
     def test_open_website(self, mock_webbrowser_open):
         """Test that open_website opens the correct URL."""
         self.help_menu.open_website()
         mock_webbrowser_open.assert_called_once_with(
-            "https://github.com/rnwolf/py_sequencer"
+            'https://github.com/rnwolf/py_sequencer'
         )

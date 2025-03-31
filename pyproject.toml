@@ -1,7 +1,52 @@
 [project]
-name = "py-sequencer"
+name = "task-resource-manager"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Tkinter application for managing tasks and resources with timeline visualization"
 readme = "README.md"
-requires-python = ">=3.13.2"
-dependencies = ["tkcalendar=1.6.1","reportlab=4.3.1","pytest>=8.3.5","pytest-cov>=6.0.0","networkx=3.4.2"]
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "R.N. Wolf", email = "example@example.com"},
+]
+dependencies = [
+    "tkcalendar>=1.6.1",
+    "reportlab>=4.0.0",
+    "networkx>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+task-resource-manager = "src.main:main"
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.ruff.lint]
+# 1. Enable flake8-bugbear (`B`) rules, in addition to the defaults.
+select = ["E4", "E7", "E9", "F", "B"]
+
+# 2. Avoid enforcing line-length violations (`E501`)
+ignore = ["E501"]
+
+# 3. Avoid trying to fix flake8-bugbear (`B`) violations.
+unfixable = ["B"]
+
+# 4. Ignore `E402` (import violations) in all `__init__.py` files, and in selected subdirectories.
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"**/{tests,docs,tools}/*" = ["E402"]
+
+[tool.ruff.format]
+# 5. Use single quotes in `ruff format`.
+quote-style = "single"

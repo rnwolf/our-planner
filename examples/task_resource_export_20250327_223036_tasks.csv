@@ -1,0 +1,5 @@
+ID,Row,Column,Description,Start Date,End Date,Duration,Resources,Resource Allocations,Predecessors,Successors,Tags,URL
+1,1,5,Task A,2025-04-01,2025-04-05,5,"Resource A,Resource B","Resource A:0.5,Resource B:1.5",3,2,"important,phase1",https://www.google.com
+2,2,12,Task B,2025-04-08,2025-04-11,4,"Resource A,Resource B,Resource C","Resource A:1.0,Resource B:0.75,Resource C:0.25",1,,phase1,https://www.google.com
+3,3,2,Task C,2025-03-29,2025-03-31,3,Resource A,Resource A:2.0,,1,"phase2,critical",https://www.google.com
+4,4,7,Task D,2025-04-03,2025-04-04,2,"Resource A,Resource D","Resource A:0.5,Resource D:0.5",,,phase2,

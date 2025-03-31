@@ -73,9 +73,3 @@ The tests require the following packages:
 - pytest-cov
 - tkcalendar
 - reportlab
-
-You can install them using:
-
-```bash
-pip install -r requirements-test.txt
-```

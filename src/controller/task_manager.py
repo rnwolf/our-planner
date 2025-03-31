@@ -1,10 +1,10 @@
 import tkinter as tk
-from model import TaskResourceModel
-from ui_components import UIComponents
-from file_operations import FileOperations
-from task_operations import TaskOperations
-from tag_operations import TagOperations
-from export_operations import ExportOperations
+from src.model.task_resource_model import TaskResourceModel
+from src.view.ui_components import UIComponents
+from src.operations.file_operations import FileOperations
+from src.operations.task_operations import TaskOperations
+from src.operations.tag_operations import TagOperations
+from src.operations.export_operations import ExportOperations
 
 
 class TaskResourceManager:
@@ -12,8 +12,8 @@ class TaskResourceManager:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("Task Resource Manager")
-        self.root.geometry("1000x600")
+        self.root.title('Task Resource Manager')
+        self.root.geometry('1000x600')
 
         # Initialize the model
         self.model = TaskResourceModel()
@@ -115,14 +115,14 @@ class TaskResourceManager:
 
         # Status message for filters
         self.filter_status = tk.Label(
-            self.status_bar, text="No filters active", anchor=tk.W, padx=5
+            self.status_bar, text='No filters active', anchor=tk.W, padx=5
         )
         self.filter_status.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         # Clear filters button
         self.clear_filters_btn = tk.Button(
             self.status_bar,
-            text="Clear All Filters",
+            text='Clear All Filters',
             command=self.clear_all_filters,
             state=tk.DISABLED,
         )
@@ -140,23 +140,23 @@ class TaskResourceManager:
         resource_filters = self.tag_ops.resource_tag_filters
 
         if not task_filters and not resource_filters:
-            self.filter_status.config(text="No filters active")
+            self.filter_status.config(text='No filters active')
             self.clear_filters_btn.config(state=tk.DISABLED)
         else:
             status_text = []
             if task_filters:
-                match_type = "ALL" if self.tag_ops.task_match_all else "ANY"
+                match_type = 'ALL' if self.tag_ops.task_match_all else 'ANY'
                 status_text.append(
                     f"Tasks: {match_type} of [{', '.join(task_filters)}]"
                 )
 
             if resource_filters:
-                match_type = "ALL" if self.tag_ops.resource_match_all else "ANY"
+                match_type = 'ALL' if self.tag_ops.resource_match_all else 'ANY'
                 status_text.append(
                     f"Resources: {match_type} of [{', '.join(resource_filters)}]"
                 )
 
-            self.filter_status.config(text=" | ".join(status_text))
+            self.filter_status.config(text=' | '.join(status_text))
             self.clear_filters_btn.config(state=tk.NORMAL)
 
     def update_view(self):
@@ -181,21 +181,21 @@ class TaskResourceManager:
 
         # Base title
         if file_path:
-            title = f"Task Resource Manager - {os.path.basename(file_path)}"
+            title = f'Task Resource Manager - {os.path.basename(file_path)}'
         else:
-            title = "Task Resource Manager - New Project"
+            title = 'Task Resource Manager - New Project'
 
         # Add zoom info if requested or if not at 100%
         if show_zoom or self.zoom_level != 1.0:
-            title += f" (Zoom: {int(self.zoom_level * 100)}%)"
+            title += f' (Zoom: {int(self.zoom_level * 100)}%)'
 
         self.root.title(title)
 
     def get_task_ui_coordinates(self, task):
         """Convert task data model coordinates to UI coordinates, accounting for dynamic row height."""
-        x1 = task["col"] * self.cell_width
-        y1 = task["row"] * self.task_height
-        x2 = x1 + task["duration"] * self.cell_width
+        x1 = task['col'] * self.cell_width
+        y1 = task['row'] * self.task_height
+        x2 = x1 + task['duration'] * self.cell_width
         y2 = y1 + self.task_height
         return x1, y1, x2, y2
 
@@ -211,16 +211,16 @@ class TaskResourceManager:
 
         # Update cursor to indicate mode
         if self.multi_select_mode:
-            self.task_canvas.config(cursor="crosshair")
+            self.task_canvas.config(cursor='crosshair')
             self.status_bar.config(
-                bg="#ffeecc"
+                bg='#ffeecc'
             )  # Light orange background to indicate mode
             self.filter_status.config(
-                text="Multi-select mode: ON - Use Ctrl+click to select multiple tasks"
+                text='Multi-select mode: ON - Use Ctrl+click to select multiple tasks'
             )
         else:
-            self.task_canvas.config(cursor="")
-            self.status_bar.config(bg="SystemButtonFace")  # Default background
+            self.task_canvas.config(cursor='')
+            self.status_bar.config(bg='SystemButtonFace')  # Default background
             self.update_filter_status()  # Reset to standard filter status display
 
         # Clear selected tasks when disabling multi-select mode

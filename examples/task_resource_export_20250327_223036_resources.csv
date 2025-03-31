@@ -1,0 +1,11 @@
+ID,Name,Tags,Total Capacity,Total Loading,Average Utilization,Peak Utilization
+1,Resource A,"team1,developer",100.0,13.5,13.50%,200.00%
+2,Resource B,"team1,designer",100.0,10.5,10.50%,150.00%
+3,Resource C,"team2,developer",100.0,1.0,1.00%,25.00%
+4,Resource D,"team2,qa",100.0,1.0,1.00%,50.00%
+5,Resource E,,100.0,0.0,0.00%,0.00%
+6,Resource F,,100.0,0.0,0.00%,0.00%
+7,Resource G,,100.0,0.0,0.00%,0.00%
+8,Resource H,,100.0,0.0,0.00%,0.00%
+9,Resource I,,100.0,0.0,0.00%,0.00%
+10,Resource J,,100.0,0.0,0.00%,0.00%
