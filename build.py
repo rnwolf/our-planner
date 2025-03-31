@@ -65,11 +65,10 @@ def main():
 
     changelog = f"""
     ## [{next_version}] - {today}
-    # ### Added
-    - New feature: Some info
+    ### Added
+    - New feature: Build script to help with release process.
+    - New feature: Updated pyproject.toml development dependencies for use with UV.
 
-    ### Fixed
-    - Bug fix: Resolved issue with something
     """
 
     # Assume we are using uv to manage python environment for development
@@ -122,7 +121,9 @@ def main():
         print('In develop branch. Proceeding with the release process.')
 
         # Run tests
-        result = subprocess.run(['run_tests.py'], capture_output=True, text=True)
+        result = subprocess.run(
+            ['uv', 'run', 'run_tests.py'], capture_output=True, text=True
+        )
 
         if result.returncode != 0:
             print('Tests failed. Aborting release.')
@@ -138,7 +139,7 @@ def main():
                     'add',
                     'pyproject.toml',
                     'CHANGELOG.md',
-                    'changelog.py',
+                    'build.py',
                     '.\src\__init__.py',
                     'requirements.txt',
                 ]
