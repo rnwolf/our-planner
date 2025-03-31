@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import networkx as nx
 
 from src.model.task_resource_model import TaskResourceModel
-from network_menu import NetworkMenu
+from src.view.menus.network_menu import NetworkMenu
 
 
 class TestCriticalPath:

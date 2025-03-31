@@ -8,7 +8,7 @@ import os
 # Add the parent directory to sys.path to allow importing application modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from help_menu import HelpMenu
+from src.view.menus.help_menu import HelpMenu
 
 
 class TestHelpMenu:

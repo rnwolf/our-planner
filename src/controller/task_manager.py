@@ -1,10 +1,16 @@
 import tkinter as tk
-from src.model.task_resource_model import TaskResourceModel
-from src.view.ui_components import UIComponents
+
+from src.model import TaskResourceModel
+from src.view import UIComponents
+
+# from src.view.menus import HelpMenu, NetworkMenu
 from src.operations.file_operations import FileOperations
-from src.operations.task_operations import TaskOperations
+from src.operations.network_operations import NetworkOperations
 from src.operations.tag_operations import TagOperations
+from src.operations.task_operations import TaskOperations
 from src.operations.export_operations import ExportOperations
+
+from src.utils import colors
 
 
 class TaskResourceManager:
@@ -89,8 +95,10 @@ class TaskResourceManager:
         self.ui = UIComponents(self, self.model)
         self.file_ops = FileOperations(self, self.model)
         self.export_ops = ExportOperations(self, self.model)
+        self.network_ops = NetworkOperations(self, self.model)
 
         # Create UI elements
+        self.ui = UIComponents(self, self.model)
         self.ui.create_menu_bar()
         self.ui.create_timeline_frame()
         self.ui.create_task_grid_frame()
