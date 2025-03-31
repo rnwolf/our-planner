@@ -1,6 +1,6 @@
-# Task Resource Manager
+# Our Planner
 
-A Python application for managing tasks and resources with timeline visualization. This tool helps you create and manage project schedules with resource allocation and dependency tracking.
+An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualization for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention.
 
 ## Features
 
@@ -23,8 +23,8 @@ A Python application for managing tasks and resources with timeline visualizatio
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/task-resource-manager.git
-cd task-resource-manager
+git clone https://github.com/rnwolf/our-planner.git
+cd our-planner
 
 # Create and activate a virtual environment (optional but recommended)
 python -m venv .venv
@@ -40,13 +40,21 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
+### Install from via uvenv
+
+Install uvenv
+
+Install app via uvenv
+
+Run app
+
 ## Usage
 
 ### Running the application
 
 ```bash
 # If installed as a package
-task-resource-manager
+out-plannner
 
 # Or run directly
 python run.py
@@ -66,7 +74,7 @@ python run.py
 ### Project Structure
 
 ```
-task_resource_manager/
+our_planner/
 ├── src/                       # Main source code directory
 │   ├── model/                 # Model components
 │   ├── view/                  # View components
@@ -85,6 +93,15 @@ task_resource_manager/
 pytest
 ```
 
+or
+
+```bash
+python run_test.py
+```
+
 ## License
 
-[MIT License](LICENSE)
+Our-planner is distributed under the terms of the [MIT License](https://spdx.org/licenses/MIT.html)
+
+## Changelog
+See [CHANGELOG.md](https://github.com/rnwolf/our-planner/blob/main/CHANGELOG.md) on GitHub

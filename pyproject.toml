@@ -1,9 +1,9 @@
 [project]
-name = "task-resource-manager"
+name = "our-planner"
 version = "0.1.0"
-description = "A Tkinter application for managing tasks and resources with timeline visualization"
+description = "An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualization for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "R.N. Wolf", email = "example@example.com"},
@@ -12,6 +12,7 @@ dependencies = [
     "tkcalendar>=1.6.1",
     "reportlab>=4.0.0",
     "networkx>=3.0",
+    "requests>=2.32.3"
 ]
 
 [project.optional-dependencies]

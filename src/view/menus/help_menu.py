@@ -7,6 +7,7 @@ This module contains the UI components for the Help menu.
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 import webbrowser
+from src.utils.version import get_version
 
 
 class HelpMenu:
@@ -167,7 +168,7 @@ class HelpMenu:
         about_dialog.focus_set()
 
         # Position the dialog
-        about_dialog.geometry('400x200')
+        about_dialog.geometry('400x300')
 
         # Center dialog on parent window
         about_dialog.update_idletasks()
@@ -189,12 +190,18 @@ class HelpMenu:
 
         # Version information - get from the package
         try:
-            from src import __version__
+            import toml
+
+            with open('pyproject.toml', 'r') as f:
+                pyproject_data = toml.load(f)
+            __version__ = pyproject_data.get('project', {}).get('version', '0.1.0')
 
             version_text = f'Version {__version__}'
         except ImportError:
             version_text = 'Version 0.1.0'
 
+        # Version information - get from utility function
+        version_text = f'Version {get_version()}'
         version_label = tk.Label(frame, text=version_text, font=('Arial', 10))
         version_label.pack(pady=2)
 
@@ -205,14 +212,30 @@ class HelpMenu:
         # Website link
         website_link = tk.Label(
             frame,
-            text='www.tnwolf.net',
+            text='www.rnwolf.net',
             fg='blue',
             cursor='hand2',
             font=('Arial', 12, 'underline'),
         )
         website_link.pack(pady=5)
         website_link.bind(
-            '<Button-1>', lambda e: webbrowser.open('https://www.tnwolf.net')
+            '<Button-1>', lambda e: webbrowser.open('https://www.rnwolf.net')
+        )
+
+        # link to license
+        license_link = tk.Label(
+            frame,
+            text='LICENCE.txt',
+            fg='blue',
+            cursor='hand2',
+            font=('Arial', 12, 'underline'),
+        )
+        license_link.pack(pady=5)
+        license_link.bind(
+            '<Button-1>',
+            lambda e: webbrowser.open(
+                'https://github.com/rnwolf/our-planner/blob/main/LICENSE.txt'
+            ),
         )
 
         # Close button
