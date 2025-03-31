@@ -46,21 +46,27 @@ class TestHelpMenu:
 
         # Check that the correct menu items were added
         assert (
-            self.mock_menu.add_command.call_count == 3
+            self.mock_menu.add_command.call_count == 4
         ), 'Expected 3 menu items to be added'
 
         # Verify the first call was for the Website menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[0]
         assert (
+            kwargs['label'] == 'Documentation'
+        ), f"Expected 'Documentation' but got {kwargs['label']}"
+
+        # Verify the second call was for the Website menu item
+        args, kwargs = self.mock_menu.add_command.call_args_list[1]
+        assert (
             kwargs['label'] == 'Website'
         ), f"Expected 'Website' but got {kwargs['label']}"
 
-        # Verify the second call was for the About menu item
-        args, kwargs = self.mock_menu.add_command.call_args_list[1]
+        # Verify the third call was for the About menu item
+        args, kwargs = self.mock_menu.add_command.call_args_list[2]
         assert kwargs['label'] == 'About', f"Expected 'About' but got {kwargs['label']}"
 
-        # Verify the third call was for the Debug menu item
-        args, kwargs = self.mock_menu.add_command.call_args_list[2]
+        # Verify the fourth call was for the Debug menu item
+        args, kwargs = self.mock_menu.add_command.call_args_list[3]
         assert kwargs['label'] == 'Debug', f"Expected 'Debug' but got {kwargs['label']}"
 
     @patch('webbrowser.open')

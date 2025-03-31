@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import networkx as nx
 
 from src.model.task_resource_model import TaskResourceModel
-from src.view.menus.network_menu import NetworkMenu
+from src.operations.network_operations import NetworkOperations
 
 
 class TestCriticalPath:
@@ -15,11 +15,9 @@ class TestCriticalPath:
         self.controller = MagicMock()
         self.controller.model = self.model
         self.controller.tag_ops = MagicMock()
-        self.root = MagicMock()
-        self.menu_bar = MagicMock()
 
-        # Create the network menu
-        self.network_menu = NetworkMenu(self.controller, self.root, self.menu_bar)
+        # Create the network operations instance instead of network menu
+        self.network_ops = NetworkOperations(self.controller, self.model)
 
     def test_calculate_critical_path_simple_chain(self):
         """Test critical path calculation for a simple chain of tasks."""
@@ -36,7 +34,7 @@ class TestCriticalPath:
         selected_tasks = [task1, task2, task3]
 
         # Calculate critical path with the selected tasks
-        path, length, analysis = self.network_menu.calculate_critical_path(
+        path, length, analysis = self.network_ops.calculate_critical_path(
             selected_tasks
         )
 
@@ -82,7 +80,7 @@ class TestCriticalPath:
         selected_tasks = [task_a, task_b, task_c, task_d]
 
         # Calculate critical path with the selected tasks
-        path, length, analysis = self.network_menu.calculate_critical_path(
+        path, length, analysis = self.network_ops.calculate_critical_path(
             selected_tasks
         )
 
@@ -116,12 +114,11 @@ class TestCriticalPath:
         )
         task3 = self.model.add_task(row=2, col=5, duration=3, description='Task 3')
 
-        # Mock tag_ops to return all tasks
-        # self.controller.tag_ops.get_filtered_tasks.return_value = [task1, task2, task3]
+        # Create list of selected tasks
         selected_tasks = [task1, task2, task3]
 
         # Calculate critical path
-        path, length, analysis = self.network_menu.calculate_critical_path(
+        path, length, analysis = self.network_ops.calculate_critical_path(
             selected_tasks
         )
 
