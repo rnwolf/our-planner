@@ -62,7 +62,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - New feature: Add a Github action to automatically release the package to PyPI and GitHub.
+    - Enhance: Github action to build and release the package to PyPI and GitHub.
 
     """
 
@@ -213,8 +213,8 @@ def main():
                 subprocess.run(['git', 'switch', 'main'])
                 subprocess.run(['git', 'merge', 'develop'])
 
-                print('Merge develop into main branch')
-                subprocess.run(['git', 'push', '-u', 'origin', 'main'])
+                print('Push code and tags to main branch on the remote repo in GitHub')
+                subprocess.run(['git', 'push', '-u', 'origin', 'main', '--tags'])
 
                 # Build and upload package to PyPI (uncomment if needed)
                 # Install keyring to secure test.pypi token locally https://pypi.org/project/keyring/
@@ -227,7 +227,7 @@ def main():
                 #
                 # Use github actions to do the release automatically after configuring the token in the github actions secrets after the first manual release
                 print(
-                    'Github action will be triggered and upload a distribution to github and PyPI.\nPlease make sure that the release is successful.'
+                    'Github action will be triggered and rebuild the distribution to upload to github and PyPI.\nPlease make sure that the release is successful.'
                 )
 
 
