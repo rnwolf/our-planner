@@ -1,4 +1,16 @@
 
+    ## [0.1.2] - 2025-04-01
+    ### Added
+    - Bug fix: Fix the build.py file to update develop branch and main branch correctly.
+
+    
+
+    ## [0.1.2] - 2025-04-01
+    ### Added
+    - Bug fix: Fix the build.py file to update develop branch and main branch correctly.
+
+    
+
     ## [0.1.1] - 2025-04-01
     ### Added
     - New feature: Added uv.lock to version control.

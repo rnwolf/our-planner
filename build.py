@@ -62,8 +62,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - New feature: Added uv.lock to version control.
-    - New feature: Prepare for release process.
+    - Bug fix: Fix the build.py file to update develop branch and main branch correctly.
 
     """
 
@@ -141,6 +140,7 @@ def main():
         print('In develop branch. Proceeding with the release process.')
 
         # Run tests
+        print('Run automated Tests. Please wait.')
         result = subprocess.run(
             ['uv', 'run', 'run_tests.py'], capture_output=True, text=True
         )
@@ -153,15 +153,20 @@ def main():
         else:
             print('Tests passed. Continuing with the release process.')
 
-            # Check that build runs successfully        # Run tests
+            # Check that build runs successfully
+            print('Check distribution builds. Please wait.')
             result = subprocess.run(['uv', 'build'], capture_output=True, text=True)
             if result.returncode != 0:
-                print('Build failed. Aborting release.')
+                print('Distribution Build failed. Aborting release.')
                 print(result.stdout)
                 print(result.stderr)
                 return
             else:
                 print('Build passed. Continuing with the release process.')
+
+                print(
+                    'Add files that change during release process to release. Continuing with the release process.'
+                )
                 subprocess.run(
                     [
                         'git',
@@ -175,6 +180,11 @@ def main():
                         'uv.lock',
                     ]
                 )
+                print(
+                    'Files added and staged for release. Continuing with the release process.'
+                )
+
+                print('Commit staged files. Continuing with the release process.')
                 subprocess.run(
                     [
                         'git',
@@ -183,13 +193,8 @@ def main():
                         f'Release version {next_version} on {today}',
                     ]
                 )
-                subprocess.run(['git', 'push', '-u', 'origin', 'develop'])
 
-                # Merge develop into main
-                subprocess.run(['git', 'switch', 'main'])
-                subprocess.run(['git', 'merge', 'develop'])
-
-                # Create and push tag
+                print('Creating new release tag')
                 subprocess.run(
                     [
                         'git',
@@ -197,15 +202,27 @@ def main():
                         '-a',
                         f'v{next_version}',
                         '-m',
-                        f'Release version {next_version}',
+                        f'Release version {next_version} on {today}',
                     ]
                 )
-                subprocess.run(['git', 'push', 'origin', f'v{next_version}'])
+
+                print('Pushing tag to remote repo develop branch')
+                subprocess.run(['git', 'push', '-u', 'origin', 'develop'])
+
+                print('Merge develop into main branch')
+                subprocess.run(['git', 'switch', 'main'])
+                subprocess.run(['git', 'merge', 'develop'])
+
+                print('Merge develop into main branch')
+                subprocess.run(['git', 'push', '-u', 'origin', 'main'])
 
                 # Build and upload package to PyPI (uncomment if needed)
                 # Install keyring to secure test.pypi token locally https://pypi.org/project/keyring/
                 # See https://github.com/astral-sh/uv/issues/7963 for discussion on how to do a manual release for inital release
                 # Use github actions to do the release automatically after configuring the token in the github actions secrets after the first manual release
+                print(
+                    'Github action will be triggered to upload the package to PyPI.\nPlease make sure that the release is successful.'
+                )
 
 
 if __name__ == '__main__':
