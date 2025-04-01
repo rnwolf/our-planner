@@ -1,23 +1,71 @@
-# Our Planner
+# Our-Planner
 
 An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualization for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention.
 
+## Why another planning tool?
+
+Good plans are co-created with the team that will do the work. For that digital white boarding tools such as Miro & Mural are very helpful to map out features and dependencies.
+Invariably the question is going to be asked "When will you be done?".
+The team will need to make some estimates of how long the indiviual tasks are going to take. This requires captuting data on estimates and taking into account the availability of the people required to do the work. The current crop of whitboarding tools do not make this easy.
+Quickly moving depentant tasks, with different durations, around on a timeline takes so much effort it kills collaboration.
+
+There are many excellent commerial tools in the market that could do the job but as a consultant into large enterprises its not practical to change the existing corporate planning and task management tooling stack. Consequently I needed:
+
+ - a free application as I can't expect the corporate to buy software just for a few teams I work with
+ - keep all the corporate data secure in a locally run application, no cloud service here!
+ - links tasks to the corporate task management tool, like Jira
+ - source code is open for inspection by corporate security professionals
+
+Thus this app is written in Python, which is the data analysts tool of choice, and should thus be available in most enterprise user desktop builds. Code is hosted on Github and open for inspection, with releases distributed on PyPi for easy installation.
+
 ## Features
 
-- Create and manage tasks with durations, dependencies, and resource allocations
+- Easily create and manage tasks with durations, dependencies, and resource allocations
 - Visualize tasks in a timeline view
-- Track resource loading and avoid over-allocation
+- Visualise resource loading and avoid over-allocation
 - Tag-based filtering for tasks and resources
-- Export to PDF, PNG, CSV, and HTML formats
-- Critical path analysis
-- Multi-select and bulk operations
+- Multi-select tasks for bulk operations
+- Export tasks to PDF, PNG, CSV, and HTML formats
+- Select tasks for Critical path analysis
+
+### TODO
+
+- Multi point estimates, for **safe** and **optimistic** estimates
+- Adding **dated notes** to tasks
+- **Remaining** days estimate for tasks (Updates duration and pushes or pulls in dependent tasks)
+- Shift the timeframe on. ie drop dates in the past and add dates in the future to planning timeline.
+- CCPM features such as buffer creation and feverchart reporting
+- Reporting for resource, working on now and next tasks, with buffer status to help prioritize which tasks should get focus.
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - Tkinter (usually comes with Python)
+
+#### macOS
+
+```bash
+brew install python3 # Install Python
+brew install python-tk # Install Tkinter
+```
+
+#### Ubuntu (Linux)
+
+```bash
+sudo apt-get install python3-tk
+```
+
+#### Fedora (Linux)
+
+```bash
+sudo dnf install python3-tkinter
+```
+
+#### MS-Windows
+
+Tkinter is installed by default with every Python installation on MS-Windows.
 
 ### Install from source
 
@@ -31,6 +79,9 @@ python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install the package and dependencies
+pip install -r requirements.txt
+
+# Install the package
 pip install -e .
 ```
 
@@ -40,41 +91,47 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-### Install from via uvenv
-
-Install uvenv
-
-Install app via uvenv
-
-Run app
-
-## Usage
-
-### Running the application
+### Install from PyPi
 
 ```bash
-# If installed as a package
-out-plannner
+cd our-planner
+# Create and activate a virtual environment (optional but recommended)
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Or run directly
-python run.py
+pip install our-planner
+
+# Run app
+our-planner
+```
+
+### Install from via uvx (Recomended way)
+
+[Install uv](https://docs.astral.sh/uv/getting-started/installation/).
+
+This also installs the tool `uvx`. See more option on astral [website](https://docs.astral.sh/uv/guides/tools/).
+
+```bash
+# Install and run app
+uvx our-planner
 ```
 
 ### Basic operations
 
 1. **Create tasks**: Click and drag on the task grid to create new tasks
 2. **Move tasks**: Click and drag existing tasks to reposition them
-3. **Resize tasks**: Click and drag the left or right edge of a task
+3. **Resize tasks duration**: Click and drag the left or right edge of a task
 4. **Add dependencies**: Click the connector circle on the right edge of a task and drag to another task
 5. **Edit task details**: Right-click on a task and select from the context menu
-6. **Export your project**: Use the File menu to export your project in various formats
+6. **Zoom in and out**: See details and overview with Ctrl+Scroll-wheel to zooms in and out
+7. **Export your project**: Use the File menu to export your data in various formats
 
 ## Development
 
-### Project Structure
+### Application code Structure
 
 ```
-our_planner/
+our-planner/
 ├── src/                       # Main source code directory
 │   ├── model/                 # Model components
 │   ├── view/                  # View components
@@ -101,7 +158,8 @@ python run_test.py
 
 ## License
 
-Our-planner is distributed under the terms of the [MIT License](https://spdx.org/licenses/MIT.html)
+Our-planner is distributed under the terms of the [GPLv3 or later License](https://spdx.org/licenses/GPL-3.0-or-later.html)
 
 ## Changelog
+
 See [CHANGELOG.md](https://github.com/rnwolf/our-planner/blob/main/CHANGELOG.md) on GitHub

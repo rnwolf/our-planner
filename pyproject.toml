@@ -1,12 +1,29 @@
 [project]
 name = "our-planner"
-version = "0.1.0"
+version = "0.1.1"
 description = "An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualization for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention."
 readme = "README.md"
+keywords = ["planning", "resource management", "task management", "collaboration", "visualization", "buffer management", "teamwork", "desktop", "cross-platform"]
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE.txt"]
 authors = [
-    {name = "R.N. Wolf", email = "example@example.com"},
+    {name = "R.N. Wolf", email = "rudi@rnwolf.net"},
+]
+maintainers = [
+  {name = "Rüdiger Wolf", email = "rudi@rnwolf.net"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Information Technology",
+    "Topic :: Office/Business :: Scheduling",
+    "Development Status :: 3 - Alpha",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X",
+    "Natural Language :: English",
 ]
 dependencies = [
     "tkcalendar>=1.6.1",

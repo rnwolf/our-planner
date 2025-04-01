@@ -47,10 +47,6 @@ def main():
             f'Version {next_version} is newer than the published version {published_version}. Proceeding with the release.'
         )
 
-    with open('version.py', 'w') as f:
-        f.write(f'__version__ = "{next_version}"\n')
-        f.write(f'__release_date__ = "{datetime.date.today()}"\n')
-
     today = datetime.date.today().strftime('%Y-%m-%d')
 
     # Make sure that this file has modified date of today
@@ -66,8 +62,8 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - New feature: Build script to help with release process.
-    - New feature: Updated pyproject.toml development dependencies for use with UV.
+    - New feature: Added uv.lock to version control.
+    - New feature: Prepare for release process.
 
     """
 
@@ -97,6 +93,30 @@ def main():
 
     # with open('pyproject.toml', 'w') as file:
     #     file.write(setup_content)
+
+    # Update version and release date in src/__init__.py
+    init_file_path = os.path.join('.', 'src', '__init__.py')
+    if os.path.exists(init_file_path):
+        with open(init_file_path, 'r') as f:
+            lines = f.readlines()
+
+        with open(init_file_path, 'w') as f:
+            for line in lines:
+                if line.startswith('__version__'):
+                    f.write(f'__version__ = "{next_version}"\n')
+                elif line.startswith('__release_date__'):
+                    f.write(f'__release_date__ = "{datetime.date.today()}"\n')
+                else:
+                    f.write(line)
+    else:
+        print(f'File {init_file_path} does not exist. Creating a new one.')
+        with open(init_file_path, 'w') as f:
+            f.write(
+                '"""Task Resource Manager\n\nA Tkinter application for managing tasks and resources with timeline visualization."""\n\n'
+            )
+            f.write(f'__version__ = "{next_version}"\n')
+            f.write(f'__release_date__ = "{datetime.date.today()}"\n')
+            f.write('__author__ = "R.N. Wolf"\n')
 
     # Update CHANGELOG.md
     if os.path.exists('CHANGELOG.md'):
@@ -133,40 +153,59 @@ def main():
         else:
             print('Tests passed. Continuing with the release process.')
 
-            subprocess.run(
-                [
-                    'git',
-                    'add',
-                    'pyproject.toml',
-                    'CHANGELOG.md',
-                    'build.py',
-                    '.\src\__init__.py',
-                    'requirements.txt',
-                ]
-            )
-            subprocess.run(
-                ['git', 'commit', '-m', f'Release version {next_version} on {today}']
-            )
-            subprocess.run(['git', 'push', '-u', 'origin', 'develop'])
+            # Check that build runs successfully        # Run tests
+            result = subprocess.run(['uv', 'build'], capture_output=True, text=True)
+            if result.returncode != 0:
+                print('Build failed. Aborting release.')
+                print(result.stdout)
+                print(result.stderr)
+                return
+            else:
+                print('Build passed. Continuing with the release process.')
+                subprocess.run(
+                    [
+                        'git',
+                        'add',
+                        'pyproject.toml',
+                        'CHANGELOG.md',
+                        'README.md',
+                        'build.py',
+                        r'.\src\__init__.py',
+                        'requirements.txt',
+                        'uv.lock',
+                    ]
+                )
+                subprocess.run(
+                    [
+                        'git',
+                        'commit',
+                        '-m',
+                        f'Release version {next_version} on {today}',
+                    ]
+                )
+                subprocess.run(['git', 'push', '-u', 'origin', 'develop'])
 
-            # Merge develop into main
-            subprocess.run(['git', 'switch', 'main'])
-            subprocess.run(['git', 'merge', 'develop'])
+                # Merge develop into main
+                subprocess.run(['git', 'switch', 'main'])
+                subprocess.run(['git', 'merge', 'develop'])
 
-            # Create and push tag
-            subprocess.run(
-                [
-                    'git',
-                    'tag',
-                    '-a',
-                    f'v{next_version}',
-                    '-m',
-                    f'Release version {next_version}',
-                ]
-            )
-            subprocess.run(['git', 'push', 'origin', f'v{next_version}'])
+                # Create and push tag
+                subprocess.run(
+                    [
+                        'git',
+                        'tag',
+                        '-a',
+                        f'v{next_version}',
+                        '-m',
+                        f'Release version {next_version}',
+                    ]
+                )
+                subprocess.run(['git', 'push', 'origin', f'v{next_version}'])
 
-            # Build and upload package to PyPI (uncomment if needed)
+                # Build and upload package to PyPI (uncomment if needed)
+                # Install keyring to secure test.pypi token locally https://pypi.org/project/keyring/
+                # See https://github.com/astral-sh/uv/issues/7963 for discussion on how to do a manual release for inital release
+                # Use github actions to do the release automatically after configuring the token in the github actions secrets after the first manual release
 
 
 if __name__ == '__main__':
