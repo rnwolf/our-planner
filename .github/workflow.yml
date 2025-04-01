@@ -1,0 +1,48 @@
+name: Checkout, Install, Test, build, release and publish
+on:
+  push:
+    branches:
+      - main
+  tags:
+    - '*'
+
+jobs:
+  permissions:
+    id-token: write
+  uv-test:
+    name: python
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version-file: ".python-version"
+          # Install a specific version of uv.
+          version: "0.6.11"
+
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Run tests
+        run: uv run pytest tests
+
+      - name: Build distribution
+        if: success()
+        run: uv build
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: dist-${{ github.ref_name }}
+          path: dist/our_planner-${{ github.ref_name }}.tar.gz
+                dist/our_planner-${{ github.ref_name }}-py3-none-any.whl
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: success()
+        with:
+          packages-dir: dist/
