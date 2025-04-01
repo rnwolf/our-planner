@@ -1,16 +1,18 @@
-name: Checkout, Install, Test, build, release and publish
+# This workflow will upload a Python Package to PyPI when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+# and https://packaging.python.org/en/latest/tutorials/packaging-projects/#uploading-the-distribution-archives-to-pypi
+
+name: Upload Python Package
+
 on:
-  push:
-    branches:
-      - main
-  tags:
-    - '*'
+  release:
+    types: [published]
+
+permissions:
+  contents: read
 
 jobs:
-  permissions:
-    id-token: write
-  uv-test:
-    name: python
+  release-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,20 +31,44 @@ jobs:
       - name: Run tests
         run: uv run pytest tests
 
-      - name: Build distribution
+      - name: Build release distribution
         if: success()
         run: uv build
 
-      - name: Upload distribution artifacts
+      - name: Upload distributions
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: dist-${{ github.ref_name }}
-          path: dist/our_planner-${{ github.ref_name }}.tar.gz
-                dist/our_planner-${{ github.ref_name }}-py3-none-any.whl
+          name: release-dists
+          path: dist/
 
-      - name: Publish to PyPI
+  pypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+
+    # Dedicated environments with protections for publishing are strongly recommended.
+    # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
+    environment:
+      name: pypi
+      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
+      url: https://pypi.org/p/our-planner
+      #
+      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
+      # ALTERNATIVE: exactly, uncomment the following line instead:
+      # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: success()
         with:
           packages-dir: dist/
