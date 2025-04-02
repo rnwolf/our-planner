@@ -1,4 +1,10 @@
 
+    ## [0.1.8] - 2025-04-02
+    ### Added
+    - Fix: Bump version to force build and release
+
+    
+
     ## [0.1.7] - 2025-04-02
     ### Added
     - Enhance: build.py deal with duplicate release tags.
