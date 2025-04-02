@@ -63,7 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Enhance: Hithub action not in correct folder. Now in workflow folder named main.yml
+    - Enhance: build.py update to deal with merg to main conflicts.
 
     """
 
@@ -212,24 +212,33 @@ def main():
 
                 print('Merge develop into main branch')
                 subprocess.run(['git', 'switch', 'main'])
-                subprocess.run(['git', 'merge', 'develop'])
+                result = subprocess.run(['git', 'merge', 'develop'])
+                if result.returncode != 0:
+                    print(
+                        'Merge from develop to main failed. Aborting release. Please resolve conflicts.'
+                    )
+                    print(result.stdout)
+                    print(result.stderr)
+                    sys.exit(1)
+                else:
+                    print(
+                        'Pushing code and tags to main branch on the remote repo in GitHub'
+                    )
+                    subprocess.run(['git', 'push', '-u', 'origin', 'main', '--tags'])
 
-                print('Push code and tags to main branch on the remote repo in GitHub')
-                subprocess.run(['git', 'push', '-u', 'origin', 'main', '--tags'])
-
-                # Build and upload package to PyPI (uncomment if needed)
-                # Install keyring to secure test.pypi token locally https://pypi.org/project/keyring/
-                # See https://github.com/astral-sh/uv/issues/7963 for discussion on how to do a manual release for inital release
-                #
-                # keyring set https://upload.pypi.org/legacy/?our-planner __token__
-                # Note: On MS-Windows you must use the Edit/Paste command in the menu to paste the token into the keyring prompt.
-                #
-                # uv publish --username __token__ --keyring-provider subprocess --publish-url https://upload.pypi.org/legacy/?our-planner
-                #
-                # Use github actions to do the release automatically after configuring the token in the github actions secrets after the first manual release
-                print(
-                    'Github action will be triggered and rebuild the distribution to upload to github and PyPI.\nPlease make sure that the release is successful.'
-                )
+                    # Build and upload package to PyPI (uncomment if needed)
+                    # Install keyring to secure test.pypi token locally https://pypi.org/project/keyring/
+                    # See https://github.com/astral-sh/uv/issues/7963 for discussion on how to do a manual release for inital release
+                    #
+                    # keyring set https://upload.pypi.org/legacy/?our-planner __token__
+                    # Note: On MS-Windows you must use the Edit/Paste command in the menu to paste the token into the keyring prompt.
+                    #
+                    # uv publish --username __token__ --keyring-provider subprocess --publish-url https://upload.pypi.org/legacy/?our-planner
+                    #
+                    # Use github actions to do the release automatically after configuring the token in the github actions secrets after the first manual release
+                    print(
+                        'Github action will be triggered and rebuild the distribution to upload to github and PyPI.\nPlease make sure that the release is successful.'
+                    )
 
 
 if __name__ == '__main__':
