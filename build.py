@@ -63,8 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Enhance: The application executuion name incorrect. is now our-planner.
-    - Enhance: The application will now return release version number when using -v or --version as arguments.
+    - Enhance: Hithub action not in correct folder. Now in workflow folder named main.yml
 
     """
 
