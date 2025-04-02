@@ -1,6 +1,12 @@
 
     ## [0.1.6] - 2025-04-02
     ### Added
+    - Enhance: build.py update to deal with merg to main conflicts.
+
+    
+
+    ## [0.1.6] - 2025-04-02
+    ### Added
     - Enhance: Hithub action not in correct folder. Now in workflow folder named main.yml
 
     
