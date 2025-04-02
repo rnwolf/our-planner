@@ -1,4 +1,22 @@
 
+    ## [0.1.11] - 2025-04-02
+    ### Added
+    - Fix: added packages=[src] to pyproject.toml to fix issue with pipx install.
+
+    
+
+    ## [0.1.11] - 2025-04-02
+    ### Added
+    - Fix: added packages=[src] to pyproject.toml to fix issue with pipx install.
+
+    
+
+    ## [0.1.11] - 2025-04-02
+    ### Added
+    - Fix: added packages=[src] to pyproject.toml to fix issue with pipx install.
+
+    
+
     ## [0.1.10] - 2025-04-02
     ### Added
     - Fix: Removed manual publish from GHA for release.

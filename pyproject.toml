@@ -1,6 +1,7 @@
 [project]
 name = "our-planner"
-version = "0.1.10"
+version = "0.1.11"
+#packages = ["src"]
 description = "An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualization for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention."
 readme = "README.md"
 keywords = ["planning", "resource management", "task management", "collaboration", "visualization", "buffer management", "teamwork", "desktop", "cross-platform"]
@@ -50,6 +51,7 @@ our-planner = "src.main:main"
 
 [tool.setuptools]
 packages = ["src"]
+#packages = find_packages(where="src")
 
 [tool.ruff.lint]
 # 1. Enable flake8-bugbear (`B`) rules, in addition to the defaults.

@@ -21,11 +21,10 @@ def get_version():
 def get_pypi_version(package_name):
     url = f'https://pypi.org/pypi/{package_name}/json'
     response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        return data['info']['version']
-    else:
+    if response.status_code != 200:
         return None
+    data = response.json()
+    return data['info']['version']
 
 
 def main():
@@ -52,7 +51,7 @@ def main():
     today = datetime.date.today().strftime('%Y-%m-%d')
 
     # Make sure that this file has modified date of today
-    # as we expect the chanelog to be update now.
+    # as we expect the changelog to be update now.
     current_filename = os.path.abspath(__file__)
     last_modified_date = datetime.date.fromtimestamp(os.path.getmtime(current_filename))
     if last_modified_date != datetime.date.today():
@@ -64,12 +63,12 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Fix: Removed manual publish from GHA for release.
+    - Fix: added packages=[src] to pyproject.toml to fix issue with pipx install.
 
     """
 
     # Assume we are using uv to manage python environment for development
-    # make sure we have synec the requirements.txt with pyproject.toml
+    # make sure we have sync the requirements.txt with pyproject.toml
     # so that user who are not using uv can also install and run app.
     subprocess.run(
         [
@@ -176,7 +175,7 @@ def main():
                         'pyproject.toml',
                         'CHANGELOG.md',
                         'README.md',
-                        'build.py',
+                        'release.py',
                         r'.\src\__init__.py',
                         'requirements.txt',
                         'uv.lock',
@@ -238,14 +237,14 @@ def main():
 
                         # Build and upload package to PyPI (uncomment if needed)
                         # Install keyring to secure test.pypi token locally https://pypi.org/project/keyring/
-                        # See https://github.com/astral-sh/uv/issues/7963 for discussion on how to do a manual release for inital release
+                        # See https://github.com/astral-sh/uv/issues/7963 for discussion on how to do a manual release for initial release
                         #
                         # keyring set https://upload.pypi.org/legacy/?our-planner __token__
                         # Note: On MS-Windows you must use the Edit/Paste command in the menu to paste the token into the keyring prompt.
                         #
                         # uv publish --username __token__ --keyring-provider subprocess --publish-url https://upload.pypi.org/legacy/?our-planner
                         #
-                        # Use github actions to do the release automatically after configuring the token in the github actions secrets after the first manual release
+                        # Use GitHub actions to do the release automatically after configuring the token in the GitHub actions secrets after the first manual release
                         print(
                             'Github action will be triggered and rebuild the distribution to upload to github and PyPI.\nPlease make sure that the release is successful.'
                         )

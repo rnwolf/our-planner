@@ -228,7 +228,7 @@ wheels = [
 
 [[package]]
 name = "our-planner"
-version = "0.1.10"
+version = "0.1.11"
 source = { editable = "." }
 dependencies = [
     { name = "networkx" },
