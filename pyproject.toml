@@ -1,6 +1,6 @@
 [project]
 name = "our-planner"
-version = "0.1.6"
+version = "0.1.7"
 description = "An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualization for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention."
 readme = "README.md"
 keywords = ["planning", "resource management", "task management", "collaboration", "visualization", "buffer management", "teamwork", "desktop", "cross-platform"]
