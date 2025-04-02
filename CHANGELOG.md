@@ -1,9 +1,16 @@
 
+    ## [0.1.5] - 2025-04-02
+    ### Added
+    - Enhance: The application executuion name incorrect. is now our-planner.
+    - Enhance: The application will now return release version number when using -v or --version as arguments.
+
+    
+
     ## [0.1.4] - 2025-04-01
     ### Added
     - Enhance: Github action to build and release the package to PyPI and GitHub.
 
-    
+
 
     ## [0.1.3] - 2025-04-01
     ### Added

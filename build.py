@@ -8,6 +8,7 @@ import subprocess
 import datetime
 import tomllib
 import requests
+import sys
 
 
 def get_version():
@@ -62,7 +63,8 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Enhance: Github action to build and release the package to PyPI and GitHub.
+    - Enhance: The application executuion name incorrect. is now our-planner.
+    - Enhance: The application will now return release version number when using -v or --version as arguments.
 
     """
 
@@ -135,7 +137,7 @@ def main():
         print(
             f'Not in develop branch. Currently {current_branch} In order to release, please checkout the develop branch.'
         )
-        exit(1)
+        sys.exit(1)
     else:
         print('In develop branch. Proceeding with the release process.')
 
