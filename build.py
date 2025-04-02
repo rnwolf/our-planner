@@ -63,7 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Enhance: build.py update to deal with merg to main conflicts.
+    - Enhance: build.py deal with duplicate release tags.
 
     """
 
