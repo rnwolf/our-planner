@@ -63,7 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Enhance: build.py deal with duplicate release tags.
+    - Fix: Bump version to force build and release
 
     """
 
