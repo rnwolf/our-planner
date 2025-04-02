@@ -1,4 +1,10 @@
 
+    ## [0.1.6] - 2025-04-02
+    ### Added
+    - Enhance: Hithub action not in correct folder. Now in workflow folder named main.yml
+
+    
+
     ## [0.1.5] - 2025-04-02
     ### Added
     - Enhance: The application executuion name incorrect. is now our-planner.
