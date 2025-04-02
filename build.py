@@ -63,7 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Fix: Bump version to force build and release
+    - Fix: Bump version to force build and release.
 
     """
 
