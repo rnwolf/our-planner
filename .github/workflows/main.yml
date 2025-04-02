@@ -1,31 +1,11 @@
 name: Upload Python Package (Manual Trigger)
 
 on:
-  workflow_dispatch:
-    inputs:
-      # You can define input parameters that will be available when
-      # manually triggering the workflow. These are optional.
-      release_version:
-        description: 'Release Version (e.g., 1.0.0)'
-        required: false
-        type: string
-      run_tests:
-        description: 'Run tests before building?'
-        type: boolean
-        default: true
-      build_package:
-        description: 'Build the distribution?'
-        type: boolean
-        default: true
-
   push:
     branches:
       - main
     tags:
       - "*"
-
-  release:
-    types: [published]
 
 permissions:
   contents: read
@@ -33,7 +13,6 @@ permissions:
 jobs:
   release-build:
     runs-on: ubuntu-latest
-    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.build_package == true)
 
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +27,6 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run tests
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.run_tests == true)
         run: uv run pytest tests
 
       - name: Build release distribution
@@ -71,8 +49,6 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/our-planner
-
-    if: github.event_name == 'release' # Only publish on actual GitHub release
 
     steps:
       - name: Retrieve release distributions

@@ -9,6 +9,7 @@ import datetime
 import tomllib
 import requests
 import sys
+from semver.version import Version
 
 
 def get_version():
@@ -29,8 +30,8 @@ def get_pypi_version(package_name):
 
 def main():
     package_name = 'our-planner'
-    published_version = get_pypi_version(package_name)
-    next_version = get_version()
+    published_version = Version.parse(get_pypi_version(package_name))
+    next_version = Version.parse(get_version())
     if published_version is None:
         print(
             f'No version found on PyPI. Proceeding with the release of version {next_version}.'
@@ -63,7 +64,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Fix: Bump version to force build and release.
+    - Fix: Removed manual publish from GHA for release.
 
     """
 

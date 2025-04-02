@@ -1,4 +1,10 @@
 
+    ## [0.1.10] - 2025-04-02
+    ### Added
+    - Fix: Removed manual publish from GHA for release.
+
+    
+
     ## [0.1.9] - 2025-04-02
     ### Added
     - Fix: Bump version to force build and release.
