@@ -1,4 +1,10 @@
 
+    ## [0.1.7] - 2025-04-02
+    ### Added
+    - Enhance: build.py deal with duplicate release tags.
+
+    
+
     ## [0.1.6] - 2025-04-02
     ### Added
     - Enhance: build.py update to deal with merg to main conflicts.
