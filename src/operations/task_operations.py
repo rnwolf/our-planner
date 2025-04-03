@@ -1,6 +1,6 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
-import math
+from tkinter import ttk, simpledialog, messagebox, scrolledtext
+from datetime import datetime
 
 
 class FloatEntryDialog(simpledialog.Dialog):
@@ -18,10 +18,10 @@ class FloatEntryDialog(simpledialog.Dialog):
 
     def body(self, master):
         tk.Label(master, text=self.prompt).grid(
-            row=0, column=0, padx=5, pady=5, sticky="w"
+            row=0, column=0, padx=5, pady=5, sticky='w'
         )
         self.entry = tk.Entry(master)
-        self.entry.grid(row=0, column=1, padx=5, pady=5, sticky="we")
+        self.entry.grid(row=0, column=1, padx=5, pady=5, sticky='we')
         if self.initialvalue is not None:
             self.entry.insert(0, str(self.initialvalue))
         self.entry.selection_range(0, tk.END)
@@ -32,18 +32,18 @@ class FloatEntryDialog(simpledialog.Dialog):
             value = float(self.entry.get())
             if self.minvalue is not None and value < self.minvalue:
                 messagebox.showerror(
-                    "Error", f"Value must be at least {self.minvalue}."
+                    'Error', f'Value must be at least {self.minvalue}.'
                 )
                 return False
             if self.maxvalue is not None and value > self.maxvalue:
                 messagebox.showerror(
-                    "Error", f"Value must be no greater than {self.maxvalue}."
+                    'Error', f'Value must be no greater than {self.maxvalue}.'
                 )
                 return False
             self.result = value
             return True
         except ValueError:
-            messagebox.showerror("Error", "Please enter a valid number.")
+            messagebox.showerror('Error', 'Please enter a valid number.')
             return False
 
 
@@ -70,12 +70,12 @@ class TaskOperations:
 
         for task_id, ui_elements in task_ui_elements.items():
             x1, y1, x2, y2, connector_x, connector_y = (
-                ui_elements["x1"],
-                ui_elements["y1"],
-                ui_elements["x2"],
-                ui_elements["y2"],
-                ui_elements["connector_x"],
-                ui_elements["connector_y"],
+                ui_elements['x1'],
+                ui_elements['y1'],
+                ui_elements['x2'],
+                ui_elements['y2'],
+                ui_elements['connector_x'],
+                ui_elements['connector_y'],
             )
             connector_radius = 5
 
@@ -88,38 +88,38 @@ class TaskOperations:
                 < canvas_y
                 < connector_y + connector_radius
             ):
-                self.controller.task_canvas.config(cursor="hand2")
+                self.controller.task_canvas.config(cursor='hand2')
                 return
 
             # Left edge (for resizing)
             if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
-                self.controller.task_canvas.config(cursor="sb_h_double_arrow")
+                self.controller.task_canvas.config(cursor='sb_h_double_arrow')
                 return
 
             # Right edge (for resizing)
             if abs(canvas_x - x2) < 5 and y1 < canvas_y < y2:
-                self.controller.task_canvas.config(cursor="sb_h_double_arrow")
+                self.controller.task_canvas.config(cursor='sb_h_double_arrow')
                 return
 
             # Task body (for moving or URL hover)
             if x1 < canvas_x < x2 and y1 < canvas_y < y2:
                 task = self.model.get_task(task_id)
 
-                if task and task.get("url"):  # Check if task has a URL
-                    text_bbox = self.controller.task_canvas.bbox(ui_elements["text"])
+                if task and task.get('url'):  # Check if task has a URL
+                    text_bbox = self.controller.task_canvas.bbox(ui_elements['text'])
                     if (
                         text_bbox
                         and text_bbox[0] <= canvas_x <= text_bbox[2]
                         and text_bbox[1] <= canvas_y <= text_bbox[3]
                     ):
-                        self.controller.task_canvas.config(cursor="hand2")
+                        self.controller.task_canvas.config(cursor='hand2')
                         return
 
-                self.controller.task_canvas.config(cursor="fleur")
+                self.controller.task_canvas.config(cursor='fleur')
                 return
 
         # Reset cursor if not over a task
-        self.controller.task_canvas.config(cursor="")
+        self.controller.task_canvas.config(cursor='')
 
     def edit_task_name(self, parent=None, task=None):
         """Edit the name of the selected task"""
@@ -128,21 +128,21 @@ class TaskOperations:
 
         if task:
             new_name = simpledialog.askstring(
-                "Edit Task Name",
-                "Enter new task name:",
-                initialvalue=task["description"],
+                'Edit Task Name',
+                'Enter new task name:',
+                initialvalue=task['description'],
                 parent=parent or self.controller.root,
             )
             if new_name:
                 # Update the task description in model
-                task["description"] = new_name
+                task['description'] = new_name
 
                 # Update the displayed text in view
-                task_id = task["task_id"]
+                task_id = task['task_id']
                 if task_id in self.controller.ui.task_ui_elements:
-                    text_id = self.controller.ui.task_ui_elements[task_id]["text"]
+                    text_id = self.controller.ui.task_ui_elements[task_id]['text']
                     self.controller.task_canvas.itemconfig(
-                        text_id, text=f"{task_id} - {new_name}"
+                        text_id, text=f'{task_id} - {new_name}'
                     )
 
     def edit_task_url(self, task=None):
@@ -152,16 +152,16 @@ class TaskOperations:
 
         if task:
             # Ensure the task has a 'url' key with a default blank value
-            task.setdefault("url", "")
+            task.setdefault('url', '')
             new_url = simpledialog.askstring(
-                "Edit Task URL",
-                "Enter new task URL:",
-                initialvalue=task["url"],
+                'Edit Task URL',
+                'Enter new task URL:',
+                initialvalue=task['url'],
                 parent=self.controller.root,
             )
             if new_url is not None:
                 # Update the task url in model
-                task["url"] = new_url
+                task['url'] = new_url
 
                 # Redraw the task to update the URL behavior
                 self.controller.ui.draw_task_grid()
@@ -172,27 +172,27 @@ class TaskOperations:
             return
 
         predecessor_id = simpledialog.askinteger(
-            "Add Predecessor",
-            "Enter the ID of the predecessor task:",
+            'Add Predecessor',
+            'Enter the ID of the predecessor task:',
             parent=self.controller.root,
         )
         if predecessor_id is not None:
-            if self.model.add_predecessor(task["task_id"], predecessor_id):
+            if self.model.add_predecessor(task['task_id'], predecessor_id):
                 # Redraw to show dependencies
                 self.controller.ui.draw_dependencies()
             else:
-                messagebox.showerror("Error", "Predecessor task not found.")
+                messagebox.showerror('Error', 'Predecessor task not found.')
 
     def add_successor(self, task, target_task):
         """Add a successor to a task."""
         if not task or not target_task:
             return
 
-        if self.model.add_successor(task["task_id"], target_task["task_id"]):
+        if self.model.add_successor(task['task_id'], target_task['task_id']):
             # Redraw to show dependencies
             self.controller.ui.draw_dependencies()
         else:
-            messagebox.showerror("Error", "Successor task not found.")
+            messagebox.showerror('Error', 'Successor task not found.')
 
     def add_successor_dialog(self, task):
         """Add a successor to a task using a dialog box."""
@@ -200,16 +200,16 @@ class TaskOperations:
             return
 
         successor_id = simpledialog.askinteger(
-            "Add Successor",
-            "Enter the ID of the successor task:",
+            'Add Successor',
+            'Enter the ID of the successor task:',
             parent=self.controller.root,
         )
         if successor_id is not None:
-            if self.model.add_successor(task["task_id"], successor_id):
+            if self.model.add_successor(task['task_id'], successor_id):
                 # Redraw to show dependencies
                 self.controller.ui.draw_dependencies()
             else:
-                messagebox.showerror("Error", "Successor task not found.")
+                messagebox.showerror('Error', 'Successor task not found.')
 
     def create_capacity_tab(self, capacity_tab, resource_dropdown):
         """Create an improved capacity tab with vertical scrollable list."""
@@ -217,7 +217,7 @@ class TaskOperations:
         capacity_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Resource selection for capacity editing
-        tk.Label(capacity_frame, text="Select resource:").pack(anchor="w", pady=(0, 5))
+        tk.Label(capacity_frame, text='Select resource:').pack(anchor='w', pady=(0, 5))
 
         # Use the existing resource dropdown
         resource_dropdown.pack(fill=tk.X, pady=(0, 10))
@@ -230,7 +230,7 @@ class TaskOperations:
         list_frame = tk.Frame(content_frame)
         list_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
 
-        tk.Label(list_frame, text="Capacity by Day").pack(anchor="w", pady=(0, 5))
+        tk.Label(list_frame, text='Capacity by Day').pack(anchor='w', pady=(0, 5))
 
         # Create frame for capacity list with headers
         headers_frame = tk.Frame(list_frame)
@@ -238,24 +238,24 @@ class TaskOperations:
 
         # Create headers
         tk.Label(
-            headers_frame, text="Index", width=8, anchor="w", font=("Arial", 10, "bold")
+            headers_frame, text='Index', width=8, anchor='w', font=('Arial', 10, 'bold')
         ).pack(side=tk.LEFT)
         tk.Label(
-            headers_frame, text="Date", width=15, anchor="w", font=("Arial", 10, "bold")
+            headers_frame, text='Date', width=15, anchor='w', font=('Arial', 10, 'bold')
         ).pack(side=tk.LEFT)
         tk.Label(
             headers_frame,
-            text="Capacity",
+            text='Capacity',
             width=10,
-            anchor="w",
-            font=("Arial", 10, "bold"),
+            anchor='w',
+            font=('Arial', 10, 'bold'),
         ).pack(side=tk.LEFT)
 
         # Create scrollable capacity list
         list_container = tk.Frame(list_frame)
         list_container.pack(fill=tk.BOTH, expand=True)
 
-        capacity_scroll = tk.Scrollbar(list_container, orient="vertical")
+        capacity_scroll = tk.Scrollbar(list_container, orient='vertical')
         capacity_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
         capacity_canvas = tk.Canvas(
@@ -267,17 +267,17 @@ class TaskOperations:
         # Create a frame inside the canvas for the capacity items
         capacity_list_frame = tk.Frame(capacity_canvas)
         capacity_canvas.create_window(
-            (0, 0), window=capacity_list_frame, anchor="nw", tags="capacity_frame"
+            (0, 0), window=capacity_list_frame, anchor='nw', tags='capacity_frame'
         )
 
         # Function to update canvas scroll region when the list changes
         def update_scrollregion(event):
-            capacity_canvas.configure(scrollregion=capacity_canvas.bbox("all"))
+            capacity_canvas.configure(scrollregion=capacity_canvas.bbox('all'))
 
-        capacity_list_frame.bind("<Configure>", update_scrollregion)
+        capacity_list_frame.bind('<Configure>', update_scrollregion)
         capacity_canvas.bind(
-            "<Configure>",
-            lambda e: capacity_canvas.itemconfig("capacity_frame", width=e.width),
+            '<Configure>',
+            lambda e: capacity_canvas.itemconfig('capacity_frame', width=e.width),
         )
 
         # ======= Right section: Capacity edit controls =======
@@ -286,7 +286,7 @@ class TaskOperations:
 
         # === Index-based capacity editing ===
         index_frame = tk.LabelFrame(
-            control_frame, text="Set Capacity by Index", padx=10, pady=10
+            control_frame, text='Set Capacity by Index', padx=10, pady=10
         )
         index_frame.pack(fill=tk.X, pady=(0, 15))
 
@@ -294,12 +294,12 @@ class TaskOperations:
         day_frame = tk.Frame(index_frame)
         day_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(day_frame, text="Day Index:").grid(row=0, column=0, padx=5, sticky="w")
+        tk.Label(day_frame, text='Day Index:').grid(row=0, column=0, padx=5, sticky='w')
         day_var = tk.StringVar()
         day_entry = tk.Entry(day_frame, textvariable=day_var, width=5)
         day_entry.grid(row=0, column=1, padx=5)
 
-        tk.Label(day_frame, text="To Index:").grid(row=0, column=2, padx=5)
+        tk.Label(day_frame, text='To Index:').grid(row=0, column=2, padx=5)
         end_day_var = tk.StringVar()
         end_day_entry = tk.Entry(day_frame, textvariable=end_day_var, width=5)
         end_day_entry.grid(row=0, column=3, padx=5)
@@ -308,20 +308,20 @@ class TaskOperations:
         capacity_frame = tk.Frame(index_frame)
         capacity_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(capacity_frame, text="Capacity:").pack(side=tk.LEFT, padx=5)
+        tk.Label(capacity_frame, text='Capacity:').pack(side=tk.LEFT, padx=5)
         capacity_var = tk.StringVar()
         capacity_entry = tk.Entry(capacity_frame, textvariable=capacity_var, width=5)
         capacity_entry.pack(side=tk.LEFT, padx=5)
 
         # Update button
         update_button = tk.Button(
-            index_frame, text="Update Capacity", command=lambda: update_capacity()
+            index_frame, text='Update Capacity', command=lambda: update_capacity()
         )
-        update_button.pack(anchor="e", pady=(5, 0))
+        update_button.pack(anchor='e', pady=(5, 0))
 
         # === Date-based capacity editing ===
         date_frame = tk.LabelFrame(
-            control_frame, text="Set Capacity by Date", padx=10, pady=10
+            control_frame, text='Set Capacity by Date', padx=10, pady=10
         )
         date_frame.pack(fill=tk.X, pady=(0, 15))
 
@@ -337,17 +337,17 @@ class TaskOperations:
         start_date_frame = tk.Frame(date_frame)
         start_date_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(start_date_frame, text="Start Date:").pack(side=tk.LEFT, padx=5)
+        tk.Label(start_date_frame, text='Start Date:').pack(side=tk.LEFT, padx=5)
 
         if has_calendar:
             start_date_var = tk.StringVar()
             start_date_picker = DateEntry(
                 start_date_frame,
                 width=12,
-                background="darkblue",
-                foreground="white",
+                background='darkblue',
+                foreground='white',
                 borderwidth=2,
-                date_pattern="yyyy-mm-dd",  # Specify YYYY-MM-DD format
+                date_pattern='yyyy-mm-dd',  # Specify YYYY-MM-DD format
                 textvariable=start_date_var,
             )
             start_date_picker.pack(side=tk.LEFT, padx=5)
@@ -357,23 +357,23 @@ class TaskOperations:
                 start_date_frame, textvariable=start_date_var, width=10
             )
             start_date_entry.pack(side=tk.LEFT, padx=5)
-            tk.Label(start_date_frame, text="(YYYY-MM-DD)").pack(side=tk.LEFT)
+            tk.Label(start_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT)
 
         # End date
         end_date_frame = tk.Frame(date_frame)
         end_date_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(end_date_frame, text="End Date:").pack(side=tk.LEFT, padx=5)
+        tk.Label(end_date_frame, text='End Date:').pack(side=tk.LEFT, padx=5)
 
         if has_calendar:
             end_date_var = tk.StringVar()
             end_date_picker = DateEntry(
                 end_date_frame,
                 width=12,
-                background="darkblue",
-                foreground="white",
+                background='darkblue',
+                foreground='white',
                 borderwidth=2,
-                date_pattern="yyyy-mm-dd",  # Specify YYYY-MM-DD format
+                date_pattern='yyyy-mm-dd',  # Specify YYYY-MM-DD format
                 textvariable=end_date_var,
             )
             end_date_picker.pack(side=tk.LEFT, padx=5)
@@ -383,13 +383,13 @@ class TaskOperations:
                 end_date_frame, textvariable=end_date_var, width=10
             )
             end_date_entry.pack(side=tk.LEFT, padx=5)
-            tk.Label(end_date_frame, text="(YYYY-MM-DD)").pack(side=tk.LEFT)
+            tk.Label(end_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT)
 
         # Capacity for date range
         date_capacity_frame = tk.Frame(date_frame)
         date_capacity_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(date_capacity_frame, text="Capacity:").pack(side=tk.LEFT, padx=5)
+        tk.Label(date_capacity_frame, text='Capacity:').pack(side=tk.LEFT, padx=5)
         date_capacity_var = tk.StringVar()
         date_capacity_entry = tk.Entry(
             date_capacity_frame, textvariable=date_capacity_var, width=5
@@ -399,10 +399,10 @@ class TaskOperations:
         # Update button for date range
         update_date_button = tk.Button(
             date_frame,
-            text="Update Capacity",
+            text='Update Capacity',
             command=lambda: update_capacity_by_date(),
         )
-        update_date_button.pack(anchor="e", pady=(5, 0))
+        update_date_button.pack(anchor='e', pady=(5, 0))
 
         # Functions for drawing and updating the capacity list
         def draw_capacity_list(resource_id):
@@ -415,39 +415,39 @@ class TaskOperations:
                 return
 
             # Create capacity list entries
-            for i, capacity in enumerate(resource["capacity"]):
+            for i, capacity in enumerate(resource['capacity']):
                 if i >= self.model.days:
                     break
 
                 date = self.model.get_date_for_day(i)
-                date_str = date.strftime("%Y-%m-%d")
+                date_str = date.strftime('%Y-%m-%d')
 
                 row_frame = tk.Frame(capacity_list_frame)
                 row_frame.pack(fill=tk.X, pady=1)
 
                 # Set alternating row color
                 if i % 2 == 0:
-                    row_frame.configure(bg="#f0f0f0")
-                    bg_color = "#f0f0f0"
+                    row_frame.configure(bg='#f0f0f0')
+                    bg_color = '#f0f0f0'
                 else:
-                    row_frame.configure(bg="#ffffff")
-                    bg_color = "#ffffff"
+                    row_frame.configure(bg='#ffffff')
+                    bg_color = '#ffffff'
 
                 # Day index
                 day_label = tk.Label(
-                    row_frame, text=str(i), width=8, anchor="w", bg=bg_color
+                    row_frame, text=str(i), width=8, anchor='w', bg=bg_color
                 )
                 day_label.pack(side=tk.LEFT)
 
                 # Date
                 date_label = tk.Label(
-                    row_frame, text=date_str, width=15, anchor="w", bg=bg_color
+                    row_frame, text=date_str, width=15, anchor='w', bg=bg_color
                 )
                 date_label.pack(side=tk.LEFT)
 
                 # Capacity
                 capacity_label = tk.Label(
-                    row_frame, text=str(capacity), width=10, anchor="w", bg=bg_color
+                    row_frame, text=str(capacity), width=10, anchor='w', bg=bg_color
                 )
                 capacity_label.pack(side=tk.LEFT)
 
@@ -455,10 +455,10 @@ class TaskOperations:
         def update_capacity():
             selected = resource_dropdown.get()
             if not selected:
-                tk.messagebox.showwarning("Warning", "Please select a resource.")
+                tk.messagebox.showwarning('Warning', 'Please select a resource.')
                 return
 
-            resource_id = int(selected.split(" - ")[0])
+            resource_id = int(selected.split(' - ')[0])
 
             try:
                 # Check if range or single day
@@ -467,8 +467,8 @@ class TaskOperations:
                 # Validate day
                 if day < 0 or day >= self.model.days:
                     tk.messagebox.showwarning(
-                        "Warning",
-                        f"Day index must be between 0 and {self.model.days - 1}.",
+                        'Warning',
+                        f'Day index must be between 0 and {self.model.days - 1}.',
                     )
                     return
 
@@ -479,8 +479,8 @@ class TaskOperations:
                     # Validate end day
                     if end_day < day or end_day >= self.model.days:
                         tk.messagebox.showwarning(
-                            "Warning",
-                            f"End day index must be between {day} and {self.model.days - 1}.",
+                            'Warning',
+                            f'End day index must be between {day} and {self.model.days - 1}.',
                         )
                         return
 
@@ -488,7 +488,7 @@ class TaskOperations:
                     capacity = float(capacity_var.get())
                     if capacity < 0:
                         tk.messagebox.showwarning(
-                            "Warning", "Capacity cannot be negative."
+                            'Warning', 'Capacity cannot be negative.'
                         )
                         return
 
@@ -497,7 +497,7 @@ class TaskOperations:
                         self.model.update_resource_capacity(resource_id, i, capacity)
 
                     tk.messagebox.showinfo(
-                        "Success", f"Capacity updated for days {day} to {end_day}."
+                        'Success', f'Capacity updated for days {day} to {end_day}.'
                     )
 
                 else:
@@ -505,31 +505,31 @@ class TaskOperations:
                     capacity = float(capacity_var.get())
                     if capacity < 0:
                         tk.messagebox.showwarning(
-                            "Warning", "Capacity cannot be negative."
+                            'Warning', 'Capacity cannot be negative.'
                         )
                         return
 
                     # Update capacity
                     self.model.update_resource_capacity(resource_id, day, capacity)
                     tk.messagebox.showinfo(
-                        "Success", f"Capacity updated for day {day}."
+                        'Success', f'Capacity updated for day {day}.'
                     )
 
                 # Redraw capacity list
                 draw_capacity_list(resource_id)
 
             except ValueError:
-                tk.messagebox.showwarning("Warning", "Please enter valid numbers.")
+                tk.messagebox.showwarning('Warning', 'Please enter valid numbers.')
                 return
 
         # Function to update capacity by date
         def update_capacity_by_date():
             selected = resource_dropdown.get()
             if not selected:
-                tk.messagebox.showwarning("Warning", "Please select a resource.")
+                tk.messagebox.showwarning('Warning', 'Please select a resource.')
                 return
 
-            resource_id = int(selected.split(" - ")[0])
+            resource_id = int(selected.split(' - ')[0])
 
             try:
                 # Parse dates
@@ -539,10 +539,10 @@ class TaskOperations:
                 end_date_str = end_date_var.get()
 
                 try:
-                    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
                 except ValueError:
                     tk.messagebox.showwarning(
-                        "Warning", "Start date must be in YYYY-MM-DD format."
+                        'Warning', 'Start date must be in YYYY-MM-DD format.'
                     )
                     return
 
@@ -551,17 +551,17 @@ class TaskOperations:
                     end_date = start_date
                 else:
                     try:
-                        end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
                     except ValueError:
                         tk.messagebox.showwarning(
-                            "Warning", "End date must be in YYYY-MM-DD format."
+                            'Warning', 'End date must be in YYYY-MM-DD format.'
                         )
                         return
 
                 # Validate date range
                 if end_date < start_date:
                     tk.messagebox.showwarning(
-                        "Warning", "End date must be after start date."
+                        'Warning', 'End date must be after start date.'
                     )
                     return
 
@@ -572,20 +572,20 @@ class TaskOperations:
                 # Validate indices are within project range
                 if start_day < 0 or start_day >= self.model.days:
                     tk.messagebox.showwarning(
-                        "Warning", "Start date is outside the project timeline."
+                        'Warning', 'Start date is outside the project timeline.'
                     )
                     return
 
                 if end_day < 0 or end_day >= self.model.days:
                     tk.messagebox.showwarning(
-                        "Warning", "End date is outside the project timeline."
+                        'Warning', 'End date is outside the project timeline.'
                     )
                     return
 
                 # Get capacity
                 capacity = float(date_capacity_var.get())
                 if capacity < 0:
-                    tk.messagebox.showwarning("Warning", "Capacity cannot be negative.")
+                    tk.messagebox.showwarning('Warning', 'Capacity cannot be negative.')
                     return
 
                 # Update capacity for date range
@@ -593,15 +593,15 @@ class TaskOperations:
                     self.model.update_resource_capacity(resource_id, i, capacity)
 
                 tk.messagebox.showinfo(
-                    "Success",
-                    f"Capacity updated for dates from {start_date_str} to {end_date_str}.",
+                    'Success',
+                    f'Capacity updated for dates from {start_date_str} to {end_date_str}.',
                 )
 
                 # Redraw capacity list
                 draw_capacity_list(resource_id)
 
             except ValueError as e:
-                tk.messagebox.showwarning("Warning", f"Error: {str(e)}")
+                tk.messagebox.showwarning('Warning', f'Error: {str(e)}')
                 return
 
         # Connect events
@@ -609,14 +609,14 @@ class TaskOperations:
             """When a resource is selected, update the capacity list."""
             selected = resource_dropdown.get()
             if selected:
-                resource_id = int(selected.split(" - ")[0])
+                resource_id = int(selected.split(' - ')[0])
                 draw_capacity_list(resource_id)
 
-        resource_dropdown.bind("<<ComboboxSelected>>", on_resource_select)
+        resource_dropdown.bind('<<ComboboxSelected>>', on_resource_select)
 
         # Initialize with the first resource if available
         if self.model.resources:
-            resource_id = self.model.resources[0]["id"]
+            resource_id = self.model.resources[0]['id']
             draw_capacity_list(resource_id)
 
         return capacity_frame, day_var, end_day_var, capacity_var, update_capacity
@@ -629,13 +629,13 @@ class TaskOperations:
         if task:
             # Create a dialog for resource selection
             dialog = tk.Toplevel(self.controller.root)
-            dialog.title("Edit Task Resources")
-            dialog.geometry("300x400")
+            dialog.title('Edit Task Resources')
+            dialog.geometry('300x400')
             dialog.transient(self.controller.root)
             dialog.grab_set()
 
             # Bind ESC key to close dialog
-            dialog.bind("<Escape>", lambda e: dialog.destroy())
+            dialog.bind('<Escape>', lambda e: dialog.destroy())
 
             # Ensure the dialog gets focus when opened
             dialog.focus_set()
@@ -658,13 +658,13 @@ class TaskOperations:
 
             # Frame inside canvas for resources
             inner_frame = tk.Frame(canvas)
-            canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+            canvas.create_window((0, 0), window=inner_frame, anchor='nw')
 
             # Label for the dialog
             tk.Label(
                 inner_frame,
-                text="Specify resource allocations:",
-                font=("Helvetica", 10, "bold"),
+                text='Specify resource allocations:',
+                font=('Helvetica', 10, 'bold'),
             ).pack(pady=5)
 
             # Dictionary to store resource allocation entries
@@ -672,21 +672,21 @@ class TaskOperations:
 
             # Create entry fields for each resource
             for i, resource in enumerate(self.model.resources):
-                resource_id = resource["id"]
-                resource_name = resource["name"]
+                resource_id = resource['id']
+                resource_name = resource['name']
 
                 # Create a frame for each resource
                 resource_row = tk.Frame(inner_frame)
                 resource_row.pack(fill=tk.X, padx=5, pady=2)
 
                 # Resource name label
-                tk.Label(resource_row, text=resource_name, width=15, anchor="w").pack(
+                tk.Label(resource_row, text=resource_name, width=15, anchor='w').pack(
                     side=tk.LEFT
                 )
 
                 # Resource allocation entry
-                allocation = task["resources"].get(resource_id, 0.0)
-                var = tk.StringVar(value=str(allocation) if allocation > 0 else "")
+                allocation = task['resources'].get(resource_id, 0.0)
+                var = tk.StringVar(value=str(allocation) if allocation > 0 else '')
                 entry = tk.Entry(resource_row, textvariable=var, width=8)
                 entry.pack(side=tk.LEFT, padx=5)
 
@@ -695,7 +695,7 @@ class TaskOperations:
             # Function to save resource allocations and close dialog
             def save_resources():
                 # Clear existing resources
-                task["resources"] = {}
+                task['resources'] = {}
 
                 # Add new resource allocations
                 for resource_id, var in resource_entries.items():
@@ -704,11 +704,11 @@ class TaskOperations:
                         if value:  # Only process non-empty entries
                             allocation = float(value)
                             if allocation > 0:
-                                task["resources"][resource_id] = allocation
+                                task['resources'][resource_id] = allocation
                     except ValueError:
                         # Skip invalid entries
                         messagebox.showwarning(
-                            "Warning",
+                            'Warning',
                             f"Invalid allocation for resource {self.model.get_resource_by_id(resource_id)['name']}. Skipping.",
                         )
 
@@ -719,16 +719,16 @@ class TaskOperations:
             button_frame = tk.Frame(dialog)
             button_frame.pack(fill=tk.X, pady=10)
 
-            tk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(
+            tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
                 side=tk.RIGHT, padx=5
             )
-            tk.Button(button_frame, text="Save", command=save_resources).pack(
+            tk.Button(button_frame, text='Save', command=save_resources).pack(
                 side=tk.RIGHT, padx=5
             )
 
             # Configure the canvas scrolling
             inner_frame.update_idletasks()
-            canvas.config(scrollregion=canvas.bbox("all"))
+            canvas.config(scrollregion=canvas.bbox('all'))
 
             # Center the dialog on the main window
             dialog.update_idletasks()
@@ -740,12 +740,12 @@ class TaskOperations:
                 self.controller.root.winfo_y()
                 + (self.controller.root.winfo_height() - dialog.winfo_height()) // 2
             )
-            dialog.geometry(f"+{x}+{y}")
+            dialog.geometry(f'+{x}+{y}')
 
     def delete_task(self):
         """Delete the selected task"""
         if self.controller.selected_task:
-            task_id = self.controller.selected_task["task_id"]
+            task_id = self.controller.selected_task['task_id']
 
             # Remove the task from the model
             if self.model.delete_task(task_id):
@@ -775,14 +775,14 @@ class TaskOperations:
         parent = parent or self.controller.root
 
         resource_name = simpledialog.askstring(
-            "Add Resource", "Enter new resource name:", parent=parent
+            'Add Resource', 'Enter new resource name:', parent=parent
         )
         if resource_name:
             if self.model.add_resource(resource_name):
                 self.controller.ui.draw_resource_grid()
                 self.controller.update_resource_loading()
             else:
-                messagebox.showinfo("Information", "Resource already exists.")
+                messagebox.showinfo('Information', 'Resource already exists.')
 
     def edit_resources(self, parent=None):
         """Edit the list of resources"""
@@ -790,18 +790,18 @@ class TaskOperations:
         parent = parent or self.controller.root
 
         dialog = tk.Toplevel(parent)
-        dialog.title("Edit Resources")
+        dialog.title('Edit Resources')
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        dialog.geometry(f"700x500+{x}+{y}")
+        dialog.geometry(f'700x500+{x}+{y}')
         dialog.transient(parent)
         dialog.grab_set()  # Important: Prevents interaction with the main window
         dialog.focus_set()  # Ensure dialog gets focus
         dialog.wait_visibility()  # Wait for dialog to be visible before proceeding
 
         # Bind ESC key to close dialog
-        dialog.bind("<Escape>", lambda e: dialog.destroy())
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
 
         # Create a frame for the resource list
         list_frame = tk.Frame(dialog)
@@ -813,11 +813,11 @@ class TaskOperations:
 
         # Resources tab
         resources_tab = tk.Frame(notebook)
-        notebook.add(resources_tab, text="Resources")
+        notebook.add(resources_tab, text='Resources')
 
         # Capacity tab
         capacity_tab = tk.Frame(notebook)
-        notebook.add(capacity_tab, text="Capacity")
+        notebook.add(capacity_tab, text='Capacity')
 
         # ---- Resources Tab ----
         resource_management_frame = tk.Frame(resources_tab)
@@ -826,9 +826,9 @@ class TaskOperations:
         # Add a label for instructions
         tk.Label(
             resource_management_frame,
-            text="Manage Resources:",
-            font=("Helvetica", 10, "bold"),
-        ).pack(anchor="w", pady=(0, 10))
+            text='Manage Resources:',
+            font=('Helvetica', 10, 'bold'),
+        ).pack(anchor='w', pady=(0, 10))
 
         # Create frame for listbox and scrollbar
         listbox_frame = tk.Frame(resource_management_frame)
@@ -840,7 +840,7 @@ class TaskOperations:
 
         # Create a listbox to display resources
         resource_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=("Helvetica", 10)
+            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10)
         )
         resource_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=resource_listbox.yview)
@@ -850,12 +850,12 @@ class TaskOperations:
         details_frame.pack(fill=tk.X, pady=10)
 
         # Resource name editing
-        tk.Label(details_frame, text="Resource Name:").grid(
-            row=0, column=0, sticky="w", padx=5, pady=5
+        tk.Label(details_frame, text='Resource Name:').grid(
+            row=0, column=0, sticky='w', padx=5, pady=5
         )
         resource_name_var = tk.StringVar()
         name_entry = tk.Entry(details_frame, textvariable=resource_name_var, width=30)
-        name_entry.grid(row=0, column=1, sticky="w", padx=5, pady=5)
+        name_entry.grid(row=0, column=1, sticky='w', padx=5, pady=5)
 
         # Populate the listbox
         def populate_resource_listbox():
@@ -876,32 +876,32 @@ class TaskOperations:
             selected_indices = resource_listbox.curselection()
             if not selected_indices:
                 messagebox.showwarning(
-                    "No Selection", "Please select a resource to update.", parent=dialog
+                    'No Selection', 'Please select a resource to update.', parent=dialog
                 )
                 return
 
             # Get the resource to update
             index = selected_indices[0]
             resource_text = resource_listbox.get(index)
-            resource_id = int(resource_text.split(" - ")[0])
+            resource_id = int(resource_text.split(' - ')[0])
             resource = self.model.get_resource_by_id(resource_id)
 
             if resource:
                 new_name = resource_name_var.get().strip()
                 if not new_name:
                     messagebox.showwarning(
-                        "Invalid Name", "Resource name cannot be empty.", parent=dialog
+                        'Invalid Name', 'Resource name cannot be empty.', parent=dialog
                     )
                     return
 
-                if new_name != resource["name"]:
+                if new_name != resource['name']:
                     if self.model.update_resource_name(resource_id, new_name):
                         # Update the listbox
                         resource_listbox.delete(index)
-                        resource_listbox.insert(index, f"{resource_id} - {new_name}")
+                        resource_listbox.insert(index, f'{resource_id} - {new_name}')
                         resource_listbox.selection_set(index)
                         messagebox.showinfo(
-                            "Success",
+                            'Success',
                             f"Resource renamed to '{new_name}'.",
                             parent=dialog,
                         )
@@ -911,8 +911,8 @@ class TaskOperations:
                         self.controller.update_resource_loading()
                     else:
                         messagebox.showwarning(
-                            "Error",
-                            "A resource with this name already exists.",
+                            'Error',
+                            'A resource with this name already exists.',
                             parent=dialog,
                         )
 
@@ -922,14 +922,14 @@ class TaskOperations:
             resource_name = resource_name_var.get().strip()
             if not resource_name:
                 messagebox.showwarning(
-                    "Invalid Name", "Please enter a resource name.", parent=dialog
+                    'Invalid Name', 'Please enter a resource name.', parent=dialog
                 )
                 return
 
             if self.model.get_resource_by_name(resource_name):
                 messagebox.showwarning(
-                    "Duplicate Name",
-                    "A resource with this name already exists.",
+                    'Duplicate Name',
+                    'A resource with this name already exists.',
                     parent=dialog,
                 )
                 return
@@ -938,9 +938,9 @@ class TaskOperations:
             # Refresh the listbox
             populate_resource_listbox()
             messagebox.showinfo(
-                "Success", f"Resource '{resource_name}' added.", parent=dialog
+                'Success', f"Resource '{resource_name}' added.", parent=dialog
             )
-            resource_name_var.set("")  # Clear the entry field
+            resource_name_var.set('')  # Clear the entry field
 
             # Update the resource grid in the main UI
             self.controller.ui.draw_resource_grid()
@@ -951,20 +951,20 @@ class TaskOperations:
             selected_indices = resource_listbox.curselection()
             if not selected_indices:
                 messagebox.showwarning(
-                    "No Selection", "Please select a resource to delete.", parent=dialog
+                    'No Selection', 'Please select a resource to delete.', parent=dialog
                 )
                 return
 
             # Get the resource to remove
             index = selected_indices[0]
             resource_text = resource_listbox.get(index)
-            resource_id = int(resource_text.split(" - ")[0])
+            resource_id = int(resource_text.split(' - ')[0])
             resource = self.model.get_resource_by_id(resource_id)
 
             if resource:
                 # Confirm deletion
                 if messagebox.askyesno(
-                    "Confirm Delete",
+                    'Confirm Delete',
                     f"Delete resource '{resource['name']}'?",
                     parent=dialog,
                 ):
@@ -972,22 +972,22 @@ class TaskOperations:
                     used_by_tasks = []
                     for task in self.model.tasks:
                         if (
-                            str(resource_id) in task["resources"]
-                            or resource_id in task["resources"]
+                            str(resource_id) in task['resources']
+                            or resource_id in task['resources']
                         ):
-                            used_by_tasks.append(task["description"])
+                            used_by_tasks.append(task['description'])
 
                     if used_by_tasks:
                         # Resource is in use - ask what to do
                         message = f"Resource '{resource['name']}' is used by {len(used_by_tasks)} tasks. Remove it from tasks too?"
                         if messagebox.askyesno(
-                            "Resource in Use", message, parent=dialog
+                            'Resource in Use', message, parent=dialog
                         ):
                             # Remove resource using model method (will remove from tasks too)
                             self.model.remove_resource(resource_id)
                             resource_listbox.delete(index)
                             messagebox.showinfo(
-                                "Success",
+                                'Success',
                                 f"Resource '{resource['name']}' deleted.",
                                 parent=dialog,
                             )
@@ -1003,7 +1003,7 @@ class TaskOperations:
                         self.model.remove_resource(resource_id)
                         resource_listbox.delete(index)
                         messagebox.showinfo(
-                            "Success",
+                            'Success',
                             f"Resource '{resource['name']}' deleted.",
                             parent=dialog,
                         )
@@ -1024,23 +1024,23 @@ class TaskOperations:
             if selected_indices:
                 index = selected_indices[0]
                 resource_text = resource_listbox.get(index)
-                resource_id = int(resource_text.split(" - ")[0])
+                resource_id = int(resource_text.split(' - ')[0])
                 resource = self.model.get_resource_by_id(resource_id)
                 if resource:
-                    resource_name_var.set(resource["name"])
+                    resource_name_var.set(resource['name'])
 
         # Bind selection event
-        resource_listbox.bind("<<ListboxSelect>>", on_resource_select)
+        resource_listbox.bind('<<ListboxSelect>>', on_resource_select)
 
         # Add buttons for resource management
         tk.Button(
-            button_frame, text="Add Resource", command=add_resource_from_dialog
+            button_frame, text='Add Resource', command=add_resource_from_dialog
         ).pack(side=tk.LEFT, padx=5)
         tk.Button(
-            button_frame, text="Update Resource", command=update_selected_resource
+            button_frame, text='Update Resource', command=update_selected_resource
         ).pack(side=tk.LEFT, padx=5)
         tk.Button(
-            button_frame, text="Remove Resource", command=remove_selected_resource
+            button_frame, text='Remove Resource', command=remove_selected_resource
         ).pack(side=tk.LEFT, padx=5)
 
         # ---- Capacity Tab ----
@@ -1252,7 +1252,7 @@ class TaskOperations:
         # Create the dropdown for resource selection
         resource_var = tk.StringVar()
         resource_dropdown = tk.ttk.Combobox(
-            capacity_tab, textvariable=resource_var, state="readonly"
+            capacity_tab, textvariable=resource_var, state='readonly'
         )
 
         # Create the capacity tab with our new implementation
@@ -1263,7 +1263,7 @@ class TaskOperations:
         # Update dropdown values
         def update_resource_dropdown():
             resources = [f"{r['id']} - {r['name']}" for r in self.model.resources]
-            resource_dropdown["values"] = resources
+            resource_dropdown['values'] = resources
             if resources:
                 resource_dropdown.current(0)
 
@@ -1276,12 +1276,12 @@ class TaskOperations:
 
         # Get a reference to the Close button
         close_button = tk.Button(
-            close_button_frame, text="Close", command=on_dialog_close, width=10
+            close_button_frame, text='Close', command=on_dialog_close, width=10
         )
         close_button.pack(side=tk.RIGHT)
 
         # Bind the Return/Enter key to the dialog globally
-        dialog.bind("<Return>", lambda event: handle_enter_key(event))
+        dialog.bind('<Return>', lambda event: handle_enter_key(event))
 
         # Function to handle Enter key press
         def handle_enter_key(event):
@@ -1296,7 +1296,7 @@ class TaskOperations:
                 event.widget.invoke()
 
         # Also update the protocol handler for window close (X button)
-        dialog.protocol("WM_DELETE_WINDOW", on_dialog_close)
+        dialog.protocol('WM_DELETE_WINDOW', on_dialog_close)
 
         # # Draw the initial capacity chart if a resource is selected
         # if self.model.resources:
@@ -1305,17 +1305,17 @@ class TaskOperations:
         # Connect the notebook tabs to update functions
         def on_tab_changed(event):
             tab = event.widget.select()
-            tab_text = event.widget.tab(tab, "text")
-            if tab_text == "Resources":
+            tab_text = event.widget.tab(tab, 'text')
+            if tab_text == 'Resources':
                 # Refresh resource list when switching to resources tab
                 populate_resource_listbox()
-            elif tab_text == "Capacity":
+            elif tab_text == 'Capacity':
                 # Refresh capacity dropdown when switching to capacity tab
                 update_resource_dropdown()
                 # Redraw capacity chart
                 # draw_capacity_chart()
 
-        notebook.bind("<<NotebookTabChanged>>", on_tab_changed)
+        notebook.bind('<<NotebookTabChanged>>', on_tab_changed)
 
     def edit_project_settings(self, parent=None):
         """Edit project settings like number of days and start date"""
@@ -1323,11 +1323,11 @@ class TaskOperations:
         parent = parent or self.controller.root
 
         dialog = tk.Toplevel(parent)
-        dialog.title("Project Settings")
+        dialog.title('Project Settings')
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        dialog.geometry(f"400x250+{x}+{y}")
+        dialog.geometry(f'400x250+{x}+{y}')
         dialog.transient(parent)
         dialog.grab_set()  # Prevent interaction with the main window
 
@@ -1336,28 +1336,28 @@ class TaskOperations:
         settings_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
         # Days setting
-        tk.Label(settings_frame, text="Number of Days:").grid(
-            row=0, column=0, sticky="w", pady=5
+        tk.Label(settings_frame, text='Number of Days:').grid(
+            row=0, column=0, sticky='w', pady=5
         )
         days_var = tk.IntVar(value=self.model.days)
         days_entry = tk.Entry(settings_frame, textvariable=days_var, width=10)
-        days_entry.grid(row=0, column=1, sticky="w", pady=5)
+        days_entry.grid(row=0, column=1, sticky='w', pady=5)
 
         # Max rows setting
-        tk.Label(settings_frame, text="Maximum Rows:").grid(
-            row=1, column=0, sticky="w", pady=5
+        tk.Label(settings_frame, text='Maximum Rows:').grid(
+            row=1, column=0, sticky='w', pady=5
         )
         max_rows_var = tk.IntVar(value=self.model.max_rows)
         max_rows_entry = tk.Entry(settings_frame, textvariable=max_rows_var, width=10)
-        max_rows_entry.grid(row=1, column=1, sticky="w", pady=5)
+        max_rows_entry.grid(row=1, column=1, sticky='w', pady=5)
 
         # Start date setting
-        tk.Label(settings_frame, text="Start Date:").grid(
-            row=2, column=0, sticky="w", pady=5
+        tk.Label(settings_frame, text='Start Date:').grid(
+            row=2, column=0, sticky='w', pady=5
         )
 
         date_frame = tk.Frame(settings_frame)
-        date_frame.grid(row=2, column=1, sticky="w", pady=5)
+        date_frame.grid(row=2, column=1, sticky='w', pady=5)
 
         # Create separate entry fields for year, month, day
         year_var = tk.StringVar(value=str(self.model.start_date.year))
@@ -1366,18 +1366,18 @@ class TaskOperations:
 
         year_entry = tk.Entry(date_frame, textvariable=year_var, width=5)
         year_entry.pack(side=tk.LEFT, padx=(0, 5))
-        tk.Label(date_frame, text="-").pack(side=tk.LEFT)
+        tk.Label(date_frame, text='-').pack(side=tk.LEFT)
 
         month_entry = tk.Entry(date_frame, textvariable=month_var, width=3)
         month_entry.pack(side=tk.LEFT, padx=(5, 5))
-        tk.Label(date_frame, text="-").pack(side=tk.LEFT)
+        tk.Label(date_frame, text='-').pack(side=tk.LEFT)
 
         day_entry = tk.Entry(date_frame, textvariable=day_var, width=3)
         day_entry.pack(side=tk.LEFT, padx=(5, 0))
 
         # Date format explanation
-        tk.Label(settings_frame, text="Format: YYYY-MM-DD", fg="gray").grid(
-            row=3, column=1, sticky="w", pady=(0, 10)
+        tk.Label(settings_frame, text='Format: YYYY-MM-DD', fg='gray').grid(
+            row=3, column=1, sticky='w', pady=(0, 10)
         )
 
         # Calendar picker button
@@ -1386,9 +1386,9 @@ class TaskOperations:
 
             try:
                 cal_dialog = tk.Toplevel(dialog)
-                cal_dialog.title("Select Start Date")
+                cal_dialog.title('Select Start Date')
                 cal_dialog.geometry(
-                    f"+{dialog.winfo_rootx()+50}+{dialog.winfo_rooty()+50}"
+                    f'+{dialog.winfo_rootx()+50}+{dialog.winfo_rooty()+50}'
                 )
                 cal_dialog.transient(dialog)
                 cal_dialog.grab_set()
@@ -1396,7 +1396,7 @@ class TaskOperations:
                 # Create calendar widget initialized with current start date
                 cal = Calendar(
                     cal_dialog,
-                    selectmode="day",
+                    selectmode='day',
                     year=int(year_var.get()),
                     month=int(month_var.get()),
                     day=int(day_var.get()),
@@ -1410,17 +1410,17 @@ class TaskOperations:
                     day_var.set(str(selected_date.day))
                     cal_dialog.destroy()
 
-                tk.Button(cal_dialog, text="Select", command=set_date).pack(pady=10)
+                tk.Button(cal_dialog, text='Select', command=set_date).pack(pady=10)
             except ImportError:
                 messagebox.showwarning(
-                    "Calendar Not Available",
-                    "The tkcalendar package is not installed. Please enter the date manually.",
+                    'Calendar Not Available',
+                    'The tkcalendar package is not installed. Please enter the date manually.',
                     parent=dialog,
                 )
 
         tk.Button(
-            settings_frame, text="Pick Date...", command=open_calendar_dialog
-        ).grid(row=2, column=2, padx=5, pady=5, sticky="w")
+            settings_frame, text='Pick Date...', command=open_calendar_dialog
+        ).grid(row=2, column=2, padx=5, pady=5, sticky='w')
 
         # Button frame
         button_frame = tk.Frame(dialog)
@@ -1434,16 +1434,16 @@ class TaskOperations:
                 # Validate days and rows
                 if new_days < 1:
                     messagebox.showerror(
-                        "Invalid Value",
-                        "Number of days must be at least 1.",
+                        'Invalid Value',
+                        'Number of days must be at least 1.',
                         parent=dialog,
                     )
                     return
 
                 if new_max_rows < 1:
                     messagebox.showerror(
-                        "Invalid Value",
-                        "Maximum rows must be at least 1.",
+                        'Invalid Value',
+                        'Maximum rows must be at least 1.',
                         parent=dialog,
                     )
                     return
@@ -1459,8 +1459,8 @@ class TaskOperations:
                     new_start_date = datetime(year, month, day)
                 except ValueError:
                     messagebox.showerror(
-                        "Invalid Date",
-                        "Please enter a valid date in format YYYY-MM-DD.",
+                        'Invalid Date',
+                        'Please enter a valid date in format YYYY-MM-DD.',
                         parent=dialog,
                     )
                     return
@@ -1469,16 +1469,16 @@ class TaskOperations:
                 tasks_out_of_bounds = False
                 for task in self.model.tasks:
                     if (
-                        task["col"] + task["duration"] > new_days
-                        or task["row"] >= new_max_rows
+                        task['col'] + task['duration'] > new_days
+                        or task['row'] >= new_max_rows
                     ):
                         tasks_out_of_bounds = True
                         break
 
                 if tasks_out_of_bounds:
                     if not messagebox.askyesno(
-                        "Warning",
-                        "Some tasks will be outside the new boundaries. These tasks may be lost or truncated. Continue?",
+                        'Warning',
+                        'Some tasks will be outside the new boundaries. These tasks may be lost or truncated. Continue?',
                         parent=dialog,
                     ):
                         return
@@ -1490,14 +1490,14 @@ class TaskOperations:
 
                 # Update resource capacities to match new days if needed
                 for resource in self.model.resources:
-                    if len(resource["capacity"]) < new_days:
+                    if len(resource['capacity']) < new_days:
                         # Extend capacities with default values
-                        resource["capacity"].extend(
-                            [1.0] * (new_days - len(resource["capacity"]))
+                        resource['capacity'].extend(
+                            [1.0] * (new_days - len(resource['capacity']))
                         )
-                    elif len(resource["capacity"]) > new_days:
+                    elif len(resource['capacity']) > new_days:
                         # Truncate capacities
-                        resource["capacity"] = resource["capacity"][:new_days]
+                        resource['capacity'] = resource['capacity'][:new_days]
 
                 # Update the UI
                 self.controller.update_view()
@@ -1506,14 +1506,14 @@ class TaskOperations:
 
             except ValueError:
                 messagebox.showerror(
-                    "Invalid Input", "Please enter valid numbers.", parent=dialog
+                    'Invalid Input', 'Please enter valid numbers.', parent=dialog
                 )
 
         # Add buttons
-        tk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(
+        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
             side=tk.RIGHT, padx=5
         )
-        tk.Button(button_frame, text="Save", command=save_settings).pack(
+        tk.Button(button_frame, text='Save', command=save_settings).pack(
             side=tk.RIGHT, padx=5
         )
 
@@ -1537,12 +1537,12 @@ class TaskOperations:
 
         for task_id, ui_elements in task_ui_elements.items():
             x1, y1, x2, y2, connector_x, connector_y = (
-                ui_elements["x1"],
-                ui_elements["y1"],
-                ui_elements["x2"],
-                ui_elements["y2"],
-                ui_elements["connector_x"],
-                ui_elements["connector_y"],
+                ui_elements['x1'],
+                ui_elements['y1'],
+                ui_elements['x2'],
+                ui_elements['y2'],
+                ui_elements['connector_x'],
+                ui_elements['connector_y'],
             )
             connector_radius = 5
 
@@ -1562,9 +1562,9 @@ class TaskOperations:
                         connector_y,
                         connector_x,
                         connector_y,
-                        fill="blue",
+                        fill='blue',
                         width=2,
-                        tags=("connector_line",),
+                        tags=('connector_line',),
                     )
                 )
                 return
@@ -1583,7 +1583,7 @@ class TaskOperations:
                 # Update highlighting
                 self.controller.ui.highlight_selected_tasks()
 
-                self.controller.resize_edge = "left"
+                self.controller.resize_edge = 'left'
                 task_clicked = True
                 break
 
@@ -1601,7 +1601,7 @@ class TaskOperations:
                 # Update highlighting
                 self.controller.ui.highlight_selected_tasks()
 
-                self.controller.resize_edge = "right"
+                self.controller.resize_edge = 'right'
                 task_clicked = True
                 break
 
@@ -1666,7 +1666,7 @@ class TaskOperations:
                 y1,
                 x1,
                 y1 + self.controller.task_height,
-                outline="blue",
+                outline='blue',
                 width=2,
                 dash=(4, 4),
             )
@@ -1680,11 +1680,11 @@ class TaskOperations:
         canvas_y = self.controller.task_canvas.canvasy(y)
 
         if self.controller.dragging_connector:
-            task_id = self.controller.selected_task["task_id"]
+            task_id = self.controller.selected_task['task_id']
             ui_elements = self.controller.ui.task_ui_elements.get(task_id)
             if ui_elements:  # Check if ui_elements exists for this task
-                connector_x = ui_elements["connector_x"]
-                connector_y = ui_elements["connector_y"]
+                connector_x = ui_elements['connector_x']
+                connector_y = ui_elements['connector_y']
                 self.controller.task_canvas.coords(
                     self.controller.connector_line,
                     connector_x,
@@ -1699,94 +1699,94 @@ class TaskOperations:
             dy = canvas_y - self.controller.drag_start_y
 
             task = self.controller.selected_task
-            task_id = task["task_id"]
+            task_id = task['task_id']
             ui_elements = self.controller.ui.task_ui_elements.get(task_id)
 
             if not ui_elements:
                 return
 
-            if self.controller.resize_edge == "left":
+            if self.controller.resize_edge == 'left':
                 # Resize from left edge - only affects the single task being resized
-                new_width = ui_elements["x2"] - (ui_elements["x1"] + dx)
+                new_width = ui_elements['x2'] - (ui_elements['x1'] + dx)
                 if new_width >= self.controller.cell_width:  # Minimum task width
-                    self.controller.task_canvas.move(ui_elements["left_edge"], dx, 0)
+                    self.controller.task_canvas.move(ui_elements['left_edge'], dx, 0)
                     self.controller.task_canvas.coords(
-                        ui_elements["box"],
-                        ui_elements["x1"] + dx,
-                        ui_elements["y1"],
-                        ui_elements["x2"],
-                        ui_elements["y2"],
+                        ui_elements['box'],
+                        ui_elements['x1'] + dx,
+                        ui_elements['y1'],
+                        ui_elements['x2'],
+                        ui_elements['y2'],
                     )
                     # Update stored coordinates
-                    ui_elements["x1"] += dx
+                    ui_elements['x1'] += dx
 
                     # Update text position
                     self.controller.task_canvas.coords(
-                        ui_elements["text"],
-                        (ui_elements["x1"] + ui_elements["x2"]) / 2,
-                        (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
+                        ui_elements['text'],
+                        (ui_elements['x1'] + ui_elements['x2']) / 2,
+                        (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
                     )
 
                     # Update tag text position if it exists
-                    if ui_elements.get("tag_text"):
+                    if ui_elements.get('tag_text'):
                         self.controller.task_canvas.coords(
-                            ui_elements["tag_text"],
-                            (ui_elements["x1"] + ui_elements["x2"]) / 2,
-                            (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
+                            ui_elements['tag_text'],
+                            (ui_elements['x1'] + ui_elements['x2']) / 2,
+                            (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
                         )
 
                     # Update highlight position if it exists
-                    if ui_elements.get("highlight"):
+                    if ui_elements.get('highlight'):
                         self.controller.task_canvas.coords(
-                            ui_elements["highlight"],
-                            ui_elements["x1"] - 2,
-                            ui_elements["y1"] - 2,
-                            ui_elements["x2"] + 2,
-                            ui_elements["y2"] + 2,
+                            ui_elements['highlight'],
+                            ui_elements['x1'] - 2,
+                            ui_elements['y1'] - 2,
+                            ui_elements['x2'] + 2,
+                            ui_elements['y2'] + 2,
                         )
 
-            elif self.controller.resize_edge == "right":
+            elif self.controller.resize_edge == 'right':
                 # Resize from right edge - only affects the single task being resized
-                new_width = ui_elements["x2"] + dx - ui_elements["x1"]
+                new_width = ui_elements['x2'] + dx - ui_elements['x1']
                 if new_width >= self.controller.cell_width:  # Minimum task width
-                    self.controller.task_canvas.move(ui_elements["right_edge"], dx, 0)
+                    self.controller.task_canvas.move(ui_elements['right_edge'], dx, 0)
                     self.controller.task_canvas.coords(
-                        ui_elements["box"],
-                        ui_elements["x1"],
-                        ui_elements["y1"],
-                        ui_elements["x2"] + dx,
-                        ui_elements["y2"],
+                        ui_elements['box'],
+                        ui_elements['x1'],
+                        ui_elements['y1'],
+                        ui_elements['x2'] + dx,
+                        ui_elements['y2'],
                     )
                     # Update stored coordinates
-                    ui_elements["x2"] += dx
+                    ui_elements['x2'] += dx
 
                     # Update connector position
-                    ui_elements["connector_x"] += dx
-                    self.controller.task_canvas.move(ui_elements["connector"], dx, 0)
+                    ui_elements['connector_x'] += dx
+                    self.controller.task_canvas.move(ui_elements['connector'], dx, 0)
 
                     # Update text position
                     self.controller.task_canvas.coords(
-                        ui_elements["text"],
-                        (ui_elements["x1"] + ui_elements["x2"]) / 2,
-                        (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
+                        ui_elements['text'],
+                        (ui_elements['x1'] + ui_elements['x2']) / 2,
+                        (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
                     )
 
                     # Update tag text position if it exists
-                    if ui_elements.get("tag_text"):
+                    if ui_elements.get('tag_text'):
                         self.controller.task_canvas.coords(
-                            ui_elements["tag_text"],
-                            (ui_elements["x1"] + ui_elements["x2"]) / 2,
-                            (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
+                            ui_elements['tag_text'],
+                            (ui_elements['x1'] + ui_elements['x2']) / 2,
+                            (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
                         )
 
                     # Update highlight position if it exists
-                    if ui_elements.get("highlight"):
+                    if ui_elements.get('highlight'):
                         self.controller.task_canvas.coords(
-                            ui_elements["highlight"],
-                            ui_elements["x1"] - 2,
-                            ui_elements["y1"] - 2,
-                            ui_elements["x2"] + 2,
-                            ui_elements["y2"] + 2,
+                            ui_elements['highlight'],
+                            ui_elements['x1'] - 2,
+                            ui_elements['y1'] - 2,
+                            ui_elements['x2'] + 2,
+                            ui_elements['y2'] + 2,
                         )
 
             else:
@@ -1797,7 +1797,7 @@ class TaskOperations:
                 ):
                     # Move all selected tasks together
                     for selected_task in self.controller.selected_tasks:
-                        selected_task_id = selected_task["task_id"]
+                        selected_task_id = selected_task['task_id']
                         selected_ui_elements = self.controller.ui.task_ui_elements.get(
                             selected_task_id
                         )
@@ -1807,69 +1807,69 @@ class TaskOperations:
 
                         # Move all UI elements for this task
                         self.controller.task_canvas.move(
-                            selected_ui_elements["box"], dx, dy
+                            selected_ui_elements['box'], dx, dy
                         )
                         self.controller.task_canvas.move(
-                            selected_ui_elements["left_edge"], dx, dy
+                            selected_ui_elements['left_edge'], dx, dy
                         )
                         self.controller.task_canvas.move(
-                            selected_ui_elements["right_edge"], dx, dy
+                            selected_ui_elements['right_edge'], dx, dy
                         )
                         self.controller.task_canvas.move(
-                            selected_ui_elements["text"], dx, dy
+                            selected_ui_elements['text'], dx, dy
                         )
                         self.controller.task_canvas.move(
-                            selected_ui_elements["connector"], dx, dy
+                            selected_ui_elements['connector'], dx, dy
                         )
 
                         # Move tag text if it exists
-                        if selected_ui_elements.get("tag_text"):
+                        if selected_ui_elements.get('tag_text'):
                             self.controller.task_canvas.move(
-                                selected_ui_elements["tag_text"], dx, dy
+                                selected_ui_elements['tag_text'], dx, dy
                             )
 
                         # Move highlight if it exists
-                        if selected_ui_elements.get("highlight"):
+                        if selected_ui_elements.get('highlight'):
                             self.controller.task_canvas.move(
-                                selected_ui_elements["highlight"], dx, dy
+                                selected_ui_elements['highlight'], dx, dy
                             )
 
                         # Update stored coordinates
-                        selected_ui_elements["x1"] += dx
-                        selected_ui_elements["y1"] += dy
-                        selected_ui_elements["x2"] += dx
-                        selected_ui_elements["y2"] += dy
-                        selected_ui_elements["connector_x"] += dx
-                        selected_ui_elements["connector_y"] += dy
+                        selected_ui_elements['x1'] += dx
+                        selected_ui_elements['y1'] += dy
+                        selected_ui_elements['x2'] += dx
+                        selected_ui_elements['y2'] += dy
+                        selected_ui_elements['connector_x'] += dx
+                        selected_ui_elements['connector_y'] += dy
                 else:
                     # Move just the single selected task
-                    self.controller.task_canvas.move(ui_elements["box"], dx, dy)
-                    self.controller.task_canvas.move(ui_elements["left_edge"], dx, dy)
-                    self.controller.task_canvas.move(ui_elements["right_edge"], dx, dy)
-                    self.controller.task_canvas.move(ui_elements["text"], dx, dy)
+                    self.controller.task_canvas.move(ui_elements['box'], dx, dy)
+                    self.controller.task_canvas.move(ui_elements['left_edge'], dx, dy)
+                    self.controller.task_canvas.move(ui_elements['right_edge'], dx, dy)
+                    self.controller.task_canvas.move(ui_elements['text'], dx, dy)
 
                     # Move tag text if it exists
-                    if ui_elements.get("tag_text"):
+                    if ui_elements.get('tag_text'):
                         self.controller.task_canvas.move(
-                            ui_elements["tag_text"], dx, dy
+                            ui_elements['tag_text'], dx, dy
                         )
 
                     # Move highlight if it exists
-                    if ui_elements.get("highlight"):
+                    if ui_elements.get('highlight'):
                         self.controller.task_canvas.move(
-                            ui_elements["highlight"], dx, dy
+                            ui_elements['highlight'], dx, dy
                         )
 
                     # Update connector
-                    self.controller.task_canvas.move(ui_elements["connector"], dx, dy)
+                    self.controller.task_canvas.move(ui_elements['connector'], dx, dy)
 
                     # Update stored coordinates
-                    ui_elements["x1"] += dx
-                    ui_elements["y1"] += dy
-                    ui_elements["x2"] += dx
-                    ui_elements["y2"] += dy
-                    ui_elements["connector_x"] += dx
-                    ui_elements["connector_y"] += dy
+                    ui_elements['x1'] += dx
+                    ui_elements['y1'] += dy
+                    ui_elements['x2'] += dx
+                    ui_elements['y2'] += dy
+                    ui_elements['connector_x'] += dx
+                    ui_elements['connector_y'] += dy
 
             self.controller.drag_start_x = canvas_x
             self.controller.drag_start_y = canvas_y
@@ -1918,70 +1918,70 @@ class TaskOperations:
 
         if self.controller.selected_task:  # Existing task manipulation
             task = self.controller.selected_task
-            task_id = task["task_id"]
+            task_id = task['task_id']
             ui_elements = self.controller.ui.task_ui_elements.get(task_id)
 
             if not ui_elements:
                 return
 
             # Snap to grid
-            if self.controller.resize_edge == "left":
+            if self.controller.resize_edge == 'left':
                 # Snap left edge - only for single task
-                grid_col = round(ui_elements["x1"] / self.controller.cell_width)
+                grid_col = round(ui_elements['x1'] / self.controller.cell_width)
                 new_x1 = grid_col * self.controller.cell_width
-                dx = new_x1 - ui_elements["x1"]
+                dx = new_x1 - ui_elements['x1']
 
                 # Update visuals
-                self.controller.task_canvas.move(ui_elements["left_edge"], dx, 0)
+                self.controller.task_canvas.move(ui_elements['left_edge'], dx, 0)
                 self.controller.task_canvas.coords(
-                    ui_elements["box"],
+                    ui_elements['box'],
                     new_x1,
-                    ui_elements["y1"],
-                    ui_elements["x2"],
-                    ui_elements["y2"],
+                    ui_elements['y1'],
+                    ui_elements['x2'],
+                    ui_elements['y2'],
                 )
 
                 # Update stored coordinates
-                ui_elements["x1"] = new_x1
+                ui_elements['x1'] = new_x1
 
                 # Update model
-                task["col"] = grid_col
-                task["duration"] = round(
-                    (ui_elements["x2"] - ui_elements["x1"]) / self.controller.cell_width
+                task['col'] = grid_col
+                task['duration'] = round(
+                    (ui_elements['x2'] - ui_elements['x1']) / self.controller.cell_width
                 )
 
-            elif self.controller.resize_edge == "right":
+            elif self.controller.resize_edge == 'right':
                 # Snap right edge - only for single task
-                grid_col = round(ui_elements["x2"] / self.controller.cell_width)
+                grid_col = round(ui_elements['x2'] / self.controller.cell_width)
                 new_x2 = grid_col * self.controller.cell_width
-                dx = new_x2 - ui_elements["x2"]
+                dx = new_x2 - ui_elements['x2']
 
                 # Update visuals
-                self.controller.task_canvas.move(ui_elements["right_edge"], dx, 0)
+                self.controller.task_canvas.move(ui_elements['right_edge'], dx, 0)
                 self.controller.task_canvas.coords(
-                    ui_elements["box"],
-                    ui_elements["x1"],
-                    ui_elements["y1"],
+                    ui_elements['box'],
+                    ui_elements['x1'],
+                    ui_elements['y1'],
                     new_x2,
-                    ui_elements["y2"],
+                    ui_elements['y2'],
                 )
 
                 # Update stored coordinates
-                ui_elements["x2"] = new_x2
+                ui_elements['x2'] = new_x2
 
                 # Update model
-                task["duration"] = round(
-                    (ui_elements["x2"] - ui_elements["x1"]) / self.controller.cell_width
+                task['duration'] = round(
+                    (ui_elements['x2'] - ui_elements['x1']) / self.controller.cell_width
                 )
 
                 # Update connector position to match the new right edge position
-                ui_elements["connector_x"] = new_x2
+                ui_elements['connector_x'] = new_x2
                 self.controller.task_canvas.coords(
-                    ui_elements["connector"],
+                    ui_elements['connector'],
                     new_x2 - 5,
-                    ui_elements["connector_y"] - 5,
+                    ui_elements['connector_y'] - 5,
                     new_x2 + 5,
-                    ui_elements["connector_y"] + 5,
+                    ui_elements['connector_y'] + 5,
                 )
 
             else:
@@ -1992,7 +1992,7 @@ class TaskOperations:
                 ):
                     # Handle snapping for all selected tasks
                     for selected_task in self.controller.selected_tasks:
-                        selected_task_id = selected_task["task_id"]
+                        selected_task_id = selected_task['task_id']
                         selected_ui = self.controller.ui.task_ui_elements.get(
                             selected_task_id
                         )
@@ -2002,15 +2002,15 @@ class TaskOperations:
 
                         # Snap individual task to grid
                         grid_row = round(
-                            selected_ui["y1"] / self.controller.task_height
+                            selected_ui['y1'] / self.controller.task_height
                         )
-                        grid_col = round(selected_ui["x1"] / self.controller.cell_width)
+                        grid_col = round(selected_ui['x1'] / self.controller.cell_width)
 
                         new_x1 = grid_col * self.controller.cell_width
                         new_y1 = grid_row * self.controller.task_height
                         new_x2 = (
                             new_x1
-                            + selected_task["duration"] * self.controller.cell_width
+                            + selected_task['duration'] * self.controller.cell_width
                         )
                         new_y2 = new_y1 + self.controller.task_height
 
@@ -2030,82 +2030,82 @@ class TaskOperations:
                             new_x1 = 0
                             new_x2 = (
                                 new_x1
-                                + selected_task["duration"] * self.controller.cell_width
+                                + selected_task['duration'] * self.controller.cell_width
                             )
 
-                        if grid_col + selected_task["duration"] > self.model.days:
-                            grid_col = self.model.days - selected_task["duration"]
+                        if grid_col + selected_task['duration'] > self.model.days:
+                            grid_col = self.model.days - selected_task['duration']
                             new_x1 = grid_col * self.controller.cell_width
                             new_x2 = (
                                 new_x1
-                                + selected_task["duration"] * self.controller.cell_width
+                                + selected_task['duration'] * self.controller.cell_width
                             )
 
                         # Update visuals
                         self.controller.task_canvas.coords(
-                            selected_ui["box"], new_x1, new_y1, new_x2, new_y2
+                            selected_ui['box'], new_x1, new_y1, new_x2, new_y2
                         )
                         self.controller.task_canvas.coords(
-                            selected_ui["left_edge"], new_x1, new_y1, new_x1, new_y2
+                            selected_ui['left_edge'], new_x1, new_y1, new_x1, new_y2
                         )
                         self.controller.task_canvas.coords(
-                            selected_ui["right_edge"], new_x2, new_y1, new_x2, new_y2
+                            selected_ui['right_edge'], new_x2, new_y1, new_x2, new_y2
                         )
 
                         # Update text positions
                         self.controller.task_canvas.coords(
-                            selected_ui["text"],
+                            selected_ui['text'],
                             (new_x1 + new_x2) / 2,
                             (new_y1 + new_y2) / 2 - 8,
                         )
 
                         # Update tag text position if it exists
-                        if selected_ui.get("tag_text"):
+                        if selected_ui.get('tag_text'):
                             self.controller.task_canvas.coords(
-                                selected_ui["tag_text"],
+                                selected_ui['tag_text'],
                                 (new_x1 + new_x2) / 2,
                                 (new_y1 + new_y2) / 2 + 8,
                             )
 
                         # Update connector position
-                        selected_ui["connector_x"] = new_x2
-                        selected_ui["connector_y"] = (new_y1 + new_y2) / 2
+                        selected_ui['connector_x'] = new_x2
+                        selected_ui['connector_y'] = (new_y1 + new_y2) / 2
                         self.controller.task_canvas.coords(
-                            selected_ui["connector"],
-                            selected_ui["connector_x"] - 5,
-                            selected_ui["connector_y"] - 5,
-                            selected_ui["connector_x"] + 5,
-                            selected_ui["connector_y"] + 5,
+                            selected_ui['connector'],
+                            selected_ui['connector_x'] - 5,
+                            selected_ui['connector_y'] - 5,
+                            selected_ui['connector_x'] + 5,
+                            selected_ui['connector_y'] + 5,
                         )
 
                         # Update stored coordinates
-                        selected_ui["x1"], selected_ui["y1"] = new_x1, new_y1
-                        selected_ui["x2"], selected_ui["y2"] = new_x2, new_y2
+                        selected_ui['x1'], selected_ui['y1'] = new_x1, new_y1
+                        selected_ui['x2'], selected_ui['y2'] = new_x2, new_y2
 
                         # Update model
-                        selected_task["row"], selected_task["col"] = grid_row, grid_col
+                        selected_task['row'], selected_task['col'] = grid_row, grid_col
 
                     # Handle collisions for all tasks after positioning
                     for selected_task in self.controller.selected_tasks:
                         selected_ui = self.controller.ui.task_ui_elements.get(
-                            selected_task["task_id"]
+                            selected_task['task_id']
                         )
                         if selected_ui:
                             self.handle_task_collisions(
                                 selected_task,
-                                selected_ui["x1"],
-                                selected_ui["y1"],
-                                selected_ui["x2"],
-                                selected_ui["y2"],
+                                selected_ui['x1'],
+                                selected_ui['y1'],
+                                selected_ui['x2'],
+                                selected_ui['y2'],
                             )
                 else:
                     # Snap single task
-                    grid_row = round(ui_elements["y1"] / self.controller.task_height)
-                    grid_col = round(ui_elements["x1"] / self.controller.cell_width)
+                    grid_row = round(ui_elements['y1'] / self.controller.task_height)
+                    grid_col = round(ui_elements['x1'] / self.controller.cell_width)
 
                     new_x1 = grid_col * self.controller.cell_width
                     new_y1 = grid_row * self.controller.task_height
-                    new_x2 = new_x1 + task["duration"] * self.controller.cell_width
+                    new_x2 = new_x1 + task['duration'] * self.controller.cell_width
                     new_y2 = new_y1 + self.controller.task_height
 
                     # Keep task within bounds
@@ -2122,43 +2122,43 @@ class TaskOperations:
                     if grid_col < 0:
                         grid_col = 0
                         new_x1 = 0
-                        new_x2 = new_x1 + task["duration"] * self.controller.cell_width
+                        new_x2 = new_x1 + task['duration'] * self.controller.cell_width
 
-                    if grid_col + task["duration"] > self.model.days:
-                        grid_col = self.model.days - task["duration"]
+                    if grid_col + task['duration'] > self.model.days:
+                        grid_col = self.model.days - task['duration']
                         new_x1 = grid_col * self.controller.cell_width
-                        new_x2 = new_x1 + task["duration"] * self.controller.cell_width
+                        new_x2 = new_x1 + task['duration'] * self.controller.cell_width
 
                     # Update visuals
                     self.controller.task_canvas.coords(
-                        ui_elements["box"], new_x1, new_y1, new_x2, new_y2
+                        ui_elements['box'], new_x1, new_y1, new_x2, new_y2
                     )
                     self.controller.task_canvas.coords(
-                        ui_elements["left_edge"], new_x1, new_y1, new_x1, new_y2
+                        ui_elements['left_edge'], new_x1, new_y1, new_x1, new_y2
                     )
                     self.controller.task_canvas.coords(
-                        ui_elements["right_edge"], new_x2, new_y1, new_x2, new_y2
+                        ui_elements['right_edge'], new_x2, new_y1, new_x2, new_y2
                     )
 
                     # Update text positions
                     self.controller.task_canvas.coords(
-                        ui_elements["text"],
+                        ui_elements['text'],
                         (new_x1 + new_x2) / 2,
                         (new_y1 + new_y2) / 2 - 8,
                     )
 
                     # Update tag text position if it exists
-                    if ui_elements.get("tag_text"):
+                    if ui_elements.get('tag_text'):
                         self.controller.task_canvas.coords(
-                            ui_elements["tag_text"],
+                            ui_elements['tag_text'],
                             (new_x1 + new_x2) / 2,
                             (new_y1 + new_y2) / 2 + 8,
                         )
 
                     # Update highlight position if it exists
-                    if "highlight" in ui_elements:
+                    if 'highlight' in ui_elements:
                         self.controller.task_canvas.coords(
-                            ui_elements["highlight"],
+                            ui_elements['highlight'],
                             new_x1 - 2,
                             new_y1 - 2,
                             new_x2 + 2,
@@ -2170,33 +2170,33 @@ class TaskOperations:
                     self.handle_task_collisions(task, new_x1, new_y1, new_x2, new_y2)
 
                     # Update connector position AFTER snapping
-                    ui_elements["connector_x"] = new_x2
-                    ui_elements["connector_y"] = (new_y1 + new_y2) / 2
+                    ui_elements['connector_x'] = new_x2
+                    ui_elements['connector_y'] = (new_y1 + new_y2) / 2
                     self.controller.task_canvas.coords(
-                        ui_elements["connector"],
-                        ui_elements["connector_x"] - 5,
-                        ui_elements["connector_y"] - 5,
-                        ui_elements["connector_x"] + 5,
-                        ui_elements["connector_y"] + 5,
+                        ui_elements['connector'],
+                        ui_elements['connector_x'] - 5,
+                        ui_elements['connector_y'] - 5,
+                        ui_elements['connector_x'] + 5,
+                        ui_elements['connector_y'] + 5,
                     )
 
                     # Update stored coordinates
-                    ui_elements["x1"], ui_elements["y1"] = new_x1, new_y1
-                    ui_elements["x2"], ui_elements["y2"] = new_x2, new_y2
+                    ui_elements['x1'], ui_elements['y1'] = new_x1, new_y1
+                    ui_elements['x2'], ui_elements['y2'] = new_x2, new_y2
 
                     # Update model
-                    task["row"], task["col"] = grid_row, grid_col
+                    task['row'], task['col'] = grid_row, grid_col
 
             # Call handle_task_collisions for single task resize operations
             if (
-                self.controller.resize_edge == "left"
-                or self.controller.resize_edge == "right"
+                self.controller.resize_edge == 'left'
+                or self.controller.resize_edge == 'right'
             ):
                 x1, y1, x2, y2 = (
-                    ui_elements["x1"],
-                    ui_elements["y1"],
-                    ui_elements["x2"],
-                    ui_elements["y2"],
+                    ui_elements['x1'],
+                    ui_elements['y1'],
+                    ui_elements['x2'],
+                    ui_elements['y2'],
                 )
                 self.handle_task_collisions(task, x1, y1, x2, y2)
 
@@ -2231,7 +2231,7 @@ class TaskOperations:
             if duration >= 1:
                 # Create new task
                 task_name = simpledialog.askstring(
-                    "New Task", "Enter task name:", parent=self.controller.root
+                    'New Task', 'Enter task name:', parent=self.controller.root
                 )
                 if task_name:
                     # Create a new task in the model with empty resources dictionary
@@ -2282,10 +2282,10 @@ class TaskOperations:
 
         for task_id, ui_elements in task_ui_elements.items():
             x1, y1, x2, y2 = (
-                ui_elements["x1"],
-                ui_elements["y1"],
-                ui_elements["x2"],
-                ui_elements["y2"],
+                ui_elements['x1'],
+                ui_elements['y1'],
+                ui_elements['x2'],
+                ui_elements['y2'],
             )
 
             if x1 < canvas_x < x2 and y1 < canvas_y < y2:
@@ -2310,10 +2310,10 @@ class TaskOperations:
         """Finds the task at the given coordinates."""
         for task_id, ui_elements in self.controller.ui.task_ui_elements.items():
             x1, y1, x2, y2 = (
-                ui_elements["x1"],
-                ui_elements["y1"],
-                ui_elements["x2"],
-                ui_elements["y2"],
+                ui_elements['x1'],
+                ui_elements['y1'],
+                ui_elements['x2'],
+                ui_elements['y2'],
             )
             if x1 < x < x2 and y1 < y < y2:
                 return self.model.get_task(task_id)
@@ -2322,7 +2322,7 @@ class TaskOperations:
     def handle_task_collisions(self, task, x1, y1, x2, y2):
         """Handles collisions between tasks, shifting existing tasks as needed."""
         # Keep track of which tasks have been processed to avoid infinite loops
-        processed_tasks = set([task["task_id"]])
+        processed_tasks = set([task['task_id']])
 
         # Continue shifting tasks until no more collisions are detected
         while True:
@@ -2331,7 +2331,7 @@ class TaskOperations:
 
             for other_task in self.model.tasks:
                 # Skip the original task and already processed tasks
-                if other_task["task_id"] in processed_tasks:
+                if other_task['task_id'] in processed_tasks:
                     continue
 
                 # Get UI coordinates for the other task
@@ -2345,7 +2345,7 @@ class TaskOperations:
                     and x2 > other_x1
                     and y1 < other_y2
                     and y2 > other_y1
-                    and other_task["row"] == task["row"]
+                    and other_task['row'] == task['row']
                 ):
                     tasks_to_shift.append(
                         (other_task, other_x1, other_y1, other_x2, other_y2)
@@ -2358,7 +2358,7 @@ class TaskOperations:
             # Process all tasks that need shifting in this iteration
             for other_task, other_x1, other_y1, other_x2, other_y2 in tasks_to_shift:
                 # Mark this task as processed
-                processed_tasks.add(other_task["task_id"])
+                processed_tasks.add(other_task['task_id'])
 
                 # Calculate shift amount (move past the right edge of the current task)
                 shift_amount = x2 - other_x1 + 5  # Small buffer
@@ -2369,69 +2369,69 @@ class TaskOperations:
                 )
 
                 # Ensure task stays within bounds
-                if grid_col + other_task["duration"] > self.model.days:
-                    grid_col = self.model.days - other_task["duration"]
+                if grid_col + other_task['duration'] > self.model.days:
+                    grid_col = self.model.days - other_task['duration']
 
                 # Update the model
-                other_task["col"] = grid_col
+                other_task['col'] = grid_col
 
                 # Get UI elements for this task
-                task_id = other_task["task_id"]
+                task_id = other_task['task_id']
                 ui_elements = self.controller.ui.task_ui_elements.get(task_id)
 
                 if ui_elements:
                     # Calculate new positions
                     new_x1 = grid_col * self.controller.cell_width
                     new_x2 = (
-                        new_x1 + other_task["duration"] * self.controller.cell_width
+                        new_x1 + other_task['duration'] * self.controller.cell_width
                     )
 
                     # Update box position
                     self.controller.task_canvas.coords(
-                        ui_elements["box"],
+                        ui_elements['box'],
                         new_x1,
-                        ui_elements["y1"],
+                        ui_elements['y1'],
                         new_x2,
-                        ui_elements["y2"],
+                        ui_elements['y2'],
                     )
 
                     # Update edge positions
                     self.controller.task_canvas.coords(
-                        ui_elements["left_edge"],
+                        ui_elements['left_edge'],
                         new_x1,
-                        ui_elements["y1"],
+                        ui_elements['y1'],
                         new_x1,
-                        ui_elements["y2"],
+                        ui_elements['y2'],
                     )
 
                     self.controller.task_canvas.coords(
-                        ui_elements["right_edge"],
+                        ui_elements['right_edge'],
                         new_x2,
-                        ui_elements["y1"],
+                        ui_elements['y1'],
                         new_x2,
-                        ui_elements["y2"],
+                        ui_elements['y2'],
                     )
 
                     # Update text position
                     self.controller.task_canvas.coords(
-                        ui_elements["text"],
+                        ui_elements['text'],
                         (new_x1 + new_x2) / 2,
-                        (ui_elements["y1"] + ui_elements["y2"]) / 2 - 8,
+                        (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
                     )
 
                     # Update tag text position if it exists
-                    if "tag_text" in ui_elements:
+                    if 'tag_text' in ui_elements:
                         self.controller.task_canvas.coords(
-                            ui_elements["tag_text"],
+                            ui_elements['tag_text'],
                             (new_x1 + new_x2) / 2,
-                            (ui_elements["y1"] + ui_elements["y2"]) / 2 + 8,
+                            (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
                         )
 
                     # Update connector position
                     connector_x = new_x2
-                    connector_y = (ui_elements["y1"] + ui_elements["y2"]) / 2
+                    connector_y = (ui_elements['y1'] + ui_elements['y2']) / 2
                     self.controller.task_canvas.coords(
-                        ui_elements["connector"],
+                        ui_elements['connector'],
                         connector_x - 5,
                         connector_y - 5,
                         connector_x + 5,
@@ -2439,27 +2439,240 @@ class TaskOperations:
                     )
 
                     # Update highlight position if it exists
-                    if "highlight" in ui_elements:
+                    if 'highlight' in ui_elements:
                         self.controller.task_canvas.coords(
-                            ui_elements["highlight"],
+                            ui_elements['highlight'],
                             new_x1 - 2,
-                            ui_elements["y1"] - 2,
+                            ui_elements['y1'] - 2,
                             new_x2 + 2,
-                            ui_elements["y2"] + 2,
+                            ui_elements['y2'] + 2,
                         )
 
                     # Update stored coordinates
-                    ui_elements["x1"] = new_x1
-                    ui_elements["x2"] = new_x2
-                    ui_elements["connector_x"] = connector_x
-                    ui_elements["connector_y"] = connector_y
+                    ui_elements['x1'] = new_x1
+                    ui_elements['x2'] = new_x2
+                    ui_elements['connector_x'] = connector_x
+                    ui_elements['connector_y'] = connector_y
 
                 # For the next iteration, this shifted task becomes the one that might cause collisions
                 x1 = grid_col * self.controller.cell_width
-                x2 = x1 + other_task["duration"] * self.controller.cell_width
+                x2 = x1 + other_task['duration'] * self.controller.cell_width
                 y1 = other_y1
                 y2 = other_y2
                 task = other_task
 
             # Redraw dependencies after all shifts are complete
             self.controller.ui.draw_dependencies()
+
+    def add_note_to_task(self, task=None):
+        """Add a note to the selected task."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if not task:
+            return
+
+        # Create a dialog for note entry
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Add Task Note')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+
+        # Position the dialog relative to the parent window
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f'500x300+{x}+{y}')
+
+        # Create a frame with padding
+        frame = tk.Frame(dialog, padx=10, pady=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # Add task information header
+        header_text = f"Adding note to: Task {task['task_id']} - {task['description']}"
+        tk.Label(frame, text=header_text, font=('Arial', 10, 'bold')).pack(
+            anchor='w', pady=(0, 10)
+        )
+
+        # Add timestamp display
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tk.Label(frame, text=f'Timestamp: {timestamp}', font=('Arial', 9)).pack(
+            anchor='w', pady=(0, 10)
+        )
+
+        # Add note text area with scrollbar
+        tk.Label(frame, text='Note:').pack(anchor='w')
+
+        # Use a fixed height for the text frame
+        text_frame = tk.Frame(frame, height=120)  # Fixed height of 120 pixels
+        text_frame.pack(fill=tk.X, pady=5)
+        text_frame.pack_propagate(
+            False
+        )  # Prevent the frame from shrinking to fit its contents
+
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        note_text = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        note_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=note_text.yview)
+
+        note_text.focus_set()  # Set focus to text area
+
+        # Button frame
+        button_frame = tk.Frame(frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        def save_note():
+            # Get the text from the text area
+            text = note_text.get('1.0', tk.END).strip()
+
+            if not text:
+                tk.messagebox.showwarning(
+                    'Empty Note', 'Please enter note text.', parent=dialog
+                )
+                return
+
+            # Add the note to the task
+            self.controller.model.add_note_to_task(task['task_id'], text)
+
+            # Close the dialog
+            dialog.destroy()
+
+            # Update notes panel if it exists
+            if hasattr(self.controller.ui, 'update_notes_panel'):
+                self.controller.ui.update_notes_panel()
+
+        # Add buttons
+        cancel_button = tk.Button(button_frame, text='Cancel', command=dialog.destroy)
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+
+        save_button = tk.Button(button_frame, text='Save', command=save_note)
+        save_button.pack(side=tk.RIGHT, padx=5)
+
+        # Make dialog modal
+        dialog.wait_visibility()
+        dialog.focus_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+    def add_note_to_selected_tasks(self):
+        """Add the same note to all selected tasks."""
+        selected_tasks = self.controller.selected_tasks
+
+        if not selected_tasks:
+            return
+
+        # Create a dialog for note entry
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Add Note to Multiple Tasks')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+
+        # Position the dialog relative to the parent window
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f'500x350+{x}+{y}')
+
+        # Create a frame with padding
+        frame = tk.Frame(dialog, padx=10, pady=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        # Add header
+        header_text = f'Adding note to {len(selected_tasks)} selected tasks:'
+        tk.Label(frame, text=header_text, font=('Arial', 10, 'bold')).pack(
+            anchor='w', pady=(0, 5)
+        )
+
+        # Add task list (limited to first 5 for readability)
+        tasks_to_show = min(5, len(selected_tasks))
+        tasks_text = '\n'.join(
+            [
+                f"• Task {t['task_id']}: {t['description']}"
+                for t in selected_tasks[:tasks_to_show]
+            ]
+        )
+
+        if len(selected_tasks) > tasks_to_show:
+            tasks_text += f'\n...and {len(selected_tasks) - tasks_to_show} more tasks'
+
+        task_list_label = tk.Label(frame, text=tasks_text, justify=tk.LEFT, anchor='w')
+        task_list_label.pack(fill=tk.X, pady=(0, 10))
+
+        # Add timestamp display
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        tk.Label(frame, text=f'Timestamp: {timestamp}', font=('Arial', 9)).pack(
+            anchor='w', pady=(0, 10)
+        )
+
+        # Add note text area with scrollbar
+        tk.Label(frame, text='Note:').pack(anchor='w')
+
+        text_frame = tk.Frame(frame)
+        text_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        note_text = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        note_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=note_text.yview)
+
+        note_text.focus_set()  # Set focus to text area
+
+        # Button frame
+        button_frame = tk.Frame(frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        def save_note():
+            # Get the text from the text area
+            text = note_text.get('1.0', tk.END).strip()
+
+            if not text:
+                tk.messagebox.showwarning(
+                    'Empty Note', 'Please enter note text.', parent=dialog
+                )
+                return
+
+            # Add the note to all selected tasks
+            for task in selected_tasks:
+                self.controller.model.add_note_to_task(task['task_id'], text)
+
+            # Close the dialog
+            dialog.destroy()
+
+            # Update notes panel if it exists
+            if hasattr(self.controller.ui, 'update_notes_panel'):
+                self.controller.ui.update_notes_panel()
+
+        # Add buttons
+        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text='Save', command=save_note).pack(
+            side=tk.RIGHT, padx=5
+        )
+
+        # Make dialog modal
+        dialog.wait_visibility()
+        dialog.focus_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+    def view_task_notes(self, task=None):
+        """View notes for a specific task."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if not task:
+            return
+
+        # This will toggle the notes panel on and focus it on the selected task
+        if hasattr(self.controller.ui, 'show_notes_panel'):
+            self.controller.ui.show_notes_panel(task_ids=[task['task_id']])
+
+    def delete_note(self, task_id, note_index):
+        """Delete a note from a task."""
+        if self.controller.model.delete_note_from_task(task_id, note_index):
+            # Update notes panel if it exists
+            if hasattr(self.controller.ui, 'update_notes_panel'):
+                self.controller.ui.update_notes_panel()
+            return True
+        return False

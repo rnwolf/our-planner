@@ -181,6 +181,7 @@ class TaskResourceModel:
             'successors': successors or [],
             'tags': tags,  # Add tags to task dictionary
             'color': color,  # Add color to task dictionary
+            'notes': [],  # Initialize empty notes list
         }
         self.tasks.append(task)
         return task
@@ -555,6 +556,25 @@ class TaskResourceModel:
             self.resources = data['resources']
             self.days = data['days']
 
+            # After loading tasks, ensure each task has a notes field for backward complatability
+            # After loading tasks, ensure each task has a notes field with the expected structure
+            for task in self.tasks:
+                if 'notes' not in task:
+                    task['notes'] = []
+                else:
+                    # Ensure each note has the expected structure
+                    for note in task['notes']:
+                        if not isinstance(note, dict):
+                            # Convert to proper format if needed
+                            task['notes'] = []
+                            break
+
+                        # Ensure timestamp and text fields exist
+                        if 'timestamp' not in note or 'text' not in note:
+                            # If note is missing key fields, reset notes
+                            task['notes'] = []
+                            break
+
             # Load start_date if available
             if 'start_date' in data:
                 try:
@@ -613,6 +633,7 @@ class TaskResourceModel:
             self.refresh_all_tags()
 
             self.current_file_path = file_path
+
             return True
         except Exception as e:
             print(f'Error loading file: {e}')
@@ -730,3 +751,95 @@ class TaskResourceModel:
             if self.set_task_color(task_id, color):
                 count += 1
         return count
+
+    def add_note_to_task(self, task_id: int, note_text: str) -> bool:
+        """Add a timestamped note to a task.
+
+        Args:
+            task_id: ID of the task to add the note to
+            note_text: Content of the note
+
+        Returns:
+            bool: True if successful, False if task not found
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        # Ensure task has a notes list
+        if 'notes' not in task:
+            task['notes'] = []
+
+        # Create the note with timestamp
+        note = {'timestamp': datetime.now().isoformat(), 'text': note_text}
+
+        # Add the note to the task
+        task['notes'].append(note)
+        return True
+
+    def get_task_notes(self, task_id: int) -> List[Dict[str, Any]]:
+        """Get all notes for a specific task.
+
+        Args:
+            task_id: ID of the task
+
+        Returns:
+            List of note dictionaries, each with 'timestamp' and 'text' fields
+        """
+        task = self.get_task(task_id)
+        if not task or 'notes' not in task:
+            return []
+
+        # Sort notes by timestamp, newest first
+        return sorted(task['notes'], key=lambda note: note['timestamp'], reverse=True)
+
+    def delete_note_from_task(self, task_id: int, note_index: int) -> bool:
+        """Delete a note from a task.
+
+        Args:
+            task_id: ID of the task
+            note_index: Index of the note in the task's notes list
+
+        Returns:
+            bool: True if successful, False if task or note not found
+        """
+        task = self.get_task(task_id)
+        if not task or 'notes' not in task:
+            return False
+
+        # Ensure the index is valid
+        if note_index < 0 or note_index >= len(task['notes']):
+            return False
+
+        # Remove the note
+        task['notes'].pop(note_index)
+        return True
+
+    def get_all_notes_for_tasks(self, task_ids: List[int]) -> List[Dict[str, Any]]:
+        """Get all notes for a list of tasks, sorted by timestamp.
+
+        Args:
+            task_ids: List of task IDs to get notes for
+
+        Returns:
+            List of note dictionaries with additional 'task_id' and 'original_index' fields
+        """
+        all_notes = []
+
+        for task_id in task_ids:
+            task = self.get_task(task_id)
+            if not task or 'notes' not in task:
+                continue
+
+            # Add task_id and original_index to each note for reference
+            for i, note in enumerate(task['notes']):
+                note_with_task = note.copy()
+                note_with_task['task_id'] = task_id
+                note_with_task['task_description'] = task.get(
+                    'description', f'Task {task_id}'
+                )
+                note_with_task['original_index'] = i  # Store the original index
+                all_notes.append(note_with_task)
+
+        # Sort all notes by timestamp, newest first
+        return sorted(all_notes, key=lambda note: note['timestamp'], reverse=True)

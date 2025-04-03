@@ -45,6 +45,9 @@ class TaskResourceManager:
             self.base_label_column_width
         )  # Current width (will be scaled with zoom)
 
+        # Add an attribute to track if the window has been resized to accommodate the notes panel
+        self.window_adjusted_for_notes = False
+
         # Base font sizes (at zoom level 1.0)
         self.base_task_font_size = 9  # Base font size for task text
         self.base_tag_font_size = 7  # Base font size for tag text
@@ -75,9 +78,15 @@ class TaskResourceManager:
         # Task selection mode
         self.multi_select_mode = False
 
-        # Create main container frame
-        self.main_frame = tk.Frame(self.root)
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        # Create a horizontal layout frame for main content and notes panel
+        self.horizontal_layout_frame = tk.Frame(self.root)
+        self.horizontal_layout_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Create main container frame (for timeline, tasks, resources)
+        self.main_frame = tk.Frame(self.horizontal_layout_frame)
+        self.main_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Note: The notes panel will be packed on the right side of horizontal_layout_frame when shown
 
         # Initialize canvas references (will be populated by UI component)
         self.timeline_canvas = None
@@ -115,6 +124,48 @@ class TaskResourceManager:
 
         # Render initial state
         self.update_view()
+
+    def toggle_notes_panel(self):
+        """Toggle the visibility of the notes panel."""
+        if hasattr(self.ui, 'toggle_notes_panel'):
+            # Call the UI method to toggle the panel
+            self.ui.toggle_notes_panel()
+
+            # Adjust the main window size if needed
+            if self.ui.notes_panel_visible and not self.window_adjusted_for_notes:
+                # Get current window dimensions
+                width = self.root.winfo_width()
+                height = self.root.winfo_height()
+
+                # Increase width to accommodate the panel
+                self.root.geometry(f'{width + self.ui.notes_panel_width}x{height}')
+                self.window_adjusted_for_notes = True
+            elif not self.ui.notes_panel_visible and self.window_adjusted_for_notes:
+                # Restore original width
+                width = self.root.winfo_width()
+                height = self.root.winfo_height()
+
+                # Decrease width as panel is now hidden
+                self.root.geometry(f'{width - self.ui.notes_panel_width}x{height}')
+                self.window_adjusted_for_notes = False
+        else:
+            # First time called, create the notes panel
+            self.ui.create_notes_panel()
+            self.ui.toggle_notes_panel()
+
+            # Adjust window size
+            width = self.root.winfo_width()
+            height = self.root.winfo_height()
+            self.root.geometry(f'{width + self.ui.notes_panel_width}x{height}')
+            self.window_adjusted_for_notes = True
+
+    def get_notes_for_display(self, task_ids=None):
+        """Get notes for the specified tasks, or all tasks if none specified."""
+        if task_ids is None or not task_ids:
+            # Get notes for all tasks
+            task_ids = [task['task_id'] for task in self.model.tasks]
+
+        return self.model.get_all_notes_for_tasks(task_ids)
 
     def create_status_bar(self):
         """Create a status bar at the bottom of the window."""

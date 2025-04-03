@@ -269,6 +269,12 @@ class UIComponents:
             command=self.controller.update_view,
         )
 
+        # Add notes panel toggle to the View menu
+        self.view_menu.add_separator()
+        self.view_menu.add_command(
+            label='Toggle Notes Panel', command=self.controller.toggle_notes_panel
+        )
+
         # Add zoom options
         self.view_menu.add_separator()
         self.view_menu.add_command(
@@ -585,6 +591,21 @@ class UIComponents:
                 background=color_name,
             )
 
+        # Add note-related menu items to the regular task context menu
+        self.context_menu.add_separator()
+        self.context_menu.add_command(
+            label='Add Note',
+            command=lambda: self.controller.task_ops.add_note_to_task(
+                self.controller.selected_task
+            ),
+        )
+        self.context_menu.add_command(
+            label='View Notes',
+            command=lambda: self.controller.task_ops.view_task_notes(
+                self.controller.selected_task
+            ),
+        )
+
         self.context_menu.add_separator()
         self.context_menu.add_command(
             label='Add Predecessor',
@@ -654,23 +675,32 @@ class UIComponents:
             command=lambda: None,  # Placeholder to be updated
         )
 
+        # Also add note option to the multi-task menu
+        # After the tag-related items
+        self.multi_task_menu.add_separator()
+        self.multi_task_menu.add_command(
+            label='Add Note to Selected Tasks',
+            command=self.controller.task_ops.add_note_to_selected_tasks,
+        )
+
     def update_menu_commands(self):
         """Update the commands in the menus after initialization"""
-        # Update the multi-task menu to use the correct methods
-        # Note: The indexing has changed because we added the color menu
-        # Multi-task menu structure:
-        # 0: Set Tasks Color (cascade menu)
-        # 1: Separator
-        # 2: Add Tag to Selected Tasks...
-        # 3: Remove Tag from Selected Tasks...
-        self.multi_task_menu.entryconfig(
-            2,  # Third item (Add Tag)
-            command=lambda: self.add_tag_to_selected_tasks(),
-        )
-        self.multi_task_menu.entryconfig(
-            3,  # Fourth item (Remove Tag)
-            command=lambda: self.remove_tag_from_selected_tasks(),
-        )
+        # First check if the multi-task menu has enough items
+        menu_length = self.multi_task_menu.index('end')
+        if menu_length is not None:  # Check if menu has any items
+            # Update the third item (index 2) if it exists
+            if menu_length >= 2:
+                self.multi_task_menu.entryconfig(
+                    2,  # Third item (Add Tag)
+                    command=lambda: self.add_tag_to_selected_tasks(),
+                )
+
+            # Update the fourth item (index 3) if it exists
+            if menu_length >= 3:
+                self.multi_task_menu.entryconfig(
+                    3,  # Fourth item (Remove Tag)
+                    command=lambda: self.remove_tag_from_selected_tasks(),
+                )
 
     def sync_horizontal_scroll(self, *args):
         """Synchronize horizontal scrolling across all three canvases"""
@@ -1802,3 +1832,342 @@ class UIComponents:
 
                 # Update the task's color in the model
                 task['color'] = color
+
+    def create_notes_panel(self):
+        """Create the collapsible notes panel on the right side."""
+        # Create the panel frame
+        self.notes_panel_visible = False
+        self.notes_panel_width = 300  # Default width
+
+        # Main notes panel frame - attach to the horizontal layout instead of root
+        self.notes_panel_frame = tk.Frame(
+            self.controller.horizontal_layout_frame,
+            width=self.notes_panel_width,
+            bg='#f0f0f0',
+        )
+
+        # Header frame with title and close button
+        header_frame = tk.Frame(self.notes_panel_frame, bg='#e0e0e0', padx=5, pady=5)
+        header_frame.pack(fill=tk.X)
+
+        # Title and close button
+        tk.Label(
+            header_frame, text='Task Notes', font=('Arial', 11, 'bold'), bg='#e0e0e0'
+        ).pack(side=tk.LEFT)
+        close_button = tk.Button(
+            header_frame,
+            text='×',
+            command=self.toggle_notes_panel,
+            font=('Arial', 12),
+            bd=0,
+            bg='#e0e0e0',
+            padx=5,
+        )
+        close_button.pack(side=tk.RIGHT)
+
+        # Notes filter options
+        filter_frame = tk.Frame(self.notes_panel_frame, bg='#f0f0f0', padx=5, pady=5)
+        filter_frame.pack(fill=tk.X)
+
+        # Label for filter status
+        self.filter_label = tk.Label(
+            filter_frame,
+            text='Showing all notes',
+            font=('Arial', 9),
+            bg='#f0f0f0',
+            anchor='w',
+        )
+        self.filter_label.pack(fill=tk.X, pady=(0, 5))
+
+        # Notes content area with scrollbar
+        notes_content_frame = tk.Frame(self.notes_panel_frame)
+        notes_content_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        notes_scrollbar = ttk.Scrollbar(notes_content_frame)
+        notes_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Canvas for scrolling
+        self.notes_canvas = tk.Canvas(
+            notes_content_frame,
+            yscrollcommand=notes_scrollbar.set,
+            bg='white',
+            highlightthickness=0,
+        )
+        self.notes_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        notes_scrollbar.config(command=self.notes_canvas.yview)
+
+        # Frame inside canvas for notes
+        self.notes_container = tk.Frame(self.notes_canvas, bg='white')
+        self.notes_canvas_window = self.notes_canvas.create_window(
+            (0, 0), window=self.notes_container, anchor='nw', tags='notes_container'
+        )
+
+        # Update canvas scroll region when the size changes
+        self.notes_container.bind(
+            '<Configure>',
+            lambda e: self.notes_canvas.configure(
+                scrollregion=self.notes_canvas.bbox('all')
+            ),
+        )
+
+        # Bind the canvas to update the width of the container when its size changes
+        self.notes_canvas.bind(
+            '<Configure>',
+            lambda e: self.notes_canvas.itemconfig(
+                self.notes_canvas_window, width=e.width
+            ),
+        )
+
+        # Make sure the panel is initially invisible but already sized correctly
+        self.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
+        self.notes_panel_frame.update()  # Force an update to ensure it's fully rendered
+        self.notes_panel_frame.pack_forget()  # Hide it
+
+    def toggle_notes_panel(self):
+        """Toggle the visibility of the notes panel."""
+        if not hasattr(self, 'notes_panel_frame'):
+            # First time, create the panel
+            self.create_notes_panel()
+            return
+
+        if self.notes_panel_visible:
+            # Hide the panel
+            self.notes_panel_frame.pack_forget()
+            self.notes_panel_visible = False
+        else:
+            # Show the panel in the horizontal layout
+            self.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
+            self.notes_panel_visible = True
+            # Update notes display
+            self.update_notes_panel()
+
+    def show_notes_panel(self, task_ids=None):
+        """Show the notes panel and focus on specified task(s)."""
+        if not hasattr(self, 'notes_panel_frame'):
+            self.create_notes_panel()
+
+        # Make sure the panel is visible
+        if not self.notes_panel_visible:
+            self.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
+            self.notes_panel_visible = True
+
+        # Update the panel with focus on specified tasks
+        self.update_notes_panel(task_ids)
+
+    def update_notes_panel(self, task_ids=None):
+        """Update the notes panel content."""
+        if not hasattr(self, 'notes_container'):
+            return
+
+        # Clear existing notes
+        for widget in self.notes_container.winfo_children():
+            widget.destroy()
+
+        # Update filter label
+        if task_ids:
+            if len(task_ids) == 1:
+                task = self.controller.model.get_task(task_ids[0])
+                if task:
+                    self.filter_label.config(
+                        text=f"Showing notes for Task {task_ids[0]}: {task['description']}"
+                    )
+                else:
+                    self.filter_label.config(
+                        text=f'Showing notes for Task {task_ids[0]}'
+                    )
+            else:
+                self.filter_label.config(
+                    text=f'Showing notes for {len(task_ids)} selected tasks'
+                )
+        else:
+            self.filter_label.config(text='Showing all notes')
+
+        # Get notes from the model
+        notes = self.controller.get_notes_for_display(task_ids)
+
+        # Display message if no notes
+        if not notes:
+            no_notes_label = tk.Label(
+                self.notes_container,
+                text='No notes found',
+                fg='gray',
+                bg='white',
+                pady=20,
+            )
+            no_notes_label.pack(fill=tk.X)
+            return
+
+        # Add each note to the container
+        for i, note in enumerate(notes):
+            # Store the original index in the task's notes array
+            note['original_index'] = note.get('original_index', i)
+            self._create_note_item(note, i)
+
+        # Update the canvas scroll region
+        self.notes_canvas.update_idletasks()
+        self.notes_canvas.configure(scrollregion=self.notes_canvas.bbox('all'))
+
+    # In src/view/ui_components.py
+    # Update the _create_note_item method
+
+    def _create_note_item(self, note, display_index):
+        """Create a UI element for a single note."""
+        # Create a frame for the note with a border
+        note_frame = tk.Frame(
+            self.notes_container, bd=1, relief=tk.SOLID, padx=8, pady=8
+        )
+        note_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # Store reference information directly in the frame using attributes
+        note_frame.task_id = note.get('task_id')
+        note_frame.original_index = note.get('original_index', 0)
+        note_frame.display_index = display_index
+
+        # Header with task info and timestamp
+        header_frame = tk.Frame(note_frame)
+        header_frame.pack(fill=tk.X, pady=(0, 5))
+
+        # Format timestamp
+        try:
+            timestamp = datetime.fromisoformat(note['timestamp'])
+            formatted_time = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
+            formatted_time = note.get('timestamp', 'Unknown time')
+
+        # Task info
+        task_id = note.get('task_id', 'Unknown')
+        task_desc = note.get('task_description', f'Task {task_id}')
+
+        # Task link (clickable to select the task)
+        task_link = tk.Label(
+            header_frame,
+            text=f'Task {task_id}: {task_desc}',
+            fg='blue',
+            cursor='hand2',
+            font=('Arial', 9, 'underline'),
+        )
+        task_link.pack(side=tk.LEFT)
+
+        # Bind click event to select the task
+        task_link.bind(
+            '<Button-1>', lambda e, tid=task_id: self._select_task_from_note(tid)
+        )
+
+        # Timestamp
+        time_label = tk.Label(
+            header_frame, text=formatted_time, fg='gray', font=('Arial', 8)
+        )
+        time_label.pack(side=tk.RIGHT)
+
+        # Note content
+        note_text = note.get('text', '').strip()
+        text_frame = tk.Frame(note_frame)
+        text_frame.pack(fill=tk.X, pady=5)
+
+        content_label = tk.Label(
+            text_frame,
+            text=note_text,
+            justify=tk.LEFT,
+            wraplength=self.notes_panel_width - 40,
+            anchor='w',
+        )
+        content_label.pack(fill=tk.X)
+
+        # Footer with delete button
+        footer_frame = tk.Frame(note_frame)
+        footer_frame.pack(fill=tk.X, pady=(5, 0))
+
+        # Delete button that passes the stored task_id and original_index
+        delete_button = tk.Button(
+            footer_frame,
+            text='Delete',
+            command=lambda f=note_frame: self._delete_note(f.task_id, f.original_index),
+            font=('Arial', 8),
+            padx=5,
+            pady=0,
+        )
+        delete_button.pack(side=tk.RIGHT)
+
+    def _select_task_from_note(self, task_id):
+        """Select a task when its link is clicked in a note."""
+        task = self.controller.model.get_task(task_id)
+        if task:
+            # Clear current selections
+            self.controller.selected_tasks = []
+            self.remove_task_selections()
+
+            # Select this task
+            self.controller.selected_task = task
+            self.controller.selected_tasks = [task]
+
+            # Highlight the task
+            self.highlight_selected_tasks()
+
+            # Scroll to make the task visible
+            if task_id in self.task_ui_elements:
+                ui_elements = self.task_ui_elements[task_id]
+                x1, y1 = ui_elements['x1'], ui_elements['y1']
+
+                # Calculate scroll fractions
+                canvas_width = self.controller.task_canvas.winfo_width()
+                canvas_height = self.controller.task_canvas.winfo_height()
+                total_width = self.controller.cell_width * self.controller.model.days
+                total_height = (
+                    self.controller.task_height * self.controller.model.max_rows
+                )
+
+                x_fraction = max(0, min(1, (x1 - canvas_width / 4) / total_width))
+                y_fraction = max(0, min(1, (y1 - canvas_height / 4) / total_height))
+
+                # Scroll to show the task
+                self.controller.task_canvas.xview_moveto(x_fraction)
+                self.controller.task_canvas.yview_moveto(y_fraction)
+
+    # In src/view/ui_components.py
+    # Update the _delete_note method
+
+    def _delete_note(self, task_id, original_index):
+        """Delete a note directly using task_id and original_index.
+
+        Args:
+            task_id: The ID of the task containing the note
+            original_index: The original index of the note within the task's notes array
+        """
+        task = self.controller.model.get_task(task_id)
+        if not task or 'notes' not in task:
+            tk.messagebox.showerror(
+                'Error', f'Task {task_id} not found or has no notes.'
+            )
+            return False
+
+        # Make sure the index is valid for this specific task
+        if original_index < 0 or original_index >= len(task['notes']):
+            tk.messagebox.showerror(
+                'Error',
+                f"Invalid note index: {original_index}. Task {task_id} has {len(task['notes'])} notes.",
+            )
+            return False
+
+        # Get the note text for the confirmation message
+        note_text = task['notes'][original_index].get('text', '').strip()
+        if len(note_text) > 50:
+            note_text = note_text[:47] + '...'
+
+        confirm_message = (
+            f"Are you sure you want to delete this note?\n\n"
+            f"Task ID: {task_id}\n"
+            f"Task Description: {task.get('description', 'Unknown')}\n"
+            f"Note Text: {note_text}"
+        )
+
+        if tk.messagebox.askyesno('Confirm Delete', confirm_message):
+            # Delete the note directly from the task's notes array
+            if self.controller.model.delete_note_from_task(task_id, original_index):
+                self.update_notes_panel()
+                return True
+            else:
+                tk.messagebox.showerror(
+                    'Error',
+                    'Failed to delete note. This may be due to a data inconsistency.',
+                )
+                return False
