@@ -112,9 +112,12 @@ our-planner
 This also installs the tool `uvx`. See more options on astral [website](https://docs.astral.sh/uv/guides/tools/).
 
 ```bash
+
 # Install and run app
-uvx our-planner
+uvx -p "C:\Python313\python.exe" our-planner@latest
 ```
+
+NOTE: The python builds provided via UV does not include the Tkinter libraries, and thus you need to install and specify Python from https://www.python.org/downloads/
 
 ### Basic operations
 
