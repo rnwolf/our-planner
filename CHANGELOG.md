@@ -1,4 +1,11 @@
 
+    ## [0.1.12] - 2025-04-03
+    ### Added
+    - Fix: Fix the pakages in pyproject.toml so that we now get all the sub packages being included.
+    - Fix: Updated GHA workflow with condition check to run only on changes to main branch
+
+    
+
     ## [0.1.11] - 2025-04-02
     ### Added
     - Fix: added packages=[src] to pyproject.toml to fix issue with pipx install.

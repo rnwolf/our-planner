@@ -63,7 +63,8 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Fix: added packages=[src] to pyproject.toml to fix issue with pipx install.
+    - Fix: Fix the pakages in pyproject.toml so that we now get all the sub packages being included.
+    - Fix: Updated GHA workflow with condition check to run only on changes to main branch
 
     """
 
