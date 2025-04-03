@@ -1,4 +1,10 @@
 
+    ## [0.1.14] - 2025-04-03
+    ### Added
+    - New Feature: Add or delete timestamped notes to a task with notes displaed on panel on the right.
+
+    
+
     ## [0.1.13] - 2025-04-03
     ### Added
     - Fix: Increase Y size of tag filter dialogs so that buttons are not cut off.

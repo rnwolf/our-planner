@@ -63,7 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Fix: Increase Y size of tag filter dialogs so that buttons are not cut off.
+    - New Feature: Add or delete timestamped notes to a task with notes displaed on panel on the right.
 
     """
 
