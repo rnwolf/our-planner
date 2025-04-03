@@ -31,14 +31,14 @@ class TagsDialog(tk.Toplevel):
         y = parent.winfo_y() + 50
 
         # Increase the default size of the dialog to make buttons visible
-        self.geometry(f"500x500+{x}+{y}")
+        self.geometry(f'500x600+{x}+{y}')
 
         self.create_widgets()
 
         # Make dialog modal
         self.wait_visibility()
         self.focus_set()
-        self.bind("<Escape>", lambda e: self.destroy())
+        self.bind('<Escape>', lambda e: self.destroy())
 
         # Center the dialog on the parent window
         self.update_idletasks()
@@ -48,7 +48,7 @@ class TagsDialog(tk.Toplevel):
         parent_height = parent.winfo_height()
         x = parent.winfo_rootx() + (parent_width - width) // 2
         y = parent.winfo_rooty() + (parent_height - height) // 2
-        self.geometry(f"+{x}+{y}")
+        self.geometry(f'+{x}+{y}')
 
     def create_widgets(self):
         """Create dialog widgets."""
@@ -59,7 +59,7 @@ class TagsDialog(tk.Toplevel):
         tags_frame = tk.Frame(main_frame)
         tags_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-        tk.Label(tags_frame, text="Current Tags:", anchor="w").pack(fill=tk.X)
+        tk.Label(tags_frame, text='Current Tags:', anchor='w').pack(fill=tk.X)
 
         # Frame for tag buttons
         self.tags_button_frame = tk.Frame(tags_frame)
@@ -69,14 +69,14 @@ class TagsDialog(tk.Toplevel):
         tag_scroll_frame = tk.Frame(tags_frame)
         tag_scroll_frame.pack(fill=tk.X, pady=5, ipady=40)  # Fixed height with ipady
 
-        scrollbar = ttk.Scrollbar(tag_scroll_frame, orient="vertical")
+        scrollbar = ttk.Scrollbar(tag_scroll_frame, orient='vertical')
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.tag_canvas = tk.Canvas(
             tag_scroll_frame,
             yscrollcommand=scrollbar.set,
             highlightthickness=1,
-            highlightbackground="gray",
+            highlightbackground='gray',
             height=80,  # Set a fixed height to reduce vertical size
         )
         self.tag_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -85,26 +85,26 @@ class TagsDialog(tk.Toplevel):
 
         self.tag_container = tk.Frame(self.tag_canvas)
         self.tag_canvas_window = self.tag_canvas.create_window(
-            (0, 0), window=self.tag_container, anchor="nw"
+            (0, 0), window=self.tag_container, anchor='nw'
         )
 
         # Update scroll region when the tag container changes size
-        self.tag_container.bind("<Configure>", self.update_tag_scrollregion)
-        self.tag_canvas.bind("<Configure>", self.update_tag_canvas)
+        self.tag_container.bind('<Configure>', self.update_tag_scrollregion)
+        self.tag_canvas.bind('<Configure>', self.update_tag_canvas)
 
         # Input for new tags
         input_frame = tk.Frame(main_frame)
         input_frame.pack(fill=tk.X, pady=(0, 10))
 
-        tk.Label(input_frame, text="Add Tag:", anchor="w").pack(fill=tk.X)
+        tk.Label(input_frame, text='Add Tag:', anchor='w').pack(fill=tk.X)
 
         self.tag_input_var = tk.StringVar()
         self.tag_entry = tk.Entry(input_frame, textvariable=self.tag_input_var)
         self.tag_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        self.tag_entry.bind("<Return>", self.add_tag)
+        self.tag_entry.bind('<Return>', self.add_tag)
 
         # Add button for new tag
-        self.add_button = tk.Button(input_frame, text="Add", command=self.add_tag)
+        self.add_button = tk.Button(input_frame, text='Add', command=self.add_tag)
         self.add_button.pack(side=tk.LEFT)
 
         # Suggestions for common tags
@@ -116,7 +116,7 @@ class TagsDialog(tk.Toplevel):
             suggestions_frame = tk.Frame(main_frame)
             suggestions_frame.pack(fill=tk.X, pady=(0, 10))
 
-            tk.Label(suggestions_frame, text="Suggestions:", anchor="w").pack(fill=tk.X)
+            tk.Label(suggestions_frame, text='Suggestions:', anchor='w').pack(fill=tk.X)
 
             # Create a scrollable frame for suggestions with vertical scrolling
             suggestion_scroll_frame = tk.Frame(suggestions_frame)
@@ -124,7 +124,7 @@ class TagsDialog(tk.Toplevel):
 
             # Add vertical scrollbar instead of horizontal
             suggestion_scrollbar = ttk.Scrollbar(
-                suggestion_scroll_frame, orient="vertical"
+                suggestion_scroll_frame, orient='vertical'
             )
             suggestion_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
@@ -132,7 +132,7 @@ class TagsDialog(tk.Toplevel):
                 suggestion_scroll_frame,
                 height=120,  # Increased height for multiple rows
                 highlightthickness=1,
-                highlightbackground="gray",
+                highlightbackground='gray',
                 yscrollcommand=suggestion_scrollbar.set,  # Use vertical scrolling
             )
             suggestion_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -140,12 +140,12 @@ class TagsDialog(tk.Toplevel):
 
             suggestion_container = tk.Frame(suggestion_canvas)
             suggestion_canvas_window = suggestion_canvas.create_window(
-                (0, 0), window=suggestion_container, anchor="nw"
+                (0, 0), window=suggestion_container, anchor='nw'
             )
 
             # Configure suggestion container to fit the canvas width
             suggestion_canvas.bind(
-                "<Configure>", lambda e: suggestion_container.configure(width=e.width)
+                '<Configure>', lambda e: suggestion_container.configure(width=e.width)
             )
 
             # Track the current row and column for placing buttons
@@ -174,9 +174,9 @@ class TagsDialog(tk.Toplevel):
 
             # Update the scroll region when the size changes
             suggestion_container.bind(
-                "<Configure>",
+                '<Configure>',
                 lambda e: suggestion_canvas.configure(
-                    scrollregion=suggestion_canvas.bbox("all")
+                    scrollregion=suggestion_canvas.bbox('all')
                 ),
             )
 
@@ -184,10 +184,10 @@ class TagsDialog(tk.Toplevel):
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(20, 10))
 
-        save_button = tk.Button(button_frame, text="Save", command=self.save_tags)
+        save_button = tk.Button(button_frame, text='Save', command=self.save_tags)
         save_button.pack(side=tk.RIGHT, padx=5)
 
-        cancel_button = tk.Button(button_frame, text="Cancel", command=self.destroy)
+        cancel_button = tk.Button(button_frame, text='Cancel', command=self.destroy)
         cancel_button.pack(side=tk.RIGHT, padx=5)
 
         # Populate with current tags
@@ -198,7 +198,7 @@ class TagsDialog(tk.Toplevel):
 
     def update_tag_scrollregion(self, event=None):
         """Update the scroll region of the tag canvas."""
-        self.tag_canvas.configure(scrollregion=self.tag_canvas.bbox("all"))
+        self.tag_canvas.configure(scrollregion=self.tag_canvas.bbox('all'))
 
     def update_tag_canvas(self, event=None):
         """Update the tag canvas when it's resized."""
@@ -213,8 +213,8 @@ class TagsDialog(tk.Toplevel):
 
         # Create a button for each tag
         if not self.current_tags:
-            tk.Label(self.tag_container, text="No tags yet", fg="gray").pack(
-                anchor="w", padx=5, pady=5
+            tk.Label(self.tag_container, text='No tags yet', fg='gray').pack(
+                anchor='w', padx=5, pady=5
             )
         else:
             # Display tags in rows
@@ -229,7 +229,7 @@ class TagsDialog(tk.Toplevel):
                 tag_frame = tk.Frame(
                     current_row,
                     highlightthickness=1,
-                    highlightbackground="gray",
+                    highlightbackground='gray',
                     padx=5,
                     pady=2,
                 )
@@ -239,7 +239,7 @@ class TagsDialog(tk.Toplevel):
 
                 remove_btn = tk.Button(
                     tag_frame,
-                    text="×",
+                    text='×',
                     width=1,
                     height=1,
                     command=lambda t=tag: self.remove_tag(t),
@@ -257,10 +257,10 @@ class TagsDialog(tk.Toplevel):
             return
 
         # Validate tag (only letters, numbers, underscore, hyphen, no spaces)
-        if not re.match(r"^[\w\-]+$", tag):
+        if not re.match(r'^[\w\-]+$', tag):
             tk.messagebox.showerror(
-                "Invalid Tag",
-                "Tags can only contain letters, numbers, underscores, and hyphens.",
+                'Invalid Tag',
+                'Tags can only contain letters, numbers, underscores, and hyphens.',
             )
             return
 
@@ -269,7 +269,7 @@ class TagsDialog(tk.Toplevel):
             self.refresh_tag_display()
 
         # Clear input
-        self.tag_input_var.set("")
+        self.tag_input_var.set('')
 
     def add_tag_from_suggestion(self, tag):
         """Add a tag from the suggestions."""
@@ -316,14 +316,14 @@ class TagFilterDialog(tk.Toplevel):
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        self.geometry(f"350x450+{x}+{y}")
+        self.geometry(f'350x600+{x}+{y}')
 
         self.create_widgets()
 
         # Make dialog modal
         self.wait_visibility()
         self.focus_set()
-        self.bind("<Escape>", lambda e: self.destroy())
+        self.bind('<Escape>', lambda e: self.destroy())
 
         # Center the dialog on the parent window
         self.update_idletasks()
@@ -333,7 +333,7 @@ class TagFilterDialog(tk.Toplevel):
         parent_height = parent.winfo_height()
         x = parent.winfo_rootx() + (parent_width - width) // 2
         y = parent.winfo_rooty() + (parent_height - height) // 2
-        self.geometry(f"+{x}+{y}")
+        self.geometry(f'+{x}+{y}')
 
     def create_widgets(self):
         """Create dialog widgets."""
@@ -341,7 +341,7 @@ class TagFilterDialog(tk.Toplevel):
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Title
-        tk.Label(main_frame, text="Select tags to filter by:", anchor="w").pack(
+        tk.Label(main_frame, text='Select tags to filter by:', anchor='w').pack(
             fill=tk.X, pady=(0, 10)
         )
 
@@ -353,14 +353,14 @@ class TagFilterDialog(tk.Toplevel):
         tag_scroll_frame = tk.Frame(selection_frame)
         tag_scroll_frame.pack(fill=tk.BOTH, expand=True)
 
-        scrollbar = ttk.Scrollbar(tag_scroll_frame, orient="vertical")
+        scrollbar = ttk.Scrollbar(tag_scroll_frame, orient='vertical')
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.tag_canvas = tk.Canvas(
             tag_scroll_frame,
             yscrollcommand=scrollbar.set,
             highlightthickness=1,
-            highlightbackground="gray",
+            highlightbackground='gray',
         )
         self.tag_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -368,18 +368,18 @@ class TagFilterDialog(tk.Toplevel):
 
         self.tag_container = tk.Frame(self.tag_canvas)
         self.tag_canvas_window = self.tag_canvas.create_window(
-            (0, 0), window=self.tag_container, anchor="nw"
+            (0, 0), window=self.tag_container, anchor='nw'
         )
 
         # Update scroll region when the tag container changes size
         self.tag_container.bind(
-            "<Configure>",
+            '<Configure>',
             lambda e: self.tag_canvas.configure(
-                scrollregion=self.tag_canvas.bbox("all")
+                scrollregion=self.tag_canvas.bbox('all')
             ),
         )
         self.tag_canvas.bind(
-            "<Configure>",
+            '<Configure>',
             lambda e: self.tag_canvas.itemconfig(self.tag_canvas_window, width=e.width),
         )
 
@@ -387,8 +387,8 @@ class TagFilterDialog(tk.Toplevel):
         self.tag_vars = {}
 
         if not self.all_tags:
-            tk.Label(self.tag_container, text="No tags available", fg="gray").pack(
-                anchor="w", padx=5, pady=5
+            tk.Label(self.tag_container, text='No tags available', fg='gray').pack(
+                anchor='w', padx=5, pady=5
             )
         else:
             for tag in sorted(self.all_tags):
@@ -402,7 +402,7 @@ class TagFilterDialog(tk.Toplevel):
                     row,
                     text=tag,
                     variable=var,
-                    anchor="w",
+                    anchor='w',
                     command=self.update_selected_tags,
                 )
                 cb.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -412,15 +412,15 @@ class TagFilterDialog(tk.Toplevel):
         match_frame.pack(fill=tk.X, pady=(0, 10))
 
         match_cb = tk.Checkbutton(
-            match_frame, text="Match all tags (AND logic)", variable=self.match_all
+            match_frame, text='Match all tags (AND logic)', variable=self.match_all
         )
-        match_cb.pack(anchor="w")
+        match_cb.pack(anchor='w')
 
         help_text = tk.Label(
             match_frame,
-            text="Unchecked = Match any tag (OR logic)",
-            fg="gray",
-            anchor="w",
+            text='Unchecked = Match any tag (OR logic)',
+            fg='gray',
+            anchor='w',
         )
         help_text.pack(fill=tk.X)
 
@@ -428,10 +428,10 @@ class TagFilterDialog(tk.Toplevel):
         selected_frame = tk.Frame(main_frame)
         selected_frame.pack(fill=tk.X, pady=(0, 10))
 
-        tk.Label(selected_frame, text="Selected tags:", anchor="w").pack(fill=tk.X)
+        tk.Label(selected_frame, text='Selected tags:', anchor='w').pack(fill=tk.X)
 
         self.selected_label = tk.Label(
-            selected_frame, text="None", fg="gray", anchor="w"
+            selected_frame, text='None', fg='gray', anchor='w'
         )
         self.selected_label.pack(fill=tk.X)
 
@@ -440,16 +440,16 @@ class TagFilterDialog(tk.Toplevel):
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
         filter_button = tk.Button(
-            button_frame, text="Apply Filter", command=self.apply_filter
+            button_frame, text='Apply Filter', command=self.apply_filter
         )
         filter_button.pack(side=tk.RIGHT, padx=5)
 
         clear_button = tk.Button(
-            button_frame, text="Clear Filters", command=self.clear_filters
+            button_frame, text='Clear Filters', command=self.clear_filters
         )
         clear_button.pack(side=tk.RIGHT, padx=5)
 
-        cancel_button = tk.Button(button_frame, text="Cancel", command=self.destroy)
+        cancel_button = tk.Button(button_frame, text='Cancel', command=self.destroy)
         cancel_button.pack(side=tk.RIGHT, padx=5)
 
     def update_selected_tags(self):
@@ -462,10 +462,10 @@ class TagFilterDialog(tk.Toplevel):
         # Update the selected tags label
         if self.selected_tags:
             self.selected_label.config(
-                text=", ".join(sorted(self.selected_tags)), fg="black"
+                text=', '.join(sorted(self.selected_tags)), fg='black'
             )
         else:
-            self.selected_label.config(text="None", fg="gray")
+            self.selected_label.config(text='None', fg='gray')
 
     def apply_filter(self):
         """Apply the filter and close the dialog."""
@@ -502,14 +502,14 @@ class TagOperations:
             return
 
         # Ensure task has a tags field
-        if "tags" not in task:
-            task["tags"] = []
+        if 'tags' not in task:
+            task['tags'] = []
 
         # Create and show the tags dialog
         TagsDialog(
             self.controller.root,
-            "Edit Task Tags",
-            current_tags=task["tags"],
+            'Edit Task Tags',
+            current_tags=task['tags'],
             all_tags=self.model.get_all_tags(),
             on_save=lambda tags: self.save_task_tags(task, tags),
         )
@@ -517,39 +517,39 @@ class TagOperations:
     def save_task_tags(self, task, tags):
         """Save tags for a task and update the UI."""
         # Update the model
-        self.model.set_task_tags(task["task_id"], tags)
+        self.model.set_task_tags(task['task_id'], tags)
 
         # Update the UI element if the task is displayed
-        task_id = task["task_id"]
+        task_id = task['task_id']
         if task_id in self.controller.ui.task_ui_elements:
             ui_elements = self.controller.ui.task_ui_elements[task_id]
 
             # Remove existing tag text if it exists
-            if "tag_text" in ui_elements:
-                self.controller.task_canvas.delete(ui_elements["tag_text"])
+            if 'tag_text' in ui_elements:
+                self.controller.task_canvas.delete(ui_elements['tag_text'])
 
             # Only add tag text if there are tags and show_tags is enabled
             if tags and self.controller.ui.show_tags_var.get():
-                tag_text = ", ".join(tags)
+                tag_text = ', '.join(tags)
                 x1, y1, x2, y2 = (
-                    ui_elements["x1"],
-                    ui_elements["y1"],
-                    ui_elements["x2"],
-                    ui_elements["y2"],
+                    ui_elements['x1'],
+                    ui_elements['y1'],
+                    ui_elements['x2'],
+                    ui_elements['y2'],
                 )
 
                 # Create new tag text
                 new_tag_id = self.controller.task_canvas.create_text(
                     (x1 + x2) / 2,
                     (y1 + y2) / 2 + 8,
-                    text=f"[{tag_text}]",
-                    fill="blue",
-                    font=("Arial", 7),
-                    tags=("task", "task_tags", f"task_tags_{task_id}"),
+                    text=f'[{tag_text}]',
+                    fill='blue',
+                    font=('Arial', 7),
+                    tags=('task', 'task_tags', f'task_tags_{task_id}'),
                 )
 
                 # Update the UI elements dictionary with the new tag text ID
-                ui_elements["tag_text"] = new_tag_id
+                ui_elements['tag_text'] = new_tag_id
 
             # Refresh tooltips
             self.controller.ui.add_task_tooltips(task)
@@ -571,14 +571,14 @@ class TagOperations:
             return
 
         # Ensure resource has a tags field
-        if "tags" not in resource:
-            resource["tags"] = []
+        if 'tags' not in resource:
+            resource['tags'] = []
 
         # Create and show the tags dialog
         TagsDialog(
             self.controller.root,
             f"Edit Resource Tags: {resource['name']}",
-            current_tags=resource["tags"],
+            current_tags=resource['tags'],
             all_tags=self.model.get_all_tags(),
             on_save=lambda tags: self.save_resource_tags(resource_id, tags),
         )
@@ -593,7 +593,7 @@ class TagOperations:
         resource_index = None
 
         for i, resource in enumerate(resources):
-            if resource["id"] == resource_id:
+            if resource['id'] == resource_id:
                 resource_index = i
                 break
 
@@ -603,18 +603,18 @@ class TagOperations:
             tag_y = y + self.controller.task_height / 2
 
             # Remove existing tag text if it exists
-            self.controller.resource_label_canvas.delete(f"resource_tags_{resource_id}")
+            self.controller.resource_label_canvas.delete(f'resource_tags_{resource_id}')
 
             # Only add tag text if there are tags and show_tags is enabled
             if tags and self.controller.ui.show_tags_var.get():
-                tag_text = ", ".join(tags)
+                tag_text = ', '.join(tags)
                 tag_id = self.controller.resource_label_canvas.create_text(
                     50,
                     tag_y + 10,
-                    text=f"[{tag_text}]",
-                    anchor="center",
-                    font=("Arial", 7),
-                    tags=(f"resource_tags_{resource_id}",),
+                    text=f'[{tag_text}]',
+                    anchor='center',
+                    font=('Arial', 7),
+                    tags=(f'resource_tags_{resource_id}',),
                 )
 
         # Refresh the view if we're using resource tag filters
@@ -628,7 +628,7 @@ class TagOperations:
         """Open dialog to filter tasks by tags."""
         TagFilterDialog(
             self.controller.root,
-            "Filter Tasks by Tags",
+            'Filter Tasks by Tags',
             all_tags=self.model.get_all_tags(),
             on_filter=self.apply_task_tag_filter,
         )
@@ -648,7 +648,7 @@ class TagOperations:
         """Open dialog to filter resources by tags."""
         TagFilterDialog(
             self.controller.root,
-            "Filter Resources by Tags",
+            'Filter Resources by Tags',
             all_tags=self.model.get_all_tags(),
             on_filter=self.apply_resource_tag_filter,
         )
@@ -712,7 +712,7 @@ class TagOperations:
         """Select all tasks with specific tags."""
         TagFilterDialog(
             self.controller.root,
-            "Select Tasks by Tags",
+            'Select Tasks by Tags',
             all_tags=self.model.get_all_tags(),
             on_filter=self.apply_task_selection,
         )
