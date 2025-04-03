@@ -127,37 +127,27 @@ class TaskResourceManager:
 
     def toggle_notes_panel(self):
         """Toggle the visibility of the notes panel."""
-        if hasattr(self.ui, 'toggle_notes_panel'):
-            # Call the UI method to toggle the panel
-            self.ui.toggle_notes_panel()
-
-            # Adjust the main window size if needed
-            if self.ui.notes_panel_visible and not self.window_adjusted_for_notes:
-                # Get current window dimensions
-                width = self.root.winfo_width()
-                height = self.root.winfo_height()
-
-                # Increase width to accommodate the panel
-                self.root.geometry(f'{width + self.ui.notes_panel_width}x{height}')
-                self.window_adjusted_for_notes = True
-            elif not self.ui.notes_panel_visible and self.window_adjusted_for_notes:
-                # Restore original width
-                width = self.root.winfo_width()
-                height = self.root.winfo_height()
-
-                # Decrease width as panel is now hidden
-                self.root.geometry(f'{width - self.ui.notes_panel_width}x{height}')
-                self.window_adjusted_for_notes = False
-        else:
-            # First time called, create the notes panel
+        if not hasattr(self.ui, 'notes_panel_frame'):
+            # First time, create the panel and show it
             self.ui.create_notes_panel()
-            self.ui.toggle_notes_panel()
+            self.ui.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
+            self.ui.notes_panel_visible = True
+            self.ui.update_notes_panel()
+            # Force update to ensure proper rendering
+            self.root.update_idletasks()
+            return
 
-            # Adjust window size
-            width = self.root.winfo_width()
-            height = self.root.winfo_height()
-            self.root.geometry(f'{width + self.ui.notes_panel_width}x{height}')
-            self.window_adjusted_for_notes = True
+        # If panel exists, toggle its visibility
+        if self.ui.notes_panel_visible:
+            # Hide the panel
+            self.ui.notes_panel_frame.pack_forget()
+            self.ui.notes_panel_visible = False
+        else:
+            # Show the panel
+            self.ui.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
+            self.ui.notes_panel_visible = True
+            # Update notes display
+            self.ui.update_notes_panel()
 
     def get_notes_for_display(self, task_ids=None):
         """Get notes for the specified tasks, or all tasks if none specified."""

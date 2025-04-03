@@ -1833,13 +1833,16 @@ class UIComponents:
                 # Update the task's color in the model
                 task['color'] = color
 
+    # In src/view/ui_components.py
+    # Update the create_notes_panel method
+
     def create_notes_panel(self):
         """Create the collapsible notes panel on the right side."""
         # Create the panel frame
         self.notes_panel_visible = False
         self.notes_panel_width = 300  # Default width
 
-        # Main notes panel frame - attach to the horizontal layout instead of root
+        # Main notes panel frame
         self.notes_panel_frame = tk.Frame(
             self.controller.horizontal_layout_frame,
             width=self.notes_panel_width,
@@ -1918,16 +1921,20 @@ class UIComponents:
             ),
         )
 
-        # Make sure the panel is initially invisible but already sized correctly
-        self.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
-        self.notes_panel_frame.update()  # Force an update to ensure it's fully rendered
-        self.notes_panel_frame.pack_forget()  # Hide it
+        # Don't pack the frame yet - we'll do that in toggle_notes_panel
 
     def toggle_notes_panel(self):
         """Toggle the visibility of the notes panel."""
         if not hasattr(self, 'notes_panel_frame'):
             # First time, create the panel
             self.create_notes_panel()
+            # Initially hidden, so make it visible
+            self.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
+            self.notes_panel_visible = True
+            # Update the panel content
+            self.update_notes_panel()
+            # Allow the UI to update and properly draw everything
+            self.controller.root.update_idletasks()
             return
 
         if self.notes_panel_visible:
@@ -1935,7 +1942,7 @@ class UIComponents:
             self.notes_panel_frame.pack_forget()
             self.notes_panel_visible = False
         else:
-            # Show the panel in the horizontal layout
+            # Show the panel
             self.notes_panel_frame.pack(side=tk.RIGHT, fill=tk.Y)
             self.notes_panel_visible = True
             # Update notes display
