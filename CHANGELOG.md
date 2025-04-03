@@ -1,4 +1,10 @@
 
+    ## [0.1.13] - 2025-04-03
+    ### Added
+    - Fix: Increase Y size of tag filter dialogs so that buttons are not cut off.
+
+    
+
     ## [0.1.12] - 2025-04-03
     ### Added
     - Fix: Fix the pakages in pyproject.toml so that we now get all the sub packages being included.
