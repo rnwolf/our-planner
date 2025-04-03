@@ -63,8 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - Fix: Fix the pakages in pyproject.toml so that we now get all the sub packages being included.
-    - Fix: Updated GHA workflow with condition check to run only on changes to main branch
+    - Fix: Increase Y size of tag filter dialogs so that buttons are not cut off.
 
     """
 
