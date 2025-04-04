@@ -1694,206 +1694,278 @@ class TaskOperations:
                 )
             return
 
-        if self.controller.selected_task:  # Existing task manipulation
+        if not self.controller.resizing_pane:
+            # Calculate change in position
             dx = canvas_x - self.controller.drag_start_x
             dy = canvas_y - self.controller.drag_start_y
 
-            task = self.controller.selected_task
-            task_id = task['task_id']
-            ui_elements = self.controller.ui.task_ui_elements.get(task_id)
-
-            if not ui_elements:
+            # Skip small movements to improve performance
+            if abs(dx) < 1 and abs(dy) < 1:
                 return
 
-            if self.controller.resize_edge == 'left':
-                # Resize from left edge - only affects the single task being resized
-                new_width = ui_elements['x2'] - (ui_elements['x1'] + dx)
-                if new_width >= self.controller.cell_width:  # Minimum task width
-                    self.controller.task_canvas.move(ui_elements['left_edge'], dx, 0)
-                    self.controller.task_canvas.coords(
-                        ui_elements['box'],
-                        ui_elements['x1'] + dx,
-                        ui_elements['y1'],
-                        ui_elements['x2'],
-                        ui_elements['y2'],
-                    )
-                    # Update stored coordinates
-                    ui_elements['x1'] += dx
+            if self.controller.selected_task:  # Existing task manipulation
+                task = self.controller.selected_task
+                task_id = task['task_id']
+                ui_elements = self.controller.ui.task_ui_elements.get(task_id)
 
-                    # Update text position
-                    self.controller.task_canvas.coords(
-                        ui_elements['text'],
-                        (ui_elements['x1'] + ui_elements['x2']) / 2,
-                        (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
-                    )
+                if not ui_elements:
+                    return
 
-                    # Update tag text position if it exists
-                    if ui_elements.get('tag_text'):
+                if self.controller.resize_edge == 'left':
+                    # Resize from left edge - only affects the single task being resized
+                    new_width = ui_elements['x2'] - (ui_elements['x1'] + dx)
+                    if new_width >= self.controller.cell_width:  # Minimum task width
+                        self.controller.task_canvas.move(
+                            ui_elements['left_edge'], dx, 0
+                        )
                         self.controller.task_canvas.coords(
-                            ui_elements['tag_text'],
+                            ui_elements['box'],
+                            ui_elements['x1'] + dx,
+                            ui_elements['y1'],
+                            ui_elements['x2'],
+                            ui_elements['y2'],
+                        )
+                        # Update stored coordinates
+                        ui_elements['x1'] += dx
+
+                        # Update text position
+                        self.controller.task_canvas.coords(
+                            ui_elements['text'],
                             (ui_elements['x1'] + ui_elements['x2']) / 2,
-                            (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
+                            (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
                         )
 
-                    # Update highlight position if it exists
-                    if ui_elements.get('highlight'):
+                        # Update tag text position if it exists
+                        if ui_elements.get('tag_text'):
+                            self.controller.task_canvas.coords(
+                                ui_elements['tag_text'],
+                                (ui_elements['x1'] + ui_elements['x2']) / 2,
+                                (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
+                            )
+
+                        # Update highlight position if it exists
+                        if ui_elements.get('highlight'):
+                            self.controller.task_canvas.coords(
+                                ui_elements['highlight'],
+                                ui_elements['x1'] - 2,
+                                ui_elements['y1'] - 2,
+                                ui_elements['x2'] + 2,
+                                ui_elements['y2'] + 2,
+                            )
+
+                        # Update text background if it exists
+                        if 'text_bg' in ui_elements:
+                            self.controller.task_canvas.move(
+                                ui_elements['text_bg'], dx, 0
+                            )
+
+                        # Update tag background if it exists
+                        if 'tag_bg' in ui_elements:
+                            self.controller.task_canvas.move(
+                                ui_elements['tag_bg'], dx, 0
+                            )
+
+                elif self.controller.resize_edge == 'right':
+                    # Resize from right edge - only affects the single task being resized
+                    new_width = ui_elements['x2'] + dx - ui_elements['x1']
+                    if new_width >= self.controller.cell_width:  # Minimum task width
+                        self.controller.task_canvas.move(
+                            ui_elements['right_edge'], dx, 0
+                        )
                         self.controller.task_canvas.coords(
-                            ui_elements['highlight'],
-                            ui_elements['x1'] - 2,
-                            ui_elements['y1'] - 2,
-                            ui_elements['x2'] + 2,
-                            ui_elements['y2'] + 2,
+                            ui_elements['box'],
+                            ui_elements['x1'],
+                            ui_elements['y1'],
+                            ui_elements['x2'] + dx,
+                            ui_elements['y2'],
+                        )
+                        # Update stored coordinates
+                        ui_elements['x2'] += dx
+
+                        # Update connector position
+                        ui_elements['connector_x'] += dx
+                        self.controller.task_canvas.move(
+                            ui_elements['connector'], dx, 0
                         )
 
-            elif self.controller.resize_edge == 'right':
-                # Resize from right edge - only affects the single task being resized
-                new_width = ui_elements['x2'] + dx - ui_elements['x1']
-                if new_width >= self.controller.cell_width:  # Minimum task width
-                    self.controller.task_canvas.move(ui_elements['right_edge'], dx, 0)
-                    self.controller.task_canvas.coords(
-                        ui_elements['box'],
-                        ui_elements['x1'],
-                        ui_elements['y1'],
-                        ui_elements['x2'] + dx,
-                        ui_elements['y2'],
-                    )
-                    # Update stored coordinates
-                    ui_elements['x2'] += dx
-
-                    # Update connector position
-                    ui_elements['connector_x'] += dx
-                    self.controller.task_canvas.move(ui_elements['connector'], dx, 0)
-
-                    # Update text position
-                    self.controller.task_canvas.coords(
-                        ui_elements['text'],
-                        (ui_elements['x1'] + ui_elements['x2']) / 2,
-                        (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
-                    )
-
-                    # Update tag text position if it exists
-                    if ui_elements.get('tag_text'):
+                        # Update text position
                         self.controller.task_canvas.coords(
-                            ui_elements['tag_text'],
+                            ui_elements['text'],
                             (ui_elements['x1'] + ui_elements['x2']) / 2,
-                            (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
+                            (ui_elements['y1'] + ui_elements['y2']) / 2 - 8,
                         )
 
-                    # Update highlight position if it exists
-                    if ui_elements.get('highlight'):
-                        self.controller.task_canvas.coords(
-                            ui_elements['highlight'],
-                            ui_elements['x1'] - 2,
-                            ui_elements['y1'] - 2,
-                            ui_elements['x2'] + 2,
-                            ui_elements['y2'] + 2,
-                        )
+                        # Update tag text position if it exists
+                        if ui_elements.get('tag_text'):
+                            self.controller.task_canvas.coords(
+                                ui_elements['tag_text'],
+                                (ui_elements['x1'] + ui_elements['x2']) / 2,
+                                (ui_elements['y1'] + ui_elements['y2']) / 2 + 8,
+                            )
 
-            else:
-                # Moving tasks - check if multiple tasks are selected
-                if (
-                    len(self.controller.selected_tasks) > 1
-                    and task in self.controller.selected_tasks
-                ):
-                    # Move all selected tasks together
-                    for selected_task in self.controller.selected_tasks:
-                        selected_task_id = selected_task['task_id']
-                        selected_ui_elements = self.controller.ui.task_ui_elements.get(
-                            selected_task_id
-                        )
+                        # Update highlight position if it exists
+                        if ui_elements.get('highlight'):
+                            self.controller.task_canvas.coords(
+                                ui_elements['highlight'],
+                                ui_elements['x1'] - 2,
+                                ui_elements['y1'] - 2,
+                                ui_elements['x2'] + 2,
+                                ui_elements['y2'] + 2,
+                            )
 
-                        if not selected_ui_elements:
-                            continue
+                        # Update text background if it exists
+                        if 'text_bg' in ui_elements:
+                            self.controller.task_canvas.move(
+                                ui_elements['text_bg'], dx, 0
+                            )
 
-                        # Move all UI elements for this task
+                        # Update tag background if it exists
+                        if 'tag_bg' in ui_elements:
+                            self.controller.task_canvas.move(
+                                ui_elements['tag_bg'], dx, 0
+                            )
+
+                else:
+                    # Moving tasks - check if multiple tasks are selected
+                    if (
+                        len(self.controller.selected_tasks) > 1
+                        and task in self.controller.selected_tasks
+                    ):
+                        # Move all selected tasks together
+                        for selected_task in self.controller.selected_tasks:
+                            selected_task_id = selected_task['task_id']
+                            selected_ui_elements = (
+                                self.controller.ui.task_ui_elements.get(
+                                    selected_task_id
+                                )
+                            )
+
+                            if not selected_ui_elements:
+                                continue
+
+                            # Move all UI elements for this task
+                            self.controller.task_canvas.move(
+                                selected_ui_elements['box'], dx, dy
+                            )
+                            self.controller.task_canvas.move(
+                                selected_ui_elements['left_edge'], dx, dy
+                            )
+                            self.controller.task_canvas.move(
+                                selected_ui_elements['right_edge'], dx, dy
+                            )
+                            self.controller.task_canvas.move(
+                                selected_ui_elements['text'], dx, dy
+                            )
+                            self.controller.task_canvas.move(
+                                selected_ui_elements['connector'], dx, dy
+                            )
+
+                            # Move tag text if it exists
+                            if selected_ui_elements.get('tag_text'):
+                                self.controller.task_canvas.move(
+                                    selected_ui_elements['tag_text'], dx, dy
+                                )
+
+                            # Move highlight if it exists
+                            if selected_ui_elements.get('highlight'):
+                                self.controller.task_canvas.move(
+                                    selected_ui_elements['highlight'], dx, dy
+                                )
+
+                            # Move text background if it exists
+                            if 'text_bg' in selected_ui_elements:
+                                self.controller.task_canvas.move(
+                                    selected_ui_elements['text_bg'], dx, dy
+                                )
+
+                            # Move tag background if it exists
+                            if 'tag_bg' in selected_ui_elements:
+                                self.controller.task_canvas.move(
+                                    selected_ui_elements['tag_bg'], dx, dy
+                                )
+
+                            # Update stored coordinates
+                            selected_ui_elements['x1'] += dx
+                            selected_ui_elements['y1'] += dy
+                            selected_ui_elements['x2'] += dx
+                            selected_ui_elements['y2'] += dy
+                            selected_ui_elements['connector_x'] += dx
+                            selected_ui_elements['connector_y'] += dy
+                    else:
+                        # Move just the single selected task
+                        self.controller.task_canvas.move(ui_elements['box'], dx, dy)
                         self.controller.task_canvas.move(
-                            selected_ui_elements['box'], dx, dy
+                            ui_elements['left_edge'], dx, dy
                         )
                         self.controller.task_canvas.move(
-                            selected_ui_elements['left_edge'], dx, dy
+                            ui_elements['right_edge'], dx, dy
                         )
-                        self.controller.task_canvas.move(
-                            selected_ui_elements['right_edge'], dx, dy
-                        )
-                        self.controller.task_canvas.move(
-                            selected_ui_elements['text'], dx, dy
-                        )
-                        self.controller.task_canvas.move(
-                            selected_ui_elements['connector'], dx, dy
-                        )
+                        self.controller.task_canvas.move(ui_elements['text'], dx, dy)
 
                         # Move tag text if it exists
-                        if selected_ui_elements.get('tag_text'):
+                        if ui_elements.get('tag_text'):
                             self.controller.task_canvas.move(
-                                selected_ui_elements['tag_text'], dx, dy
+                                ui_elements['tag_text'], dx, dy
                             )
 
                         # Move highlight if it exists
-                        if selected_ui_elements.get('highlight'):
+                        if ui_elements.get('highlight'):
                             self.controller.task_canvas.move(
-                                selected_ui_elements['highlight'], dx, dy
+                                ui_elements['highlight'], dx, dy
                             )
 
+                        # Move text background if it exists
+                        if 'text_bg' in ui_elements:
+                            self.controller.task_canvas.move(
+                                ui_elements['text_bg'], dx, dy
+                            )
+
+                        # Move tag background if it exists
+                        if 'tag_bg' in ui_elements:
+                            self.controller.task_canvas.move(
+                                ui_elements['tag_bg'], dx, dy
+                            )
+
+                        # Update connector
+                        self.controller.task_canvas.move(
+                            ui_elements['connector'], dx, dy
+                        )
+
                         # Update stored coordinates
-                        selected_ui_elements['x1'] += dx
-                        selected_ui_elements['y1'] += dy
-                        selected_ui_elements['x2'] += dx
-                        selected_ui_elements['y2'] += dy
-                        selected_ui_elements['connector_x'] += dx
-                        selected_ui_elements['connector_y'] += dy
-                else:
-                    # Move just the single selected task
-                    self.controller.task_canvas.move(ui_elements['box'], dx, dy)
-                    self.controller.task_canvas.move(ui_elements['left_edge'], dx, dy)
-                    self.controller.task_canvas.move(ui_elements['right_edge'], dx, dy)
-                    self.controller.task_canvas.move(ui_elements['text'], dx, dy)
+                        ui_elements['x1'] += dx
+                        ui_elements['y1'] += dy
+                        ui_elements['x2'] += dx
+                        ui_elements['y2'] += dy
+                        ui_elements['connector_x'] += dx
+                        ui_elements['connector_y'] += dy
 
-                    # Move tag text if it exists
-                    if ui_elements.get('tag_text'):
-                        self.controller.task_canvas.move(
-                            ui_elements['tag_text'], dx, dy
-                        )
+                # Update the reference point for the next drag event
+                self.controller.drag_start_x = canvas_x
+                self.controller.drag_start_y = canvas_y
 
-                    # Move highlight if it exists
-                    if ui_elements.get('highlight'):
-                        self.controller.task_canvas.move(
-                            ui_elements['highlight'], dx, dy
-                        )
+            elif self.controller.new_task_in_progress:  # New task creation in progress
+                # Update rubberband to show the task being created
+                start_col, start_row = self.controller.new_task_start
+                current_col = max(
+                    0,
+                    min(
+                        self.model.days - 1, int(canvas_x / self.controller.cell_width)
+                    ),
+                )
 
-                    # Update connector
-                    self.controller.task_canvas.move(ui_elements['connector'], dx, dy)
+                # Determine the left and right columns based on drag direction
+                left_col = min(start_col, current_col)
+                right_col = max(start_col, current_col)
 
-                    # Update stored coordinates
-                    ui_elements['x1'] += dx
-                    ui_elements['y1'] += dy
-                    ui_elements['x2'] += dx
-                    ui_elements['y2'] += dy
-                    ui_elements['connector_x'] += dx
-                    ui_elements['connector_y'] += dy
+                # Update rubberband rectangle
+                x1 = left_col * self.controller.cell_width
+                y1 = start_row * self.controller.task_height
+                x2 = (right_col + 1) * self.controller.cell_width
+                y2 = y1 + self.controller.task_height
 
-            self.controller.drag_start_x = canvas_x
-            self.controller.drag_start_y = canvas_y
-
-        elif self.controller.new_task_in_progress:  # New task creation in progress
-            # Update rubberband to show the task being created
-            start_col, start_row = self.controller.new_task_start
-            current_col = max(
-                0, min(self.model.days - 1, int(canvas_x / self.controller.cell_width))
-            )
-
-            # Determine the left and right columns based on drag direction
-            left_col = min(start_col, current_col)
-            right_col = max(start_col, current_col)
-
-            # Update rubberband rectangle
-            x1 = left_col * self.controller.cell_width
-            y1 = start_row * self.controller.task_height
-            x2 = (right_col + 1) * self.controller.cell_width
-            y2 = y1 + self.controller.task_height
-
-            self.controller.task_canvas.coords(
-                self.controller.rubberband, x1, y1, x2, y2
-            )
+                self.controller.task_canvas.coords(
+                    self.controller.rubberband, x1, y1, x2, y2
+                )
 
     def on_task_release(self, event):
         """Handle mouse release to finalize task position/size or create new task"""
@@ -1929,60 +2001,60 @@ class TaskOperations:
                 # Snap left edge - only for single task
                 grid_col = round(ui_elements['x1'] / self.controller.cell_width)
                 new_x1 = grid_col * self.controller.cell_width
-                dx = new_x1 - ui_elements['x1']
 
-                # Update visuals
-                self.controller.task_canvas.move(ui_elements['left_edge'], dx, 0)
-                self.controller.task_canvas.coords(
-                    ui_elements['box'],
+                # Update model
+                task['col'] = grid_col
+                task['duration'] = round(
+                    (ui_elements['x2'] - new_x1) / self.controller.cell_width
+                )
+
+                # Delete all existing UI elements for this task
+                for key, element_id in list(ui_elements.items()):
+                    if isinstance(element_id, int):  # Check if it's a canvas item ID
+                        self.controller.task_canvas.delete(element_id)
+
+                self.controller.ui.cleanup_tooltips()
+
+                # Check for collisions (maintain this behavior)
+                self.handle_task_collisions(
+                    task,
                     new_x1,
                     ui_elements['y1'],
                     ui_elements['x2'],
                     ui_elements['y2'],
                 )
 
-                # Update stored coordinates
-                ui_elements['x1'] = new_x1
-
-                # Update model
-                task['col'] = grid_col
-                task['duration'] = round(
-                    (ui_elements['x2'] - ui_elements['x1']) / self.controller.cell_width
-                )
+                # Redraw the task completely
+                self.controller.ui.draw_task(task)
 
             elif self.controller.resize_edge == 'right':
                 # Snap right edge - only for single task
                 grid_col = round(ui_elements['x2'] / self.controller.cell_width)
                 new_x2 = grid_col * self.controller.cell_width
-                dx = new_x2 - ui_elements['x2']
 
-                # Update visuals
-                self.controller.task_canvas.move(ui_elements['right_edge'], dx, 0)
-                self.controller.task_canvas.coords(
-                    ui_elements['box'],
+                # Update model
+                task['duration'] = round(
+                    (new_x2 - ui_elements['x1']) / self.controller.cell_width
+                )
+
+                # Delete all existing UI elements for this task
+                for key, element_id in list(ui_elements.items()):
+                    if isinstance(element_id, int):  # Check if it's a canvas item ID
+                        self.controller.task_canvas.delete(element_id)
+
+                self.controller.ui.cleanup_tooltips()
+
+                # Check for collisions (maintain this behavior)
+                self.handle_task_collisions(
+                    task,
                     ui_elements['x1'],
                     ui_elements['y1'],
                     new_x2,
                     ui_elements['y2'],
                 )
 
-                # Update stored coordinates
-                ui_elements['x2'] = new_x2
-
-                # Update model
-                task['duration'] = round(
-                    (ui_elements['x2'] - ui_elements['x1']) / self.controller.cell_width
-                )
-
-                # Update connector position to match the new right edge position
-                ui_elements['connector_x'] = new_x2
-                self.controller.task_canvas.coords(
-                    ui_elements['connector'],
-                    new_x2 - 5,
-                    ui_elements['connector_y'] - 5,
-                    new_x2 + 5,
-                    ui_elements['connector_y'] + 5,
-                )
+                # Redraw the task completely
+                self.controller.ui.draw_task(task)
 
             else:
                 # Moving tasks - check if multiple tasks are selected
@@ -2006,199 +2078,105 @@ class TaskOperations:
                         )
                         grid_col = round(selected_ui['x1'] / self.controller.cell_width)
 
-                        new_x1 = grid_col * self.controller.cell_width
-                        new_y1 = grid_row * self.controller.task_height
-                        new_x2 = (
-                            new_x1
-                            + selected_task['duration'] * self.controller.cell_width
-                        )
-                        new_y2 = new_y1 + self.controller.task_height
-
                         # Keep task within bounds
                         if grid_row >= self.model.max_rows:
                             grid_row = self.model.max_rows - 1
-                            new_y1 = grid_row * self.controller.task_height
-                            new_y2 = new_y1 + self.controller.task_height
 
                         if grid_row < 0:
                             grid_row = 0
-                            new_y1 = 0
-                            new_y2 = self.controller.task_height
 
                         if grid_col < 0:
                             grid_col = 0
-                            new_x1 = 0
-                            new_x2 = (
-                                new_x1
-                                + selected_task['duration'] * self.controller.cell_width
-                            )
 
                         if grid_col + selected_task['duration'] > self.model.days:
                             grid_col = self.model.days - selected_task['duration']
-                            new_x1 = grid_col * self.controller.cell_width
-                            new_x2 = (
-                                new_x1
-                                + selected_task['duration'] * self.controller.cell_width
-                            )
-
-                        # Update visuals
-                        self.controller.task_canvas.coords(
-                            selected_ui['box'], new_x1, new_y1, new_x2, new_y2
-                        )
-                        self.controller.task_canvas.coords(
-                            selected_ui['left_edge'], new_x1, new_y1, new_x1, new_y2
-                        )
-                        self.controller.task_canvas.coords(
-                            selected_ui['right_edge'], new_x2, new_y1, new_x2, new_y2
-                        )
-
-                        # Update text positions
-                        self.controller.task_canvas.coords(
-                            selected_ui['text'],
-                            (new_x1 + new_x2) / 2,
-                            (new_y1 + new_y2) / 2 - 8,
-                        )
-
-                        # Update tag text position if it exists
-                        if selected_ui.get('tag_text'):
-                            self.controller.task_canvas.coords(
-                                selected_ui['tag_text'],
-                                (new_x1 + new_x2) / 2,
-                                (new_y1 + new_y2) / 2 + 8,
-                            )
-
-                        # Update connector position
-                        selected_ui['connector_x'] = new_x2
-                        selected_ui['connector_y'] = (new_y1 + new_y2) / 2
-                        self.controller.task_canvas.coords(
-                            selected_ui['connector'],
-                            selected_ui['connector_x'] - 5,
-                            selected_ui['connector_y'] - 5,
-                            selected_ui['connector_x'] + 5,
-                            selected_ui['connector_y'] + 5,
-                        )
-
-                        # Update stored coordinates
-                        selected_ui['x1'], selected_ui['y1'] = new_x1, new_y1
-                        selected_ui['x2'], selected_ui['y2'] = new_x2, new_y2
 
                         # Update model
                         selected_task['row'], selected_task['col'] = grid_row, grid_col
 
                     # Handle collisions for all tasks after positioning
                     for selected_task in self.controller.selected_tasks:
+                        selected_task_id = selected_task['task_id']
                         selected_ui = self.controller.ui.task_ui_elements.get(
-                            selected_task['task_id']
+                            selected_task_id
                         )
+
                         if selected_ui:
-                            self.handle_task_collisions(
-                                selected_task,
-                                selected_ui['x1'],
-                                selected_ui['y1'],
-                                selected_ui['x2'],
-                                selected_ui['y2'],
+                            # Calculate new coordinates based on task model
+                            new_x1 = selected_task['col'] * self.controller.cell_width
+                            new_y1 = selected_task['row'] * self.controller.task_height
+                            new_x2 = (
+                                new_x1
+                                + selected_task['duration'] * self.controller.cell_width
                             )
+                            new_y2 = new_y1 + self.controller.task_height
+
+                            # Handle collisions with these coordinates
+                            self.handle_task_collisions(
+                                selected_task, new_x1, new_y1, new_x2, new_y2
+                            )
+
+                    # After handling all collisions, redraw all tasks
+                    for selected_task in self.controller.selected_tasks:
+                        selected_task_id = selected_task['task_id']
+                        selected_ui = self.controller.ui.task_ui_elements.get(
+                            selected_task_id
+                        )
+
+                        if selected_ui:
+                            # Delete all existing UI elements for this task
+                            for key, element_id in list(selected_ui.items()):
+                                if isinstance(
+                                    element_id, int
+                                ):  # Check if it's a canvas item ID
+                                    self.controller.task_canvas.delete(element_id)
+
+                            self.controller.ui.cleanup_tooltips()
+
+                            # Redraw the task completely
+                            self.controller.ui.draw_task(selected_task)
+
                 else:
                     # Snap single task
                     grid_row = round(ui_elements['y1'] / self.controller.task_height)
                     grid_col = round(ui_elements['x1'] / self.controller.cell_width)
 
+                    # Keep task within bounds
+                    if grid_row >= self.model.max_rows:
+                        grid_row = self.model.max_rows - 1
+
+                    if grid_row < 0:
+                        grid_row = 0
+
+                    if grid_col < 0:
+                        grid_col = 0
+
+                    if grid_col + task['duration'] > self.model.days:
+                        grid_col = self.model.days - task['duration']
+
+                    # Update model
+                    task['row'], task['col'] = grid_row, grid_col
+
+                    # Calculate new coordinates based on the updated model
                     new_x1 = grid_col * self.controller.cell_width
                     new_y1 = grid_row * self.controller.task_height
                     new_x2 = new_x1 + task['duration'] * self.controller.cell_width
                     new_y2 = new_y1 + self.controller.task_height
 
-                    # Keep task within bounds
-                    if grid_row >= self.model.max_rows:
-                        grid_row = self.model.max_rows - 1
-                        new_y1 = grid_row * self.controller.task_height
-                        new_y2 = new_y1 + self.controller.task_height
-
-                    if grid_row < 0:
-                        grid_row = 0
-                        new_y1 = 0
-                        new_y2 = self.controller.task_height
-
-                    if grid_col < 0:
-                        grid_col = 0
-                        new_x1 = 0
-                        new_x2 = new_x1 + task['duration'] * self.controller.cell_width
-
-                    if grid_col + task['duration'] > self.model.days:
-                        grid_col = self.model.days - task['duration']
-                        new_x1 = grid_col * self.controller.cell_width
-                        new_x2 = new_x1 + task['duration'] * self.controller.cell_width
-
-                    # Update visuals
-                    self.controller.task_canvas.coords(
-                        ui_elements['box'], new_x1, new_y1, new_x2, new_y2
-                    )
-                    self.controller.task_canvas.coords(
-                        ui_elements['left_edge'], new_x1, new_y1, new_x1, new_y2
-                    )
-                    self.controller.task_canvas.coords(
-                        ui_elements['right_edge'], new_x2, new_y1, new_x2, new_y2
-                    )
-
-                    # Update text positions
-                    self.controller.task_canvas.coords(
-                        ui_elements['text'],
-                        (new_x1 + new_x2) / 2,
-                        (new_y1 + new_y2) / 2 - 8,
-                    )
-
-                    # Update tag text position if it exists
-                    if ui_elements.get('tag_text'):
-                        self.controller.task_canvas.coords(
-                            ui_elements['tag_text'],
-                            (new_x1 + new_x2) / 2,
-                            (new_y1 + new_y2) / 2 + 8,
-                        )
-
-                    # Update highlight position if it exists
-                    if 'highlight' in ui_elements:
-                        self.controller.task_canvas.coords(
-                            ui_elements['highlight'],
-                            new_x1 - 2,
-                            new_y1 - 2,
-                            new_x2 + 2,
-                            new_y2 + 2,
-                        )
-
-                    # Collision detection and task shifting
-                    x1, y1, x2, y2 = new_x1, new_y1, new_x2, new_y2
+                    # First handle collision detection and task shifting
                     self.handle_task_collisions(task, new_x1, new_y1, new_x2, new_y2)
 
-                    # Update connector position AFTER snapping
-                    ui_elements['connector_x'] = new_x2
-                    ui_elements['connector_y'] = (new_y1 + new_y2) / 2
-                    self.controller.task_canvas.coords(
-                        ui_elements['connector'],
-                        ui_elements['connector_x'] - 5,
-                        ui_elements['connector_y'] - 5,
-                        ui_elements['connector_x'] + 5,
-                        ui_elements['connector_y'] + 5,
-                    )
+                    # Now delete all existing UI elements
+                    for key, element_id in list(ui_elements.items()):
+                        if isinstance(
+                            element_id, int
+                        ):  # Check if it's a canvas item ID
+                            self.controller.task_canvas.delete(element_id)
 
-                    # Update stored coordinates
-                    ui_elements['x1'], ui_elements['y1'] = new_x1, new_y1
-                    ui_elements['x2'], ui_elements['y2'] = new_x2, new_y2
+                    self.controller.ui.cleanup_tooltips()
 
-                    # Update model
-                    task['row'], task['col'] = grid_row, grid_col
-
-            # Call handle_task_collisions for single task resize operations
-            if (
-                self.controller.resize_edge == 'left'
-                or self.controller.resize_edge == 'right'
-            ):
-                x1, y1, x2, y2 = (
-                    ui_elements['x1'],
-                    ui_elements['y1'],
-                    ui_elements['x2'],
-                    ui_elements['y2'],
-                )
-                self.handle_task_collisions(task, x1, y1, x2, y2)
+                    # Redraw the task with updated coordinates
+                    self.controller.ui.draw_task(task)
 
             # Note: We don't clear selected_task here when in multi-select mode
             # This keeps the task selected after manipulation
@@ -2260,7 +2238,7 @@ class TaskOperations:
 
             # Remove the rubberband
             if self.controller.rubberband:
-                self.controller.task_canvas.delete
+                self.controller.task_canvas.delete(self.controller.rubberband)
 
             # Reset new task flags
             self.controller.new_task_in_progress = False
@@ -2676,3 +2654,186 @@ class TaskOperations:
                 self.controller.ui.update_notes_panel()
             return True
         return False
+
+    def set_aggressive_duration(self, task=None):
+        """Set the aggressive duration for a task."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            # Get current aggressive duration or use task duration as default
+            current_duration = task.get('aggressive_duration') or task['duration']
+
+            # Ask for new duration
+            new_duration = simpledialog.askinteger(
+                'Aggressive Duration',
+                'Enter aggressive duration (days):',
+                initialvalue=current_duration,
+                minvalue=1,
+                parent=self.controller.root,
+            )
+
+            if new_duration is not None:
+                self.controller.model.set_aggressive_duration(
+                    task['task_id'], new_duration
+                )
+
+                # Update the UI if needed
+                self.controller.update_view()
+
+    def record_remaining_duration(self, task=None):
+        """Record the remaining duration for a task."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            # Get current remaining duration if any
+            current_remaining = self.controller.model.get_latest_remaining_duration(
+                task['task_id']
+            )
+            if current_remaining is None:
+                current_remaining = task['duration']
+
+            # Ask for new remaining duration
+            new_remaining = simpledialog.askinteger(
+                'Remaining Duration',
+                f'Enter remaining duration (days) for task as of {self.controller.model.setdate.strftime("%Y-%m-%d")}:',
+                initialvalue=current_remaining,
+                minvalue=0,  # Allow 0 for completed tasks
+                parent=self.controller.root,
+            )
+
+            if new_remaining is not None:
+                self.controller.model.record_remaining_duration(
+                    task['task_id'], new_remaining
+                )
+
+                # Update the UI
+                self.controller.update_view()
+
+    def set_fullkit_done(self, task=None):
+        """Mark the task as having full kit completed."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            # Ask for confirmation
+            if messagebox.askyesno(
+                'Full Kit Done',
+                f'Mark task "{task["description"]}" as having full kit complete on {self.controller.model.setdate.strftime("%Y-%m-%d")}?',
+                parent=self.controller.root,
+            ):
+                self.controller.model.set_fullkit_date(task['task_id'])
+                # Update the UI
+                self.controller.update_view()
+
+    def set_task_state(self, state, task=None):
+        """Set the state of a task."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            if self.controller.model.set_task_state(task['task_id'], state):
+                # Update the UI
+                self.controller.update_view()
+
+    def view_duration_history(self, task=None):
+        """Show a dialog with the task's duration history."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            history = self.controller.model.get_remaining_duration_history(
+                task['task_id']
+            )
+
+            # Create dialog
+            dialog = tk.Toplevel(self.controller.root)
+            dialog.title(f'Duration History: {task["description"]}')
+            dialog.transient(self.controller.root)
+            dialog.grab_set()
+
+            # Set size and position
+            dialog.geometry('400x400')
+
+            # Create scrollable frame for history items
+            frame = tk.Frame(dialog, padx=10, pady=10)
+            frame.pack(fill=tk.BOTH, expand=True)
+
+            # Header
+            tk.Label(
+                frame,
+                text=f'Task {task["task_id"]}: {task["description"]}',
+                font=('Arial', 10, 'bold'),
+                wraplength=380,
+            ).pack(fill=tk.X, pady=(0, 10))
+
+            # Task state
+            state_text = f'Current State: {task.get("state", "planning")}'
+            tk.Label(frame, text=state_text, font=('Arial', 9)).pack(anchor='w')
+
+            # Information labels
+            original_duration_text = f'Original Duration: {task["duration"]} days'
+            tk.Label(frame, text=original_duration_text).pack(anchor='w')
+
+            if task.get('aggressive_duration'):
+                aggressive_text = (
+                    f'Aggressive Duration: {task["aggressive_duration"]} days'
+                )
+                tk.Label(frame, text=aggressive_text).pack(anchor='w')
+
+            safe_text = (
+                f'Safe Duration: {task.get("safe_duration", task["duration"])} days'
+            )
+            tk.Label(frame, text=safe_text).pack(anchor='w')
+
+            # Actual dates
+            if task.get('actual_start_date'):
+                start_date = datetime.fromisoformat(task['actual_start_date']).strftime(
+                    '%Y-%m-%d'
+                )
+                start_text = f'Actual Start: {start_date}'
+                tk.Label(frame, text=start_text).pack(anchor='w')
+
+            if task.get('actual_end_date'):
+                end_date = datetime.fromisoformat(task['actual_end_date']).strftime(
+                    '%Y-%m-%d'
+                )
+                end_text = f'Actual End: {end_date}'
+                tk.Label(frame, text=end_text).pack(anchor='w')
+
+            if task.get('fullkit_date'):
+                fullkit_date = datetime.fromisoformat(task['fullkit_date']).strftime(
+                    '%Y-%m-%d'
+                )
+                fullkit_text = f'Full Kit Date: {fullkit_date}'
+                tk.Label(frame, text=fullkit_text).pack(anchor='w')
+
+            tk.Label(
+                frame, text='Remaining Duration History:', font=('Arial', 10, 'bold')
+            ).pack(anchor='w', pady=(10, 5))
+
+            # Create a scrolled list for the history
+            history_frame = tk.Frame(frame)
+            history_frame.pack(fill=tk.BOTH, expand=True)
+
+            scrollbar = ttk.Scrollbar(history_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            history_list = tk.Listbox(history_frame, yscrollcommand=scrollbar.set)
+            history_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=history_list.yview)
+
+            if not history:
+                history_list.insert(tk.END, 'No remaining duration records found')
+            else:
+                # Sort history by date
+                sorted_history = sorted(history, key=lambda x: x['date'])
+
+                for record in sorted_history:
+                    date = datetime.fromisoformat(record['date']).strftime('%Y-%m-%d')
+                    remaining = record['remaining_duration']
+                    history_list.insert(tk.END, f'{date}: {remaining} days remaining')
+
+            # Close button
+            tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))

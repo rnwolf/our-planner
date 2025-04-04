@@ -182,6 +182,14 @@ class TaskResourceModel:
             'tags': tags,  # Add tags to task dictionary
             'color': color,  # Add color to task dictionary
             'notes': [],  # Initialize empty notes list
+            # New CCPM-related properties
+            'state': 'planning',  # Initial state: 'planning', 'buffered', or 'done'
+            'safe_duration': duration,  # Initially set to the provided duration
+            'aggressive_duration': None,  # Optimistic duration (if set)
+            'actual_start_date': None,  # When work actually started
+            'actual_end_date': None,  # When work was completed
+            'fullkit_date': None,  # When all prerequisites were ready
+            'remaining_duration_history': [],  # Track history of remaining duration estimates
         }
         self.tasks.append(task)
         return task
@@ -574,7 +582,29 @@ class TaskResourceModel:
                             # If note is missing key fields, reset notes
                             task['notes'] = []
                             break
+                    # Add CCPM fields if they don't exist
 
+                if 'state' not in task:
+                    task['state'] = 'planning'
+
+                # Add fields if they don't exist fir backward compatability
+                if 'safe_duration' not in task:
+                    task['safe_duration'] = task['duration']
+
+                if 'aggressive_duration' not in task:
+                    task['aggressive_duration'] = None
+
+                if 'actual_start_date' not in task:
+                    task['actual_start_date'] = None
+
+                if 'actual_end_date' not in task:
+                    task['actual_end_date'] = None
+
+                if 'fullkit_date' not in task:
+                    task['fullkit_date'] = None
+
+                if 'remaining_duration_history' not in task:
+                    task['remaining_duration_history'] = []
             # Load start_date if available
             if 'start_date' in data:
                 try:
@@ -843,3 +873,144 @@ class TaskResourceModel:
 
         # Sort all notes by timestamp, newest first
         return sorted(all_notes, key=lambda note: note['timestamp'], reverse=True)
+
+    def record_remaining_duration(self, task_id: int, remaining_duration: int) -> bool:
+        """Record a new remaining duration estimate for a task on the current setdate.
+
+        Args:
+            task_id: ID of the task
+            remaining_duration: Estimated remaining duration in days
+
+        Returns:
+            bool: True if successful, False if task not found
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        # Create record with current setdate
+        record = {
+            'date': self.setdate.isoformat(),
+            'remaining_duration': remaining_duration,
+        }
+
+        # Initialize the history list if not present (for backward compatibility)
+        if 'remaining_duration_history' not in task:
+            task['remaining_duration_history'] = []
+
+        # Add the record
+        task['remaining_duration_history'].append(record)
+
+        # If this is the first record, set the actual start date
+        if not task.get('actual_start_date'):
+            task['actual_start_date'] = self.setdate.isoformat()
+
+        # If remaining duration is 0, set the actual end date and mark as done
+        if remaining_duration == 0:
+            task['actual_end_date'] = self.setdate.isoformat()
+            task['state'] = 'done'
+
+        return True
+
+    def get_remaining_duration_history(self, task_id: int) -> List[Dict[str, Any]]:
+        """Get the history of remaining duration estimates for a task.
+
+        Args:
+            task_id: ID of the task
+
+        Returns:
+            List of dictionaries with date and remaining_duration fields
+        """
+        task = self.get_task(task_id)
+        if not task or 'remaining_duration_history' not in task:
+            return []
+
+        return task['remaining_duration_history']
+
+    def get_latest_remaining_duration(self, task_id: int) -> Optional[int]:
+        """Get the most recent remaining duration estimate for a task.
+
+        Args:
+            task_id: ID of the task
+
+        Returns:
+            The most recent remaining duration estimate, or None if no estimates exist
+        """
+        history = self.get_remaining_duration_history(task_id)
+        if not history:
+            return None
+
+        # Sort by date, newest first
+        sorted_history = sorted(history, key=lambda x: x['date'], reverse=True)
+        return sorted_history[0]['remaining_duration']
+
+    def set_task_state(self, task_id: int, state: str) -> bool:
+        """Set the state of a task.
+
+        Args:
+            task_id: ID of the task
+            state: New state ('planning', 'buffered', 'done')
+
+        Returns:
+            bool: True if successful, False if task not found or invalid state
+        """
+        valid_states = ['planning', 'buffered', 'done']
+        if state not in valid_states:
+            return False
+
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task['state'] = state
+        return True
+
+    def set_aggressive_duration(self, task_id: int, duration: int) -> bool:
+        """Set the aggressive duration for a task.
+
+        Args:
+            task_id: ID of the task
+            duration: The aggressive duration in days
+
+        Returns:
+            bool: True if successful, False if task not found
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task['aggressive_duration'] = duration
+        return True
+
+    def set_safe_duration(self, task_id: int, duration: int) -> bool:
+        """Set the safe duration for a task.
+
+        Args:
+            task_id: ID of the task
+            duration: The safe duration in days
+
+        Returns:
+            bool: True if successful, False if task not found
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task['safe_duration'] = duration
+        return True
+
+    def set_fullkit_date(self, task_id: int) -> bool:
+        """Set the full kit date to the current setdate.
+
+        Args:
+            task_id: ID of the task
+
+        Returns:
+            bool: True if successful, False if task not found
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task['fullkit_date'] = self.setdate.isoformat()
+        return True

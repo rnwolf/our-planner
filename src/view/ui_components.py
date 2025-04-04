@@ -607,6 +607,44 @@ class UIComponents:
         )
 
         self.context_menu.add_separator()
+
+        # CCPM-related menu items
+        self.context_menu.add_command(
+            label='Set Aggressive Duration...',
+            command=lambda: self.controller.task_ops.set_aggressive_duration(),
+        )
+        self.context_menu.add_command(
+            label='Record Remaining Duration...',
+            command=lambda: self.controller.task_ops.record_remaining_duration(),
+        )
+        self.context_menu.add_command(
+            label='Set Full Kit Done',
+            command=lambda: self.controller.task_ops.set_fullkit_done(),
+        )
+        self.context_menu.add_command(
+            label='View Duration History...',
+            command=lambda: self.controller.task_ops.view_duration_history(),
+        )
+
+        # Add state submenu
+        self.state_menu = tk.Menu(self.context_menu, tearoff=0)
+        self.context_menu.add_cascade(label='Set Task State', menu=self.state_menu)
+
+        # Populate state menu options
+        self.state_menu.add_command(
+            label='Planning',
+            command=lambda: self.controller.task_ops.set_task_state('planning'),
+        )
+        self.state_menu.add_command(
+            label='Buffered',
+            command=lambda: self.controller.task_ops.set_task_state('buffered'),
+        )
+        self.state_menu.add_command(
+            label='Done',
+            command=lambda: self.controller.task_ops.set_task_state('done'),
+        )
+
+        self.context_menu.add_separator()
         self.context_menu.add_command(
             label='Add Predecessor',
             command=lambda: self.controller.task_ops.add_predecessor_dialog(
@@ -933,6 +971,10 @@ class UIComponents:
 
     def draw_task_grid(self):
         """Draw the task grid with wider label column"""
+        # Clean up any active tooltips
+        self.cleanup_tooltips()
+
+        # Clear the task canvas and label canvas
         self.controller.task_canvas.delete('all')
         self.controller.task_label_canvas.delete('all')
 
@@ -996,11 +1038,12 @@ class UIComponents:
         self.draw_dependencies()
 
     def add_tag_tooltip(self, canvas, item_id, tooltip_text):
-        """Add a tooltip to a canvas item."""
-        tooltip_window = None
+        """Add a tooltip to a canvas item with better tracking."""
+        # Create a class attribute to track active tooltips if it doesn't exist
+        if not hasattr(self, 'active_tooltips'):
+            self.active_tooltips = {}
 
         def enter(event):
-            nonlocal tooltip_window
             x, y = event.x_root, event.y_root
 
             # Create tooltip window
@@ -1021,15 +1064,31 @@ class UIComponents:
             )
             label.pack()
 
+            # Store this tooltip in our tracking dictionary with canvas item as key
+            self.active_tooltips[item_id] = tooltip_window
+
         def leave(event):
-            nonlocal tooltip_window
+            # Get the tooltip window for this item
+            tooltip_window = self.active_tooltips.get(item_id)
             if tooltip_window:
                 tooltip_window.destroy()
-                tooltip_window = None
+                # Remove from tracking dictionary
+                if item_id in self.active_tooltips:
+                    del self.active_tooltips[item_id]
 
         # Bind tooltip events
         canvas.tag_bind(item_id, '<Enter>', enter)
         canvas.tag_bind(item_id, '<Leave>', leave)
+
+    def cleanup_tooltips(self):
+        """Clean up all active tooltips."""
+        if hasattr(self, 'active_tooltips'):
+            # Destroy all active tooltip windows
+            for tooltip_window in self.active_tooltips.values():
+                if tooltip_window.winfo_exists():
+                    tooltip_window.destroy()
+            # Clear the dictionary
+            self.active_tooltips = {}
 
     def add_task_tooltips(self, task):
         """Add tooltips for task tags and resource information."""
@@ -1038,8 +1097,52 @@ class UIComponents:
             ui_elements = self.task_ui_elements[task_id]
             box_id = ui_elements['box']
 
-            # Create tooltip text with tags
+            # Create tooltip text with all relevant information
             tooltip_parts = []
+
+            # Add state
+            state = task.get('state', 'planning')
+            tooltip_parts.append(f'State: {state}')
+
+            # Add durations
+            tooltip_parts.append(f'Duration: {task["duration"]} days')
+
+            if task.get('aggressive_duration'):
+                tooltip_parts.append(
+                    f'Aggressive Duration: {task["aggressive_duration"]} days'
+                )
+
+            if (
+                task.get('safe_duration')
+                and task.get('safe_duration') != task['duration']
+            ):
+                tooltip_parts.append(f'Safe Duration: {task["safe_duration"]} days')
+
+            # Add remaining duration if available
+            remaining_duration = self.controller.model.get_latest_remaining_duration(
+                task_id
+            )
+            if remaining_duration is not None:
+                tooltip_parts.append(f'Remaining: {remaining_duration} days')
+
+            # Add dates if available
+            if task.get('actual_start_date'):
+                start_date = datetime.fromisoformat(task['actual_start_date']).strftime(
+                    '%Y-%m-%d'
+                )
+                tooltip_parts.append(f'Started: {start_date}')
+
+            if task.get('actual_end_date'):
+                end_date = datetime.fromisoformat(task['actual_end_date']).strftime(
+                    '%Y-%m-%d'
+                )
+                tooltip_parts.append(f'Completed: {end_date}')
+
+            if task.get('fullkit_date'):
+                fullkit_date = datetime.fromisoformat(task['fullkit_date']).strftime(
+                    '%Y-%m-%d'
+                )
+                tooltip_parts.append(f'Full Kit: {fullkit_date}')
 
             # Add tags section if task has tags
             if 'tags' in task and task['tags']:
@@ -1324,6 +1427,9 @@ class UIComponents:
         # Get task color, default to Cyan if not set
         task_color = task.get('color', 'Cyan')
 
+        # Get task state, default to 'planning' if not set
+        task_state = task.get('state', 'planning')
+
         # Calculate position with dynamic row height
         x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
 
@@ -1343,9 +1449,12 @@ class UIComponents:
                 tags=('selection_highlight',),
             )
 
+        # Keep the original task color for the box background
+        fill_color = task_color
+
         # Draw task box
         box_id = self.controller.task_canvas.create_rectangle(
-            x1, y1, x2, y2, fill=task_color, outline='black', width=1, tags=('task',)
+            x1, y1, x2, y2, fill=fill_color, outline='black', width=1, tags=('task',)
         )
 
         # Draw left and right edges (for resizing)
@@ -1365,17 +1474,79 @@ class UIComponents:
             else 0
         )
 
-        # Draw task text
+        # Create a text background based on task state
+        text_bg = None
+        text_color = 'black'  # Default text color
+
+        if task_state == 'buffered':
+            # Dark gray background for buffered tasks
+            text_bg = '#777777'  # Slightly lighter than #555555 for better contrast
+            text_color = 'white'  # White text for contrast
+        elif task_state == 'done':
+            # Green background for completed tasks
+            text_bg = '#90EE90'  # Light green
+            text_color = 'black'  # Black text for contrast
+
+        # Show remaining duration if available (for non-completed tasks)
+        remaining_duration = self.controller.model.get_latest_remaining_duration(
+            task['task_id']
+        )
+        display_text = f'{task_id} - {description}'
+
+        if remaining_duration is not None and task_state != 'done':
+            display_text = (
+                f'{task_id} - {description} ({remaining_duration}/{task["duration"]})'
+            )
+
+        # Variables to store IDs
+        text_id = None
+        text_bg_id = None
+        tag_id = None
+        tag_bg_id = None
+
+        # For URL text, use blue color but maintain the background color for state indication
         if task.get('url') and isinstance(task['url'], str) and task['url'].strip():
-            # Make the description a clickable URL
+            # First create background rectangle if needed
+            if text_bg:
+                # Get text dimensions first by creating and measuring the text
+                temp_text_id = self.controller.task_canvas.create_text(
+                    (x1 + x2) / 2,
+                    (y1 + y2) / 2 + text_y_offset,
+                    text=display_text,
+                    fill='blue' if text_color == 'black' else text_color,
+                    font=('Arial', self.controller.task_font_size),
+                    tags=('task_temp',),
+                )
+
+                # Get text bounds
+                bbox = self.controller.task_canvas.bbox(temp_text_id)
+                # Delete the temporary text
+                self.controller.task_canvas.delete(temp_text_id)
+
+                # Create background with padding
+                padding = 3
+                text_bg_id = self.controller.task_canvas.create_rectangle(
+                    bbox[0] - padding,
+                    bbox[1] - padding,
+                    bbox[2] + padding,
+                    bbox[3] + padding,
+                    fill=text_bg,
+                    outline='',
+                    tags=('task', 'text_bg', f'text_bg_{task_id}'),
+                )
+
+            # Create the text (a URL)
             text_id = self.controller.task_canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2 + text_y_offset,
-                text=f'{task_id} - {description}',
-                fill='blue',
-                font=('Arial', self.controller.task_font_size),  # Use dynamic font size
+                text=display_text,
+                fill='blue'
+                if text_color == 'black'
+                else text_color,  # Blue for URLs, unless contrast needed
+                font=('Arial', self.controller.task_font_size),
                 tags=('task', 'url', f'task_{task_id}'),
             )
+
             # Bind click event to open the URL
             self.controller.task_canvas.tag_bind(
                 text_id,
@@ -1383,25 +1554,86 @@ class UIComponents:
                 lambda e, url=task['url']: self.open_url(url),
             )
         else:
-            # Regular task ID and description
+            # Regular task ID and description (non-URL)
+            # First create background rectangle if needed
+            if text_bg:
+                # Get text dimensions first by creating and measuring the text
+                temp_text_id = self.controller.task_canvas.create_text(
+                    (x1 + x2) / 2,
+                    (y1 + y2) / 2 + text_y_offset,
+                    text=display_text,
+                    fill=text_color,
+                    font=('Arial', self.controller.task_font_size),
+                    tags=('task_temp',),
+                )
+
+                # Get text bounds
+                bbox = self.controller.task_canvas.bbox(temp_text_id)
+                # Delete the temporary text
+                self.controller.task_canvas.delete(temp_text_id)
+
+                # Create background with padding
+                padding = 3
+                text_bg_id = self.controller.task_canvas.create_rectangle(
+                    bbox[0] - padding,
+                    bbox[1] - padding,
+                    bbox[2] + padding,
+                    bbox[3] + padding,
+                    fill=text_bg,
+                    outline='',
+                    tags=('task', 'text_bg', f'text_bg_{task_id}'),
+                )
+
+            # Create the text
             text_id = self.controller.task_canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2 + text_y_offset,
-                text=f'{task_id} - {description}',
-                font=('Arial', self.controller.task_font_size),  # Use dynamic font size
+                text=display_text,
+                fill=text_color,
+                font=('Arial', self.controller.task_font_size),
                 tags=('task', 'task_text', f'task_{task_id}'),
             )
 
         # Draw tags if present and enabled with dynamic font size and position
-        tag_id = None
         if 'tags' in task and task['tags'] and self.show_tags_var.get():
             tag_text = ', '.join(task['tags'])
+
+            # First create background rectangle if needed
+            if text_bg:
+                # Create a temporary tag text to measure it
+                temp_tag_id = self.controller.task_canvas.create_text(
+                    (x1 + x2) / 2,
+                    (y1 + y2) / 2 + self.controller.task_font_size,
+                    text=f'[{tag_text}]',
+                    font=('Arial', self.controller.tag_font_size),
+                    tags=('task_temp',),
+                )
+
+                # Get text bounds
+                bbox = self.controller.task_canvas.bbox(temp_tag_id)
+                # Delete the temporary text
+                self.controller.task_canvas.delete(temp_tag_id)
+
+                # Create background with padding
+                padding = 2
+                tag_bg_id = self.controller.task_canvas.create_rectangle(
+                    bbox[0] - padding,
+                    bbox[1] - padding,
+                    bbox[2] + padding,
+                    bbox[3] + padding,
+                    fill=text_bg,
+                    outline='',
+                    tags=('task', 'tag_bg', f'tag_bg_{task_id}'),
+                )
+
+            # Create the tag text
             tag_id = self.controller.task_canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2
                 + self.controller.task_font_size,  # Scale offset with font size
                 text=f'[{tag_text}]',
                 font=('Arial', self.controller.tag_font_size),  # Use dynamic font size
+                fill=text_color,  # Use same color as main text
                 tags=('task', 'task_tags', f'task_tags_{task_id}'),
             )
 
@@ -1437,67 +1669,37 @@ class UIComponents:
             'connector_y': connector_y,
         }
 
+        # Add task background element to UI elements if it exists
+        if text_bg_id:
+            self.task_ui_elements[task_id]['text_bg'] = text_bg_id
+
         # Add tag element to UI elements if it exists
         if tag_id:
             self.task_ui_elements[task_id]['tag_text'] = tag_id
+
+        # Add tag background element if it exists
+        if tag_bg_id:
+            self.task_ui_elements[task_id]['tag_bg'] = tag_bg_id
 
         # Add highlight to UI elements if it exists
         if highlight_id:
             self.task_ui_elements[task_id]['highlight'] = highlight_id
 
-        # Add tooltips for tags
-        if 'tags' in task and task['tags']:
-            self.add_task_tooltips(task)
+        # Add tooltips for all task properties
+        self.add_task_tooltips(task)
 
     def update_task_ui(self, task):
         """Updates the UI elements for a specific task."""
         task_id = task['task_id']
         if task_id in self.task_ui_elements:
-            ui_elements = self.task_ui_elements[task_id]
-            x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
+            # We need to completely redraw the task to reflect any state changes
+            # First, delete all current UI elements
+            for key, element_id in self.task_ui_elements[task_id].items():
+                if isinstance(element_id, int):  # Check if it's a canvas item ID
+                    self.controller.task_canvas.delete(element_id)
 
-            # Get the task color (default to Cyan if not set)
-            task_color = task.get('color', 'Cyan')
-
-            # Update box coordinates and color
-            self.controller.task_canvas.coords(ui_elements['box'], x1, y1, x2, y2)
-            self.controller.task_canvas.itemconfig(ui_elements['box'], fill=task_color)
-
-            self.controller.task_canvas.coords(ui_elements['left_edge'], x1, y1, x1, y2)
-            self.controller.task_canvas.coords(
-                ui_elements['right_edge'], x2, y1, x2, y2
-            )
-            self.controller.task_canvas.coords(
-                ui_elements['text'], (x1 + x2) / 2, (y1 + y2) / 2
-            )
-
-            # Update stored coordinates
-            (
-                ui_elements['x1'],
-                ui_elements['y1'],
-                ui_elements['x2'],
-                ui_elements['y2'],
-            ) = (
-                x1,
-                y1,
-                x2,
-                y2,
-            )
-            ui_elements['connector_x'] = x2
-            ui_elements['connector_y'] = (y1 + y2) / 2
-            self.controller.task_canvas.coords(
-                ui_elements['connector'],
-                ui_elements['connector_x'] - 5,
-                ui_elements['connector_y'] - 5,
-                ui_elements['connector_x'] + 5,
-                ui_elements['connector_y'] + 5,
-            )
-
-            # Update highlight if this task is selected
-            if 'highlight' in ui_elements:
-                self.controller.task_canvas.coords(
-                    ui_elements['highlight'], x1 - 2, y1 - 2, x2 + 2, y2 + 2
-                )
+            # Now redraw the task
+            self.draw_task(task)
 
     def highlight_selected_tasks(self):
         """Highlight all selected tasks with an orange border"""
@@ -2178,3 +2380,24 @@ class UIComponents:
                     'Failed to delete note. This may be due to a data inconsistency.',
                 )
                 return False
+
+    def _darken_color(self, color_name):
+        """Returns a darker version of the given color."""
+        from src.utils.colors import WEB_COLORS
+
+        # Get the hex value for the color
+        hex_color = WEB_COLORS.get(color_name, '#CCCCCC')
+
+        # Convert hex to RGB
+        r = int(hex_color[1:3], 16)
+        g = int(hex_color[3:5], 16)
+        b = int(hex_color[5:7], 16)
+
+        # Darken the color by a factor
+        factor = 0.7  # 70% of original brightness
+        r = int(r * factor)
+        g = int(g * factor)
+        b = int(b * factor)
+
+        # Convert back to hex
+        return f'#{r:02x}{g:02x}{b:02x}'
