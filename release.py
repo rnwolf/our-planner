@@ -63,7 +63,23 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - New Feature: Add or delete timestamped notes to a task with notes displaed on panel on the right.
+    - New Feature: Added State to tasks.
+        - Gray text background for "buffered" state tasks
+        - Green text background for "done" state tasks
+        - No background for "planning" state tasks
+
+    - New Feature: Add new task properties:
+        - state
+        - safe_duration
+        - agressive_duration
+        - actual_start_date
+        - actual_end_date
+        - fullkit_date
+        - remaining_duration_history
+
+    - New Feature: Add methods to handle these properties, such as recording remaining duration and retrieving that remaining estimates history
+
+    - Improvements: Redraw of single and multiple tasks with state visulisation and floating tooltip.
 
     """
 
