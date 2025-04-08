@@ -1,6 +1,6 @@
 # Our-Planner
 
-An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualisation for tasks and resources makes it easy to modify and sense check.  Buffer management features provide early indicators that actual and planned activity requires intervention.
+An application for collaboratively working on plans with our team. Planning can take resource availability into account. Timeline visualisation for tasks and resources makes it easy to modify and sense check your plans.  Buffer management features provide early indicators that actual and planned activity requires intervention.
 
 ## Why another planning tool?
 

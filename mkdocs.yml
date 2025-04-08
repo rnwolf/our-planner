@@ -1,0 +1,16 @@
+site_name: Our-Planner Documentation
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - User Guide: user-guide.md
+  - Improvements: improvements.md
+  - Troubleshooting: troubleshooting.md
+  - Contributing: contributing.md
+  - Changelog: CHANGELOG.md
+  - Licence: licence.md
+plugins:
+  - search
+  - mkdocstrings
+  - git-revision-date-localized
