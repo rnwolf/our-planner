@@ -437,18 +437,29 @@ class TaskResourceModel:
                 return resource
         return None
 
-    def add_resource(self, resource_name: str) -> bool:
-        """Add a new resource."""
-        # Check if resource with this name already exists
+    def add_resource(self, resource_name, works_weekends=True):
+        """Add a new resource with default capacity."""
         if self.get_resource_by_name(resource_name):
             return False
 
         # Create new resource with default capacity
+        default_capacity = [1.0] * self.days
+
+        # If resource doesn't work weekends, set weekend capacity to 0
+        if not works_weekends:
+            for day in range(self.days):
+                date = self.get_date_for_day(day)
+                if date.weekday() >= 5:  # 5=Saturday, 6=Sunday
+                    default_capacity[day] = 0.0
+
         new_resource = {
             'id': self._get_next_resource_id(),
             'name': resource_name,
-            'capacity': [1.0] * self.days,
+            'capacity': default_capacity,
+            'tags': [],
+            'works_weekends': works_weekends,
         }
+
         self.resources.append(new_resource)
         return True
 
@@ -478,6 +489,51 @@ class TaskResourceModel:
             resource['name'] = new_name
             return True
         return False
+
+    def _is_weekend(self, day_index, start_date=None):
+        """Determine if a day index is a weekend based on a given start date."""
+        # Use provided start date or the model's current start date
+        start = start_date if start_date is not None else self.model.start_date
+        date = start + timedelta(days=day_index)
+        # Print for debugging (you can remove this later)
+        print(
+            f"Day {day_index}: {date.strftime('%Y-%m-%d')} is weekday {date.weekday()}"
+        )
+        return date.weekday() >= 5  # 5=Saturday, 6=Sunday
+
+    def _update_resource_capacities_for_date_change(self, delta_days):
+        """Update resource capacities when the start date changes."""
+        # Calculate the new start date
+        new_start_date = self.model.start_date + timedelta(days=-delta_days)
+
+        # For each resource
+        for resource in self.model.resources:
+            works_weekends = resource.get('works_weekends', True)
+            new_capacity = [1.0] * self.model.days
+
+            if delta_days > 0:
+                # Moving start date forward, shift capacities left
+                for day in range(self.model.days - delta_days):
+                    if day + delta_days < len(resource['capacity']):
+                        # Copy existing capacity if available
+                        new_capacity[day] = resource['capacity'][day + delta_days]
+
+            elif delta_days < 0:
+                # Moving start date backward, shift capacities right
+                abs_delta = abs(delta_days)
+                for day in range(abs_delta, self.model.days):
+                    if day - abs_delta < len(resource['capacity']):
+                        # Copy existing capacity if available
+                        new_capacity[day] = resource['capacity'][day - abs_delta]
+
+            # Check all days for weekend status using the new start date
+            if not works_weekends:
+                for day in range(self.model.days):
+                    if self._is_weekend(day, new_start_date):
+                        new_capacity[day] = 0.0
+
+            # Update the resource capacity
+            resource['capacity'] = new_capacity
 
     def update_resource_capacity(
         self, resource_id: int, day: int, capacity: float
@@ -548,7 +604,6 @@ class TaskResourceModel:
             return False  # Prevent self-linking
         return self.add_predecessor(successor_id, task_id)
 
-    # Update load_from_file to handle tags
     def load_from_file(self, file_path: str) -> bool:
         """Load project data from a file."""
         try:
@@ -633,6 +688,9 @@ class TaskResourceModel:
 
             # Ensure resource capacity arrays are proper length
             for resource in self.resources:
+                if 'works_weekends' not in resource:
+                    resource['works_weekends'] = True
+
                 if 'capacity' not in resource or len(resource['capacity']) != self.days:
                     resource['capacity'] = [1.0] * self.days
 
