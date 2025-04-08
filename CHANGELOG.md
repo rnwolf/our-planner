@@ -1,4 +1,10 @@
 
+    ## [0.1.16] - 2025-04-08
+    ### Added
+    - New Feature: Update the date for the task grid with optional ability to shift tasks based on the new start date.
+
+    
+
     ## [0.1.15] - 2025-04-04
     ### Added
     - New Feature: Added State to tasks.
