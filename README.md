@@ -30,11 +30,12 @@ Thus this app is written in Python, which is the data analysts' tool of choice, 
 
 ### Todo
 
-- Multi-point estimates, for **safe** and **optimistic** estimates
-- Adding **dated notes** to tasks
-- **Remaining** days estimate for tasks (Updates duration and pushes or pulls in dependent tasks)
-- Shift the timeframe on i.e. drop dates in the past and add dates in the future to planning timeline
+- ~~Capture Multi-point estimates, for **safe** and **optimistic/aggessive** estimates~~
+- ~~Adding **dated notes** to tasks~~
+- ~~**Remaining** days estimate for tasks (Updates duration and pushes or pulls in dependent tasks)~~
+- ~~Shift the timeframe on i.e. drop dates in the past and add dates in the future to planning timeline~~
 - CCPM features such as buffer creation and feverchart reporting
+   - Load a sub-set of tasks
 - Reporting for resource, working on now and next tasks, with buffer status to help prioritise which tasks should get focus
 
 ## Installation
