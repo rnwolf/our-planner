@@ -63,7 +63,7 @@ def main():
     changelog = f"""
     ## [{next_version}] - {today}
     ### Added
-    - New Feature: Update the date for the task grid with optional ability to shift tasks based on the new start date.
+    - New Feature: Added MKDoc and documentation to publish to gh-pages.
 
     """
 

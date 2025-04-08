@@ -1,4 +1,10 @@
 
+    ## [0.1.17] - 2025-04-08
+    ### Added
+    - New Feature: Added MKDoc and documentation to publish to gh-pages.
+
+    
+
     ## [0.1.16] - 2025-04-08
     ### Added
     - New Feature: Update the date for the task grid with optional ability to shift tasks based on the new start date.
