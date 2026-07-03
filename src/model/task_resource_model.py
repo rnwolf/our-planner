@@ -2,6 +2,12 @@ import json
 from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime, timedelta
 
+from src.model.dependency_notation import (
+    DEFAULT_LINK_TYPE,
+    VALID_LINK_TYPES,
+    normalize_predecessor_entries,
+)
+
 
 class TaskResourceModel:
     def __init__(self):
@@ -156,8 +162,7 @@ class TaskResourceModel:
         description: str,
         resources: Dict[int, float] = None,  # Changed to Dict[resource_id, allocation]
         url: str = '',
-        predecessors: List[int] = None,
-        successors: List[int] = None,
+        predecessors: List[Any] = None,  # List of {id, type, lag} link entries
         tags: List[str] = None,  # Add tags parameter
         color: str = None,  # Add color parameter with None default
     ) -> Dict[str, Any]:
@@ -177,8 +182,8 @@ class TaskResourceModel:
             'description': description,
             'url': url,
             'resources': resources or {},  # Changed to Dict[resource_id, allocation]
-            'predecessors': predecessors or [],
-            'successors': successors or [],
+            # 'successors' is not stored - it is derived (see get_successor_ids)
+            'predecessors': normalize_predecessor_entries(predecessors),
             'tags': tags,  # Add tags to task dictionary
             'color': color,  # Add color to task dictionary
             'notes': [],  # Initialize empty notes list
@@ -579,10 +584,23 @@ class TaskResourceModel:
 
         return True
 
-    def add_predecessor(self, task_id: int, predecessor_id: int) -> bool:
-        """Add a predecessor relationship between tasks."""
+    def add_predecessor(
+        self,
+        task_id: int,
+        predecessor_id: int,
+        link_type: str = DEFAULT_LINK_TYPE,
+        lag: int = 0,
+    ) -> bool:
+        """Add or update a predecessor link (task_id depends on predecessor_id).
+
+        `successors` is derived from predecessor links (see get_successor_ids),
+        so only the dependent task's `predecessors` list needs updating.
+        """
         if task_id == predecessor_id:
             return False  # Prevent self-linking
+
+        if link_type not in VALID_LINK_TYPES:
+            return False
 
         task = self.get_task(task_id)
         predecessor = self.get_task(predecessor_id)
@@ -590,19 +608,78 @@ class TaskResourceModel:
         if not task or not predecessor:
             return False
 
-        if predecessor_id not in task['predecessors']:
-            task['predecessors'].append(predecessor_id)
+        for entry in task['predecessors']:
+            if entry['id'] == predecessor_id:
+                entry['type'] = link_type
+                entry['lag'] = lag
+                return True
 
-        if task_id not in predecessor['successors']:
-            predecessor['successors'].append(task_id)
-
+        task['predecessors'].append(
+            {'id': predecessor_id, 'type': link_type, 'lag': lag}
+        )
         return True
 
-    def add_successor(self, task_id: int, successor_id: int) -> bool:
-        """Add a successor relationship between tasks."""
+    def add_successor(
+        self,
+        task_id: int,
+        successor_id: int,
+        link_type: str = DEFAULT_LINK_TYPE,
+        lag: int = 0,
+    ) -> bool:
+        """Add or update a successor link (successor_id depends on task_id)."""
         if task_id == successor_id:
             return False  # Prevent self-linking
-        return self.add_predecessor(successor_id, task_id)
+        return self.add_predecessor(successor_id, task_id, link_type, lag)
+
+    def remove_predecessor(self, task_id: int, predecessor_id: int) -> bool:
+        """Remove a predecessor link from a task."""
+        task = self.get_task(task_id)
+        if not task:
+            return False
+        original_len = len(task['predecessors'])
+        task['predecessors'] = [
+            entry for entry in task['predecessors'] if entry['id'] != predecessor_id
+        ]
+        return len(task['predecessors']) < original_len
+
+    def set_predecessors(self, task_id: int, entries: List[Any]) -> bool:
+        """Replace a task's full predecessor list, e.g. from parsed notation text.
+
+        Validates the whole list before committing, so a bad entry doesn't
+        leave the task with a partially-applied set of links.
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        normalized = normalize_predecessor_entries(entries)
+        for entry in normalized:
+            if entry['id'] == task_id:
+                return False  # Prevent self-linking
+            if not self.get_task(entry['id']):
+                return False  # Unknown predecessor task id
+
+        task['predecessors'] = normalized
+        return True
+
+    def get_predecessor_ids(self, task_id: int) -> List[int]:
+        """Return the ids of a task's predecessors."""
+        task = self.get_task(task_id)
+        if not task:
+            return []
+        return [entry['id'] for entry in task.get('predecessors', [])]
+
+    def get_successor_ids(self, task_id: int) -> List[int]:
+        """Return ids of tasks that declare `task_id` as a predecessor.
+
+        Derived by scanning all tasks rather than stored, so it can never
+        drift out of sync with the predecessor links that define it.
+        """
+        return [
+            t['task_id']
+            for t in self.tasks
+            if any(entry['id'] == task_id for entry in t.get('predecessors', []))
+        ]
 
     def load_from_file(self, file_path: str) -> bool:
         """Load project data from a file."""
@@ -660,6 +737,14 @@ class TaskResourceModel:
 
                 if 'remaining_duration_history' not in task:
                     task['remaining_duration_history'] = []
+
+                # Predecessors carry link type/lag now; older saves stored plain
+                # ids (implicit Finish-to-Start). successors is derived, not
+                # loaded, so drop any stale copy from older saves.
+                task['predecessors'] = normalize_predecessor_entries(
+                    task.get('predecessors')
+                )
+                task.pop('successors', None)
             # Load start_date if available
             if 'start_date' in data:
                 try:

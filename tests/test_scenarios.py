@@ -73,8 +73,8 @@ class TestScenarios:
         self.model.add_predecessor(task2['task_id'], task1['task_id'])
 
         # Verify dependency was added
-        assert task1['task_id'] in task2['predecessors']
-        assert task2['task_id'] in task1['successors']
+        assert task1['task_id'] in self.model.get_predecessor_ids(task2['task_id'])
+        assert task2['task_id'] in self.model.get_successor_ids(task1['task_id'])
 
         # 4. Save the tasks to a temporary file
         with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp:
@@ -110,7 +110,7 @@ class TestScenarios:
             assert saved_task1['col'] == 4  # 0-based index (displays as column 5 in UI)
             assert saved_task1['duration'] == 3
             assert saved_task1['tags'] == ['test']
-            assert saved_task1['successors'] == [2]
+            assert 'successors' not in saved_task1  # derived, not stored
 
             assert saved_task2['description'] == 'Task 2'
             assert saved_task2['row'] == 1  # 0-based index (displays as row 2 in UI)
@@ -119,7 +119,7 @@ class TestScenarios:
             )  # 0-based index (displays as column 10 in UI)
             assert saved_task2['duration'] == 4
             assert saved_task2['tags'] == ['test']
-            assert saved_task2['predecessors'] == [1]
+            assert saved_task2['predecessors'] == [{'id': 1, 'type': 'FS', 'lag': 0}]
 
         finally:
             # Clean up

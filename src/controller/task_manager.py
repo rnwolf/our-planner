@@ -78,6 +78,10 @@ class TaskResourceManager:
         # Task selection mode
         self.multi_select_mode = False
 
+        # When enabled, moving a task forward will push dependent successor
+        # tasks forward too, according to their dependency link type
+        self.auto_scheduling_enabled = False
+
         # Create a horizontal layout frame for main content and notes panel
         self.horizontal_layout_frame = tk.Frame(self.root)
         self.horizontal_layout_frame.pack(fill=tk.BOTH, expand=True)
@@ -279,6 +283,10 @@ class TaskResourceManager:
         if not self.multi_select_mode:
             self.selected_tasks = []
             self.ui.remove_task_selections()
+
+    def toggle_auto_scheduling(self):
+        """Toggle automatic forward scheduling of dependent successor tasks."""
+        self.auto_scheduling_enabled = self.ui.auto_scheduling_var.get()
 
     def on_zoom(self, event):
         """Handle zoom in/out with Ctrl+mouse wheel, ensuring the column under cursor stays fixed

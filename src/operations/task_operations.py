@@ -1,6 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox, scrolledtext
 from datetime import datetime, timedelta
+from src.model.dependency_notation import (
+    parse_predecessor_notation,
+    parse_predecessor_token,
+    format_predecessor_notation,
+)
 
 
 class FloatEntryDialog(simpledialog.Dialog):
@@ -167,21 +172,31 @@ class TaskOperations:
                 self.controller.ui.draw_task_grid()
 
     def add_predecessor_dialog(self, task):
-        """Add a predecessor to a task."""
+        """Add a predecessor to a task, e.g. '3' (Finish-to-Start) or '5:SS+2'."""
         if not task:
             return
 
-        predecessor_id = simpledialog.askinteger(
+        text = simpledialog.askstring(
             'Add Predecessor',
-            'Enter the ID of the predecessor task:',
+            "Predecessor task id, optionally with type/lag, e.g. '5:SS+2':",
             parent=self.controller.root,
         )
-        if predecessor_id is not None:
-            if self.model.add_predecessor(task['task_id'], predecessor_id):
-                # Redraw to show dependencies
-                self.controller.ui.draw_dependencies()
-            else:
-                messagebox.showerror('Error', 'Predecessor task not found.')
+        if not text:
+            return
+
+        try:
+            link = parse_predecessor_token(text)
+        except ValueError as e:
+            messagebox.showerror('Invalid Predecessor', str(e))
+            return
+
+        if self.model.add_predecessor(
+            task['task_id'], link['id'], link['type'], link['lag']
+        ):
+            # Redraw to show dependencies
+            self.controller.ui.draw_dependencies()
+        else:
+            messagebox.showerror('Error', 'Predecessor task not found.')
 
     def add_successor(self, task, target_task):
         """Add a successor to a task."""
@@ -195,21 +210,115 @@ class TaskOperations:
             messagebox.showerror('Error', 'Successor task not found.')
 
     def add_successor_dialog(self, task):
-        """Add a successor to a task using a dialog box."""
+        """Add a successor to a task, e.g. '3' (Finish-to-Start) or '5:SS+2'."""
         if not task:
             return
 
-        successor_id = simpledialog.askinteger(
+        text = simpledialog.askstring(
             'Add Successor',
-            'Enter the ID of the successor task:',
+            "Successor task id, optionally with type/lag, e.g. '5:SS+2':",
             parent=self.controller.root,
         )
-        if successor_id is not None:
-            if self.model.add_successor(task['task_id'], successor_id):
-                # Redraw to show dependencies
-                self.controller.ui.draw_dependencies()
-            else:
-                messagebox.showerror('Error', 'Successor task not found.')
+        if not text:
+            return
+
+        try:
+            link = parse_predecessor_token(text)
+        except ValueError as e:
+            messagebox.showerror('Invalid Successor', str(e))
+            return
+
+        if self.model.add_successor(
+            task['task_id'], link['id'], link['type'], link['lag']
+        ):
+            # Redraw to show dependencies
+            self.controller.ui.draw_dependencies()
+        else:
+            messagebox.showerror('Error', 'Successor task not found.')
+
+    def edit_predecessors_dialog(self, task):
+        """Edit a task's full set of predecessor links via compact notation text,
+        e.g. '3 5:SS+2 7:FF' (a bare id means Finish-to-Start)."""
+        if not task:
+            return
+
+        current_text = format_predecessor_notation(task.get('predecessors', []))
+        new_text = simpledialog.askstring(
+            'Edit Predecessors',
+            'Predecessor links (space/semicolon separated).\n'
+            "Bare id = Finish-to-Start, e.g. '3 5:SS+2 7:FF':",
+            initialvalue=current_text,
+            parent=self.controller.root,
+        )
+        if new_text is None:
+            return  # Cancelled
+
+        try:
+            entries = parse_predecessor_notation(new_text)
+        except ValueError as e:
+            messagebox.showerror('Invalid Predecessors', str(e))
+            return
+
+        if self.model.set_predecessors(task['task_id'], entries):
+            self.controller.ui.draw_dependencies()
+        else:
+            messagebox.showerror(
+                'Invalid Predecessors',
+                'One or more links reference an unknown task id, or the task '
+                'links to itself.',
+            )
+
+    def _find_predecessor_link(self, predecessor_id, successor_id):
+        """Look up the link entry for a predecessor->successor edge, if any."""
+        successor_task = self.model.get_task(successor_id)
+        if not successor_task:
+            return None
+        for link in successor_task.get('predecessors', []):
+            if link['id'] == predecessor_id:
+                return link
+        return None
+
+    def set_dependency_type(self, predecessor_id, successor_id, link_type):
+        """Change the link type of an existing dependency, keeping its lag."""
+        link = self._find_predecessor_link(predecessor_id, successor_id)
+        lag = link['lag'] if link else 0
+        if self.model.add_predecessor(successor_id, predecessor_id, link_type, lag):
+            self.controller.ui.draw_dependencies()
+
+    def set_dependency_lag_dialog(self, predecessor_id, successor_id):
+        """Prompt for and apply a new lag (in grid days) for an existing dependency."""
+        link = self._find_predecessor_link(predecessor_id, successor_id)
+        if not link:
+            return
+
+        lag = simpledialog.askinteger(
+            'Set Lag',
+            f"Lag in days for link {predecessor_id}:{link['type']} -> {successor_id}:",
+            initialvalue=link['lag'],
+            parent=self.controller.root,
+        )
+        if lag is not None:
+            self.model.add_predecessor(successor_id, predecessor_id, link['type'], lag)
+            self.controller.ui.draw_dependencies()
+
+    def remove_dependency(self, predecessor_id, successor_id):
+        """Remove a single dependency link."""
+        if self.model.remove_predecessor(successor_id, predecessor_id):
+            self.controller.ui.draw_dependencies()
+
+    def on_dependency_right_click(self, event):
+        """Show the link edit menu for the dependency arrow under the cursor."""
+        canvas = self.controller.task_canvas
+        item = canvas.find_withtag('current')
+        if not item:
+            return
+
+        link_ids = self.controller.ui.dependency_link_map.get(item[0])
+        if not link_ids:
+            return
+
+        predecessor_id, successor_id = link_ids
+        self.controller.ui.show_dependency_link_menu(event, predecessor_id, successor_id)
 
     def create_capacity_tab(self, capacity_tab, resource_dropdown):
         """Create an improved capacity tab with vertical scrollable list."""

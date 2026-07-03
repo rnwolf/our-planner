@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
 from src.utils.colors import COLOR_NAMES, DEFAULT_TASK_COLOR
+from src.model.dependency_notation import LINK_TYPES_ORDERED
 
 
 class UIComponents:
@@ -15,6 +16,7 @@ class UIComponents:
 
         # Track UI-specific task data
         self.task_ui_elements = {}  # Maps task_id to UI elements
+        self.dependency_link_map = {}  # Maps arrow canvas item id to (predecessor_id, successor_id)
 
         # Reference to network menu
         self.network_menu = None
@@ -228,6 +230,17 @@ class UIComponents:
             command=lambda: self.controller.task_ops.edit_project_settings(
                 parent=self.controller.root
             ),
+        )
+
+        # Tasks menu (new)
+        self.tasks_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label='Tasks', menu=self.tasks_menu)
+
+        self.auto_scheduling_var = tk.BooleanVar(value=False)
+        self.tasks_menu.add_checkbutton(
+            label='Auto Scheduling',
+            variable=self.auto_scheduling_var,
+            command=self.controller.toggle_auto_scheduling,
         )
 
         # Tags menu (new)
@@ -449,6 +462,10 @@ class UIComponents:
         self.controller.task_canvas.bind(
             '<ButtonPress-3>', self.controller.task_ops.on_right_click
         )
+        # Right-click directly on a dependency arrow to edit its type/lag
+        self.controller.task_canvas.tag_bind(
+            'dependency', '<ButtonPress-3>', self.controller.task_ops.on_dependency_right_click
+        )
 
         # Create a resizer between task and resource grids
         self.grid_resizer_frame = tk.Frame(
@@ -665,6 +682,12 @@ class UIComponents:
         self.context_menu.add_command(
             label='Add Successor',
             command=lambda: self.controller.task_ops.add_successor_dialog(
+                self.controller.selected_task
+            ),
+        )
+        self.context_menu.add_command(
+            label='Edit Predecessors...',
+            command=lambda: self.controller.task_ops.edit_predecessors_dialog(
                 self.controller.selected_task
             ),
         )
@@ -1194,33 +1217,78 @@ class UIComponents:
         # First delete all existing dependency arrows
         self.controller.task_canvas.delete('dependency')
 
-        # Then redraw all dependencies
+        # Maps a dependency arrow's canvas item id to its (predecessor_id,
+        # successor_id), so a right-click on the line can look up which link
+        # it represents. Rebuilt on every redraw alongside the arrows.
+        self.dependency_link_map = {}
+
+        # Then redraw all dependencies, drawing each link from its predecessor
+        # to the current task (successors are derived, not stored on the task)
         for task in self.model.tasks:
-            # Draw links to successors
-            for successor_id in task['successors']:
-                successor = self.model.get_task(successor_id)
+            for link in task.get('predecessors', []):
+                predecessor = self.model.get_task(link['id'])
                 if (
-                    successor
+                    predecessor
+                    and link['id'] in self.task_ui_elements
                     and task['task_id'] in self.task_ui_elements
-                    and successor_id in self.task_ui_elements
                 ):
                     # Get task coordinates
+                    predecessor_ui = self.task_ui_elements[link['id']]
                     task_ui = self.task_ui_elements[task['task_id']]
-                    successor_ui = self.task_ui_elements[successor_id]
 
-                    # Check for same row and adjacency AND predecessor-successor relationship
+                    # Check for same row and adjacency
                     if (
-                        task_ui['y1'] == successor_ui['y1']
-                        and task_ui['x2'] == successor_ui['x1']
-                        and successor_id in task['successors']
+                        predecessor_ui['y1'] == task_ui['y1']
+                        and predecessor_ui['x2'] == task_ui['x1']
                     ):
                         continue  # Skip drawing the line if adjacent in same row and predecessor-successor
 
-                    x1 = task_ui['x2']
-                    y1 = (task_ui['y1'] + task_ui['y2']) / 2
-                    x2 = successor_ui['x1']
-                    y2 = (successor_ui['y1'] + successor_ui['y2']) / 2
-                    self.draw_arrow(x1, y1, x2, y2, task, successor)
+                    x1 = predecessor_ui['x2']
+                    y1 = (predecessor_ui['y1'] + predecessor_ui['y2']) / 2
+                    x2 = task_ui['x1']
+                    y2 = (task_ui['y1'] + task_ui['y2']) / 2
+                    arrow_id = self.draw_arrow(x1, y1, x2, y2, predecessor, task)
+                    self.dependency_link_map[arrow_id] = (
+                        link['id'],
+                        task['task_id'],
+                    )
+
+    def show_dependency_link_menu(self, event, predecessor_id, successor_id):
+        """Build and show a context menu to edit or remove a dependency link."""
+        link = self.controller.task_ops._find_predecessor_link(
+            predecessor_id, successor_id
+        )
+        if not link:
+            return
+
+        menu = tk.Menu(self.controller.root, tearoff=0)
+
+        type_menu = tk.Menu(menu, tearoff=0)
+        for link_type in LINK_TYPES_ORDERED:
+            marker = ' (current)' if link_type == link['type'] else ''
+            type_menu.add_command(
+                label=f'{link_type}{marker}',
+                command=lambda t=link_type: self.controller.task_ops.set_dependency_type(
+                    predecessor_id, successor_id, t
+                ),
+            )
+        menu.add_cascade(label=f"Link Type ({link['type']})", menu=type_menu)
+
+        menu.add_command(
+            label=f"Set Lag... (current: {link['lag']})",
+            command=lambda: self.controller.task_ops.set_dependency_lag_dialog(
+                predecessor_id, successor_id
+            ),
+        )
+        menu.add_separator()
+        menu.add_command(
+            label='Remove Link',
+            command=lambda: self.controller.task_ops.remove_dependency(
+                predecessor_id, successor_id
+            ),
+        )
+
+        menu.tk_popup(event.x_root, event.y_root)
 
     def draw_arrow(self, x1, y1, x2, y2, task, successor):
         """Draw an arrow between tasks, coloring based on dependency direction."""

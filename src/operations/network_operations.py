@@ -58,11 +58,11 @@ class NetworkOperations:
             # Add edges only for dependencies within the selected tasks
             selected_task_ids = [t['task_id'] for t in tasks]
 
-            # Add edges for dependencies (successors)
-            for successor_id in task.get('successors', []):
-                # Only add edge if the successor is in the selected tasks
-                if successor_id in selected_task_ids:
-                    G.add_edge(task_id, successor_id)
+            # Add edges for dependencies (predecessor -> task)
+            for link in task.get('predecessors', []):
+                # Only add edge if the predecessor is in the selected tasks
+                if link['id'] in selected_task_ids:
+                    G.add_edge(link['id'], task_id)
 
         # Check if graph is empty or has no edges
         if not G.nodes:

@@ -10,6 +10,8 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from src.utils.colors import DEFAULT_TASK_COLOR
+from src.model.dependency_notation import format_predecessor_notation
 
 
 class ExportOperations:
@@ -391,10 +393,12 @@ class ExportOperations:
                     resources_text = ", ".join(resource_names)
 
                     # Format predecessors and successors
-                    predecessors_text = ", ".join(
-                        map(str, task.get("predecessors", []))
+                    predecessors_text = format_predecessor_notation(
+                        task.get("predecessors", [])
                     )
-                    successors_text = ", ".join(map(str, task.get("successors", [])))
+                    successors_text = ", ".join(
+                        map(str, self.model.get_successor_ids(task["task_id"]))
+                    )
 
                     # Format tags
                     tags_text = ", ".join(task.get("tags", []))
@@ -857,10 +861,11 @@ class ExportOperations:
                     task_width = duration * self.controller.cell_width
                     task_height = self.controller.task_height
 
-                    # Draw task box
+                    # Draw task box, using the same color as shown on the task grid
+                    task_color = task.get("color", DEFAULT_TASK_COLOR)
                     draw.rectangle(
                         [(task_x, task_y), (task_x + task_width, task_y + task_height)],
-                        fill="lightblue",
+                        fill=task_color,
                         outline="black",
                     )
 
@@ -892,39 +897,41 @@ class ExportOperations:
                             anchor="mm",
                         )
 
-                # Draw dependencies
+                # Draw dependencies, drawing each link from its predecessor
+                # to the current task (successors are derived, not stored)
                 for task in tasks:
                     task_id = task["task_id"]
 
-                    # Draw links to successors
-                    for successor_id in task["successors"]:
-                        successor = self.model.get_task(successor_id)
-                        if successor:
+                    for link in task.get("predecessors", []):
+                        predecessor = self.model.get_task(link["id"])
+                        if predecessor:
                             # Get task coordinates
                             task_x = (
                                 grid_x
-                                + (task["col"] * self.controller.cell_width)
-                                + (task["duration"] * self.controller.cell_width)
+                                + (predecessor["col"] * self.controller.cell_width)
+                                + (predecessor["duration"] * self.controller.cell_width)
                             )
                             task_y = (
+                                grid_y
+                                + (predecessor["row"] * self.controller.task_height)
+                                + (self.controller.task_height / 2)
+                            )
+
+                            successor_x = grid_x + (
+                                task["col"] * self.controller.cell_width
+                            )
+                            successor_y = (
                                 grid_y
                                 + (task["row"] * self.controller.task_height)
                                 + (self.controller.task_height / 2)
                             )
 
-                            successor_x = grid_x + (
-                                successor["col"] * self.controller.cell_width
-                            )
-                            successor_y = (
-                                grid_y
-                                + (successor["row"] * self.controller.task_height)
-                                + (self.controller.task_height / 2)
-                            )
-
                             # Draw arrow
                             # Determine color based on dependency direction
-                            predecessor_end_date = task["col"] + task["duration"]
-                            successor_start_date = successor["col"]
+                            predecessor_end_date = (
+                                predecessor["col"] + predecessor["duration"]
+                            )
+                            successor_start_date = task["col"]
 
                             if predecessor_end_date > successor_start_date:
                                 arrow_color = "red"  # backward dependency
@@ -933,8 +940,9 @@ class ExportOperations:
 
                             # Draw line
                             if (
-                                task["row"] == successor["row"]
-                                and task["col"] + task["duration"] == successor["col"]
+                                predecessor["row"] == task["row"]
+                                and predecessor["col"] + predecessor["duration"]
+                                == task["col"]
                             ):
                                 # Direct connection, no need to draw arrow
                                 pass
@@ -1255,12 +1263,12 @@ class ExportOperations:
                         "Duration": task["duration"],
                         "Resources": ",".join(resource_names),
                         "Resource Allocations": ",".join(resource_allocations),
-                        "Predecessors": ",".join(map(str, task["predecessors"]))
-                        if "predecessors" in task
-                        else "",
-                        "Successors": ",".join(map(str, task["successors"]))
-                        if "successors" in task
-                        else "",
+                        "Predecessors": format_predecessor_notation(
+                            task.get("predecessors", [])
+                        ),
+                        "Successors": ",".join(
+                            map(str, self.model.get_successor_ids(task["task_id"]))
+                        ),
                         "Tags": ",".join(task.get("tags", [])),
                         "URL": task.get("url", ""),
                     }

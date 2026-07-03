@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext
 import webbrowser
 from src.utils.version import get_version
+from src.model.dependency_notation import format_predecessor_notation
 
 
 class HelpMenu:
@@ -310,19 +311,22 @@ class HelpMenu:
                 )
 
                 # Predecessors
-                if 'predecessors' in task and task['predecessors']:
+                if task.get('predecessors'):
                     text_area.insert(
                         tk.END,
-                        f"  Predecessors: {', '.join(map(str, task['predecessors']))}\n",
+                        f"  Predecessors: {format_predecessor_notation(task['predecessors'])}\n",
                     )
                 else:
                     text_area.insert(tk.END, f'  Predecessors: None\n')
 
-                # Successors
-                if 'successors' in task and task['successors']:
+                # Successors (derived from other tasks' predecessor links)
+                successor_ids = self.controller.model.get_successor_ids(
+                    task['task_id']
+                )
+                if successor_ids:
                     text_area.insert(
                         tk.END,
-                        f"  Successors: {', '.join(map(str, task['successors']))}\n",
+                        f"  Successors: {', '.join(map(str, successor_ids))}\n",
                     )
                 else:
                     text_area.insert(tk.END, f'  Successors: None\n')
@@ -419,19 +423,22 @@ class HelpMenu:
                 )
 
                 # Predecessors
-                if 'predecessors' in task and task['predecessors']:
+                if task.get('predecessors'):
                     text_area.insert(
                         tk.END,
-                        f"  Predecessors: {', '.join(map(str, task['predecessors']))}\n",
+                        f"  Predecessors: {format_predecessor_notation(task['predecessors'])}\n",
                     )
                 else:
                     text_area.insert(tk.END, f'  Predecessors: None\n')
 
-                # Successors
-                if 'successors' in task and task['successors']:
+                # Successors (derived from other tasks' predecessor links)
+                successor_ids = self.controller.model.get_successor_ids(
+                    task['task_id']
+                )
+                if successor_ids:
                     text_area.insert(
                         tk.END,
-                        f"  Successors: {', '.join(map(str, task['successors']))}\n",
+                        f"  Successors: {', '.join(map(str, successor_ids))}\n",
                     )
                 else:
                     text_area.insert(tk.END, f'  Successors: None\n')
