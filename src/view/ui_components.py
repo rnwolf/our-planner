@@ -472,8 +472,19 @@ class UIComponents:
         # Bind Ctrl+mousewheel for zoom
         self.controller.task_canvas.bind('<MouseWheel>', self.controller.on_zoom)
 
-        # For Linux, which uses Button-4 and Button-5 for scroll wheel
-        self.controller.task_canvas.bind('<Button-4>', self.controller.on_zoom)
+        # For Linux, which uses Button-4 and Button-5 for scroll wheel.
+        # These events have no `delta` attribute, so synthesize one:
+        # Button-4 (scroll up) should zoom in, Button-5 (scroll down) should zoom out.
+        self.controller.task_canvas.bind(
+            '<Button-4>',
+            lambda e: self.controller.on_zoom(
+                type(
+                    'event',
+                    (),
+                    {'delta': 120, 'x': e.x, 'y': e.y, 'state': e.state},
+                )
+            ),
+        )
         self.controller.task_canvas.bind(
             '<Button-5>',
             lambda e: self.controller.on_zoom(
