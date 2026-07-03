@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
 from src.utils.colors import COLOR_NAMES, DEFAULT_TASK_COLOR
-from src.model.dependency_notation import LINK_TYPES_ORDERED
+from src.model.dependency_notation import LINK_TYPES_ORDERED, BUFFER_LINK_TYPES
 
 
 class UIComponents:
@@ -672,6 +672,24 @@ class UIComponents:
             command=lambda: self.controller.task_ops.set_task_state('done'),
         )
 
+        # Add type submenu
+        self.type_menu = tk.Menu(self.context_menu, tearoff=0)
+        self.context_menu.add_cascade(label='Set Task Type', menu=self.type_menu)
+
+        # Populate type menu options
+        self.type_menu.add_command(
+            label='Task',
+            command=lambda: self.controller.task_ops.set_task_type('task'),
+        )
+        self.type_menu.add_command(
+            label='Project Buffer',
+            command=lambda: self.controller.task_ops.set_task_type('project_buffer'),
+        )
+        self.type_menu.add_command(
+            label='Feeding Buffer',
+            command=lambda: self.controller.task_ops.set_task_type('feeding_buffer'),
+        )
+
         self.context_menu.add_separator()
         self.context_menu.add_command(
             label='Add Predecessor',
@@ -1247,7 +1265,9 @@ class UIComponents:
                     y1 = (predecessor_ui['y1'] + predecessor_ui['y2']) / 2
                     x2 = task_ui['x1']
                     y2 = (task_ui['y1'] + task_ui['y2']) / 2
-                    arrow_id = self.draw_arrow(x1, y1, x2, y2, predecessor, task)
+                    arrow_id = self.draw_arrow(
+                        x1, y1, x2, y2, predecessor, task, link['type']
+                    )
                     self.dependency_link_map[arrow_id] = (
                         link['id'],
                         task['task_id'],
@@ -1290,8 +1310,10 @@ class UIComponents:
 
         menu.tk_popup(event.x_root, event.y_root)
 
-    def draw_arrow(self, x1, y1, x2, y2, task, successor):
-        """Draw an arrow between tasks, coloring based on dependency direction."""
+    def draw_arrow(self, x1, y1, x2, y2, task, successor, link_type='FS'):
+        """Draw an arrow between tasks, coloring based on dependency direction.
+        Buffer links (PB/FB) are drawn dashed so they read differently from
+        ordinary CPM dependencies."""
 
         # Calculate the end date of the predecessor and start date of the successor
         predecessor_end_date = task['col'] + task['duration']
@@ -1304,6 +1326,8 @@ class UIComponents:
 
         # Calculate control points for a curved line
         cp_x = (x1 + x2) / 2
+
+        dash = (6, 3) if link_type in BUFFER_LINK_TYPES else None
 
         # Draw the arrow line
         arrow_id = self.controller.task_canvas.create_line(
@@ -1319,6 +1343,7 @@ class UIComponents:
             arrow=tk.LAST,
             fill=color,
             width=1.5,
+            dash=dash,
             tags=('dependency',),
         )
         return arrow_id

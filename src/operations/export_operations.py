@@ -11,7 +11,31 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from src.utils.colors import DEFAULT_TASK_COLOR
-from src.model.dependency_notation import format_predecessor_notation
+from src.model.dependency_notation import format_predecessor_notation, BUFFER_LINK_TYPES
+
+
+def _draw_dashed_line(draw, x1, y1, x2, y2, fill, width, dash_length=6, gap_length=4):
+    """Draw a dashed line with PIL, which has no native dash support."""
+    import math
+
+    total_length = math.hypot(x2 - x1, y2 - y1)
+    if total_length == 0:
+        return
+    dx = (x2 - x1) / total_length
+    dy = (y2 - y1) / total_length
+
+    distance = 0.0
+    while distance < total_length:
+        segment_end = min(distance + dash_length, total_length)
+        draw.line(
+            [
+                (x1 + dx * distance, y1 + dy * distance),
+                (x1 + dx * segment_end, y1 + dy * segment_end),
+            ],
+            fill=fill,
+            width=width,
+        )
+        distance += dash_length + gap_length
 
 
 class ExportOperations:
@@ -949,11 +973,23 @@ class ExportOperations:
                             else:
                                 # Draw curved arrow
                                 # For simplicity in PIL, we'll just draw straight lines
-                                draw.line(
-                                    [(task_x, task_y), (successor_x, successor_y)],
-                                    fill=arrow_color,
-                                    width=2,
-                                )
+                                # (buffer links are dashed to set them apart visually)
+                                if link["type"] in BUFFER_LINK_TYPES:
+                                    _draw_dashed_line(
+                                        draw,
+                                        task_x,
+                                        task_y,
+                                        successor_x,
+                                        successor_y,
+                                        fill=arrow_color,
+                                        width=2,
+                                    )
+                                else:
+                                    draw.line(
+                                        [(task_x, task_y), (successor_x, successor_y)],
+                                        fill=arrow_color,
+                                        width=2,
+                                    )
 
                                 # Draw arrowhead
                                 arrow_size = 5

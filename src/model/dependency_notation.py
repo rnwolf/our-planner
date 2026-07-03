@@ -26,6 +26,10 @@ DEFAULT_LINK_TYPE = 'FS'
 LINK_TYPES_ORDERED = ['FS', 'SS', 'FF', 'SF', 'PB', 'FB']
 VALID_LINK_TYPES = set(LINK_TYPES_ORDERED)
 
+# CCPM buffer links (project buffer / feeding buffer) get drawn as dashed
+# lines so they read visually differently from ordinary CPM dependencies.
+BUFFER_LINK_TYPES = {'PB', 'FB'}
+
 _TOKEN_RE = re.compile(r'^(\d+)(?::([A-Za-z]{2})([+-]\d+)?)?$')
 
 

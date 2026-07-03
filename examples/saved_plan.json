@@ -2,7 +2,7 @@
   "tasks": [
     {
       "task_id": 1,
-      "row": 1,
+      "row": 0,
       "col": 5,
       "duration": 5,
       "description": "Task A",
@@ -11,18 +11,32 @@
         "1": 0.5,
         "2": 1.5
       },
-      "predecessors": [],
-      "successors": [],
+      "predecessors": [
+        {
+          "id": 3,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
       "tags": [
         "important",
         "phase1"
       ],
-      "color": "GreenYellow"
+      "color": "LightBlue",
+      "notes": [],
+      "type": "task",
+      "state": "planning",
+      "safe_duration": 5,
+      "aggressive_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": []
     },
     {
       "task_id": 2,
-      "row": 2,
-      "col": 12,
+      "row": 1,
+      "col": 11,
       "duration": 4,
       "description": "Task B",
       "url": "https://www.google.com",
@@ -31,17 +45,36 @@
         "2": 0.75,
         "3": 0.25
       },
-      "predecessors": [],
-      "successors": [],
+      "predecessors": [
+        {
+          "id": 1,
+          "type": "FS",
+          "lag": 0
+        },
+        {
+          "id": 4,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
       "tags": [
         "phase1"
       ],
-      "color": "GreenYellow"
+      "color": "LightGreen",
+      "notes": [],
+      "type": "feeding_buffer",
+      "state": "planning",
+      "safe_duration": 4,
+      "aggressive_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": []
     },
     {
       "task_id": 3,
-      "row": 3,
-      "col": 2,
+      "row": 1,
+      "col": 0,
       "duration": 3,
       "description": "Task C",
       "url": "https://www.google.com",
@@ -49,17 +82,25 @@
         "1": 2.0
       },
       "predecessors": [],
-      "successors": [],
       "tags": [
         "phase2",
         "critical"
       ],
-      "color": "Salmon"
+      "color": "Salmon",
+      "notes": [],
+      "type": "task",
+      "state": "planning",
+      "safe_duration": 3,
+      "aggressive_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": []
     },
     {
       "task_id": 4,
-      "row": 4,
-      "col": 1,
+      "row": 2,
+      "col": 8,
       "duration": 2,
       "description": "Task D",
       "url": "",
@@ -68,11 +109,19 @@
         "4": 0.5
       },
       "predecessors": [],
-      "successors": [],
       "tags": [
         "phase2"
       ],
-      "color": "Gold"
+      "color": "Gold",
+      "notes": [],
+      "type": "task",
+      "state": "planning",
+      "safe_duration": 2,
+      "aggressive_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": []
     }
   ],
   "resources": [
@@ -1161,6 +1210,6 @@
   ],
   "days": 100,
   "max_rows": 50,
-  "start_date": "2025-03-29T00:00:00",
-  "setdate": "2025-03-29T00:00:00"
+  "start_date": "2026-07-03T00:00:00",
+  "setdate": "2026-07-03T00:00:00"
 }

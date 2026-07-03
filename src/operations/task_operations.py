@@ -2822,6 +2822,16 @@ class TaskOperations:
                 # Update the UI
                 self.controller.update_view()
 
+    def set_task_type(self, task_type, task=None):
+        """Set the type of a task ('task', 'project_buffer', 'feeding_buffer')."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            if self.controller.model.set_task_type(task['task_id'], task_type):
+                # Update the UI
+                self.controller.update_view()
+
     def view_duration_history(self, task=None):
         """Show a dialog with the task's duration history."""
         if task is None:

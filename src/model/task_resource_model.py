@@ -188,6 +188,7 @@ class TaskResourceModel:
             'color': color,  # Add color to task dictionary
             'notes': [],  # Initialize empty notes list
             # New CCPM-related properties
+            'type': 'task',  # 'task', 'project_buffer', or 'feeding_buffer'
             'state': 'planning',  # Initial state: 'planning', 'buffered', or 'done'
             'safe_duration': duration,  # Initially set to the provided duration
             'aggressive_duration': None,  # Optimistic duration (if set)
@@ -719,6 +720,9 @@ class TaskResourceModel:
                 if 'state' not in task:
                     task['state'] = 'planning'
 
+                if 'type' not in task:
+                    task['type'] = 'task'
+
                 # Add fields if they don't exist fir backward compatability
                 if 'safe_duration' not in task:
                     task['safe_duration'] = task['duration']
@@ -1106,6 +1110,27 @@ class TaskResourceModel:
             return False
 
         task['state'] = state
+        return True
+
+    def set_task_type(self, task_id: int, task_type: str) -> bool:
+        """Set the type of a task.
+
+        Args:
+            task_id: ID of the task
+            task_type: New type ('task', 'project_buffer', 'feeding_buffer')
+
+        Returns:
+            bool: True if successful, False if task not found or invalid type
+        """
+        valid_types = ['task', 'project_buffer', 'feeding_buffer']
+        if task_type not in valid_types:
+            return False
+
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task['type'] = task_type
         return True
 
     def set_aggressive_duration(self, task_id: int, duration: int) -> bool:
