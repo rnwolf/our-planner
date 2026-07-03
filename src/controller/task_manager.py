@@ -161,6 +161,9 @@ class TaskResourceManager:
         """Create a status bar at the bottom of the window."""
         self.status_bar = tk.Frame(self.root, height=25, relief=tk.SUNKEN, bd=1)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        # Remember the platform's actual default background (e.g. "SystemButtonFace"
+        # on Windows isn't a valid color name on Linux/macOS) so it can be restored later.
+        self.status_bar_default_bg = self.status_bar.cget('bg')
 
         # Status message for filters
         self.filter_status = tk.Label(
@@ -269,7 +272,7 @@ class TaskResourceManager:
             )
         else:
             self.task_canvas.config(cursor='')
-            self.status_bar.config(bg='SystemButtonFace')  # Default background
+            self.status_bar.config(bg=self.status_bar_default_bg)  # Default background
             self.update_filter_status()  # Reset to standard filter status display
 
         # Clear selected tasks when disabling multi-select mode
