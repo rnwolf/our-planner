@@ -306,6 +306,17 @@ class UIComponents:
             label='Reset to Today', command=self.reset_setdate_to_today
         )
 
+        # Projects menu
+        self.projects_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label='Projects', menu=self.projects_menu)
+
+        self.projects_menu.add_command(
+            label='Manage Projects...',
+            command=lambda: self.controller.task_ops.manage_projects_dialog(
+                parent=self.controller.root
+            ),
+        )
+
         # Add Network menu
         self.network_menu = NetworkMenu(
             self.controller, self.controller.root, self.menu_bar
@@ -592,6 +603,12 @@ class UIComponents:
         )
         self.context_menu.add_command(
             label='Edit Task URL', command=self.controller.task_ops.edit_task_url
+        )
+        self.context_menu.add_command(
+            label='Edit Task Project...',
+            command=lambda: self.controller.task_ops.edit_task_project(
+                self.controller.selected_task
+            ),
         )
         self.context_menu.add_command(
             label='Edit Task Resources',
@@ -1155,6 +1172,10 @@ class UIComponents:
             # Add state
             state = task.get('state', 'planning')
             tooltip_parts.append(f'State: {state}')
+
+            # Add project
+            project = self.controller.model.get_project_by_id(task.get('project_id'))
+            tooltip_parts.append(f"Project: {project['name'] if project else 'None'}")
 
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')

@@ -169,6 +169,12 @@ class TaskResourceManager:
         # on Windows isn't a valid color name on Linux/macOS) so it can be restored later.
         self.status_bar_default_bg = self.status_bar.cget('bg')
 
+        # Default project display
+        self.default_project_status = tk.Label(
+            self.status_bar, text='Default Project: None', anchor=tk.W, padx=5
+        )
+        self.default_project_status.pack(side=tk.LEFT)
+
         # Status message for filters
         self.filter_status = tk.Label(
             self.status_bar, text='No filters active', anchor=tk.W, padx=5
@@ -183,6 +189,14 @@ class TaskResourceManager:
             state=tk.DISABLED,
         )
         self.clear_filters_btn.pack(side=tk.RIGHT, padx=5, pady=2)
+
+        self.update_default_project_status()
+
+    def update_default_project_status(self):
+        """Update the default project display in the status bar."""
+        default_project = self.model.get_default_project()
+        name = default_project['name'] if default_project else 'None'
+        self.default_project_status.config(text=f'Default Project: {name}')
 
     def clear_all_filters(self):
         """Clear all active filters."""
@@ -222,6 +236,7 @@ class TaskResourceManager:
         self.ui.draw_resource_grid()
         self.update_resource_loading()
         self.update_filter_status()
+        self.update_default_project_status()
         self.ui.update_setdate_display()
 
     def update_resource_loading(self):

@@ -293,6 +293,12 @@ class HelpMenu:
                 text_area.insert(tk.END, f'Task {i+1}:\n')
                 text_area.insert(tk.END, f"  ID: {task['task_id']}\n")
                 text_area.insert(tk.END, f"  Description: {task['description']}\n")
+                project = self.controller.model.get_project_by_id(
+                    task.get('project_id')
+                )
+                text_area.insert(
+                    tk.END, f"  Project: {project['name'] if project else 'None'}\n"
+                )
                 text_area.insert(
                     tk.END, f"  Row: {task['row']}, Column: {task['col']}\n"
                 )
@@ -405,6 +411,12 @@ class HelpMenu:
                 text_area.insert(tk.END, f'Task {i+1}:\n')
                 text_area.insert(tk.END, f"  ID: {task['task_id']}\n")
                 text_area.insert(tk.END, f"  Description: {task['description']}\n")
+                project = self.controller.model.get_project_by_id(
+                    task.get('project_id')
+                )
+                text_area.insert(
+                    tk.END, f"  Project: {project['name'] if project else 'None'}\n"
+                )
                 text_area.insert(
                     tk.END, f"  Row: {task['row']}, Column: {task['col']}\n"
                 )

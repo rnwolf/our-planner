@@ -95,10 +95,103 @@ class TaskResourceModel:
         # All tags in the system for easy reference and autocomplete
         self.all_tags = set()
 
+        # Project management, for rolling-wave planning across multiple
+        # projects sharing the same resource pool on one canvas
+        self.project_id_counter = 0
+        self.projects: List[Dict[str, Any]] = []
+        self.default_project_id: Optional[int] = None
+        # Seed a default project so a fresh plan (and its sample tasks) isn't unassigned
+        self.add_project('Sample Project')
+
     def _get_next_resource_id(self) -> int:
         """Generate a unique resource ID."""
         self.resource_id_counter += 1
         return self.resource_id_counter
+
+    def _get_next_project_id(self) -> int:
+        """Generate a unique project ID."""
+        self.project_id_counter += 1
+        return self.project_id_counter
+
+    def get_project_by_id(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Find a project by its ID."""
+        for project in self.projects:
+            if project['id'] == project_id:
+                return project
+        return None
+
+    def get_project_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Find a project by its name."""
+        for project in self.projects:
+            if project['name'] == name:
+                return project
+        return None
+
+    def add_project(self, name: str, url: str = '') -> Optional[Dict[str, Any]]:
+        """Add a new project. The first project added becomes the default."""
+        if self.get_project_by_name(name):
+            return None
+
+        project = {
+            'id': self._get_next_project_id(),
+            'name': name,
+            'url': url,
+            'phase': 'planning',  # 'planning' or 'execution'
+        }
+        self.projects.append(project)
+
+        if self.default_project_id is None:
+            self.default_project_id = project['id']
+
+        return project
+
+    def update_project(
+        self, project_id: int, name: str = None, url: str = None
+    ) -> bool:
+        """Update a project's name and/or url."""
+        project = self.get_project_by_id(project_id)
+        if not project:
+            return False
+
+        if name is not None:
+            if name != project['name'] and self.get_project_by_name(name):
+                return False  # Another project already has this name
+            project['name'] = name
+
+        if url is not None:
+            project['url'] = url
+
+        return True
+
+    def remove_project(self, project_id: int) -> bool:
+        """Remove a project. Tasks that referenced it become unassigned."""
+        project = self.get_project_by_id(project_id)
+        if not project:
+            return False
+
+        self.projects.remove(project)
+
+        for task in self.tasks:
+            if task.get('project_id') == project_id:
+                task['project_id'] = None
+
+        if self.default_project_id == project_id:
+            self.default_project_id = self.projects[0]['id'] if self.projects else None
+
+        return True
+
+    def set_default_project(self, project_id: Optional[int]) -> bool:
+        """Set which project new tasks are automatically assigned to."""
+        if project_id is not None and not self.get_project_by_id(project_id):
+            return False
+        self.default_project_id = project_id
+        return True
+
+    def get_default_project(self) -> Optional[Dict[str, Any]]:
+        """Return the current default project, if any."""
+        if self.default_project_id is None:
+            return None
+        return self.get_project_by_id(self.default_project_id)
 
     def get_next_task_id(self) -> int:
         """Generate a unique task ID."""
@@ -165,10 +258,13 @@ class TaskResourceModel:
         predecessors: List[Any] = None,  # List of {id, type, lag} link entries
         tags: List[str] = None,  # Add tags parameter
         color: str = None,  # Add color parameter with None default
+        project_id: int = None,  # Defaults to the current default project
     ) -> Dict[str, Any]:
         """Add a new task to the model."""
         tags = tags or []  # Default to empty list if None
         color = color or 'Cyan'  # Default color if None
+        if project_id is None:
+            project_id = self.default_project_id
 
         # Update all_tags with any new tags
         for tag in tags:
@@ -187,6 +283,7 @@ class TaskResourceModel:
             'tags': tags,  # Add tags to task dictionary
             'color': color,  # Add color to task dictionary
             'notes': [],  # Initialize empty notes list
+            'project_id': project_id,  # Which project this task belongs to
             # New CCPM-related properties
             'type': 'task',  # 'task', 'project_buffer', or 'feeding_buffer'
             'state': 'planning',  # Initial state: 'planning', 'buffered', or 'done'
@@ -723,6 +820,9 @@ class TaskResourceModel:
                 if 'type' not in task:
                     task['type'] = 'task'
 
+                if 'project_id' not in task:
+                    task['project_id'] = None
+
                 # Add fields if they don't exist fir backward compatability
                 if 'safe_duration' not in task:
                     task['safe_duration'] = task['duration']
@@ -806,6 +906,23 @@ class TaskResourceModel:
                     max_resource_id = resource['id']
             self.resource_id_counter = max_resource_id
 
+            # Load projects (older saves won't have this at all)
+            self.projects = data.get('projects', [])
+            for project in self.projects:
+                if 'phase' not in project:
+                    project['phase'] = 'planning'
+                if 'url' not in project:
+                    project['url'] = ''
+
+            self.default_project_id = data.get('default_project_id')
+
+            # Find highest project ID to update counter
+            max_project_id = 0
+            for project in self.projects:
+                if project['id'] > max_project_id:
+                    max_project_id = project['id']
+            self.project_id_counter = max_project_id
+
             # Rebuild all_tags
             self.refresh_all_tags()
 
@@ -826,6 +943,8 @@ class TaskResourceModel:
                 'max_rows': self.max_rows,
                 'start_date': self.start_date.isoformat(),
                 'setdate': self.setdate.isoformat(),
+                'projects': self.projects,
+                'default_project_id': self.default_project_id,
             }
 
             with open(file_path, 'w') as f:
@@ -1131,6 +1250,26 @@ class TaskResourceModel:
             return False
 
         task['type'] = task_type
+        return True
+
+    def set_task_project(self, task_id: int, project_id: Optional[int]) -> bool:
+        """Reassign a task to a different project (or None to unassign).
+
+        Args:
+            task_id: ID of the task
+            project_id: ID of the project, or None to unassign
+
+        Returns:
+            bool: True if successful, False if task not found or project not found
+        """
+        if project_id is not None and not self.get_project_by_id(project_id):
+            return False
+
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        task['project_id'] = project_id
         return True
 
     def set_aggressive_duration(self, task_id: int, duration: int) -> bool:

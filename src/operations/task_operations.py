@@ -52,6 +52,31 @@ class FloatEntryDialog(simpledialog.Dialog):
             return False
 
 
+class ProjectSelectDialog(simpledialog.Dialog):
+    """Custom dialog for picking a task's project from a dropdown."""
+
+    def __init__(self, parent, title, prompt, options, initial_value=None):
+        self.prompt = prompt
+        self.options = options
+        self.initial_value = initial_value
+        self.result = None
+        super().__init__(parent, title)
+
+    def body(self, master):
+        tk.Label(master, text=self.prompt).grid(
+            row=0, column=0, padx=5, pady=5, sticky='w'
+        )
+        self.var = tk.StringVar(value=self.initial_value)
+        self.combobox = ttk.Combobox(
+            master, textvariable=self.var, values=self.options, state='readonly'
+        )
+        self.combobox.grid(row=0, column=1, padx=5, pady=5, sticky='we')
+        return self.combobox
+
+    def apply(self):
+        self.result = self.var.get()
+
+
 class TaskOperations:
     def __init__(self, controller, model):
         self.controller = controller
@@ -170,6 +195,48 @@ class TaskOperations:
 
                 # Redraw the task to update the URL behavior
                 self.controller.ui.draw_task_grid()
+
+    def edit_task_project(self, task=None):
+        """Reassign the selected task to a different project."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if not task:
+            return
+
+        if not self.model.projects:
+            messagebox.showinfo(
+                'No Projects',
+                'Create a project first via Projects > Manage Projects...',
+                parent=self.controller.root,
+            )
+            return
+
+        none_label = 'None (unassigned)'
+        options = [none_label] + [p['name'] for p in self.model.projects]
+
+        current_project = self.model.get_project_by_id(task.get('project_id'))
+        initial_value = current_project['name'] if current_project else none_label
+
+        dialog = ProjectSelectDialog(
+            self.controller.root,
+            'Edit Task Project',
+            'Project:',
+            options,
+            initial_value=initial_value,
+        )
+        selected = dialog.result
+        if selected is None:
+            return  # Cancelled
+
+        if selected == none_label:
+            self.model.set_task_project(task['task_id'], None)
+        else:
+            project = self.model.get_project_by_name(selected)
+            self.model.set_task_project(task['task_id'], project['id'])
+
+        # Redraw so the tooltip picks up the new project immediately
+        self.controller.ui.draw_task_grid()
 
     def add_predecessor_dialog(self, task):
         """Add a predecessor to a task, e.g. '3' (Finish-to-Start) or '5:SS+2'."""
@@ -1278,6 +1345,187 @@ class TaskOperations:
                 # draw_capacity_chart()
 
         notebook.bind('<<NotebookTabChanged>>', on_tab_changed)
+
+    def manage_projects_dialog(self, parent=None):
+        """Open a dialog to add, edit, remove, and set the default project."""
+        parent = parent or self.controller.root
+
+        dialog = tk.Toplevel(parent)
+        dialog.title('Manage Projects')
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        dialog.geometry(f'500x450+{x}+{y}')
+        dialog.transient(parent)
+        dialog.grab_set()
+        dialog.focus_set()
+        dialog.wait_visibility()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+        main_frame = tk.Frame(dialog)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        tk.Label(
+            main_frame, text='Manage Projects:', font=('Helvetica', 10, 'bold')
+        ).pack(anchor='w', pady=(0, 10))
+
+        listbox_frame = tk.Frame(main_frame)
+        listbox_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        scrollbar = tk.Scrollbar(listbox_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        project_listbox = tk.Listbox(
+            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10)
+        )
+        project_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=project_listbox.yview)
+
+        details_frame = tk.Frame(main_frame)
+        details_frame.pack(fill=tk.X, pady=10)
+
+        tk.Label(details_frame, text='Project Name:').grid(
+            row=0, column=0, sticky='w', padx=5, pady=5
+        )
+        project_name_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=project_name_var, width=35).grid(
+            row=0, column=1, sticky='w', padx=5, pady=5
+        )
+
+        tk.Label(details_frame, text='URL:').grid(
+            row=1, column=0, sticky='w', padx=5, pady=5
+        )
+        project_url_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=project_url_var, width=35).grid(
+            row=1, column=1, sticky='w', padx=5, pady=5
+        )
+
+        def format_project_label(project):
+            marker = ' (default)' if project['id'] == self.model.default_project_id else ''
+            return f"{project['id']} - {project['name']}{marker}"
+
+        def populate_project_listbox():
+            project_listbox.delete(0, tk.END)
+            for project in self.model.projects:
+                project_listbox.insert(tk.END, format_project_label(project))
+
+        populate_project_listbox()
+
+        def get_selected_project():
+            selected_indices = project_listbox.curselection()
+            if not selected_indices:
+                return None
+            project = self.model.projects[selected_indices[0]]
+            return project
+
+        def on_project_select(event):
+            project = get_selected_project()
+            if project:
+                project_name_var.set(project['name'])
+                project_url_var.set(project['url'])
+
+        project_listbox.bind('<<ListboxSelect>>', on_project_select)
+
+        def refresh_footer():
+            self.controller.update_default_project_status()
+
+        def add_project_from_dialog():
+            name = project_name_var.get().strip()
+            if not name:
+                messagebox.showwarning(
+                    'Invalid Name', 'Please enter a project name.', parent=dialog
+                )
+                return
+
+            if not self.model.add_project(name, project_url_var.get().strip()):
+                messagebox.showwarning(
+                    'Duplicate Name',
+                    'A project with this name already exists.',
+                    parent=dialog,
+                )
+                return
+
+            populate_project_listbox()
+            refresh_footer()
+
+        def update_selected_project():
+            project = get_selected_project()
+            if not project:
+                messagebox.showwarning(
+                    'No Selection', 'Please select a project to update.', parent=dialog
+                )
+                return
+
+            new_name = project_name_var.get().strip()
+            if not new_name:
+                messagebox.showwarning(
+                    'Invalid Name', 'Project name cannot be empty.', parent=dialog
+                )
+                return
+
+            if not self.model.update_project(
+                project['id'], name=new_name, url=project_url_var.get().strip()
+            ):
+                messagebox.showwarning(
+                    'Error',
+                    'A project with this name already exists.',
+                    parent=dialog,
+                )
+                return
+
+            populate_project_listbox()
+            refresh_footer()
+
+        def remove_selected_project():
+            project = get_selected_project()
+            if not project:
+                messagebox.showwarning(
+                    'No Selection', 'Please select a project to remove.', parent=dialog
+                )
+                return
+
+            if messagebox.askyesno(
+                'Confirm Delete',
+                f"Delete project '{project['name']}'? "
+                'Tasks assigned to it will become unassigned.',
+                parent=dialog,
+            ):
+                self.model.remove_project(project['id'])
+                populate_project_listbox()
+                refresh_footer()
+
+        def set_selected_as_default():
+            project = get_selected_project()
+            if not project:
+                messagebox.showwarning(
+                    'No Selection',
+                    'Please select a project to set as default.',
+                    parent=dialog,
+                )
+                return
+
+            self.model.set_default_project(project['id'])
+            populate_project_listbox()
+            refresh_footer()
+
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+
+        tk.Button(button_frame, text='Add', command=add_project_from_dialog).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(button_frame, text='Update', command=update_selected_project).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(button_frame, text='Remove', command=remove_selected_project).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(
+            button_frame, text='Set as Default', command=set_selected_as_default
+        ).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(
+            side=tk.RIGHT, padx=10, pady=10
+        )
 
     def update_project_start_date(self, new_start_date):
         """Update the project start date and adjust tasks and resources accordingly."""
