@@ -67,12 +67,12 @@ in the running app.
   unassigned; persisted in save/load with backward compatibility for older files with no
   `projects` key at all.
 
-### Auto Scheduling toggle (UI only so far — no behavior wired up yet)
-
+### Auto Scheduling toggle
 - `Tasks` menu → `Auto Scheduling` checkbutton, off by default.
 - `controller.auto_scheduling_enabled` — a plain flag on `TaskResourceManager`
-  (`src/controller/task_manager.py`), kept in sync via `toggle_auto_scheduling()`. **Nothing
-  currently reads this flag** — it's the gate the remaining work below needs to check.
+  (`src/controller/task_manager.py`), kept in sync via `toggle_auto_scheduling()`. Gates the
+  Stage 2 FS cascade below (`TaskOperations.apply_dependency_cascade`), and will similarly gate
+  Stage 3/4's buffer behavior once those are built.
 
 ### Phase switch + baseline capture (Stage 1 — done)
 
