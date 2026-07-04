@@ -296,9 +296,13 @@ class HelpMenu:
                 project = self.controller.model.get_project_by_id(
                     task.get('project_id')
                 )
-                text_area.insert(
-                    tk.END, f"  Project: {project['name'] if project else 'None'}\n"
-                )
+                if project:
+                    text_area.insert(
+                        tk.END,
+                        f"  Project: {project['name']} ({project['phase'].capitalize()})\n",
+                    )
+                else:
+                    text_area.insert(tk.END, '  Project: None\n')
                 text_area.insert(
                     tk.END, f"  Row: {task['row']}, Column: {task['col']}\n"
                 )
@@ -414,9 +418,13 @@ class HelpMenu:
                 project = self.controller.model.get_project_by_id(
                     task.get('project_id')
                 )
-                text_area.insert(
-                    tk.END, f"  Project: {project['name'] if project else 'None'}\n"
-                )
+                if project:
+                    text_area.insert(
+                        tk.END,
+                        f"  Project: {project['name']} ({project['phase'].capitalize()})\n",
+                    )
+                else:
+                    text_area.insert(tk.END, '  Project: None\n')
                 text_area.insert(
                     tk.END, f"  Row: {task['row']}, Column: {task['col']}\n"
                 )

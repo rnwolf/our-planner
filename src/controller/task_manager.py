@@ -195,8 +195,13 @@ class TaskResourceManager:
     def update_default_project_status(self):
         """Update the default project display in the status bar."""
         default_project = self.model.get_default_project()
-        name = default_project['name'] if default_project else 'None'
-        self.default_project_status.config(text=f'Default Project: {name}')
+        if default_project:
+            name = default_project['name']
+            phase = default_project['phase'].capitalize()
+            text = f'Default Project: {name} ({phase})'
+        else:
+            text = 'Default Project: None'
+        self.default_project_status.config(text=text)
 
     def clear_all_filters(self):
         """Clear all active filters."""

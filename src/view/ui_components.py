@@ -1171,11 +1171,17 @@ class UIComponents:
 
             # Add state
             state = task.get('state', 'planning')
-            tooltip_parts.append(f'State: {state}')
+            tooltip_parts.append(f'Task state: {state}')
 
-            # Add project
+            # Add project (name and its own planning/execution phase - not to be
+            # confused with the task's own Task state above, a separate concept)
             project = self.controller.model.get_project_by_id(task.get('project_id'))
-            tooltip_parts.append(f"Project: {project['name'] if project else 'None'}")
+            if project:
+                tooltip_parts.append(
+                    f"Project: {project['name']} ({project['phase'].capitalize()})"
+                )
+            else:
+                tooltip_parts.append('Project: None')
 
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')

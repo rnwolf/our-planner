@@ -8,6 +8,11 @@ from src.model.dependency_notation import (
     normalize_predecessor_entries,
 )
 
+TASK_TYPES = ['task', 'project_buffer', 'feeding_buffer']
+BUFFER_TASK_TYPES = {'project_buffer', 'feeding_buffer'}
+
+PROJECT_PHASES = ['planning', 'execution']
+
 
 class TaskResourceModel:
     def __init__(self):
@@ -193,6 +198,59 @@ class TaskResourceModel:
             return None
         return self.get_project_by_id(self.default_project_id)
 
+    def set_project_phase(self, project_id: int, phase: str) -> bool:
+        """Set a project's phase ('planning' or 'execution').
+
+        Does not itself capture a buffer baseline - see capture_project_baseline.
+        """
+        if phase not in PROJECT_PHASES:
+            return False
+
+        project = self.get_project_by_id(project_id)
+        if not project:
+            return False
+
+        project['phase'] = phase
+        return True
+
+    def project_has_baseline(self, project_id: int) -> bool:
+        """Return True if any buffer task in the project already has a baseline."""
+        return any(
+            task.get('baseline') is not None
+            for task in self.tasks
+            if task.get('project_id') == project_id
+            and task.get('type') in BUFFER_TASK_TYPES
+        )
+
+    def capture_project_baseline(self, project_id: int) -> int:
+        """Snapshot every buffer task's col/duration in a project as its baseline.
+
+        Overwrites any existing baseline - callers should confirm with the user
+        first if project_has_baseline() is already True.
+
+        Returns the number of buffer tasks captured, or -1 if the project
+        doesn't exist. A return of 0 means the project has no tasks with
+        type 'project_buffer'/'feeding_buffer' assigned to it yet.
+        """
+        if not self.get_project_by_id(project_id):
+            return -1
+
+        captured_at = self.setdate.isoformat()
+        count = 0
+        for task in self.tasks:
+            if (
+                task.get('project_id') == project_id
+                and task.get('type') in BUFFER_TASK_TYPES
+            ):
+                task['baseline'] = {
+                    'col': task['col'],
+                    'duration': task['duration'],
+                    'captured_at': captured_at,
+                }
+                count += 1
+
+        return count
+
     def get_next_task_id(self) -> int:
         """Generate a unique task ID."""
         self.task_id_counter += 1
@@ -293,6 +351,8 @@ class TaskResourceModel:
             'actual_end_date': None,  # When work was completed
             'fullkit_date': None,  # When all prerequisites were ready
             'remaining_duration_history': [],  # Track history of remaining duration estimates
+            'baseline': None,  # {'col', 'duration', 'captured_at'} snapshot, set for buffer
+            # tasks when their project moves from planning to execution
         }
         self.tasks.append(task)
         return task
@@ -823,6 +883,9 @@ class TaskResourceModel:
                 if 'project_id' not in task:
                     task['project_id'] = None
 
+                if 'baseline' not in task:
+                    task['baseline'] = None
+
                 # Add fields if they don't exist fir backward compatability
                 if 'safe_duration' not in task:
                     task['safe_duration'] = task['duration']
@@ -1241,8 +1304,7 @@ class TaskResourceModel:
         Returns:
             bool: True if successful, False if task not found or invalid type
         """
-        valid_types = ['task', 'project_buffer', 'feeding_buffer']
-        if task_type not in valid_types:
+        if task_type not in TASK_TYPES:
             return False
 
         task = self.get_task(task_id)

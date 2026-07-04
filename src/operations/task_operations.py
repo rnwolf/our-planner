@@ -1401,7 +1401,8 @@ class TaskOperations:
 
         def format_project_label(project):
             marker = ' (default)' if project['id'] == self.model.default_project_id else ''
-            return f"{project['id']} - {project['name']}{marker}"
+            phase_label = project['phase'].capitalize()
+            return f"{project['id']} - {project['name']}{marker} [{phase_label}]"
 
         def populate_project_listbox():
             project_listbox.delete(0, tk.END)
@@ -1507,6 +1508,59 @@ class TaskOperations:
             populate_project_listbox()
             refresh_footer()
 
+        def toggle_selected_project_phase():
+            project = get_selected_project()
+            if not project:
+                messagebox.showwarning(
+                    'No Selection',
+                    'Please select a project to toggle phase.',
+                    parent=dialog,
+                )
+                return
+
+            current_phase = project['phase']
+            new_phase = 'execution' if current_phase == 'planning' else 'planning'
+
+            if new_phase == 'execution':
+                prompt = (
+                    f"Move '{project['name']}' from Planning to Execution?\n\n"
+                    'This marks planning as complete and captures a baseline '
+                    'snapshot of its buffer sizes for later fever-chart comparison.'
+                )
+            else:
+                prompt = f"Move '{project['name']}' back to Planning?"
+
+            if not messagebox.askyesno('Change Project Phase', prompt, parent=dialog):
+                return
+
+            if new_phase == 'execution':
+                should_capture = True
+                if self.model.project_has_baseline(project['id']):
+                    should_capture = messagebox.askyesno(
+                        'Overwrite Baseline?',
+                        f"A buffer baseline was already captured for "
+                        f"'{project['name']}'. Recapture it now, overwriting the "
+                        'previous baseline?',
+                        parent=dialog,
+                    )
+                if should_capture:
+                    captured_count = self.model.capture_project_baseline(
+                        project['id']
+                    )
+                    if captured_count == 0:
+                        messagebox.showinfo(
+                            'No Buffers Found',
+                            f"'{project['name']}' has no tasks with type "
+                            "'Project Buffer' or 'Feeding Buffer' assigned to it, "
+                            'so there is no baseline to capture yet. Set a task\'s '
+                            'type and project, then toggle phase again.',
+                            parent=dialog,
+                        )
+
+            self.model.set_project_phase(project['id'], new_phase)
+            populate_project_listbox()
+            refresh_footer()
+
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=10)
 
@@ -1521,6 +1575,9 @@ class TaskOperations:
         )
         tk.Button(
             button_frame, text='Set as Default', command=set_selected_as_default
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Button(
+            button_frame, text='Toggle Phase', command=toggle_selected_project_phase
         ).pack(side=tk.LEFT, padx=5)
 
         tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(
