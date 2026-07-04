@@ -2,7 +2,7 @@
 
 This document exists to hand this work off cleanly — to another AI coding session, or to a human
 picking it back up later. It captures what has been built, what remains, and the reasoning behind
-the design decisions, so the *why* isn't lost even if the conversation that produced it is gone.
+the design decisions, so the _why_ isn't lost even if the conversation that produced it is gone.
 
 ## Goal
 
@@ -21,6 +21,7 @@ All of the following is built, tested (`uv run pytest`, 40 tests passing), and m
 in the running app.
 
 ### Dependency link types
+
 - `src/model/dependency_notation.py` — parsing/formatting for a compact link notation:
   bare id = Finish-to-Start (`FS`, default), or `id:TYPE` / `id:TYPE+lag` / `id:TYPE-lag` for
   `SS`, `FF`, `SF`, `PB`, `FB`. `PB`/`FB` are reserved for links into buffer rows (project buffer /
@@ -33,7 +34,7 @@ in the running app.
 - UI to create/edit links:
   - Right-click a task → `Add Predecessor` / `Add Successor` — accepts a single link token,
     e.g. `5:SS+2` (not just a bare int).
-  - Right-click a task → `Edit Predecessors...` — free-text edit of the task's *entire*
+  - Right-click a task → `Edit Predecessors...` — free-text edit of the task's _entire_
     predecessor list via the same notation (e.g. `3 5:SS+2 7:FF`), replacing the whole set.
   - Right-click directly on a dependency arrow on the canvas → menu to change its link type,
     set its lag, or remove it.
@@ -42,6 +43,7 @@ in the running app.
   support), so buffer links read visually differently from ordinary CPM dependencies.
 
 ### Task type
+
 - `task['type']` ∈ `{'task', 'project_buffer', 'feeding_buffer'}`, defaults to `'task'`.
 - `model.set_task_type(task_id, task_type)` validates the value.
 - Right-click a task → `Set Task Type` cascade (mirrors the existing `Set Task State` menu).
@@ -50,6 +52,7 @@ in the running app.
   (see "Explicitly out of scope" below).
 
 ### Projects (rolling-wave planning)
+
 - `model.projects`: `List[{'id': int, 'name': str, 'url': str, 'phase': 'planning'|'execution'}]`.
 - `model.default_project_id` — new tasks are auto-assigned to this project unless a `project_id`
   is passed explicitly to `add_task`.
@@ -65,14 +68,16 @@ in the running app.
   `projects` key at all.
 
 ### Auto Scheduling toggle (UI only so far — no behavior wired up yet)
+
 - `Tasks` menu → `Auto Scheduling` checkbutton, off by default.
 - `controller.auto_scheduling_enabled` — a plain flag on `TaskResourceManager`
   (`src/controller/task_manager.py`), kept in sync via `toggle_auto_scheduling()`. **Nothing
   currently reads this flag** — it's the gate the remaining work below needs to check.
 
 ### Phase switch + baseline capture (Stage 1 — done)
+
 - `project['phase']` toggled via `Projects → Manage Projects...` → select a project → `Toggle
-  Phase` button (not a separate top-level menu item — chosen so phase management lives alongside
+Phase` button (not a separate top-level menu item — chosen so phase management lives alongside
   the rest of project CRUD). Confirmation dialog before switching either direction.
 - On a genuine `planning → execution` transition, `model.capture_project_baseline(project_id)`
   snapshots every buffer task (`type` ∈ `{project_buffer, feeding_buffer}`) belonging to that
@@ -86,7 +91,7 @@ in the running app.
   fixes below).
 - Reversible: toggling back to `planning` just flips `phase`, it does not clear the baseline.
 - Since a task's own `state` field (`planning`/`buffered`/`done` — task progress) is easily
-  confused with a *project's* `phase` (`planning`/`execution`), both are now surfaced
+  confused with a _project's_ `phase` (`planning`/`execution`), both are now surfaced
   side-by-side wherever either shows up, to disambiguate at a glance:
   - Task tooltip: `Task state: <state>` (renamed from `State:`) plus a separate
     `Project: <name> (<Phase>)` line.
@@ -96,7 +101,35 @@ in the running app.
     `update_view()`. (Bug fix along the way: the `Toggle Phase` button originally updated the
     listbox but not the footer — `refresh_footer()` is now called there too.)
 
+### Ordinary FS cascade (Stage 2 — done)
+
+- `TaskOperations.apply_dependency_cascade(task)` (`task_operations.py`) — no-ops unless
+  `controller.auto_scheduling_enabled` is `True`. Walks `model.get_successor_links(task_id)`
+  (a new model method deriving outgoing links from successors' `predecessors` lists), and for
+  each `FS`-type link where `successor.col < task.col + task.duration + lag`, pushes
+  `successor.col` forward to that value and recurses into the successor's own successors
+  (`_cascade_from_task`, with a recursion-stack `visiting` set to stop on a dependency cycle
+  rather than push forever). **Only pushes forward, never pulls back.** Buffer-type successors
+  (`project_buffer`/`feeding_buffer`) are explicitly skipped — they're reached via `PB`/`FB`
+  links, not `FS`, and are reserved for Stage 3/4 instead. Pushed positions are clamped to
+  `model.days` bounds.
+- Wired into `on_task_release` (`task_operations.py`) at the three places a task's position can
+  change: right-edge resize, single-task move, and multi-selected-task move. Left-edge resize is
+  **not** wired up — it keeps the finish date fixed by construction, so no successor is ever
+  affected by it. When the cascade actually moves another task, the caller does a full
+  `ui.draw_task_grid()` redraw (simplest correct option, since the cascade can touch tasks
+  anywhere on the grid) instead of the narrower single-task redraw used when nothing cascaded.
+- Coexists with, and runs after, the pre-existing `handle_task_collisions` (same-row visual
+  overlap, unrelated to dependency links) — both fire in `on_task_release`, collision-handling
+  first, cascade second, and the cascade is idempotent so ordering isn't fragile.
+- Verified: a chain `A -> B (FS) -> C (SS+1)` with `D` behind a feeding buffer (`PB`/`FB`) — moving
+  `A` later correctly pushes `B` then `C` (respecting the `SS+1` lag), leaves the buffer and `D`
+  untouched, does nothing when the flag is off, and does nothing when `A` moves earlier. Confirmed
+  manually in the running app as well (Auto Scheduling on, dragging a task with a plain FS
+  successor pushes it forward, including cascading further).
+
 ### Bug fixes (unrelated to CCPM, fixed along the way this session)
+
 - Ctrl+scroll zoom only zoomed out on Linux (`Button-4` binding had no synthesized `delta`,
   fixed in `ui_components.py`).
 - Toggling multi-select mode off crashed with `TclError: unknown color name "SystemButtonFace"`
@@ -109,34 +142,10 @@ in the running app.
 
 Each stage should be implemented and manually verified in the running app before moving to the
 next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
-Stage 1 (phase switch + baseline capture) is done — see "Already implemented" above. Next up is
-Stage 2.
+Stages 1 and 2 (phase switch + baseline capture; ordinary FS cascade) are done — see "Already
+implemented" above. Next up is Stage 3.
 
-### Stage 2 — Ordinary FS cascade (next up)
-
-Only runs when `controller.auto_scheduling_enabled` is `True`.
-
-- Triggers: moving a task (single or multi-selected), and resizing a task's **right** edge
-  (changes the finish date). Resizing the **left** edge does *not* trigger anything — it keeps
-  the finish date fixed by construction (see `on_task_release` in `task_operations.py`), so no
-  successor is ever affected by it.
-- For the moved/resized task `P`, walk its `FS`-type successor links (i.e., tasks `S` whose
-  `predecessors` list contains `{'id': P.task_id, 'type': 'FS', ...}` — use
-  `model.get_successor_ids` plus a link-type check, or iterate all tasks' predecessor lists
-  directly).
-- For each such `S`: if `S.col < P.col + P.duration + lag`, set
-  `S.col = P.col + P.duration + lag`, then recurse into `S`'s own `FS` successors (cascading
-  transitively). **Only push forward, never pull back** — if `P` moved earlier, do nothing.
-- Buffer-type successors (`project_buffer`/`feeding_buffer`) are explicitly **not** handled by
-  this rule — they're reached via `PB`/`FB` links, not `FS`, and are handled by Stage 3/4 instead.
-- Clamp pushed positions to `model.days` bounds, same pattern as the existing
-  `handle_task_collisions`.
-- Needs cycle protection (a `processed_tasks` set), same pattern as `handle_task_collisions`.
-- **Does not touch or replace** `handle_task_collisions` (`task_operations.py:2385`) — that's a
-  pre-existing, unrelated mechanism that resolves same-row *visual* overlap regardless of
-  dependency links. Both can coexist; this is purely additive.
-
-### Stage 3 — Planning-phase buffer glue
+### Stage 3 — Planning-phase buffer glue (next up)
 
 Applies only to buffer tasks (`type` ∈ `{project_buffer, feeding_buffer}`) whose owning
 project's `phase == 'planning'`.
@@ -163,7 +172,7 @@ Triggered when a buffer's `PB`/`FB` predecessor (the feeding chain's last task) 
 it would encroach on the buffer:
 
 - `required_start = predecessor.col + predecessor.duration + lag`
-- `current_end = buffer.col + buffer.duration` (the buffer's end *right now*, before this event —
+- `current_end = buffer.col + buffer.duration` (the buffer's end _right now_, before this event —
   not the Stage 1 baseline; the baseline is only for later fever-chart reporting)
 - If `required_start <= buffer.col`: no encroachment, nothing happens.
 - If `buffer.col < required_start <= current_end`: **buffer absorbs it** —
@@ -183,7 +192,7 @@ project at the moment a move happens — not on a one-time snapshot of "the crit
 when buffers were originally cut. This was a deliberate design choice: tasks get added to an
 executing project's critical chain later (rolling-wave planning, scope discovered mid-project),
 or get decomposed into smaller tasks — the push behavior should just react correctly to
-whatever the dependency graph looks like *right now*, keyed off each task's type/phase, rather
+whatever the dependency graph looks like _right now_, keyed off each task's type/phase, rather
 than needing to re-run some global "recompute the critical chain" step.
 
 ## Explicitly out of scope (deferred, not forgotten)
@@ -193,7 +202,7 @@ than needing to re-run some global "recompute the critical chain" step.
   execution, and (b) a belief that event-sourced architectures may be easier to maintain with AI
   coding tools if the app is ever redeveloped from scratch. For now, the recommendation on record
   (not yet acted on) was: don't rewrite the mutable-model architecture; if/when the fever-chart
-  need becomes concrete, consider a small *separate* append-only log of just the CCPM-relevant
+  need becomes concrete, consider a small _separate_ append-only log of just the CCPM-relevant
   facts (buffer size changes, phase transitions, actual start/end dates) rather than converting
   the whole app's state management.
 - **Automated critical-chain detection / buffer-cutting algorithm.** The traditional CCPM step of
@@ -224,11 +233,6 @@ than needing to re-run some global "recompute the critical chain" step.
 
 ## Open questions for whoever picks this up next
 
-- How Stage 2's cascade should interact with `handle_task_collisions` when both could fire for
-  the same moved task in the same `on_task_release` call — current recommendation is to run
-  collision-handling first (existing behavior, unchanged), then the dependency cascade
-  afterward, since the cascade is idempotent (no-op if already satisfied) and operates
-  independently of same-row visual overlap.
 - Whether "the merge task" in Stage 3 (a buffer's `FS` successor) needs to be uniquely
   identifiable — i.e., what happens if a buffer somehow has more than one `FS` successor. Not
   discussed; likely worth a guard/validation when this is built.

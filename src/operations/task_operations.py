@@ -6,6 +6,7 @@ from src.model.dependency_notation import (
     parse_predecessor_token,
     format_predecessor_notation,
 )
+from src.model.task_resource_model import BUFFER_TASK_TYPES
 
 
 class FloatEntryDialog(simpledialog.Dialog):
@@ -2443,8 +2444,13 @@ class TaskOperations:
                     ui_elements['y2'],
                 )
 
-                # Redraw the task completely
-                self.controller.ui.draw_task(task)
+                # Push FS successors forward if Auto Scheduling is on and the new
+                # finish date now encroaches on them
+                if self.apply_dependency_cascade(task):
+                    self.controller.ui.draw_task_grid()
+                else:
+                    # Redraw the task completely
+                    self.controller.ui.draw_task(task)
 
             else:
                 # Moving tasks - check if multiple tasks are selected
@@ -2506,25 +2512,35 @@ class TaskOperations:
                                 selected_task, new_x1, new_y1, new_x2, new_y2
                             )
 
-                    # After handling all collisions, redraw all tasks
+                    # Push FS successors forward for each moved task, if Auto
+                    # Scheduling is on
+                    cascaded = False
                     for selected_task in self.controller.selected_tasks:
-                        selected_task_id = selected_task['task_id']
-                        selected_ui = self.controller.ui.task_ui_elements.get(
-                            selected_task_id
-                        )
+                        if self.apply_dependency_cascade(selected_task):
+                            cascaded = True
 
-                        if selected_ui:
-                            # Delete all existing UI elements for this task
-                            for key, element_id in list(selected_ui.items()):
-                                if isinstance(
-                                    element_id, int
-                                ):  # Check if it's a canvas item ID
-                                    self.controller.task_canvas.delete(element_id)
+                    if cascaded:
+                        self.controller.ui.draw_task_grid()
+                    else:
+                        # After handling all collisions, redraw all tasks
+                        for selected_task in self.controller.selected_tasks:
+                            selected_task_id = selected_task['task_id']
+                            selected_ui = self.controller.ui.task_ui_elements.get(
+                                selected_task_id
+                            )
 
-                            self.controller.ui.cleanup_tooltips()
+                            if selected_ui:
+                                # Delete all existing UI elements for this task
+                                for key, element_id in list(selected_ui.items()):
+                                    if isinstance(
+                                        element_id, int
+                                    ):  # Check if it's a canvas item ID
+                                        self.controller.task_canvas.delete(element_id)
 
-                            # Redraw the task completely
-                            self.controller.ui.draw_task(selected_task)
+                                self.controller.ui.cleanup_tooltips()
+
+                                # Redraw the task completely
+                                self.controller.ui.draw_task(selected_task)
 
                 else:
                     # Snap single task
@@ -2556,17 +2572,22 @@ class TaskOperations:
                     # First handle collision detection and task shifting
                     self.handle_task_collisions(task, new_x1, new_y1, new_x2, new_y2)
 
-                    # Now delete all existing UI elements
-                    for key, element_id in list(ui_elements.items()):
-                        if isinstance(
-                            element_id, int
-                        ):  # Check if it's a canvas item ID
-                            self.controller.task_canvas.delete(element_id)
+                    # Push FS successors forward if Auto Scheduling is on and this
+                    # task's new position now encroaches on them
+                    if self.apply_dependency_cascade(task):
+                        self.controller.ui.draw_task_grid()
+                    else:
+                        # Now delete all existing UI elements
+                        for key, element_id in list(ui_elements.items()):
+                            if isinstance(
+                                element_id, int
+                            ):  # Check if it's a canvas item ID
+                                self.controller.task_canvas.delete(element_id)
 
-                    self.controller.ui.cleanup_tooltips()
+                        self.controller.ui.cleanup_tooltips()
 
-                    # Redraw the task with updated coordinates
-                    self.controller.ui.draw_task(task)
+                        # Redraw the task with updated coordinates
+                        self.controller.ui.draw_task(task)
 
             # Note: We don't clear selected_task here when in multi-select mode
             # This keeps the task selected after manipulation
@@ -2831,6 +2852,57 @@ class TaskOperations:
 
             # Redraw dependencies after all shifts are complete
             self.controller.ui.draw_dependencies()
+
+    def apply_dependency_cascade(self, task) -> bool:
+        """Push plain FS successors forward so they never start before this task
+        (plus lag) finishes, cascading transitively. Only active when Auto
+        Scheduling is on, and only pushes forward - never pulls a successor
+        earlier just because its predecessor moved earlier.
+
+        Buffer-type successors (project_buffer/feeding_buffer) are skipped: they
+        are reached via PB/FB links, not plain FS, and are handled separately by
+        the planning/execution buffer behavior instead of this ordinary cascade.
+
+        Returns True if any other task's position was changed, so the caller
+        knows whether a full grid redraw is needed (vs. just redrawing `task`).
+        """
+        if not self.controller.auto_scheduling_enabled:
+            return False
+        return self._cascade_from_task(task, set())
+
+    def _cascade_from_task(self, task, visiting) -> bool:
+        task_id = task['task_id']
+        if task_id in visiting:
+            # Already being pushed further up this call chain - a dependency
+            # cycle. Stop here instead of recursing forever.
+            return False
+        visiting = visiting | {task_id}
+
+        moved_any = False
+        finish = task['col'] + task['duration']
+
+        for link in self.model.get_successor_links(task_id):
+            if link['type'] != 'FS':
+                continue
+
+            successor = self.model.get_task(link['task_id'])
+            if not successor or successor.get('type') in BUFFER_TASK_TYPES:
+                continue
+
+            required_start = finish + link['lag']
+            if successor['col'] >= required_start:
+                continue
+
+            new_col = min(required_start, self.model.days - successor['duration'])
+            new_col = max(new_col, 0)
+            if new_col == successor['col']:
+                continue
+
+            successor['col'] = new_col
+            moved_any = True
+            self._cascade_from_task(successor, visiting)
+
+        return moved_any
 
     def add_note_to_task(self, task=None):
         """Add a note to the selected task."""

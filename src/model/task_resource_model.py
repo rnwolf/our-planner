@@ -839,6 +839,25 @@ class TaskResourceModel:
             if any(entry['id'] == task_id for entry in t.get('predecessors', []))
         ]
 
+    def get_successor_links(self, task_id: int) -> List[Dict[str, Any]]:
+        """Return this task's outgoing links, derived from successors' predecessor lists.
+
+        Each entry is `{'task_id': successor_id, 'type': str, 'lag': int}`, mirroring
+        the predecessor entry on the successor task that points back at `task_id`.
+        """
+        links = []
+        for t in self.tasks:
+            for entry in t.get('predecessors', []):
+                if entry['id'] == task_id:
+                    links.append(
+                        {
+                            'task_id': t['task_id'],
+                            'type': entry['type'],
+                            'lag': entry.get('lag', 0),
+                        }
+                    )
+        return links
+
     def load_from_file(self, file_path: str) -> bool:
         """Load project data from a file."""
         try:
