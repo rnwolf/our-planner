@@ -2854,31 +2854,32 @@ class TaskOperations:
             self.controller.ui.draw_dependencies()
 
     def apply_dependency_cascade(self, task) -> bool:
-        """Push plain FS successors forward so they never start before this task
-        (plus lag) finishes, cascading transitively. Only active when Auto
-        Scheduling is on, and only pushes forward - never pulls a successor
-        earlier just because its predecessor moved earlier.
-
-        Buffer-type successors (project_buffer/feeding_buffer) are skipped: they
-        are reached via PB/FB links, not plain FS, and are handled separately by
-        the planning/execution buffer behavior instead of this ordinary cascade.
+        """React to `task`'s new position: push plain FS successors forward
+        (Stage 2), and keep any planning-phase buffer predecessor glued to it
+        (Stage 3). Only active when Auto Scheduling is on.
 
         Returns True if any other task's position was changed, so the caller
         knows whether a full grid redraw is needed (vs. just redrawing `task`).
         """
         if not self.controller.auto_scheduling_enabled:
             return False
-        return self._cascade_from_task(task, set())
+        return self._propagate_from_task(task, set())
 
-    def _cascade_from_task(self, task, visiting) -> bool:
+    def _propagate_from_task(self, task, visiting) -> bool:
         task_id = task['task_id']
         if task_id in visiting:
-            # Already being pushed further up this call chain - a dependency
-            # cycle. Stop here instead of recursing forever.
+            # Already being processed further up this call chain - a
+            # dependency cycle. Stop here instead of recursing forever.
             return False
         visiting = visiting | {task_id}
 
-        moved_any = False
+        moved_any = self._glue_buffer_predecessors(task, visiting)
+
+        # Push plain FS successors forward, cascading transitively. Only push
+        # forward - never pull a successor earlier just because its
+        # predecessor moved earlier. Buffer-type successors are skipped here:
+        # they're reached via PB/FB links, not plain FS, and their planning-
+        # phase position is entirely driven by the glue above, not by a push.
         finish = task['col'] + task['duration']
 
         for link in self.model.get_successor_links(task_id):
@@ -2900,7 +2901,42 @@ class TaskOperations:
 
             successor['col'] = new_col
             moved_any = True
-            self._cascade_from_task(successor, visiting)
+            self._propagate_from_task(successor, visiting)
+
+        return moved_any
+
+    def _glue_buffer_predecessors(self, task, visiting) -> bool:
+        """Keep any planning-phase buffer predecessor of `task` glued to it.
+
+        A buffer feeding into `task` via a plain FS link, or via the explicit
+        FB (feeding buffer) link type, is treated as being attached to `task`
+        at a fixed size while its project is still in the planning phase:
+        `buffer.col + buffer.duration + lag` is kept exactly equal to
+        `task.col`, regardless of which direction `task` moved. Buffers only
+        start actually absorbing/consuming schedule slip once their project
+        moves into execution (Stage 4).
+        """
+        moved_any = False
+
+        for entry in task.get('predecessors', []):
+            if entry['type'] not in ('FS', 'FB'):
+                continue
+
+            buffer_task = self.model.get_task(entry['id'])
+            if not buffer_task or buffer_task.get('type') not in BUFFER_TASK_TYPES:
+                continue
+
+            project = self.model.get_project_by_id(buffer_task.get('project_id'))
+            if not project or project['phase'] != 'planning':
+                continue
+
+            new_col = max(0, task['col'] - buffer_task['duration'] - entry['lag'])
+            if new_col == buffer_task['col']:
+                continue
+
+            buffer_task['col'] = new_col
+            moved_any = True
+            self._propagate_from_task(buffer_task, visiting)
 
         return moved_any
 
