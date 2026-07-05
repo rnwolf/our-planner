@@ -189,7 +189,7 @@ real status updates. The original signed-off plan is not lost — it's preserved
   task has started, `1.0` once `state == 'done'`, otherwise `(duration - latest_remaining) /
   duration` (i.e. how much of the current best-estimate span had elapsed as of the latest status
   update). Drawn as a thick stripe along the task box's **bottom** edge, proportional width. The
-  **top** edge is left free, reserved for Stage 5's chain-color stripe.
+  **top** edge was left free at the time, and is now used by Stage 5's chain-color stripe.
 - **`View Duration History...` dialog** (`task_operations.py`) updated: the pre-existing "Original
   Duration" line was renamed to `Current Duration` (it now reflects the live re-estimated value,
   not the original plan — keeping the old label would have been actively misleading). Two new
@@ -202,16 +202,10 @@ real status updates. The original signed-off plan is not lost — it's preserved
   from a recorded update. Confirmed manually in the running app: recording remaining duration
   visibly moves/resizes the bar and (with Auto Scheduling on) still only pushes a later-finishing
   successor forward — the user confirmed this is expected, since the bidirectional "relay runner"
-  pull-back is Stage 6 and depends on Stage 5's chain classification, neither of which exists yet.
+  pull-back is Stage 6 and depends on Stage 5's chain classification, which didn't exist yet at
+  the time (Stage 5 has since been built - see below).
 
-## Remaining work, in agreed build order
-
-Each stage should be implemented and manually verified in the running app before moving to the
-next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
-Stages 1-4 (phase switch + baseline capture; ordinary FS cascade; planning-phase buffer glue; task
-progress tracking & anchoring) are done — see "Already implemented" above. Next up is Stage 5.
-
-### Stage 5 — Chain registry & chain-aware task classification (next up)
+### Chain registry & chain-aware task classification (Stage 5 — done)
 
 An explicit, user-managed classification of which chain each task belongs to — critical, or one
 of several feeding chains. This was originally going to be derived structurally (walk a task's
@@ -220,38 +214,49 @@ opted for an explicit, constrained-choice attribute instead: simpler to reason a
 a stable place to hang a visual color, at the cost of the user having to tag tasks manually
 (consistent with buffers and task types already being manual, not auto-derived).
 
-- New model list `model.chains`: `List[{'id': int, 'name': str, 'color': str, 'is_critical':
-  bool}]`.
-  - Exactly one entry may have `is_critical = True` at a time — mirrors the existing single-flag
-    `default_project_id` pattern. Stage 6's cascade checks this boolean, **not** a string match on
-    the name, so renaming the chain later can't silently change scheduling behavior.
-  - Global across the whole plan, not scoped per project — "the critical chain" and "feeding-N"
-    are generic roles any project can reuse, rather than needing a near-duplicate set of chain
-    definitions per project.
-  - Seeded by default with 11 entries: `Critical` (`is_critical=True`) plus `Feeding-01` through
-    `Feeding-10`, each pre-assigned a distinct default color — pre-populated because, per the
-    user, hand-picking 10+ mutually distinguishable colors is genuinely difficult; all names and
-    colors remain freely editable afterward, and more chains can be added if 10 feeding chains
-    isn't enough for a given plan.
-- CRUD via a new top-level `Chains` menu → `Manage Chains...` dialog (add/rename/recolor/remove,
-  plus a way to move the `is_critical` flag onto a different entry) — same dialog shape as the
-  existing `Manage Projects...`.
-- Tasks (ordinary tasks *and* buffer tasks) get `chain_id: Optional[int]`, defaulting to `None`.
-  Settable via right-click → `Set Task Chain` (dropdown of existing chain names, mirroring `Edit
-  Task Project...`), with a "None (unassigned)" option.
-  - `chain_id = None` behaves exactly like "not critical" for Stage 6's cascade — this is what
-    keeps the feature backward compatible: a plan with no chains assigned at all keeps behaving
-    exactly like today's forward-only-push cascade until the user actively assigns chains.
-  - Buffers get a chain label too, purely for consistency/visual grouping: a project buffer
-    conventionally tagged `Critical`, a feeding buffer tagged whichever specific `Feeding-NN` chain
-    it protects. This label does **not** drive buffer behavior — that's still entirely governed by
-    `task['type']` (`project_buffer`/`feeding_buffer`), independent of `chain_id`.
-- **Visual**: a colored stripe along the task box's top edge (tentative — see Stage 4) using the
-  assigned chain's color. Deliberately kept separate from the pre-existing free-form
-  `task['color']` fill, so assigning a chain doesn't remove a user's ability to color-code tasks
-  for unrelated reasons (team, skill, whatever they were already using `color` for).
+- `model.chains`: `List[{'id': int, 'name': str, 'color': str, 'is_critical': bool}]`.
+  - Exactly one entry may have `is_critical = True` at a time (`set_critical_chain` unmarks any
+    other chain) — mirrors the existing single-flag `default_project_id` pattern. Stage 6's
+    cascade will check this boolean, **not** a string match on the name, so renaming the chain
+    later can't silently change scheduling behavior.
+  - Global across the whole plan, not scoped per project.
+  - A fresh model seeds 5 entries: `Critical` (`is_critical=True`, red) plus `Feeding-01` through
+    `Feeding-04` (blue/magenta/purple/deep-orange), so a user can start building a project network
+    without first having to set up this reference data. Loading an *older* save file with no
+    `chains` key at all leaves `self.chains` empty (consistent with how `projects` is handled) —
+    only a brand-new model auto-seeds. All names/colors remain freely editable, and more chains
+    can be added via `Manage Chains...` if a plan needs more than 4 feeding chains.
+- CRUD: `add_chain`, `update_chain`, `remove_chain` (unassigns tasks that referenced it, same
+  pattern as `remove_project`), `get_chain_by_id`/`by_name`, `set_critical_chain`,
+  `get_critical_chain`.
+- `Chains` menu (new top-level menu) → `Manage Chains...` dialog (`task_operations.py`) — same
+  CRUD dialog shape as `Manage Projects...`, plus a `Choose Color...` button (stdlib
+  `tkinter.colorchooser`) and each chain's listbox row tinted with its own color.
+- `task['chain_id']: Optional[int]`, defaulting to `None` — settable via right-click → `Edit Task
+  Chain...` (dropdown of chain names + "None (unassigned)"), reusing a newly generalized
+  `OptionSelectDialog` (renamed from the project-specific `ProjectSelectDialog`, since the same
+  dropdown-pick shape now serves both projects and chains).
+  - `chain_id = None` behaves like "not critical" for Stage 6's cascade — backward compatible, a
+    plan with no chains assigned keeps behaving exactly like today's forward-only-push cascade.
+  - Buffers get a `chain_id` too, purely for consistency/visual grouping — it does **not** drive
+    buffer behavior, which is still entirely governed by `task['type']`.
+- **Visual**: a colored stripe along the task box's top edge (`ui_components.py:draw_task`) using
+  the assigned chain's color — separate from the progress stripe (bottom edge, Stage 4) and from
+  the pre-existing free-form `task['color']` fill, so assigning a chain doesn't take over a user's
+  existing color-coding for unrelated purposes. Chain name also shown in the task tooltip.
+- Verified headlessly (seeding, CRUD, duplicate-name rejection, single-critical-chain enforcement,
+  task assignment/unassignment/removal-cascades-to-unassign, save/load round-trip) and confirmed
+  manually in the running app (`Chains` menu, add/recolor/remove, task assignment).
 
-### Stage 6 — Execution-phase chain-aware relay-runner cascade
+## Remaining work, in agreed build order
+
+Each stage should be implemented and manually verified in the running app before moving to the
+next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
+Stages 1-5 (phase switch + baseline capture; ordinary FS cascade; planning-phase buffer glue; task
+progress tracking & anchoring; chain registry & classification) are done — see "Already
+implemented" above. Next up is Stage 6.
+
+### Stage 6 — Execution-phase chain-aware relay-runner cascade (next up)
 
 This is what "Stage 4" originally meant before the chain discussion, refined with the classification
 from Stage 5. It only changes behavior when a project is in the `execution` phase — Stage 2's
@@ -366,7 +371,7 @@ rather than needing to re-run some global "recompute the critical chain" step.
   identifiable — i.e., what happens if a buffer somehow has more than one such successor. Not
   discussed; likely worth a guard/validation when this is built. `chain_id` doesn't resolve this
   ambiguity by itself.
-- Exact default color palette for the 11 seeded chain entries (`Critical` + `Feeding-01`..`10`) —
+- Exact default color palette for the 5 seeded chain entries (`Critical` + `Feeding-01`..`04`) —
   needs picking at implementation time; freely editable afterward via `Manage Chains...` regardless.
 - Whether removing a `Chains` entry that's still referenced by tasks should be blocked, or should
   null out `chain_id` on those tasks — not discussed. (`remove_project` sets the precedent of

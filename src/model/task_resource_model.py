@@ -13,6 +13,17 @@ BUFFER_TASK_TYPES = {'project_buffer', 'feeding_buffer'}
 
 PROJECT_PHASES = ['planning', 'execution']
 
+CRITICAL_CHAIN_COLOR = '#E53935'  # red
+# Default colors for the seeded Feeding-01..04 chains - mutually distinguishable
+# at a glance; all freely editable afterward via Manage Chains, and more chains
+# can be added there if a plan needs more than 4 feeding chains.
+FEEDING_CHAIN_COLORS = [
+    '#1E88E5',  # blue
+    '#D81B60',  # magenta
+    '#8E24AA',  # purple
+    '#F4511E',  # deep orange
+]
+
 
 class TaskResourceModel:
     def __init__(self):
@@ -108,6 +119,17 @@ class TaskResourceModel:
         # Seed a default project so a fresh plan (and its sample tasks) isn't unassigned
         self.add_project('Sample Project')
 
+        # Chain classification (critical chain / feeding chains), global across
+        # the whole plan - a task's chain_id references one of these
+        self.chain_id_counter = 0
+        self.chains: List[Dict[str, Any]] = []
+        # Seed the critical chain plus 10 feeding chains with distinguishable
+        # default colors - hand-picking that many good colors is hard, so the
+        # tool supplies a reasonable starting palette, fully editable afterward
+        self.add_chain('Critical', CRITICAL_CHAIN_COLOR, is_critical=True)
+        for i, color in enumerate(FEEDING_CHAIN_COLORS, start=1):
+            self.add_chain(f'Feeding-{i:02d}', color)
+
     def _get_next_resource_id(self) -> int:
         """Generate a unique resource ID."""
         self.resource_id_counter += 1
@@ -197,6 +219,111 @@ class TaskResourceModel:
         if self.default_project_id is None:
             return None
         return self.get_project_by_id(self.default_project_id)
+
+    def _get_next_chain_id(self) -> int:
+        """Generate a unique chain ID."""
+        self.chain_id_counter += 1
+        return self.chain_id_counter
+
+    def get_chain_by_id(self, chain_id: int) -> Optional[Dict[str, Any]]:
+        """Find a chain by its ID."""
+        for chain in self.chains:
+            if chain['id'] == chain_id:
+                return chain
+        return None
+
+    def get_chain_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Find a chain by its name."""
+        for chain in self.chains:
+            if chain['name'] == name:
+                return chain
+        return None
+
+    def add_chain(
+        self, name: str, color: str, is_critical: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """Add a new chain (the critical chain, or a feeding chain).
+
+        Only one chain may be critical at a time - adding a new critical chain
+        unmarks any existing one.
+        """
+        if self.get_chain_by_name(name):
+            return None
+
+        if is_critical:
+            for chain in self.chains:
+                chain['is_critical'] = False
+
+        chain = {
+            'id': self._get_next_chain_id(),
+            'name': name,
+            'color': color,
+            'is_critical': is_critical,
+        }
+        self.chains.append(chain)
+        return chain
+
+    def update_chain(
+        self, chain_id: int, name: str = None, color: str = None
+    ) -> bool:
+        """Update a chain's name and/or color."""
+        chain = self.get_chain_by_id(chain_id)
+        if not chain:
+            return False
+
+        if name is not None:
+            if name != chain['name'] and self.get_chain_by_name(name):
+                return False  # Another chain already has this name
+            chain['name'] = name
+
+        if color is not None:
+            chain['color'] = color
+
+        return True
+
+    def remove_chain(self, chain_id: int) -> bool:
+        """Remove a chain. Tasks that referenced it become unassigned."""
+        chain = self.get_chain_by_id(chain_id)
+        if not chain:
+            return False
+
+        self.chains.remove(chain)
+
+        for task in self.tasks:
+            if task.get('chain_id') == chain_id:
+                task['chain_id'] = None
+
+        return True
+
+    def set_critical_chain(self, chain_id: int) -> bool:
+        """Mark a chain as THE critical chain, unmarking any other chain."""
+        chain = self.get_chain_by_id(chain_id)
+        if not chain:
+            return False
+
+        for c in self.chains:
+            c['is_critical'] = c['id'] == chain_id
+
+        return True
+
+    def get_critical_chain(self) -> Optional[Dict[str, Any]]:
+        """Return the chain currently flagged as critical, if any."""
+        for chain in self.chains:
+            if chain.get('is_critical'):
+                return chain
+        return None
+
+    def set_task_chain(self, task_id: int, chain_id: Optional[int]) -> bool:
+        """Assign a task (or buffer) to a chain, or None to unassign."""
+        task = self.get_task(task_id)
+        if not task:
+            return False
+
+        if chain_id is not None and not self.get_chain_by_id(chain_id):
+            return False
+
+        task['chain_id'] = chain_id
+        return True
 
     def set_project_phase(self, project_id: int, phase: str) -> bool:
         """Set a project's phase ('planning' or 'execution').
@@ -316,6 +443,7 @@ class TaskResourceModel:
         tags: List[str] = None,  # Add tags parameter
         color: str = None,  # Add color parameter with None default
         project_id: int = None,  # Defaults to the current default project
+        chain_id: int = None,  # Which chain (critical/feeding-NN) this task belongs to
     ) -> Dict[str, Any]:
         """Add a new task to the model."""
         tags = tags or []  # Default to empty list if None
@@ -341,6 +469,7 @@ class TaskResourceModel:
             'color': color,  # Add color to task dictionary
             'notes': [],  # Initialize empty notes list
             'project_id': project_id,  # Which project this task belongs to
+            'chain_id': chain_id,  # Which chain (critical/feeding-NN), if any
             # New CCPM-related properties
             'type': 'task',  # 'task', 'project_buffer', or 'feeding_buffer'
             'state': 'planning',  # Initial state: 'planning', 'buffered', or 'done'
@@ -350,8 +479,8 @@ class TaskResourceModel:
             'actual_end_date': None,  # When work was completed
             'fullkit_date': None,  # When all prerequisites were ready
             'remaining_duration_history': [],  # Track history of remaining duration estimates
-            'baseline': None,  # {'col', 'duration', 'captured_at'} snapshot, set for buffer
-            # tasks when their project moves from planning to execution
+            'baseline': None,  # {'col', 'duration', 'safe_duration', 'captured_at'} snapshot,
+            # set for every task in a project when it moves from planning to execution
         }
         self.tasks.append(task)
         return task
@@ -901,6 +1030,9 @@ class TaskResourceModel:
                 if 'project_id' not in task:
                     task['project_id'] = None
 
+                if 'chain_id' not in task:
+                    task['chain_id'] = None
+
                 if 'baseline' not in task:
                     task['baseline'] = None
 
@@ -1004,6 +1136,23 @@ class TaskResourceModel:
                     max_project_id = project['id']
             self.project_id_counter = max_project_id
 
+            # Load chains (older saves won't have this at all - left empty
+            # rather than re-seeding defaults, consistent with how projects
+            # are handled above)
+            self.chains = data.get('chains', [])
+            for chain in self.chains:
+                if 'color' not in chain:
+                    chain['color'] = CRITICAL_CHAIN_COLOR
+                if 'is_critical' not in chain:
+                    chain['is_critical'] = False
+
+            # Find highest chain ID to update counter
+            max_chain_id = 0
+            for chain in self.chains:
+                if chain['id'] > max_chain_id:
+                    max_chain_id = chain['id']
+            self.chain_id_counter = max_chain_id
+
             # Rebuild all_tags
             self.refresh_all_tags()
 
@@ -1026,6 +1175,7 @@ class TaskResourceModel:
                 'setdate': self.setdate.isoformat(),
                 'projects': self.projects,
                 'default_project_id': self.default_project_id,
+                'chains': self.chains,
             }
 
             with open(file_path, 'w') as f:

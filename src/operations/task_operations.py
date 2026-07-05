@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox, scrolledtext
+from tkinter import ttk, simpledialog, messagebox, scrolledtext, colorchooser
 from datetime import datetime, timedelta
 from src.model.dependency_notation import (
     parse_predecessor_notation,
@@ -53,8 +53,8 @@ class FloatEntryDialog(simpledialog.Dialog):
             return False
 
 
-class ProjectSelectDialog(simpledialog.Dialog):
-    """Custom dialog for picking a task's project from a dropdown."""
+class OptionSelectDialog(simpledialog.Dialog):
+    """Generic dialog for picking one value from a dropdown (project, chain, etc.)."""
 
     def __init__(self, parent, title, prompt, options, initial_value=None):
         self.prompt = prompt
@@ -219,7 +219,7 @@ class TaskOperations:
         current_project = self.model.get_project_by_id(task.get('project_id'))
         initial_value = current_project['name'] if current_project else none_label
 
-        dialog = ProjectSelectDialog(
+        dialog = OptionSelectDialog(
             self.controller.root,
             'Edit Task Project',
             'Project:',
@@ -237,6 +237,48 @@ class TaskOperations:
             self.model.set_task_project(task['task_id'], project['id'])
 
         # Redraw so the tooltip picks up the new project immediately
+        self.controller.ui.draw_task_grid()
+
+    def edit_task_chain(self, task=None):
+        """Reassign the selected task (or buffer) to a different chain."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if not task:
+            return
+
+        if not self.model.chains:
+            messagebox.showinfo(
+                'No Chains',
+                'Create a chain first via Chains > Manage Chains...',
+                parent=self.controller.root,
+            )
+            return
+
+        none_label = 'None (unassigned)'
+        options = [none_label] + [c['name'] for c in self.model.chains]
+
+        current_chain = self.model.get_chain_by_id(task.get('chain_id'))
+        initial_value = current_chain['name'] if current_chain else none_label
+
+        dialog = OptionSelectDialog(
+            self.controller.root,
+            'Edit Task Chain',
+            'Chain:',
+            options,
+            initial_value=initial_value,
+        )
+        selected = dialog.result
+        if selected is None:
+            return  # Cancelled
+
+        if selected == none_label:
+            self.model.set_task_chain(task['task_id'], None)
+        else:
+            chain = self.model.get_chain_by_name(selected)
+            self.model.set_task_chain(task['task_id'], chain['id'])
+
+        # Redraw so the chain stripe/tooltip picks up the new chain immediately
         self.controller.ui.draw_task_grid()
 
     def add_predecessor_dialog(self, task):
@@ -1578,6 +1620,195 @@ class TaskOperations:
         ).pack(side=tk.LEFT, padx=5)
         tk.Button(
             button_frame, text='Toggle Phase', command=toggle_selected_project_phase
+        ).pack(side=tk.LEFT, padx=5)
+
+        tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(
+            side=tk.RIGHT, padx=10, pady=10
+        )
+
+    def manage_chains_dialog(self, parent=None):
+        """Open a dialog to add, edit, remove, and set the critical chain."""
+        parent = parent or self.controller.root
+
+        dialog = tk.Toplevel(parent)
+        dialog.title('Manage Chains')
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        dialog.geometry(f'500x450+{x}+{y}')
+        dialog.transient(parent)
+        dialog.grab_set()
+        dialog.focus_set()
+        dialog.wait_visibility()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+        main_frame = tk.Frame(dialog)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        tk.Label(
+            main_frame, text='Manage Chains:', font=('Helvetica', 10, 'bold')
+        ).pack(anchor='w', pady=(0, 10))
+
+        listbox_frame = tk.Frame(main_frame)
+        listbox_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        scrollbar = tk.Scrollbar(listbox_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        chain_listbox = tk.Listbox(
+            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10)
+        )
+        chain_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=chain_listbox.yview)
+
+        details_frame = tk.Frame(main_frame)
+        details_frame.pack(fill=tk.X, pady=10)
+
+        tk.Label(details_frame, text='Chain Name:').grid(
+            row=0, column=0, sticky='w', padx=5, pady=5
+        )
+        chain_name_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=chain_name_var, width=25).grid(
+            row=0, column=1, sticky='w', padx=5, pady=5
+        )
+
+        tk.Label(details_frame, text='Color:').grid(
+            row=1, column=0, sticky='w', padx=5, pady=5
+        )
+        chain_color_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=chain_color_var, width=25).grid(
+            row=1, column=1, sticky='w', padx=5, pady=5
+        )
+
+        def choose_color():
+            initial = chain_color_var.get() or None
+            _, hex_color = colorchooser.askcolor(
+                color=initial, parent=dialog, title='Choose Chain Color'
+            )
+            if hex_color:
+                chain_color_var.set(hex_color)
+
+        tk.Button(details_frame, text='Choose Color...', command=choose_color).grid(
+            row=1, column=2, sticky='w', padx=5, pady=5
+        )
+
+        def format_chain_label(chain):
+            marker = ' (critical)' if chain['is_critical'] else ''
+            return f"{chain['id']} - {chain['name']}{marker}"
+
+        def populate_chain_listbox():
+            chain_listbox.delete(0, tk.END)
+            for index, chain in enumerate(self.model.chains):
+                chain_listbox.insert(tk.END, format_chain_label(chain))
+                chain_listbox.itemconfig(index, {'bg': chain['color']})
+
+        populate_chain_listbox()
+
+        def get_selected_chain():
+            selected_indices = chain_listbox.curselection()
+            if not selected_indices:
+                return None
+            return self.model.chains[selected_indices[0]]
+
+        def on_chain_select(event):
+            chain = get_selected_chain()
+            if chain:
+                chain_name_var.set(chain['name'])
+                chain_color_var.set(chain['color'])
+
+        chain_listbox.bind('<<ListboxSelect>>', on_chain_select)
+
+        def add_chain_from_dialog():
+            name = chain_name_var.get().strip()
+            if not name:
+                messagebox.showwarning(
+                    'Invalid Name', 'Please enter a chain name.', parent=dialog
+                )
+                return
+
+            color = chain_color_var.get().strip() or '#CCCCCC'
+            if not self.model.add_chain(name, color):
+                messagebox.showwarning(
+                    'Duplicate Name',
+                    'A chain with this name already exists.',
+                    parent=dialog,
+                )
+                return
+
+            populate_chain_listbox()
+
+        def update_selected_chain():
+            chain = get_selected_chain()
+            if not chain:
+                messagebox.showwarning(
+                    'No Selection', 'Please select a chain to update.', parent=dialog
+                )
+                return
+
+            new_name = chain_name_var.get().strip()
+            if not new_name:
+                messagebox.showwarning(
+                    'Invalid Name', 'Chain name cannot be empty.', parent=dialog
+                )
+                return
+
+            new_color = chain_color_var.get().strip() or chain['color']
+            if not self.model.update_chain(chain['id'], name=new_name, color=new_color):
+                messagebox.showwarning(
+                    'Error',
+                    'A chain with this name already exists.',
+                    parent=dialog,
+                )
+                return
+
+            populate_chain_listbox()
+            # Redraw so any chain-color stripes on the grid pick up the change
+            self.controller.ui.draw_task_grid()
+
+        def remove_selected_chain():
+            chain = get_selected_chain()
+            if not chain:
+                messagebox.showwarning(
+                    'No Selection', 'Please select a chain to remove.', parent=dialog
+                )
+                return
+
+            if messagebox.askyesno(
+                'Confirm Delete',
+                f"Delete chain '{chain['name']}'? "
+                'Tasks assigned to it will become unassigned.',
+                parent=dialog,
+            ):
+                self.model.remove_chain(chain['id'])
+                populate_chain_listbox()
+                self.controller.ui.draw_task_grid()
+
+        def set_selected_as_critical():
+            chain = get_selected_chain()
+            if not chain:
+                messagebox.showwarning(
+                    'No Selection',
+                    'Please select a chain to set as critical.',
+                    parent=dialog,
+                )
+                return
+
+            self.model.set_critical_chain(chain['id'])
+            populate_chain_listbox()
+
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=10)
+
+        tk.Button(button_frame, text='Add', command=add_chain_from_dialog).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(button_frame, text='Update', command=update_selected_chain).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(button_frame, text='Remove', command=remove_selected_chain).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(
+            button_frame, text='Set as Critical', command=set_selected_as_critical
         ).pack(side=tk.LEFT, padx=5)
 
         tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(

@@ -317,6 +317,17 @@ class UIComponents:
             ),
         )
 
+        # Chains menu
+        self.chains_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label='Chains', menu=self.chains_menu)
+
+        self.chains_menu.add_command(
+            label='Manage Chains...',
+            command=lambda: self.controller.task_ops.manage_chains_dialog(
+                parent=self.controller.root
+            ),
+        )
+
         # Add Network menu
         self.network_menu = NetworkMenu(
             self.controller, self.controller.root, self.menu_bar
@@ -607,6 +618,12 @@ class UIComponents:
         self.context_menu.add_command(
             label='Edit Task Project...',
             command=lambda: self.controller.task_ops.edit_task_project(
+                self.controller.selected_task
+            ),
+        )
+        self.context_menu.add_command(
+            label='Edit Task Chain...',
+            command=lambda: self.controller.task_ops.edit_task_chain(
                 self.controller.selected_task
             ),
         )
@@ -1183,6 +1200,11 @@ class UIComponents:
             else:
                 tooltip_parts.append('Project: None')
 
+            # Add chain (critical/feeding-NN classification)
+            chain = self.controller.model.get_chain_by_id(task.get('chain_id'))
+            if chain:
+                tooltip_parts.append(f"Chain: {chain['name']}")
+
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')
 
@@ -1598,8 +1620,7 @@ class UIComponents:
         )
 
         # Progress stripe along the bottom edge: how much of the task is done
-        # as of its latest status update, once work has started. (The top
-        # edge is reserved for a future chain-membership color stripe.)
+        # as of its latest status update, once work has started.
         progress_stripe_id = None
         progress_fraction = self.controller.model.get_task_progress_fraction(task_id)
         if progress_fraction is not None and x2 > x1:
@@ -1613,6 +1634,24 @@ class UIComponents:
                 fill='#1F4E79',
                 outline='',
                 tags=('task', 'progress_stripe'),
+            )
+
+        # Chain stripe along the top edge: which chain (critical/feeding-NN)
+        # this task belongs to, if assigned. Kept separate from the task's own
+        # free-form `color` fill so assigning a chain doesn't take over a
+        # user's existing color-coding for unrelated purposes.
+        chain_stripe_id = None
+        chain = self.controller.model.get_chain_by_id(task.get('chain_id'))
+        if chain:
+            stripe_height = 4
+            chain_stripe_id = self.controller.task_canvas.create_rectangle(
+                x1,
+                y1,
+                x2,
+                y1 + stripe_height,
+                fill=chain['color'],
+                outline='',
+                tags=('task', 'chain_stripe'),
             )
 
         # Full Kit indicator: a small glance-able badge in the top-left corner,
@@ -1854,11 +1893,14 @@ class UIComponents:
         if highlight_id:
             self.task_ui_elements[task_id]['highlight'] = highlight_id
 
-        # Add progress stripe / full kit indicator to UI elements if they exist
+        # Add progress stripe / full kit indicator / chain stripe to UI elements
+        # if they exist
         if progress_stripe_id:
             self.task_ui_elements[task_id]['progress_stripe'] = progress_stripe_id
         if fullkit_indicator_id:
             self.task_ui_elements[task_id]['fullkit_indicator'] = fullkit_indicator_id
+        if chain_stripe_id:
+            self.task_ui_elements[task_id]['chain_stripe'] = chain_stripe_id
 
         # Add tooltips for all task properties
         self.add_task_tooltips(task)
