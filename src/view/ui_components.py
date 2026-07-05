@@ -1597,6 +1597,44 @@ class UIComponents:
             x2, y1, x2, y2, fill='black', width=2, tags=('task', 'resize', 'right')
         )
 
+        # Progress stripe along the bottom edge: how much of the task is done
+        # as of its latest status update, once work has started. (The top
+        # edge is reserved for a future chain-membership color stripe.)
+        progress_stripe_id = None
+        progress_fraction = self.controller.model.get_task_progress_fraction(task_id)
+        if progress_fraction is not None and x2 > x1:
+            stripe_height = 4
+            stripe_x2 = x1 + (x2 - x1) * progress_fraction
+            progress_stripe_id = self.controller.task_canvas.create_rectangle(
+                x1,
+                y2 - stripe_height,
+                stripe_x2,
+                y2,
+                fill='#1F4E79',
+                outline='',
+                tags=('task', 'progress_stripe'),
+            )
+
+        # Full Kit indicator: a small glance-able badge in the top-left corner,
+        # present once the task has been marked full-kit-done. Informational
+        # only - not a gate on recording remaining duration - but needs to be
+        # visible without hovering so upcoming tasks can be scanned at a glance.
+        fullkit_indicator_id = None
+        if task.get('fullkit_date'):
+            badge_radius = 5
+            badge_x = x1 + badge_radius + 2
+            badge_y = y1 + badge_radius + 2
+            fullkit_indicator_id = self.controller.task_canvas.create_oval(
+                badge_x - badge_radius,
+                badge_y - badge_radius,
+                badge_x + badge_radius,
+                badge_y + badge_radius,
+                fill='#2E8B57',
+                outline='black',
+                width=1,
+                tags=('task', 'fullkit_indicator'),
+            )
+
         # Determine vertical position for text elements based on whether we show tags
         # Scale the offset based on font size
         text_y_offset = (
@@ -1815,6 +1853,12 @@ class UIComponents:
         # Add highlight to UI elements if it exists
         if highlight_id:
             self.task_ui_elements[task_id]['highlight'] = highlight_id
+
+        # Add progress stripe / full kit indicator to UI elements if they exist
+        if progress_stripe_id:
+            self.task_ui_elements[task_id]['progress_stripe'] = progress_stripe_id
+        if fullkit_indicator_id:
+            self.task_ui_elements[task_id]['fullkit_indicator'] = fullkit_indicator_id
 
         # Add tooltips for all task properties
         self.add_task_tooltips(task)

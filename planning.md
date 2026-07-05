@@ -80,20 +80,17 @@ in the running app.
 Phase` button (not a separate top-level menu item — chosen so phase management lives alongside
   the rest of project CRUD). Confirmation dialog before switching either direction.
 - On a genuine `planning → execution` transition, `model.capture_project_baseline(project_id)`
-  snapshots every buffer task (`type` ∈ `{project_buffer, feeding_buffer}`) belonging to that
-  project: `task['baseline'] = {'col': int, 'duration': int, 'captured_at': str}`, using
-  `self.setdate.isoformat()`. Returns a count so the caller can react (see below).
+  snapshots every task belonging to that project (originally buffer-typed tasks only; widened by
+  Stage 4 to cover the whole project — see below): `task['baseline'] = {'col': int, 'duration':
+  int, 'safe_duration': int, 'captured_at': str}`, using `self.setdate.isoformat()`. Returns a
+  count so the caller can react (see below).
 - If a baseline already exists for the project, `model.project_has_baseline()` gates a "recapture
   and overwrite?" confirmation before `capture_project_baseline` runs again.
-- If the project has no buffer-typed tasks assigned to it (`captured_count == 0`), the dialog
-  shows a `No Buffers Found` info message explaining why nothing was captured, instead of
-  silently writing `null` — this was a real point of confusion during manual testing (see bug
-  fixes below).
+- If the project has no tasks assigned to it at all (`captured_count == 0`), the dialog shows a
+  `No Tasks Found` info message explaining why nothing was captured, instead of silently writing
+  `null` — this was a real point of confusion during manual testing (see bug fixes below; the
+  message originally said `No Buffers Found`, from when capture was still buffer-only).
 - Reversible: toggling back to `planning` just flips `phase`, it does not clear the baseline.
-- **Known gap, to be revised (see Stage 4 below):** this only snapshots buffer-typed tasks today.
-  The user wants the *whole project's* plan snapshotted at this moment (every task, not just
-  buffers), so a PM/stakeholder can later compare the whole signed-off plan against how execution
-  actually unfolded, not just buffer consumption.
 - Since a task's own `state` field (`planning`/`buffered`/`done` — task progress) is easily
   confused with a _project's_ `phase` (`planning`/`execution`), both are now surfaced
   side-by-side wherever either shows up, to disambiguate at a glance:
@@ -159,74 +156,62 @@ Phase` button (not a separate top-level menu item — chosen so phase management
   explicit `FB` buffer->merge-task link, and confirmed manually in the running app for both link
   types.
 
-### Bug fixes (unrelated to CCPM, fixed along the way this session)
+### Task progress tracking & anchoring (Stage 4 — done)
 
-- Ctrl+scroll zoom only zoomed out on Linux (`Button-4` binding had no synthesized `delta`,
-  fixed in `ui_components.py`).
-- Toggling multi-select mode off crashed with `TclError: unknown color name "SystemButtonFace"`
-  (Windows-only Tk color name used on Linux) — now captures the platform's real default
-  background at startup and restores that instead.
-- PNG export drew every task box `lightblue` regardless of its actual color — now uses the
-  task's real color, same as the on-screen canvas.
+Turns `task['col']`/`task['duration']` from "the plan" into "the current best estimate," driven by
+real status updates. The original signed-off plan is not lost — it's preserved separately in the
+(now widened) baseline.
+
+- **Widened Stage 1's baseline.** `capture_project_baseline`/`project_has_baseline` now snapshot
+  **every task** in a project (`{'col': int, 'duration': int, 'safe_duration': int, 'captured_at':
+  str}`), not just buffer-typed ones — so a PM/stakeholder can pull up "the plan we signed off on"
+  at any point during execution and compare it to where things actually stand, not just buffer
+  sizes. `safe_duration` was added to the snapshot after manual testing surfaced that the `View
+  Duration History...` dialog needed it (see below). The `No Buffers Found` info message was
+  reworded to `No Tasks Found` to match the widened scope.
+- **Anchoring the start.** `model.record_remaining_duration` now snaps `task['col']` to
+  `model.get_day_for_date(self.setdate)` the first time it's called for a task (when
+  `actual_start_date` isn't set yet) — the bar's left edge visually jumps to where work *actually*
+  started, which may be earlier or later than where it was planned.
+- **Re-estimating the finish.** Every call recomputes `task['duration']` from the history entry
+  that is *latest by date* (not insertion order, via a new `_get_latest_remaining_duration_entry`
+  helper — handles a backdated correction the same way `get_latest_remaining_duration` already
+  sorted), so `task['col'] + task['duration']` always equals `(day-column of that entry's date) +
+  its remaining_duration`.
+- `TaskOperations.record_remaining_duration` (`task_operations.py`) now calls
+  `self.apply_dependency_cascade(task)` right after the model update, so a re-estimated finish
+  pushes FS successors forward exactly like a drag/resize would (Stage 6/7 will build on this same
+  entry point once chains exist).
+- **Full Kit stays informational, not a gate** — `Set Full Kit Done`/`fullkit_date` unchanged, no
+  blocking behavior added. New: a small green circular badge in the task box's top-left corner
+  (`ui_components.py:draw_task`), shown whenever `fullkit_date` is set, visible without hovering.
+- **Progress visualization.** New `model.get_task_progress_fraction(task_id)` — `None` before a
+  task has started, `1.0` once `state == 'done'`, otherwise `(duration - latest_remaining) /
+  duration` (i.e. how much of the current best-estimate span had elapsed as of the latest status
+  update). Drawn as a thick stripe along the task box's **bottom** edge, proportional width. The
+  **top** edge is left free, reserved for Stage 5's chain-color stripe.
+- **`View Duration History...` dialog** (`task_operations.py`) updated: the pre-existing "Original
+  Duration" line was renamed to `Current Duration` (it now reflects the live re-estimated value,
+  not the original plan — keeping the old label would have been actively misleading). Two new
+  lines, `Baseline Duration` and `Baseline Safe Duration`, are shown whenever `task['baseline']`
+  exists, pulled from the widened baseline snapshot. Baselines captured before this change (missing
+  `safe_duration`) fall back to the task's current `safe_duration`.
+- Verified headlessly: anchoring, re-estimation (including an out-of-order/backdated correction),
+  progress-fraction values at several points in a task's lifecycle, the widened baseline capturing
+  both buffer and ordinary tasks with `safe_duration` included, and the cascade firing correctly
+  from a recorded update. Confirmed manually in the running app: recording remaining duration
+  visibly moves/resizes the bar and (with Auto Scheduling on) still only pushes a later-finishing
+  successor forward — the user confirmed this is expected, since the bidirectional "relay runner"
+  pull-back is Stage 6 and depends on Stage 5's chain classification, neither of which exists yet.
 
 ## Remaining work, in agreed build order
 
 Each stage should be implemented and manually verified in the running app before moving to the
 next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
-Stages 1-3 (phase switch + baseline capture; ordinary FS cascade; planning-phase buffer glue) are
-done — see "Already implemented" above. Stages 4-7 below replace what was originally sketched as
-a single "Stage 4"; a long requirements discussion with the user (see git history / conversation
-log around 2026-07-05) surfaced that execution-phase behavior needs real task-progress tracking
-and an explicit chain classification *before* the buffer absorb/overflow behavior can be built on
-top of it, so that work has been split out into its own stages ahead of buffer absorption.
+Stages 1-4 (phase switch + baseline capture; ordinary FS cascade; planning-phase buffer glue; task
+progress tracking & anchoring) are done — see "Already implemented" above. Next up is Stage 5.
 
-### Stage 4 — Task progress tracking & anchoring
-
-Turns `task['col']`/`task['duration']` from "the plan" into "the current best estimate," driven by
-real status updates, so later stages have something concrete to react to. The original signed-off
-plan is not lost — it's preserved separately (see the baseline-widening bullet below).
-
-- **Widen Stage 1's baseline.** `capture_project_baseline` currently only snapshots buffer-typed
-  tasks. Change it to snapshot **every task** in the project (`{'col': int, 'duration': int,
-  'captured_at': str}`, same shape, just no longer filtered by `type`). Senior stakeholders want
-  to be able to pull up "the plan we signed off on" at any point during execution and compare it
-  to where things actually stand — not just buffer sizes. The `No Buffers Found` info message
-  needs rewording (or replacing with a simpler "project has no tasks yet" guard, since a project
-  with any tasks at all will now always capture something).
-- **Anchoring the start.** The first time `record_remaining_duration` is called for a task (i.e.
-  it doesn't yet have an `actual_start_date`), snap `task['col']` to
-  `model.get_day_for_date(self.setdate)` — the day-column for the current setdate (already an
-  existing model method). The bar's left edge visually jumps to where work *actually* started,
-  which may be earlier or later than where it was planned. This matters because PMs often learn
-  about a status change late (e.g. hearing today about something that happened yesterday) — the
-  existing `Date → Set Current Date` feature is exactly how the setdate gets backdated to when the
-  update actually applies, before recording it.
-- **Re-estimating the finish.** Every call to `record_remaining_duration` (including the first)
-  recomputes `task['duration']` so that `task['col'] + task['duration']` equals
-  `model.get_day_for_date(self.setdate) + remaining_duration` — i.e. the bar's right edge always
-  reflects "as of the most recent estimate, this is when it'll be done." The estimate is *not*
-  measured from the anchor; it's the most recent number a human gave, full stop — if someone says
-  "3 days left" today and "5 days left" next week (things got harder), the finish date moves out
-  by more than a week's worth of elapsed time, and that's correct. The bar must visibly
-  resize/move immediately on each entry, not just update a tooltip — the whole point is so humans
-  can see what's coming up next.
-- Since this changes `col`/`duration` exactly like a drag or resize would, it should route through
-  the same `apply_dependency_cascade` entry point already used by `on_task_release`, so that
-  Stage 6/7's execution-phase reactions fire consistently regardless of *why* a task's position
-  changed.
-- **Full Kit stays informational, not a gate.** No blocking behavior is added to `Record Remaining
-  Duration` — `Set Full Kit Done`/`fullkit_date` remain exactly as they are. What's needed is a
-  glance-able visual indicator on the task box itself (not buried in a hover tooltip), so upcoming
-  tasks can be scanned for full-kit readiness without hovering each one individually. Exact
-  glyph/placement is an implementation detail (e.g. a small badge in a fixed corner, present once
-  `fullkit_date` is set) — see "Open questions" below.
-- **Progress visualization.** Not a traditional center split-fill bar (rejected — fights with the
-  task label text). Instead, a thick stripe along one edge of the box, proportional to how much of
-  the task is done vs. remaining as of `setdate`. See Stage 5 below for the *other* edge, which is
-  reserved for chain color — tentative assignment is progress on the bottom edge, chain color on
-  the top edge, swappable if it doesn't read well in practice.
-
-### Stage 5 — Chain registry & chain-aware task classification
+### Stage 5 — Chain registry & chain-aware task classification (next up)
 
 An explicit, user-managed classification of which chain each task belongs to — critical, or one
 of several feeding chains. This was originally going to be derived structurally (walk a task's
@@ -383,13 +368,12 @@ rather than needing to re-run some global "recompute the critical chain" step.
   ambiguity by itself.
 - Exact default color palette for the 11 seeded chain entries (`Critical` + `Feeding-01`..`10`) —
   needs picking at implementation time; freely editable afterward via `Manage Chains...` regardless.
-- Exact full-kit visual glyph/placement on the task box (Stage 4) — agreed it must be glance-able
-  without hovering, but the specific icon/badge/color wasn't nailed down.
 - Whether removing a `Chains` entry that's still referenced by tasks should be blocked, or should
   null out `chain_id` on those tasks — not discussed. (`remove_project` sets the precedent of
   unassigning rather than blocking.)
 - Whether a buffer's `chain_id` should be validated against the chain(s) of the tasks feeding it
   (e.g. warn if inconsistent) — not discussed; currently assumed trusted/unvalidated, consistent
   with everything else in this system that the user sets manually.
-- Whether the progress-stripe/chain-stripe edge assignment (progress on bottom, chain color on
-  top) reads well in practice, or should be swapped — flagged as tentative in Stages 4 and 5.
+- Whether the progress-stripe/chain-stripe edge assignment (progress stripe implemented on the
+  bottom edge in Stage 4; top edge reserved for Stage 5's chain color) reads well once the chain
+  stripe is added, or should be swapped.

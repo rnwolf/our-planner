@@ -214,23 +214,24 @@ class TaskResourceModel:
         return True
 
     def project_has_baseline(self, project_id: int) -> bool:
-        """Return True if any buffer task in the project already has a baseline."""
+        """Return True if any task in the project already has a baseline."""
         return any(
             task.get('baseline') is not None
             for task in self.tasks
             if task.get('project_id') == project_id
-            and task.get('type') in BUFFER_TASK_TYPES
         )
 
     def capture_project_baseline(self, project_id: int) -> int:
-        """Snapshot every buffer task's col/duration in a project as its baseline.
+        """Snapshot every task's col/duration in a project as its baseline.
+
+        Captures the whole signed-off plan (not just buffer sizes), so it can
+        later be compared against how execution actually unfolded.
 
         Overwrites any existing baseline - callers should confirm with the user
         first if project_has_baseline() is already True.
 
-        Returns the number of buffer tasks captured, or -1 if the project
-        doesn't exist. A return of 0 means the project has no tasks with
-        type 'project_buffer'/'feeding_buffer' assigned to it yet.
+        Returns the number of tasks captured, or -1 if the project doesn't
+        exist. A return of 0 means the project has no tasks assigned to it yet.
         """
         if not self.get_project_by_id(project_id):
             return -1
@@ -238,13 +239,11 @@ class TaskResourceModel:
         captured_at = self.setdate.isoformat()
         count = 0
         for task in self.tasks:
-            if (
-                task.get('project_id') == project_id
-                and task.get('type') in BUFFER_TASK_TYPES
-            ):
+            if task.get('project_id') == project_id:
                 task['baseline'] = {
                     'col': task['col'],
                     'duration': task['duration'],
+                    'safe_duration': task.get('safe_duration', task['duration']),
                     'captured_at': captured_at,
                 }
                 count += 1
@@ -1225,6 +1224,18 @@ class TaskResourceModel:
     def record_remaining_duration(self, task_id: int, remaining_duration: int) -> bool:
         """Record a new remaining duration estimate for a task on the current setdate.
 
+        Also anchors and re-estimates the task's visual position:
+        - The first call snaps `col` to the setdate's day-column (the "anchor") -
+          the bar's left edge jumps to where work actually started, which may
+          be earlier or later than originally planned. The original plan is
+          only recoverable from the project's baseline snapshot.
+        - Every call (including the first) recomputes `duration` so the bar's
+          right edge reflects the most recent estimate on record - i.e.
+          `col + duration` becomes `(day-column of the latest estimate's date)
+          + its remaining_duration`. This is keyed off the latest entry *by
+          date*, not insertion order, so a backdated correction is handled
+          the same way `get_latest_remaining_duration` already sorts.
+
         Args:
             task_id: ID of the task
             remaining_duration: Estimated remaining duration in days
@@ -1249,9 +1260,17 @@ class TaskResourceModel:
         # Add the record
         task['remaining_duration_history'].append(record)
 
-        # If this is the first record, set the actual start date
+        # If this is the first record, anchor the actual start
         if not task.get('actual_start_date'):
             task['actual_start_date'] = self.setdate.isoformat()
+            task['col'] = self.get_day_for_date(self.setdate)
+
+        # Re-estimate the finish from the latest entry on record (by date)
+        latest_entry = self._get_latest_remaining_duration_entry(task_id)
+        entry_col = self.get_day_for_date(datetime.fromisoformat(latest_entry['date']))
+        task['duration'] = max(
+            0, entry_col + latest_entry['remaining_duration'] - task['col']
+        )
 
         # If remaining duration is 0, set the actual end date and mark as done
         if remaining_duration == 0:
@@ -1275,6 +1294,16 @@ class TaskResourceModel:
 
         return task['remaining_duration_history']
 
+    def _get_latest_remaining_duration_entry(
+        self, task_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """Get the most recent (by date) remaining duration history entry."""
+        history = self.get_remaining_duration_history(task_id)
+        if not history:
+            return None
+
+        return sorted(history, key=lambda x: x['date'], reverse=True)[0]
+
     def get_latest_remaining_duration(self, task_id: int) -> Optional[int]:
         """Get the most recent remaining duration estimate for a task.
 
@@ -1284,13 +1313,35 @@ class TaskResourceModel:
         Returns:
             The most recent remaining duration estimate, or None if no estimates exist
         """
-        history = self.get_remaining_duration_history(task_id)
-        if not history:
+        entry = self._get_latest_remaining_duration_entry(task_id)
+        return entry['remaining_duration'] if entry else None
+
+    def get_task_progress_fraction(self, task_id: int) -> Optional[float]:
+        """Get how much of a started task is done, as of its latest estimate.
+
+        Returns None if the task hasn't started (no status update recorded
+        yet) - callers should skip drawing a progress indicator in that case.
+        Otherwise returns a value in [0.0, 1.0]: 1.0 once `state` is 'done',
+        otherwise `(duration - latest_remaining_duration) / duration`, i.e.
+        how much of the current best-estimate span had already elapsed as of
+        the most recent status update.
+        """
+        task = self.get_task(task_id)
+        if not task or not task.get('actual_start_date'):
             return None
 
-        # Sort by date, newest first
-        sorted_history = sorted(history, key=lambda x: x['date'], reverse=True)
-        return sorted_history[0]['remaining_duration']
+        if task.get('state') == 'done':
+            return 1.0
+
+        latest_remaining = self.get_latest_remaining_duration(task_id)
+        if latest_remaining is None:
+            return None
+
+        total = task['duration']
+        if total <= 0:
+            return 1.0
+
+        return min(1.0, max(0.0, (total - latest_remaining) / total))
 
     def set_task_state(self, task_id: int, state: str) -> bool:
         """Set the state of a task.

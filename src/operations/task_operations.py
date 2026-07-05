@@ -1550,11 +1550,10 @@ class TaskOperations:
                     )
                     if captured_count == 0:
                         messagebox.showinfo(
-                            'No Buffers Found',
-                            f"'{project['name']}' has no tasks with type "
-                            "'Project Buffer' or 'Feeding Buffer' assigned to it, "
-                            'so there is no baseline to capture yet. Set a task\'s '
-                            'type and project, then toggle phase again.',
+                            'No Tasks Found',
+                            f"'{project['name']}' has no tasks assigned to it yet, "
+                            'so there is no baseline to capture. Assign tasks to '
+                            'this project, then toggle phase again.',
                             parent=dialog,
                         )
 
@@ -3206,6 +3205,11 @@ class TaskOperations:
                     task['task_id'], new_remaining
                 )
 
+                # The task's col/duration may have just been anchored/re-estimated
+                # exactly like a drag or resize would change them, so route
+                # through the same cascade used there.
+                self.apply_dependency_cascade(task)
+
                 # Update the UI
                 self.controller.update_view()
 
@@ -3281,8 +3285,12 @@ class TaskOperations:
             tk.Label(frame, text=state_text, font=('Arial', 9)).pack(anchor='w')
 
             # Information labels
-            original_duration_text = f'Original Duration: {task["duration"]} days'
-            tk.Label(frame, text=original_duration_text).pack(anchor='w')
+            # `duration` is the live current-estimate once work has started
+            # (see Stage 4 - it's anchored/re-estimated from status updates),
+            # so it's labeled as such rather than "Original" to avoid it being
+            # mistaken for the signed-off plan.
+            current_duration_text = f'Current Duration: {task["duration"]} days'
+            tk.Label(frame, text=current_duration_text).pack(anchor='w')
 
             if task.get('aggressive_duration'):
                 aggressive_text = (
@@ -3294,6 +3302,26 @@ class TaskOperations:
                 f'Safe Duration: {task.get("safe_duration", task["duration"])} days'
             )
             tk.Label(frame, text=safe_text).pack(anchor='w')
+
+            # Baseline values, captured when the project moved planning ->
+            # execution (see Stage 1/4) - the actual signed-off plan, distinct
+            # from the current (possibly re-estimated) values above.
+            baseline = task.get('baseline')
+            if baseline:
+                baseline_duration_text = (
+                    f'Baseline Duration: {baseline["duration"]} days'
+                )
+                tk.Label(frame, text=baseline_duration_text).pack(anchor='w')
+
+                # Older baselines (captured before this field was added) won't
+                # have it - fall back to the task's current safe_duration.
+                baseline_safe_duration = baseline.get(
+                    'safe_duration', task.get('safe_duration', baseline['duration'])
+                )
+                baseline_safe_text = (
+                    f'Baseline Safe Duration: {baseline_safe_duration} days'
+                )
+                tk.Label(frame, text=baseline_safe_text).pack(anchor='w')
 
             # Actual dates
             if task.get('actual_start_date'):
