@@ -3085,15 +3085,43 @@ class TaskOperations:
 
     def apply_dependency_cascade(self, task) -> bool:
         """React to `task`'s new position: push plain FS successors forward
-        (Stage 2), and keep any planning-phase buffer predecessor glued to it
-        (Stage 3). Only active when Auto Scheduling is on.
+        during planning (Stage 2), or bidirectionally push/pull them during
+        execution if `task` is on the chain flagged critical (Stage 6's
+        "relay runner" cascade) - and keep any buffer predecessor glued to it
+        (Stage 3).
+
+        Gated by Auto Scheduling while `task`'s project is still in planning
+        (a manual, optional convenience while sketching out a plan). Once a
+        project is executing, these reactions are not optional - that's how
+        the schedule stays truthful once real status updates start coming
+        in - so they always run regardless of the toggle.
 
         Returns True if any other task's position was changed, so the caller
         knows whether a full grid redraw is needed (vs. just redrawing `task`).
         """
-        if not self.controller.auto_scheduling_enabled:
+        project = self.model.get_project_by_id(task.get('project_id'))
+        executing = bool(project and project['phase'] == 'execution')
+
+        if not executing and not self.controller.auto_scheduling_enabled:
             return False
+
         return self._propagate_from_task(task, set())
+
+    def _is_critical_chain_task_in_execution(self, task) -> bool:
+        """Whether `task`'s ordinary FS successors should be kept in lock-step
+        bidirectionally (Stage 6), rather than only ever pushed forward.
+
+        Only true when `task`'s own project is in the execution phase *and*
+        `task` is assigned to the chain flagged critical - during planning,
+        or for feeding-chain/unassigned tasks, only the ordinary forward-only
+        push (Stage 2) ever applies.
+        """
+        project = self.model.get_project_by_id(task.get('project_id'))
+        if not project or project['phase'] != 'execution':
+            return False
+
+        chain = self.model.get_chain_by_id(task.get('chain_id'))
+        return bool(chain and chain.get('is_critical'))
 
     def _propagate_from_task(self, task, visiting) -> bool:
         task_id = task['task_id']
@@ -3105,12 +3133,16 @@ class TaskOperations:
 
         moved_any = self._glue_buffer_predecessors(task, visiting)
 
-        # Push plain FS successors forward, cascading transitively. Only push
-        # forward - never pull a successor earlier just because its
-        # predecessor moved earlier. Buffer-type successors are skipped here:
-        # they're reached via PB/FB links, not plain FS, and their planning-
-        # phase position is entirely driven by the glue above, not by a push.
+        # Push plain FS successors forward, cascading transitively - or, for a
+        # critical-chain task whose project is executing, keep them in
+        # lock-step bidirectionally instead (the "relay runner" mentality:
+        # the next runner starts the instant the baton is ready, whichever
+        # direction that moves things). Buffer-type successors are always
+        # skipped here: they're reached via PB/FB links, not plain FS, and
+        # their position is driven by the glue above (planning) or by
+        # Stage 7's absorb-then-overflow (execution), not by this push.
         finish = task['col'] + task['duration']
+        bidirectional = self._is_critical_chain_task_in_execution(task)
 
         for link in self.model.get_successor_links(task_id):
             if link['type'] != 'FS':
@@ -3121,10 +3153,15 @@ class TaskOperations:
                 continue
 
             required_start = finish + link['lag']
-            if successor['col'] >= required_start:
+
+            if bidirectional:
+                new_col = required_start
+            elif successor['col'] < required_start:
+                new_col = required_start
+            else:
                 continue
 
-            new_col = min(required_start, self.model.days - successor['duration'])
+            new_col = min(new_col, self.model.days - successor['duration'])
             new_col = max(new_col, 0)
             if new_col == successor['col']:
                 continue
@@ -3136,15 +3173,22 @@ class TaskOperations:
         return moved_any
 
     def _glue_buffer_predecessors(self, task, visiting) -> bool:
-        """Keep any planning-phase buffer predecessor of `task` glued to it.
+        """Keep any buffer predecessor of `task` glued to it, at a fixed size.
 
         A buffer feeding into `task` via a plain FS link, or via the explicit
-        FB (feeding buffer) link type, is treated as being attached to `task`
-        at a fixed size while its project is still in the planning phase:
+        FB (feeding buffer) link type, is treated as being attached to `task`:
         `buffer.col + buffer.duration + lag` is kept exactly equal to
-        `task.col`, regardless of which direction `task` moved. Buffers only
-        start actually absorbing/consuming schedule slip once their project
-        moves into execution (Stage 4).
+        `task.col`, regardless of which direction `task` moved. This applies
+        in both planning and execution - a feeding buffer's whole purpose is
+        to protect its merge point, so it must track that merge point
+        whenever it moves, for whatever reason (including Stage 6's
+        relay-runner cascade elsewhere on the critical chain).
+
+        This is independent of - and unaffected by - what's happening on the
+        buffer's *own* predecessor side (the feeding chain). During planning,
+        the feeding chain moving later just opens a gap in front of the
+        (still glued) buffer; during execution, that side is Stage 7's job
+        (buffer absorbs/grows, then overflows once fully consumed).
         """
         moved_any = False
 
@@ -3154,10 +3198,6 @@ class TaskOperations:
 
             buffer_task = self.model.get_task(entry['id'])
             if not buffer_task or buffer_task.get('type') not in BUFFER_TASK_TYPES:
-                continue
-
-            project = self.model.get_project_by_id(buffer_task.get('project_id'))
-            if not project or project['phase'] != 'planning':
                 continue
 
             new_col = max(0, task['col'] - buffer_task['duration'] - entry['lag'])
@@ -3422,10 +3462,32 @@ class TaskOperations:
             if current_remaining is None:
                 current_remaining = task['duration']
 
+            setdate_text = self.controller.model.setdate.strftime('%Y-%m-%d')
+
+            if task.get('actual_start_date'):
+                prompt = f'Enter remaining duration (days) for task as of {setdate_text}:'
+            else:
+                # Recording this on a not-yet-started task has a real side
+                # effect (anchoring actual_start_date to setdate) that's easy
+                # to trigger by accident, e.g. after just completing a full
+                # kit and learning a better duration estimate - make that
+                # explicit up front rather than a surprise afterward.
+                prompt = (
+                    f'This task has not started yet. Recording a remaining '
+                    f'duration now will mark it as started on the project set '
+                    f"date ({setdate_text}), with its finish re-estimated from "
+                    f'the duration you enter below.\n\n'
+                    f"TIP: to update a not-yet-started task's estimated "
+                    f'duration (e.g. after completing its full kit) without '
+                    f"marking it started, just drag the task's left/right edge "
+                    f'on the grid instead.\n\n'
+                    f'Enter remaining duration (days) as of {setdate_text}:'
+                )
+
             # Ask for new remaining duration
             new_remaining = simpledialog.askinteger(
                 'Remaining Duration',
-                f'Enter remaining duration (days) for task as of {self.controller.model.setdate.strftime("%Y-%m-%d")}:',
+                prompt,
                 initialvalue=current_remaining,
                 minvalue=0,  # Allow 0 for completed tasks
                 parent=self.controller.root,

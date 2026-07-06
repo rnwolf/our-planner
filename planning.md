@@ -50,6 +50,12 @@ in the running app.
 - Buffers are created **manually** by the user (set a task's type to a buffer type) — there is no
   automatic critical-chain detection or buffer-cutting algorithm, and none is planned right now
   (see "Explicitly out of scope" below).
+- **Pitfall confirmed by testing**: naming a task "Feeding Buffer" and linking it via an `FB`/`PB`
+  link is *not* enough to get buffer behavior — every buffer-aware mechanism (Stage 2's skip,
+  Stage 3/6's glue, Stage 7) checks the task's actual `type` field, not its description text or
+  the link type pointing at it. A task must have `Set Task Type` actually applied. The tooltip
+  (see below) now shows `Task type:` explicitly so this is checkable at a glance instead of only
+  discoverable by testing behavior.
 
 ### Projects (rolling-wave planning)
 
@@ -70,9 +76,13 @@ in the running app.
 ### Auto Scheduling toggle
 - `Tasks` menu → `Auto Scheduling` checkbutton, off by default.
 - `controller.auto_scheduling_enabled` — a plain flag on `TaskResourceManager`
-  (`src/controller/task_manager.py`), kept in sync via `toggle_auto_scheduling()`. Gates the
-  Stage 2 FS cascade below (`TaskOperations.apply_dependency_cascade`), and will similarly gate
-  Stage 3/6/7's buffer and chain-aware cascade behavior once those are built.
+  (`src/controller/task_manager.py`), kept in sync via `toggle_auto_scheduling()`.
+- **Revised after Stage 6 testing**: this toggle only gates the cascade while a task's project is
+  still in `planning` (a manual, optional convenience while sketching out a plan). Once a project
+  is in `execution`, `apply_dependency_cascade` always runs regardless of the toggle - the user's
+  call was that execution-phase reactions (relay-runner cascade, buffer glue) aren't optional at
+  that point, that's just how the schedule stays truthful once real status updates start coming
+  in. See `apply_dependency_cascade`'s docstring (`task_operations.py`).
 
 ### Phase switch + baseline capture (Stage 1 — done)
 
@@ -129,32 +139,36 @@ Phase` button (not a separate top-level menu item — chosen so phase management
   manually in the running app as well (Auto Scheduling on, dragging a task with a plain FS
   successor pushes it forward, including cascading further).
 
-### Planning-phase buffer glue (Stage 3 — done)
+### Buffer-follows-merge-point glue (Stage 3 — done, since revised to apply in both phases)
 
 - `TaskOperations._glue_buffer_predecessors(task, visiting)` (`task_operations.py`) — called from
   within `_propagate_from_task` for every task whose position was just set (whether by a direct
-  user move/resize, or by being pushed there by Stage 2's cascade). For each of `task`'s
+  user move/resize, or by being pushed/pulled there by Stage 2/6's cascade). For each of `task`'s
   predecessor links of type `FS` **or `FB`** whose predecessor is a buffer task
-  (`project_buffer`/`feeding_buffer`) belonging to a project still in the `planning` phase, it
-  recomputes `buffer.col = task.col - buffer.duration - lag` unconditionally — i.e. it snaps the
-  buffer to stay glued in **either** direction, unlike Stage 2's one-directional push. `FB` was
-  added alongside plain `FS` because that's the link type actually used in practice between a
-  feeding buffer and its critical-chain merge-point task.
+  (`project_buffer`/`feeding_buffer`), it recomputes `buffer.col = task.col - buffer.duration -
+  lag` unconditionally — i.e. it snaps the buffer to stay glued in **either** direction, unlike
+  Stage 2's one-directional push. `FB` was added alongside plain `FS` because that's the link type
+  actually used in practice between a feeding buffer and its critical-chain merge-point task.
 - Deliberately does **not** trigger off the buffer's own predecessors (the feeding chain) — those
-  are only ever read by Stage 2 (which already skips buffer-type successors entirely), so a
-  feeding-chain task moving later just opens a gap between it and the still-glued buffer, exactly
-  as intended.
-- Execution-phase projects are excluded entirely (the `project['phase'] != 'planning'` guard) —
-  Stage 7 owns buffer behavior once a project is executing.
+  are only ever read by Stage 2/6 (which always skips buffer-type successors), so a feeding-chain
+  task moving later just opens a gap between it and the still-glued buffer, exactly as intended.
+- **Originally planning-phase only, revised to apply in both phases.** Initially built with an
+  `if project['phase'] != 'planning': continue` guard, reasoning that Stage 7 would own all buffer
+  behavior once a project executes. User testing (a critical-chain task finishing early, correctly
+  pulling its merge-point successor back via Stage 6, but *not* pulling the feeding buffer glued to
+  that successor) showed this was wrong: a feeding buffer's whole purpose is to protect its merge
+  point, so it must track that merge point moving for *any* reason, in *any* phase - the
+  phase-dependent part is only what happens on the buffer's own predecessor side (the feeding
+  chain itself), which is Stage 7's job, not this glue. The phase guard was removed entirely.
 - No ping-pong: if a buffer's own finish is what pushes the merge task forward (e.g. a manual
   buffer resize triggering Stage 2's ordinary push), re-gluing afterward recomputes the exact same
   buffer position it already had, so `_propagate_from_task`'s cycle guard is never even needed to
   stop this case - the glue and the push land on the same equality by construction.
 - Verified with a headless script (merge task moves later -> buffer follows; moves earlier ->
-  buffer follows, clamped at 0; feeding chain moves -> buffer stays, gap opens; execution phase ->
-  glue disabled; buffer resize pushes merge task -> no oscillation) for both a plain `FS` and an
-  explicit `FB` buffer->merge-task link, and confirmed manually in the running app for both link
-  types.
+  buffer follows, clamped at 0; feeding chain moves -> buffer stays, gap opens; buffer resize
+  pushes merge task -> no oscillation; **and, after the revision, the same glue confirmed working
+  identically during execution**) for both a plain `FS` and an explicit `FB` buffer->merge-task
+  link, and confirmed manually in the running app for both link types and both phases.
 
 ### Task progress tracking & anchoring (Stage 4 — done)
 
@@ -173,11 +187,23 @@ real status updates. The original signed-off plan is not lost — it's preserved
   `model.get_day_for_date(self.setdate)` the first time it's called for a task (when
   `actual_start_date` isn't set yet) — the bar's left edge visually jumps to where work *actually*
   started, which may be earlier or later than where it was planned.
-- **Re-estimating the finish.** Every call recomputes `task['duration']` from the history entry
-  that is *latest by date* (not insertion order, via a new `_get_latest_remaining_duration_entry`
-  helper — handles a backdated correction the same way `get_latest_remaining_duration` already
-  sorted), so `task['col'] + task['duration']` always equals `(day-column of that entry's date) +
-  its remaining_duration`.
+- **Re-estimating the finish.** Every call recomputes `task['duration']` from the *most recent*
+  history entry (via `_get_latest_remaining_duration_entry`), so `task['col'] + task['duration']`
+  always equals `(day-column of that entry's date) + its remaining_duration`.
+  - **Bug found and fixed by testing**: "most recent" is `(date, insertion index)`, not `date`
+    alone. `setdate` is day-granularity by design (a PM's "as-of" project clock, not a wall-clock
+    timestamp - see `Date → Set Current Date`), so multiple updates recorded on the same day share
+    an identical `date` string. The original implementation sorted by `date` alone with
+    `reverse=True`; Python's sort is *stable*, so entries tied on `date` kept their original
+    insertion order even under `reverse=True` - meaning the **first** entry recorded on a given
+    day always won, and every subsequent same-day correction was silently ignored (`Record
+    Remaining Duration` appeared to only ever take effect once per day). Fixed by tie-breaking on
+    each entry's index in `remaining_duration_history` (always append-only, so index reliably
+    reflects recording order regardless of `date` granularity) - the last entry recorded for a
+    given day now correctly wins. Verified against a real reproduction file with four same-day
+    entries (`9, 8, 8, 7`) that previously resolved to `9`; now correctly resolves to `7`.
+    Pre-existing saved files may still have a stale `task['duration']` baked in from before this
+    fix (recording one more update recomputes it correctly).
 - `TaskOperations.record_remaining_duration` (`task_operations.py`) now calls
   `self.apply_dependency_cascade(task)` right after the model update, so a re-estimated finish
   pushes FS successors forward exactly like a drag/resize would (Stage 6/7 will build on this same
@@ -247,37 +273,39 @@ a stable place to hang a visual color, at the cost of the user having to tag tas
 - Verified headlessly (seeding, CRUD, duplicate-name rejection, single-critical-chain enforcement,
   task assignment/unassignment/removal-cascades-to-unassign, save/load round-trip) and confirmed
   manually in the running app (`Chains` menu, add/recolor/remove, task assignment).
+- **Exports** (`export_operations.py`): PDF task table gained a `Chain` column (right after
+  `Description`); CSV tasks export gained `Project` and `Chain` columns (after `Description`) —
+  added on request as "the quickest way to check what tasks are on what chain" without opening the
+  app. Both blank when unassigned.
 
-## Remaining work, in agreed build order
+### Execution-phase chain-aware relay-runner cascade (Stage 6 — done)
 
-Each stage should be implemented and manually verified in the running app before moving to the
-next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
-Stages 1-5 (phase switch + baseline capture; ordinary FS cascade; planning-phase buffer glue; task
-progress tracking & anchoring; chain registry & classification) are done — see "Already
-implemented" above. Next up is Stage 6.
+This is what "Stage 4" originally meant before the chain discussion, refined with the
+classification from Stage 5. It only changes behavior when a project is in the `execution` phase
+— Stage 2's planning-phase rule (forward-only, regardless of chain) is completely unchanged.
 
-### Stage 6 — Execution-phase chain-aware relay-runner cascade (next up)
-
-This is what "Stage 4" originally meant before the chain discussion, refined with the classification
-from Stage 5. It only changes behavior when a project is in the `execution` phase — Stage 2's
-planning-phase rule (forward-only, regardless of chain) is completely unchanged.
-
-- Whenever a task's position/estimate changes (drag, resize, or a new `Record Remaining Duration`
-  entry from Stage 4) **and its project is in execution**:
-  - If the task's assigned chain has `is_critical = True`: its ordinary (non-buffer) `FS`
-    successors are kept in lock-step **bidirectionally** — pushed later *or* pulled earlier to
-    always sit exactly at `task.col + task.duration + lag`, cascading transitively along the
-    critical chain. This is the "relay runner" mentality: if a critical-chain task finishes early,
-    the next runner starts immediately, they don't wait around for the baton.
-  - If the task's chain is anything else (a specific `Feeding-NN`, or unset/`None`): successors are
-    only ever **pushed forward** automatically — identical to today's Stage 2 rule, never pulled
-    earlier automatically. A feeding-chain task finishing early is fine; the feeding buffer
-    downstream absorbs that slack (Stage 7), and feeding-chain tasks are expected to run close to
-    as-late-as-possible by design. A human can still manually drag a feeding-chain task earlier to
-    grab an opportunity (e.g. a resource freed up sooner than planned) — that stays a deliberate
-    manual choice, not an automatic one.
+- `TaskOperations._is_critical_chain_task_in_execution(task)` (`task_operations.py`) — true only
+  when `task`'s own project is in `execution` **and** `task`'s assigned chain has `is_critical =
+  True`. Checked inside `_propagate_from_task` for every task whose position was just set:
+  - If true: its ordinary (non-buffer) `FS` successors are kept in lock-step **bidirectionally** —
+    pushed later *or* pulled earlier to always sit exactly at `task.col + task.duration + lag`,
+    cascading transitively along the critical chain. This is the "relay runner" mentality: if a
+    critical-chain task finishes early, the next runner starts immediately, they don't wait around
+    for the baton.
+  - If false (a specific `Feeding-NN`, unset/`None`, or still planning): successors are only ever
+    **pushed forward** automatically — identical to Stage 2's rule, never pulled earlier
+    automatically. A feeding-chain task finishing early is fine; the feeding buffer downstream
+    absorbs that slack (Stage 7, still pending), and feeding-chain tasks are expected to run close
+    to as-late-as-possible by design. A human can still manually drag a feeding-chain task earlier
+    to grab an opportunity - that stays a deliberate manual choice, not an automatic one.
   - Either way, propagation still **stops at a buffer** — buffer-type successors are never
-    pushed/pulled by this rule; Stage 7 owns what happens to a buffer.
+    pushed/pulled by this rule; Stage 7 owns what happens to a buffer *from its predecessor side*
+    (Stage 3's glue, now phase-independent, owns the buffer's position relative to its merge point
+    — see above).
+- **`apply_dependency_cascade` no longer requires the Auto Scheduling toggle while a task's project
+  is executing** (see "Auto Scheduling toggle" above) — this was a deliberate follow-up decision
+  made once Stage 6 existed and made the toggle's scope concrete, not part of the original build
+  plan for this stage.
 - **Known limitation, explicitly out of scope**: this cascade only follows *declared*
   `predecessors` links. It cannot detect an implicit dependency caused by two tasks on different,
   unlinked chains competing for the same constrained resource — the classic CPM-vs-CCPM gap (the
@@ -285,8 +313,29 @@ planning-phase rule (forward-only, regardless of chain) is completely unchanged.
   task with no direct logical link to the nominal critical path). If that happens, it'll show up
   as an overlap on the resource-loading view, not as an automatic reschedule — the user needs to
   add an explicit link or resequence manually. See also "Explicitly out of scope" below.
+- Tooltip (`ui_components.py:add_task_tooltips`) now also shows `Task type: <Task/Project
+  Buffer/Feeding Buffer>` and always shows a `Chain:` line (`Chain: None` when unassigned, instead
+  of omitting the line) — added after a real debugging session where a task named "Feeding Buffer"
+  and linked via `FB` turned out to still have `type: 'task'` (never actually run through `Set Task
+  Type`), so none of the buffer-aware logic engaged. The tooltip now makes that checkable at a
+  glance instead of only discoverable by testing behavior (see the "Task type" pitfall note above).
+- Verified headlessly (planning phase leaves a critical-tagged task forward-only; execution +
+  critical pulls back and pushes forward bidirectionally; execution + feeding/unassigned stays
+  forward-only; transitive cascading through multiple critical-chain tasks; buffer successors
+  still isolated from this rule; clamping; cascade now firing during execution with Auto
+  Scheduling off, still gated by the toggle during planning) and confirmed manually in the running
+  app, including the debugging round above that led to the buffer-glue phase fix and the tooltip
+  additions.
 
-### Stage 7 — Execution-phase buffer absorb-then-overflow
+## Remaining work, in agreed build order
+
+Each stage should be implemented and manually verified in the running app before moving to the
+next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
+Stages 1-6 (phase switch + baseline capture; ordinary FS cascade; buffer-follows-merge-point glue;
+task progress tracking & anchoring; chain registry & classification; execution-phase chain-aware
+relay-runner cascade) are done — see "Already implemented" above. Next up is Stage 7.
+
+### Stage 7 — Execution-phase buffer absorb-then-overflow (next up)
 
 Supersedes the original single-direction sketch — now genuinely bidirectional, with growth capped
 at the buffer's baseline size.
@@ -313,6 +362,42 @@ buffer's `PB`/`FB` predecessor's finish changes, in either direction:
 - The buffer's own end (and therefore the merge task) is **never** pulled earlier by this rule —
   only Stage 6's critical-chain bidirectional rule can move the merge task earlier, and only
   because the merge task is itself on the critical chain, not because the buffer grew.
+
+**Data capture for future fever-chart reporting (decided before building this stage, not yet
+implemented).** A CCPM fever chart plots, over time, % of a chain complete (x-axis) against % of
+its buffer consumed (y-axis). Working out what's needed to make that possible later, without
+building the chart itself now (still out of scope):
+
+- **% chain complete is already fully reconstructable later, with no new capture needed.** Every
+  task's `remaining_duration_history` is a dated log of every status update (not just the latest),
+  and every task's `chain_id` + `baseline.duration` (Stage 4, now project-wide) are already on
+  record. "% of chain X complete as of date D" can be replayed from this after the fact - weight
+  each chain-tagged task's progress as of D by its baseline duration.
+- **% buffer consumed cannot be reconstructed after the fact — this is the actual gap.** A buffer
+  currently only ever has two points in time on record: its one-time `baseline` snapshot, and
+  whatever `col`/`duration` happen to be *right now*. There's no trail of intermediate sizes, and
+  unlike the chain-completion side, this can't be rebuilt later without replaying the entire
+  cascade history event-by-event (the event-sourcing approach already discussed and deliberately
+  deferred — see "Explicitly out of scope" below). Stage 7 is the mechanism that changes buffer
+  size, so it's the only sane place to log each change as it happens.
+- **Decision**: every time Stage 7 changes a buffer's `duration` (encroachment/shrink, slack/grow,
+  or fully-consumed), append an entry to a new `task['buffer_size_history']` list on that buffer
+  task (same append-only pattern as `remaining_duration_history`):
+  ```
+  {
+      'date': str,             # self.setdate.isoformat(), same convention as elsewhere
+      'duration': int,         # the buffer's new duration after this change
+      'reason': str,           # 'encroachment' | 'fully_consumed' | 'slack_growth'
+      'trigger_task_id': int,  # the PB/FB predecessor task whose movement caused this change
+  }
+  ```
+  `trigger_task_id` is recorded so a PM can later figure out *what happened* after the fact, not
+  just that the buffer changed size - "which task's slip actually ate into this buffer."
+- Applies identically to **both** feeding buffers and the project buffer - whatever mechanism ends
+  up pushing/shrinking either of them under execution should log the same way.
+- The fever chart *numbers* (% chain complete, % buffer consumed) and the chart UI itself remain
+  deferred, computed later on demand from this raw data - so a specific formula isn't locked in
+  prematurely and doesn't risk being wrong against data already captured.
 
 ### A subtlety already resolved
 
@@ -341,8 +426,9 @@ rather than needing to re-run some global "recompute the critical chain" step.
   (via Stages 2–7) to whatever graph currently exists, not to construct that graph for them.
 - **Fever chart / % buffer consumption reporting, and full plan-vs-baseline comparison UI.** Was
   already on the project's README Todo list before this work started. Stage 4's (widened) baseline
-  capture is preparation for this — the data will exist — but the actual reporting/comparison UI
-  for showing stakeholders "the plan then vs. now" is not part of this work.
+  capture, and Stage 7's `buffer_size_history` (see above), are preparation for this — the raw
+  data will exist — but the actual %-complete/%-consumed computation, the reporting/comparison UI,
+  and the chart itself are not part of this work.
 - **Resource-constrained critical chain / resource leveling.** `network_operations.py`'s existing
   critical-path calculation (`calculate_critical_path`) is plain CPM (no resource contention
   awareness). Relatedly, Stage 6's execution-phase cascade only reacts to *declared* dependency

@@ -1190,6 +1190,12 @@ class UIComponents:
             state = task.get('state', 'planning')
             tooltip_parts.append(f'Task state: {state}')
 
+            # Add task type (task/project_buffer/feeding_buffer) - distinct from
+            # Task state above; shown here so it's obvious at a glance whether a
+            # task intended as a buffer was actually set as one via Set Task Type
+            task_type = task.get('type', 'task')
+            tooltip_parts.append(f"Task type: {task_type.replace('_', ' ').title()}")
+
             # Add project (name and its own planning/execution phase - not to be
             # confused with the task's own Task state above, a separate concept)
             project = self.controller.model.get_project_by_id(task.get('project_id'))
@@ -1204,6 +1210,8 @@ class UIComponents:
             chain = self.controller.model.get_chain_by_id(task.get('chain_id'))
             if chain:
                 tooltip_parts.append(f"Chain: {chain['name']}")
+            else:
+                tooltip_parts.append('Chain: None')
 
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')

@@ -1447,12 +1447,21 @@ class TaskResourceModel:
     def _get_latest_remaining_duration_entry(
         self, task_id: int
     ) -> Optional[Dict[str, Any]]:
-        """Get the most recent (by date) remaining duration history entry."""
+        """Get the most recent remaining duration history entry.
+
+        "Most recent" is by date, then by recording order for entries sharing
+        the same date - so recording an update more than once in the same day
+        keeps the last one entered, not silently keeping the first (a plain
+        stable sort on date alone would tie-break in insertion order, always
+        favoring the first entry of the day).
+        """
         history = self.get_remaining_duration_history(task_id)
         if not history:
             return None
 
-        return sorted(history, key=lambda x: x['date'], reverse=True)[0]
+        return max(
+            enumerate(history), key=lambda indexed: (indexed[1]['date'], indexed[0])
+        )[1]
 
     def get_latest_remaining_duration(self, task_id: int) -> Optional[int]:
         """Get the most recent remaining duration estimate for a task.

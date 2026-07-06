@@ -379,6 +379,7 @@ class ExportOperations:
                         "ID",
                         "Row",
                         "Description",
+                        "Chain",
                         "Start",
                         "End",
                         "Duration",
@@ -395,6 +396,10 @@ class ExportOperations:
                     col = task["col"]
                     description = task["description"]
                     duration = task["duration"]
+
+                    # Chain (critical/feeding-NN classification)
+                    chain = self.model.get_chain_by_id(task.get("chain_id"))
+                    chain_text = chain["name"] if chain else ""
 
                     # Calculate dates
                     start_date = self.model.get_date_for_day(col).strftime("%Y-%m-%d")
@@ -432,6 +437,7 @@ class ExportOperations:
                             task_id,
                             row,
                             description,
+                            chain_text,
                             start_date,
                             end_date,
                             duration,
@@ -458,8 +464,8 @@ class ExportOperations:
                             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                             (
                                 "ALIGN",
-                                (3, 1),
-                                (5, -1),
+                                (4, 1),
+                                (6, -1),
                                 "CENTER",
                             ),  # Center date and duration columns
                         ]
@@ -1247,6 +1253,8 @@ class ExportOperations:
                     "Row",
                     "Column",
                     "Description",
+                    "Project",
+                    "Chain",
                     "Start Date",
                     "End Date",
                     "Duration",
@@ -1288,12 +1296,18 @@ class ExportOperations:
                                 f"{resource['name']}:{allocation}"
                             )
 
+                    # Project and chain (rolling-wave / CCPM classification)
+                    project = self.model.get_project_by_id(task.get("project_id"))
+                    chain = self.model.get_chain_by_id(task.get("chain_id"))
+
                     # Row to write
                     row = {
                         "ID": task["task_id"],
                         "Row": task["row"],
                         "Column": task["col"],
                         "Description": task["description"],
+                        "Project": project["name"] if project else "",
+                        "Chain": chain["name"] if chain else "",
                         "Start Date": start_date,
                         "End Date": end_date,
                         "Duration": task["duration"],
