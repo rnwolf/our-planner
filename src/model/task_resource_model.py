@@ -481,6 +481,8 @@ class TaskResourceModel:
             'remaining_duration_history': [],  # Track history of remaining duration estimates
             'baseline': None,  # {'col', 'duration', 'safe_duration', 'captured_at'} snapshot,
             # set for every task in a project when it moves from planning to execution
+            'buffer_size_history': [],  # For buffer tasks: {'date', 'duration', 'reason',
+            # 'trigger_task_id'} log of every execution-phase size change (Stage 7)
         }
         self.tasks.append(task)
         return task
@@ -1036,6 +1038,9 @@ class TaskResourceModel:
                 if 'baseline' not in task:
                     task['baseline'] = None
 
+                if 'buffer_size_history' not in task:
+                    task['buffer_size_history'] = []
+
                 # Add fields if they don't exist fir backward compatability
                 if 'safe_duration' not in task:
                     task['safe_duration'] = task['duration']
@@ -1501,6 +1506,38 @@ class TaskResourceModel:
             return 1.0
 
         return min(1.0, max(0.0, (total - latest_remaining) / total))
+
+    def record_buffer_size_change(
+        self, buffer_task_id: int, duration: int, reason: str, trigger_task_id: int
+    ) -> bool:
+        """Log an execution-phase buffer size change, for later fever-chart
+        reporting (Stage 7). Does not itself change col/duration - callers
+        are responsible for that; this only records the history trail.
+
+        Args:
+            buffer_task_id: ID of the buffer task whose size just changed
+            duration: the buffer's new duration after this change
+            reason: 'encroachment' | 'fully_consumed' | 'slack_growth'
+            trigger_task_id: ID of the PB/FB predecessor task whose movement
+                caused this change - recorded so it's possible to later figure
+                out what happened, not just that the buffer changed size
+        """
+        task = self.get_task(buffer_task_id)
+        if not task:
+            return False
+
+        if 'buffer_size_history' not in task:
+            task['buffer_size_history'] = []
+
+        task['buffer_size_history'].append(
+            {
+                'date': self.setdate.isoformat(),
+                'duration': duration,
+                'reason': reason,
+                'trigger_task_id': trigger_task_id,
+            }
+        )
+        return True
 
     def set_task_state(self, task_id: int, state: str) -> bool:
         """Set the state of a task.

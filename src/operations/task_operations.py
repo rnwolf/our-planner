@@ -3132,20 +3132,28 @@ class TaskOperations:
         visiting = visiting | {task_id}
 
         moved_any = self._glue_buffer_predecessors(task, visiting)
+        moved_any = self._absorb_into_buffer_successors(task, visiting) or moved_any
 
-        # Push plain FS successors forward, cascading transitively - or, for a
+        # Push ordinary successors forward, cascading transitively - or, for a
         # critical-chain task whose project is executing, keep them in
         # lock-step bidirectionally instead (the "relay runner" mentality:
         # the next runner starts the instant the baton is ready, whichever
         # direction that moves things). Buffer-type successors are always
-        # skipped here: they're reached via PB/FB links, not plain FS, and
-        # their position is driven by the glue above (planning) or by
-        # Stage 7's absorb-then-overflow (execution), not by this push.
+        # skipped here: their position is driven by the glue above (planning)
+        # or by Stage 7's absorb-then-overflow above (execution), not by this
+        # push. FS is the ordinary link type; FB/PB are included too because
+        # those are exactly the link types used *out of* a buffer once it has
+        # been resized by Stage 7 and needs to push the overflow onward.
         finish = task['col'] + task['duration']
-        bidirectional = self._is_critical_chain_task_in_execution(task)
+        # A buffer's own finish moving (via glue or absorb) must never pull
+        # its successor merge point earlier - only Stage 6's bidirectional
+        # rule, triggered from the merge task's own chain, may do that.
+        bidirectional = task.get(
+            'type'
+        ) not in BUFFER_TASK_TYPES and self._is_critical_chain_task_in_execution(task)
 
         for link in self.model.get_successor_links(task_id):
-            if link['type'] != 'FS':
+            if link['type'] not in ('FS', 'FB', 'PB'):
                 continue
 
             successor = self.model.get_task(link['task_id'])
@@ -3206,6 +3214,95 @@ class TaskOperations:
 
             buffer_task['col'] = new_col
             moved_any = True
+            self._propagate_from_task(buffer_task, visiting)
+
+        return moved_any
+
+    def _absorb_into_buffer_successors(self, task, visiting) -> bool:
+        """Execution-phase buffer absorb-then-overflow (Stage 7).
+
+        For each of `task`'s successor links pointing at a buffer task whose
+        project is executing, react to `task`'s new finish. The link feeding
+        an ordinary task *into* a buffer is typically plain `FS` (`FB`/`PB`
+        describe the link *out of* a buffer to its merge point, not into it),
+        so this matches `FS`/`FB`/`PB` - the same set the ordinary cascade
+        above accepts - and relies entirely on the *successor's* `type` being
+        a buffer to decide whether absorb-then-overflow applies, not the
+        link's own type.
+
+        - Encroachment (the buffer's protection is being eaten into): the
+          buffer shrinks, keeping its own end fixed - `buffer.col` moves to
+          the required start, `buffer.duration` shrinks to match. If fully
+          consumed, `duration` clamps to 0 and the overflow cascades onward
+          from the buffer's own successor (its merge point) via the ordinary
+          cascade above - this is the moment a feeding chain has effectively
+          become the (new) critical chain through that merge point.
+        - Slack (the predecessor finished earlier, freeing up room): the
+          buffer grows to absorb it, moving its start earlier, capped at its
+          own baseline size - once regrown to baseline, further slack just
+          opens a gap in front of the (capped) buffer instead of growing it
+          past what was originally sized.
+
+        Every time this changes a buffer's size, the change is logged to
+        `buffer_size_history` (`model.record_buffer_size_change`) for later
+        fever-chart reporting - this is the only place a buffer's size
+        changes during execution, so it's the only place that needs to log.
+        """
+        moved_any = False
+        finish = task['col'] + task['duration']
+
+        for link in self.model.get_successor_links(task['task_id']):
+            if link['type'] not in ('FS', 'FB', 'PB'):
+                continue
+
+            buffer_task = self.model.get_task(link['task_id'])
+            if not buffer_task or buffer_task.get('type') not in BUFFER_TASK_TYPES:
+                continue
+
+            project = self.model.get_project_by_id(buffer_task.get('project_id'))
+            if not project or project['phase'] != 'execution':
+                continue
+
+            required_start = finish + link['lag']
+            current_end = buffer_task['col'] + buffer_task['duration']
+
+            if required_start > buffer_task['col']:
+                # Encroachment: shrink, end stays fixed. Clamped at 0 if fully
+                # consumed - the overflow then pushes through the ordinary
+                # cascade once this buffer's own position is updated below.
+                new_col = required_start
+                new_duration = max(0, current_end - required_start)
+                reason = 'fully_consumed' if new_duration == 0 else 'encroachment'
+            elif required_start < buffer_task['col']:
+                # Slack: grow (move start earlier), end stays fixed, capped at
+                # baseline size. With no baseline on record, `baseline_duration`
+                # falls back to the buffer's current duration, which makes the
+                # `min()` below a no-op (no growth) rather than unbounded.
+                baseline = buffer_task.get('baseline')
+                baseline_duration = (
+                    baseline['duration'] if baseline else buffer_task['duration']
+                )
+                new_duration = max(
+                    0, min(current_end - required_start, baseline_duration)
+                )
+                new_col = max(0, current_end - new_duration)
+                reason = 'slack_growth'
+            else:
+                continue
+
+            if new_col == buffer_task['col'] and new_duration == buffer_task['duration']:
+                continue
+
+            size_changed = new_duration != buffer_task['duration']
+            buffer_task['col'] = new_col
+            buffer_task['duration'] = new_duration
+            moved_any = True
+
+            if size_changed:
+                self.model.record_buffer_size_change(
+                    buffer_task['task_id'], new_duration, reason, task['task_id']
+                )
+
             self._propagate_from_task(buffer_task, visiting)
 
         return moved_any
@@ -3665,6 +3762,99 @@ class TaskOperations:
                     history_list.insert(tk.END, f'{date}: {remaining} days remaining')
 
             # Close button
+            tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
+
+    def view_buffer_history(self, task=None):
+        """Show a dialog with a buffer task's size-change history (Stage 7).
+
+        Since a fully-consumed buffer renders as a zero-width marker on the
+        canvas (see the minimum render width in `get_task_ui_coordinates`),
+        this is the way to inspect what happened to it after the fact -
+        raw data now, ahead of an eventual fever chart built on top of it.
+        """
+        if task is None:
+            task = self.controller.selected_task
+
+        if task:
+            history = task.get('buffer_size_history', [])
+
+            dialog = tk.Toplevel(self.controller.root)
+            dialog.title(f'Buffer History: {task["description"]}')
+            dialog.transient(self.controller.root)
+            dialog.grab_set()
+            dialog.geometry('450x400')
+
+            frame = tk.Frame(dialog, padx=10, pady=10)
+            frame.pack(fill=tk.BOTH, expand=True)
+
+            tk.Label(
+                frame,
+                text=f'Task {task["task_id"]}: {task["description"]}',
+                font=('Arial', 10, 'bold'),
+                wraplength=430,
+            ).pack(fill=tk.X, pady=(0, 10))
+
+            task_type = task.get('type', 'task')
+            type_text = f"Task type: {task_type.replace('_', ' ').title()}"
+            tk.Label(frame, text=type_text).pack(anchor='w')
+
+            current_text = f'Current Duration: {task["duration"]} days'
+            tk.Label(frame, text=current_text).pack(anchor='w')
+
+            baseline = task.get('baseline')
+            if baseline:
+                baseline_text = f'Baseline Duration: {baseline["duration"]} days'
+                tk.Label(frame, text=baseline_text).pack(anchor='w')
+
+            if task.get('type') not in BUFFER_TASK_TYPES:
+                tk.Label(
+                    frame,
+                    text=(
+                        "Note: this task's type isn't Project Buffer or "
+                        'Feeding Buffer, so no size-change history is expected.'
+                    ),
+                    wraplength=430,
+                    fg='#777777',
+                ).pack(anchor='w', pady=(5, 0))
+
+            tk.Label(
+                frame, text='Buffer Size History:', font=('Arial', 10, 'bold')
+            ).pack(anchor='w', pady=(10, 5))
+
+            history_frame = tk.Frame(frame)
+            history_frame.pack(fill=tk.BOTH, expand=True)
+
+            scrollbar = ttk.Scrollbar(history_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            history_list = tk.Listbox(history_frame, yscrollcommand=scrollbar.set)
+            history_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=history_list.yview)
+
+            if not history:
+                history_list.insert(tk.END, 'No buffer size changes recorded')
+            else:
+                sorted_history = sorted(history, key=lambda x: x['date'])
+
+                for record in sorted_history:
+                    date = datetime.fromisoformat(record['date']).strftime('%Y-%m-%d')
+                    duration = record['duration']
+                    reason = record.get('reason', 'unknown').replace('_', ' ')
+                    trigger_id = record.get('trigger_task_id')
+                    trigger_task = (
+                        self.model.get_task(trigger_id) if trigger_id else None
+                    )
+                    trigger_text = (
+                        f'{trigger_id} - {trigger_task["description"]}'
+                        if trigger_task
+                        else str(trigger_id)
+                    )
+                    history_list.insert(
+                        tk.END,
+                        f'{date}: {duration} days ({reason}, '
+                        f'triggered by task {trigger_text})',
+                    )
+
             tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
 
     def _update_resource_capacities_for_date_change(self, delta_days):

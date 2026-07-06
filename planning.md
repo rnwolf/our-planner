@@ -18,7 +18,12 @@ canvas, sharing the same resource pool, each independently in "planning" or "exe
 ## Already implemented (this session)
 
 All of the following is built, tested (`uv run pytest`, 40 tests passing), and manually verified
-in the running app.
+in the running app. **All 7 stages of the originally agreed build order (see each "Stage N — done"
+heading below) are now complete.** Stage 8 (fever chart reporting) has since been added as a new
+build item — see "Remaining work" below — now that Stages 4/7's data capture makes it practical to
+build. What's left after Stage 8 is everything listed under "Explicitly out of scope" (automated
+critical-chain detection, resource-constrained scheduling, event sourcing, and fever chart *export*
+specifically, deferred as a fast-follow after Stage 8's on-screen viewing).
 
 ### Dependency link types
 
@@ -327,77 +332,90 @@ classification from Stage 5. It only changes behavior when a project is in the `
   app, including the debugging round above that led to the buffer-glue phase fix and the tooltip
   additions.
 
-## Remaining work, in agreed build order
+### Execution-phase buffer absorb-then-overflow (Stage 7 — done)
 
-Each stage should be implemented and manually verified in the running app before moving to the
-next — this is a lot of interacting behavior and each piece needs to be trustworthy on its own.
-Stages 1-6 (phase switch + baseline capture; ordinary FS cascade; buffer-follows-merge-point glue;
-task progress tracking & anchoring; chain registry & classification; execution-phase chain-aware
-relay-runner cascade) are done — see "Already implemented" above. Next up is Stage 7.
+Supersedes the original single-direction sketch — genuinely bidirectional, with growth capped at
+the buffer's baseline size.
 
-### Stage 7 — Execution-phase buffer absorb-then-overflow (next up)
+- `TaskOperations._absorb_into_buffer_successors(task, visiting)` (`task_operations.py`) — for
+  each of `task`'s successor links pointing at a buffer task whose project is executing:
+  - `required_start = task.col + task.duration + lag`; `current_end = buffer.col +
+    buffer.duration` (the buffer's end *right now*, not the Stage 1/4 baseline, which is only for
+    later comparison/reporting).
+  - **Encroachment** (`required_start > buffer.col`): the buffer shrinks — `buffer.col =
+    required_start`, `buffer.duration = current_end - required_start`, end stays fixed. If
+    `required_start > current_end`, the buffer is **fully consumed** (`duration` clamped to `0`),
+    and the overflow cascades through to the buffer's own successor (the critical-chain merge
+    task) via the ordinary cascade above — this is the moment a feeding chain has effectively
+    become the (new) critical chain through that merge point, exactly as the user described it.
+  - **Slack** (`required_start < buffer.col`): the buffer grows by moving its start earlier, end
+    still fixed, capped at `task['baseline']['duration']` (falls back to the buffer's own current
+    duration if no baseline is on record, which makes the cap a no-op rather than unbounded
+    growth). Once regrown to baseline size, further slack just opens a gap in front of the
+    (capped) buffer rather than growing it past its original sizing.
+  - The buffer's own end (and therefore the merge task) is **never** pulled earlier by this rule —
+    enforced structurally (propagation *from* a buffer is always forced forward-only, regardless
+    of the buffer's own chain tag), not just incidentally because feeding buffers are typically
+    tagged non-critical. Only Stage 6's critical-chain bidirectional rule, triggered from the
+    merge task's own chain, may pull it earlier.
+  - Every actual size change is logged via `model.record_buffer_size_change` (see the
+    fever-chart data capture below).
+- **Bug found and fixed during testing #1**: the ordinary cascade's main successor loop
+  (`_propagate_from_task`) originally only followed `FS`-type links. Once a buffer is fully
+  consumed and needs to push its overflow onward, that link is realistically typed `FB` (the
+  buffer's link to its own merge point), not `FS` — confirmed against a real save file where
+  Task B's predecessor entry for the feeding buffer was `{'type': 'FB'}`. Widened the loop to also
+  follow `FB`/`PB` links (safe: ordinary, non-buffer tasks never have outgoing `FB`/`PB` links, so
+  this only ever matters when propagating from a buffer).
+- **Bug found and fixed during testing #2**: `_absorb_into_buffer_successors` itself originally
+  only recognized `FB`/`PB` links when checking whether a task feeds *into* a buffer. Confirmed
+  against a real save file that the link feeding an ordinary task *into* a buffer is legitimately
+  a plain `FS` link (`FB`/`PB` describe the link *out of* a buffer to its merge point, not into
+  one) — so a real "Task C exceeds the feeding buffer" scenario silently did nothing. Fixed by
+  widening the check to `FS`/`FB`/`PB`, relying entirely on the *successor's* `type` being a
+  buffer to decide whether this applies, not the link's own type.
+- **Follow-up UX fixes, prompted by "how do I even see/access a fully-consumed buffer?"**:
+  - `TaskResourceManager.get_task_ui_coordinates` (`task_manager.py`) now enforces a 6px minimum
+    render width — a zero-duration buffer would otherwise be a zero-width box: invisible, and
+    unclickable (the right-click hit-test `x1 < x < x2` can never match when `x1 == x2`). Doesn't
+    touch the underlying `duration` used for scheduling, purely rendering/hit-testing.
+  - New `View Buffer History...` context menu item (`task_operations.py:view_buffer_history`,
+    mirrors `View Duration History...`) shows a buffer's type, current/baseline duration, and its
+    full `buffer_size_history` log (date, duration, reason, and the triggering task) — raw data
+    made inspectable now, ahead of the eventual fever chart itself.
+- Verified headlessly (partial encroachment; full consumption with push-through using the real
+  `FB` link type; slack growth capped exactly at baseline with a gap opening once capped; planning
+  phase correctly not absorbing at all; project buffer via `PB` link behaving identically;
+  save/load round-trip of `buffer_size_history`) and confirmed manually in the running app against
+  two real reproduction files, including the minimum-width/`View Buffer History...` follow-ups.
 
-Supersedes the original single-direction sketch — now genuinely bidirectional, with growth capped
-at the buffer's baseline size.
+**Data capture for future fever-chart reporting.** A CCPM fever chart plots, over time, % of a
+chain complete (x-axis) against % of its buffer consumed (y-axis). The chart itself, and the %
+computations, remain deferred (still out of scope) — this only concerns making sure the necessary
+raw data exists:
 
-Applies only to buffer tasks whose owning project's `phase == 'execution'`, triggered whenever a
-buffer's `PB`/`FB` predecessor's finish changes, in either direction:
-
-- `required_start = predecessor.col + predecessor.duration + lag`
-- `current_end = buffer.col + buffer.duration` (the buffer's end *right now* — not the Stage 1/4
-  baseline, which is only for later comparison/reporting)
-- **Encroachment** (`required_start > buffer.col`): the buffer absorbs it by shrinking —
-  `buffer.col = required_start`, `buffer.duration = current_end - required_start`, end stays
-  fixed. If `required_start > current_end`, the buffer is **fully consumed** (`duration` clamped
-  to `0`), and the overflow cascades through to the buffer's own `FS` successor (the critical-chain
-  merge task) using Stage 6's cascade from that point on — this is the moment a feeding chain has
-  effectively become the (new) critical chain through that merge point, exactly as the user
-  described it.
-- **Slack** (`required_start < buffer.col`): new behavior — the buffer grows to absorb it by
-  moving its start earlier (`buffer.col = required_start`), end still fixed, **capped at the
-  buffer's own baseline duration** (`task['baseline']['duration']`, captured at the
-  planning→execution transition). Once the buffer has grown back to its baseline size, further
-  slack just opens a gap in front of the (capped) buffer instead of growing it more — a buffer
-  bigger than its original sizing isn't meaningful protection, it's just an idle gap.
-- The buffer's own end (and therefore the merge task) is **never** pulled earlier by this rule —
-  only Stage 6's critical-chain bidirectional rule can move the merge task earlier, and only
-  because the merge task is itself on the critical chain, not because the buffer grew.
-
-**Data capture for future fever-chart reporting (decided before building this stage, not yet
-implemented).** A CCPM fever chart plots, over time, % of a chain complete (x-axis) against % of
-its buffer consumed (y-axis). Working out what's needed to make that possible later, without
-building the chart itself now (still out of scope):
-
-- **% chain complete is already fully reconstructable later, with no new capture needed.** Every
-  task's `remaining_duration_history` is a dated log of every status update (not just the latest),
-  and every task's `chain_id` + `baseline.duration` (Stage 4, now project-wide) are already on
-  record. "% of chain X complete as of date D" can be replayed from this after the fact - weight
-  each chain-tagged task's progress as of D by its baseline duration.
-- **% buffer consumed cannot be reconstructed after the fact — this is the actual gap.** A buffer
-  currently only ever has two points in time on record: its one-time `baseline` snapshot, and
-  whatever `col`/`duration` happen to be *right now*. There's no trail of intermediate sizes, and
-  unlike the chain-completion side, this can't be rebuilt later without replaying the entire
-  cascade history event-by-event (the event-sourcing approach already discussed and deliberately
-  deferred — see "Explicitly out of scope" below). Stage 7 is the mechanism that changes buffer
-  size, so it's the only sane place to log each change as it happens.
-- **Decision**: every time Stage 7 changes a buffer's `duration` (encroachment/shrink, slack/grow,
-  or fully-consumed), append an entry to a new `task['buffer_size_history']` list on that buffer
-  task (same append-only pattern as `remaining_duration_history`):
+- **% chain complete needs no new capture** — every task's `remaining_duration_history` is a dated
+  log of every status update (not just the latest), and every task's `chain_id` +
+  `baseline.duration` (Stage 4, project-wide) are already on record, so "% of chain X complete as
+  of date D" is fully reconstructable later by replaying this history.
+- **% buffer consumed needed a new capture, since it can't be reconstructed after the fact** — a
+  buffer only ever had two points in time on record (its one-time `baseline`, and whatever
+  `col`/`duration` are *right now*), with no trail of intermediate sizes; unlike the
+  chain-completion side, this can't be rebuilt without replaying the entire cascade history
+  event-by-event (the event-sourcing approach already discussed and deliberately deferred - see
+  below). `model.record_buffer_size_change(buffer_task_id, duration, reason, trigger_task_id)`
+  appends to `task['buffer_size_history']` every time Stage 7 changes a buffer's `duration`:
   ```
   {
       'date': str,             # self.setdate.isoformat(), same convention as elsewhere
       'duration': int,         # the buffer's new duration after this change
       'reason': str,           # 'encroachment' | 'fully_consumed' | 'slack_growth'
-      'trigger_task_id': int,  # the PB/FB predecessor task whose movement caused this change
+      'trigger_task_id': int,  # the predecessor task whose movement caused this change
   }
   ```
-  `trigger_task_id` is recorded so a PM can later figure out *what happened* after the fact, not
-  just that the buffer changed size - "which task's slip actually ate into this buffer."
-- Applies identically to **both** feeding buffers and the project buffer - whatever mechanism ends
-  up pushing/shrinking either of them under execution should log the same way.
-- The fever chart *numbers* (% chain complete, % buffer consumed) and the chart UI itself remain
-  deferred, computed later on demand from this raw data - so a specific formula isn't locked in
-  prematurely and doesn't risk being wrong against data already captured.
+  `trigger_task_id` is recorded so a PM can later figure out *what happened*, not just that the
+  buffer changed size - "which task's slip actually ate into this buffer." Applies identically to
+  both feeding buffers and the project buffer.
 
 ### A subtlety already resolved
 
@@ -408,6 +426,56 @@ executing project's critical chain later (rolling-wave planning, scope discovere
 or get decomposed into smaller tasks — the push behavior should just react correctly to
 whatever the dependency graph looks like _right now_, keyed off each task's type/phase/chain,
 rather than needing to re-run some global "recompute the critical chain" step.
+
+## Remaining work
+
+### Stage 8 — Fever chart reporting (next up)
+
+CCPM's key buffer-management tool: for a given buffer, plots % of its protected chain complete
+(x-axis) against % of the buffer consumed (y-axis) over time, with green/yellow/red zones showing
+whether the buffer is being consumed faster than the chain is progressing - i.e. whether the
+insurance banked in that buffer is still sufficient, or a recovery plan is needed now.
+
+- **Reference chart** (confirmed with the user):
+  https://www.critical-chain-projects.com/medias/images/fever_chart_mono_projet_en.png - the
+  classic sloped/diagonal zone model, *not* flat thirds. Reading that chart: at 0% chain complete
+  the green/yellow boundary sits around 10% buffer consumed and yellow/red around 27%; at 100%
+  chain complete those rise to roughly 65% and 82%. Approximated as two straight lines - `y =
+  0.55x + 10` (green/yellow) and `y = 0.55x + 27` (yellow/red) - early consumption is judged more
+  harshly than the same % consumed later in the chain. Treat the exact slope/intercept as tunable
+  constants to nudge once real project data is on screen, not something to get pixel-perfect from
+  a reference screenshot.
+- **What chain a buffer's x-axis tracks**: a feeding buffer's own `chain_id` (e.g. `Feeding-01`)
+  identifies its protected feeding chain; the project buffer's x-axis is the `Critical` chain.
+  Reuses the existing chain-tagging convention directly - no new field needed.
+- **% chain complete as of a historical date D needs one new model method.**
+  `get_task_progress_fraction` (Stage 4) only computes progress *as of now* (via
+  `get_latest_remaining_duration`, unfiltered by date). Need a new
+  `get_task_progress_fraction_as_of(task_id, date)`: replay `remaining_duration_history` filtered
+  to entries with `date <= D` (same `(date, index)` most-recent tie-break as the existing same-day
+  bug fix), returning `0.0` if the task hadn't started as of D. Chain completion is then the
+  `baseline.duration`-weighted average of this across every ordinary (non-buffer) task sharing the
+  buffer's `chain_id` and `project_id`.
+- **% buffer consumed as of D** needs no new method - look up the latest `buffer_size_history`
+  entry with `date <= D` (or the `baseline` itself if none yet), compute `(baseline.duration -
+  duration_at_D) / baseline.duration`.
+- **Trajectory**: one point per distinct date in the union of every chain-tagged task's
+  `remaining_duration_history` dates and the buffer's own `buffer_size_history` dates (plus the
+  baseline's `captured_at` as the starting `(0%, 0%)` point) - a staircase across history, not
+  just today's single dot, matching the reference chart's `W1..Week 6` weekly-snapshot style.
+- **Rendering**: hand-drawn on a Tkinter `Canvas` (axes, sloped zone bands, plotted
+  trajectory/labels) - confirmed with the user, consistent with how the rest of the app already
+  draws everything (the task grid, dependency arrows) rather than adding a charting dependency.
+- **Access point**: new `View Fever Chart...` right-click item on a buffer task, mirroring `View
+  Buffer History...`'s placement and dialog-based approach.
+- **Scope for this stage, confirmed with the user**: on-screen viewing only. PDF/PNG export is a
+  deliberate fast-follow, not part of this stage - see "Explicitly out of scope" below for why
+  that's still easy to add later (the existing PNG/PDF exports already work by independently
+  redrawing the scene in PIL/reportlab rather than screenshotting the canvas, so a fever chart
+  would follow the same "redraw the same data with each library's own primitives" pattern already
+  established in this codebase).
+- Not yet decided: single buffer at a time (as scoped above) vs. also a project-wide dashboard
+  showing every buffer's chart together - flagged in "Open questions" below.
 
 ## Explicitly out of scope (deferred, not forgotten)
 
@@ -424,11 +492,18 @@ rather than needing to re-run some global "recompute the critical chain" step.
   auto-inserting `PB`/`FB` buffer tasks is **not** being automated. The user creates buffer tasks,
   marks task types, and (Stage 5) assigns chains manually; the tool's job is to react correctly
   (via Stages 2–7) to whatever graph currently exists, not to construct that graph for them.
-- **Fever chart / % buffer consumption reporting, and full plan-vs-baseline comparison UI.** Was
-  already on the project's README Todo list before this work started. Stage 4's (widened) baseline
-  capture, and Stage 7's `buffer_size_history` (see above), are preparation for this — the raw
-  data will exist — but the actual %-complete/%-consumed computation, the reporting/comparison UI,
-  and the chart itself are not part of this work.
+- **Fever chart PDF/PNG export.** Now that Stage 8 covers on-screen viewing, exporting it is a
+  deliberate fast-follow, not bundled into that stage. Confirmed practical: the existing PNG/PDF
+  exports already work by independently redrawing the whole scene in PIL/reportlab respectively
+  rather than screenshotting the Tkinter canvas (e.g. the dashed `PB`/`FB` lines needed their own
+  manual PIL dashed-line helper) — a fever chart export would follow the same pattern, redrawing
+  the same computed data points/zone bands a second and third time with each library's own drawing
+  primitives. Rejected alternative: Tkinter's `canvas.postscript()` + Ghostscript conversion, which
+  would pull in an external system dependency with the same cross-platform fragility already seen
+  with `uv`/Tkinter on Linux and Windows.
+- **Full plan-vs-baseline comparison UI** (showing stakeholders "the whole plan, then vs. now,"
+  not just a single buffer's fever chart). Stage 4's widened baseline capture is preparation for
+  this, but the comparison UI itself is not part of this work.
 - **Resource-constrained critical chain / resource leveling.** `network_operations.py`'s existing
   critical-path calculation (`calculate_critical_path`) is plain CPM (no resource contention
   awareness). Relatedly, Stage 6's execution-phase cascade only reacts to *declared* dependency
@@ -457,8 +532,6 @@ rather than needing to re-run some global "recompute the critical chain" step.
   identifiable — i.e., what happens if a buffer somehow has more than one such successor. Not
   discussed; likely worth a guard/validation when this is built. `chain_id` doesn't resolve this
   ambiguity by itself.
-- Exact default color palette for the 5 seeded chain entries (`Critical` + `Feeding-01`..`04`) —
-  needs picking at implementation time; freely editable afterward via `Manage Chains...` regardless.
 - Whether removing a `Chains` entry that's still referenced by tasks should be blocked, or should
   null out `chain_id` on those tasks — not discussed. (`remove_project` sets the precedent of
   unassigning rather than blocking.)
@@ -468,3 +541,13 @@ rather than needing to re-run some global "recompute the critical chain" step.
 - Whether the progress-stripe/chain-stripe edge assignment (progress stripe implemented on the
   bottom edge in Stage 4; top edge reserved for Stage 5's chain color) reads well once the chain
   stripe is added, or should be swapped.
+- **Stage 8**: single-buffer-at-a-time viewing (`View Fever Chart...` on one buffer, as currently
+  scoped) vs. also a project-wide dashboard showing every buffer's chart together at a glance -
+  not decided; real CCPM practice often means scanning all of a project's buffers regularly, so
+  this may be worth revisiting once the single-buffer version exists and is being used.
+- **Stage 8**: the sloped zone boundary formula (`y = 0.55x + 10` / `y = 0.55x + 27`) is a visual
+  approximation from a reference screenshot, not a verified canonical formula - treat as a
+  starting point to tune once real project data is being viewed, not as authoritative.
+- **Stage 8**: what should happen for a task with no `baseline` when computing chain-%-complete
+  (e.g. a task added to the chain after the project's planning→execution transition) - exclude it
+  from the weighted average, or fall back to its current duration? Not discussed.

@@ -687,6 +687,10 @@ class UIComponents:
             label='View Duration History...',
             command=lambda: self.controller.task_ops.view_duration_history(),
         )
+        self.context_menu.add_command(
+            label='View Buffer History...',
+            command=lambda: self.controller.task_ops.view_buffer_history(),
+        )
 
         # Add state submenu
         self.state_menu = tk.Menu(self.context_menu, tearoff=0)

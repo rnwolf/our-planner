@@ -271,7 +271,17 @@ class TaskResourceManager:
         """Convert task data model coordinates to UI coordinates, accounting for dynamic row height."""
         x1 = task['col'] * self.cell_width
         y1 = task['row'] * self.task_height
-        x2 = x1 + task['duration'] * self.cell_width
+        width = task['duration'] * self.cell_width
+        # A zero (or near-zero) duration task - e.g. a fully-consumed buffer
+        # (Stage 7) - would otherwise render as a zero-width box: invisible,
+        # and impossible to right-click since the hit-test (x1 < x < x2)
+        # can never match. Enforce a small minimum so it still shows up as a
+        # thin marker and stays clickable, without changing the underlying
+        # `duration` used for scheduling.
+        min_width = 6
+        if width < min_width:
+            width = min_width
+        x2 = x1 + width
         y2 = y1 + self.task_height
         return x1, y1, x2, y2
 
