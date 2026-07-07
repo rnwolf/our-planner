@@ -5,7 +5,11 @@ from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
 from src.utils.colors import COLOR_NAMES, DEFAULT_TASK_COLOR
-from src.model.dependency_notation import LINK_TYPES_ORDERED, BUFFER_LINK_TYPES
+from src.model.dependency_notation import (
+    LINK_TYPES_ORDERED,
+    BUFFER_LINK_TYPES,
+    format_predecessor_notation,
+)
 from src.model.task_resource_model import classify_fever_chart_zone
 
 
@@ -198,6 +202,11 @@ class UIComponents:
         )
         self.file_menu.add_command(
             label='Save As...', command=self.controller.file_ops.save_file_as
+        )
+        self.file_menu.add_separator()
+        self.file_menu.add_command(
+            label='Import CCPM Schedule...',
+            command=self.controller.file_ops.import_ccpm_schedule,
         )
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Exit', command=self.controller.root.quit)
@@ -1225,6 +1234,16 @@ class UIComponents:
                 tooltip_parts.append(f"Chain: {chain['name']}")
             else:
                 tooltip_parts.append('Chain: None')
+
+            # Add predecessors/successors (compact link notation) - makes it
+            # possible to follow/untangle feeding chains by hovering, without
+            # having to open Help > task details for the same information.
+            predecessor_text = format_predecessor_notation(task.get('predecessors', []))
+            tooltip_parts.append(f"Predecessors: {predecessor_text or 'None'}")
+
+            successor_ids = self.controller.model.get_successor_ids(task_id)
+            successor_text = ', '.join(map(str, successor_ids))
+            tooltip_parts.append(f"Successors: {successor_text or 'None'}")
 
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')

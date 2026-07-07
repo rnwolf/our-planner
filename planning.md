@@ -90,6 +90,37 @@ scheduling, event sourcing, full plan-vs-baseline comparison UI).
   that point, that's just how the schedule stays truthful once real status updates start coming
   in. See `apply_dependency_cascade`'s docstring (`task_operations.py`).
 
+### CCPM schedule import
+
+`File → Import CCPM Schedule...` (`FileOperations.import_ccpm_schedule`, `file_operations.py`) —
+imports a `schedule.csv` (+ `resources.csv`, optionally `calendar.csv`) produced by an external
+CCPM scheduling tool as a new project, rather than requiring the whole plan to be recreated by
+hand in the UI. Format documented in `sample-ccpm-projects/file-structure.md`, which also holds
+four real sample projects (`equipment-retrofit`, `kitchen-renovation`, `lab-trials`,
+`website-launch`) used to verify this.
+
+- Prompts for `schedule.csv`, requires `resources.csv` alongside it in the same folder
+  (`calendar.csv` optional), then a name for the new project (prefilled from the folder name).
+- **Resources are imported by name, reusing an existing one rather than duplicating it** — this
+  app already models resources as a shared team pool across projects (rolling-wave planning), so a
+  resource named the same as one already in the plan is assumed to be the same person/team.
+  `calendar.csv`'s half-open `[from, to)` capacity overrides are applied on top.
+- **Two-pass task import**: create every task/buffer first (`schedule.csv`'s own ids are arbitrary
+  alphanumeric strings like `K2`/`W3`, not this model's plain-integer task ids, so a translation
+  map is built as tasks are created), then wire up predecessor links once every id is resolvable.
+  Link notation (`K2:FB`, lag, etc.) reuses the same `FS`/`SS`/`FF`/`SF`/`PB`/`FB` vocabulary this
+  app already has - just with a separate token parser since `schedule.csv` ids are alphanumeric,
+  not the plain integers `dependency_notation.py`'s own parser requires.
+- **Chain labels** (`critical`, `feeding-1`, `feeding-2`, ...) are mapped to real chains, creating
+  a new one (cycling through an unused default color) if it doesn't already exist - so a schedule
+  needing more feeding chains than the default 5 just works without manual setup first.
+- Extends the timeline (`model.days`) and every resource's capacity array to fit if the imported
+  schedule needs more days than currently exist.
+- Verified against all four real sample projects headlessly: correct task/resource/chain/
+  predecessor data (including calendar overrides applying correctly, e.g. a resource correctly
+  showing `0.0` capacity during its outage window), no errors or warnings, and a full save/load
+  round-trip of the imported data.
+
 ### Phase switch + baseline capture (Stage 1 — done)
 
 - `project['phase']` toggled via `Projects → Manage Projects...` → select a project → `Toggle
@@ -338,6 +369,12 @@ classification from Stage 5. It only changes behavior when a project is in the `
   and linked via `FB` turned out to still have `type: 'task'` (never actually run through `Set Task
   Type`), so none of the buffer-aware logic engaged. The tooltip now makes that checkable at a
   glance instead of only discoverable by testing behavior (see the "Task type" pitfall note above).
+- Tooltip also now shows `Predecessors: <compact notation, e.g. "3 5:SS+2", or "None">` and
+  `Successors: <comma-separated ids, or "None">` (`format_predecessor_notation` /
+  `model.get_successor_ids` — the same derivations `help_menu.py`'s task-detail view already used,
+  just not previously surfaced on hover) — added after the CCPM schedule importer (see below) made
+  it common to be looking at a plan with real feeding-chain topology that needed tracing/untangling
+  by hovering, without opening `Help → task details` for the same information every time.
 - Verified headlessly (planning phase leaves a critical-tagged task forward-only; execution +
   critical pulls back and pushes forward bidirectionally; execution + feeding/unassigned stays
   forward-only; transitive cascading through multiple critical-chain tasks; buffer successors
@@ -722,6 +759,11 @@ from evaluating the actual planning features. Worth picking up opportunistically
 - `src/controller/task_manager.py` — `TaskResourceManager` (main controller), status bar,
   `auto_scheduling_enabled` flag and `toggle_auto_scheduling()`.
 - `src/operations/network_operations.py` — existing plain-CPM critical path calculation.
+- `src/operations/file_operations.py` — `New`/`Open`/`Save`, and `import_ccpm_schedule` (CCPM
+  schedule.csv import).
+- `src/operations/export_operations.py` — PDF/PNG/CSV exports, fever chart PNG export.
+- `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer; `file-structure.md`
+  documents the expected CSV format.
 
 ## Open questions for whoever picks this up next
 
