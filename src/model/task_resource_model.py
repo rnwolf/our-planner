@@ -24,6 +24,33 @@ FEEDING_CHAIN_COLORS = [
     '#F4511E',  # deep orange
 ]
 
+# Fever chart (Stage 8) zone boundary defaults, approximated from a reference
+# CCPM fever chart - see planning.md. Per-project, editable via update_project.
+DEFAULT_FEVER_CHART_SLOPE = 0.55
+DEFAULT_FEVER_CHART_YELLOW_INTERCEPT = 10.0
+DEFAULT_FEVER_CHART_RED_INTERCEPT = 27.0
+
+
+def classify_fever_chart_zone(
+    progress_pct: float,
+    consumption_pct: float,
+    slope: float,
+    yellow_intercept: float,
+    red_intercept: float,
+) -> str:
+    """Classify a fever chart point into 'green' | 'yellow' | 'red', using the
+    sloped zone boundaries `y = slope*x + intercept` (Stage 8). Both inputs
+    and the boundaries are in percent (0-100).
+    """
+    yellow_boundary = slope * progress_pct + yellow_intercept
+    red_boundary = slope * progress_pct + red_intercept
+
+    if consumption_pct >= red_boundary:
+        return 'red'
+    if consumption_pct >= yellow_boundary:
+        return 'yellow'
+    return 'green'
+
 
 class TaskResourceModel:
     def __init__(self):
@@ -164,6 +191,13 @@ class TaskResourceModel:
             'name': name,
             'url': url,
             'phase': 'planning',  # 'planning' or 'execution'
+            # Fever chart (Stage 8) zone boundary settings: two sloped lines
+            # y = slope*x + yellow_intercept (green/yellow boundary) and
+            # y = slope*x + red_intercept (yellow/red boundary), x/y in percent.
+            # Defaults approximated from a reference CCPM fever chart.
+            'fever_chart_slope': DEFAULT_FEVER_CHART_SLOPE,
+            'fever_chart_yellow_intercept': DEFAULT_FEVER_CHART_YELLOW_INTERCEPT,
+            'fever_chart_red_intercept': DEFAULT_FEVER_CHART_RED_INTERCEPT,
         }
         self.projects.append(project)
 
@@ -173,9 +207,15 @@ class TaskResourceModel:
         return project
 
     def update_project(
-        self, project_id: int, name: str = None, url: str = None
+        self,
+        project_id: int,
+        name: str = None,
+        url: str = None,
+        fever_chart_slope: float = None,
+        fever_chart_yellow_intercept: float = None,
+        fever_chart_red_intercept: float = None,
     ) -> bool:
-        """Update a project's name and/or url."""
+        """Update a project's name, url, and/or fever chart zone settings."""
         project = self.get_project_by_id(project_id)
         if not project:
             return False
@@ -187,6 +227,15 @@ class TaskResourceModel:
 
         if url is not None:
             project['url'] = url
+
+        if fever_chart_slope is not None:
+            project['fever_chart_slope'] = fever_chart_slope
+
+        if fever_chart_yellow_intercept is not None:
+            project['fever_chart_yellow_intercept'] = fever_chart_yellow_intercept
+
+        if fever_chart_red_intercept is not None:
+            project['fever_chart_red_intercept'] = fever_chart_red_intercept
 
         return True
 
@@ -483,6 +532,8 @@ class TaskResourceModel:
             # set for every task in a project when it moves from planning to execution
             'buffer_size_history': [],  # For buffer tasks: {'date', 'duration', 'reason',
             # 'trigger_task_id'} log of every execution-phase size change (Stage 7)
+            'fever_chart_history': [],  # For buffer tasks: {'date', 'cpsl', 'ppf',
+            # 'forecast_lateness'} log captured on every status update (Stage 8)
         }
         self.tasks.append(task)
         return task
@@ -1041,6 +1092,9 @@ class TaskResourceModel:
                 if 'buffer_size_history' not in task:
                     task['buffer_size_history'] = []
 
+                if 'fever_chart_history' not in task:
+                    task['fever_chart_history'] = []
+
                 # Add fields if they don't exist fir backward compatability
                 if 'safe_duration' not in task:
                     task['safe_duration'] = task['duration']
@@ -1131,6 +1185,16 @@ class TaskResourceModel:
                     project['phase'] = 'planning'
                 if 'url' not in project:
                     project['url'] = ''
+                if 'fever_chart_slope' not in project:
+                    project['fever_chart_slope'] = DEFAULT_FEVER_CHART_SLOPE
+                if 'fever_chart_yellow_intercept' not in project:
+                    project['fever_chart_yellow_intercept'] = (
+                        DEFAULT_FEVER_CHART_YELLOW_INTERCEPT
+                    )
+                if 'fever_chart_red_intercept' not in project:
+                    project['fever_chart_red_intercept'] = (
+                        DEFAULT_FEVER_CHART_RED_INTERCEPT
+                    )
 
             self.default_project_id = data.get('default_project_id')
 
@@ -1538,6 +1602,149 @@ class TaskResourceModel:
             }
         )
         return True
+
+    def get_chain_tasks(self, chain_id: int, project_id: int) -> List[Dict[str, Any]]:
+        """Return a chain's ordinary (non-buffer) tasks, sorted by start
+        (`col`). Includes every task tagged with this chain, regardless of
+        whether they form a single strand or branching/parallel feeder
+        paths that later merge - callers that need a completion-certainty
+        ordering (Protected Progress Frontier) should sort by finish instead,
+        see `compute_fever_chart_point`.
+        """
+        tasks = [
+            t
+            for t in self.tasks
+            if t.get('chain_id') == chain_id
+            and t.get('project_id') == project_id
+            and t.get('type') not in BUFFER_TASK_TYPES
+        ]
+        return sorted(tasks, key=lambda t: t['col'])
+
+    def get_buffer_terminal_task(
+        self, buffer_task_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """Return the one ordinary task that is a buffer's own direct
+        predecessor - the "terminal protected task" in Stage 8's fever chart
+        calculations (the last work task before the buffer).
+        """
+        buffer_task = self.get_task(buffer_task_id)
+        if not buffer_task:
+            return None
+
+        for entry in buffer_task.get('predecessors', []):
+            predecessor = self.get_task(entry['id'])
+            if predecessor and predecessor.get('type') not in BUFFER_TASK_TYPES:
+                return predecessor
+
+        return None
+
+    def compute_fever_chart_point(
+        self, buffer_task_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """Compute Stage 8's CPSL/PPF/forecast_lateness for a buffer, as of now.
+
+        Returns None if not computable: not actually a buffer, no terminal
+        task found (see `get_buffer_terminal_task`), or its project isn't in
+        execution - the fever chart only means something once a project is
+        being executed.
+        """
+        buffer_task = self.get_task(buffer_task_id)
+        if not buffer_task or buffer_task.get('type') not in BUFFER_TASK_TYPES:
+            return None
+
+        project = self.get_project_by_id(buffer_task.get('project_id'))
+        if not project or project['phase'] != 'execution':
+            return None
+
+        terminal_task = self.get_buffer_terminal_task(buffer_task_id)
+        if not terminal_task:
+            return None
+
+        chain_tasks = self.get_chain_tasks(
+            terminal_task.get('chain_id'), terminal_task.get('project_id')
+        )
+        if not chain_tasks:
+            return None
+
+        chain_start = min(task['col'] for task in chain_tasks)
+
+        # Protected Progress Frontier: every protected activity *scheduled to
+        # finish* before the frontier must be confirmed complete - so walk
+        # the chain's tasks in finish order (not start order), regardless of
+        # which parallel/feeder path each is on, and stop at the first task
+        # that isn't done. A later-finishing task on a different path being
+        # done already doesn't let the frontier skip past an earlier
+        # incomplete one (see fever-chart-considerations.md).
+        frontier = chain_start
+        for task in sorted(chain_tasks, key=lambda t: t['col'] + t['duration']):
+            if task.get('state') == 'done':
+                frontier = max(frontier, task['col'] + task['duration'])
+            else:
+                break
+
+        forecast_finish = terminal_task['col'] + terminal_task['duration']
+        cpsl = forecast_finish - chain_start
+        ppf = frontier - chain_start
+
+        terminal_baseline = terminal_task.get('baseline')
+        if terminal_baseline:
+            baseline_finish = (
+                terminal_baseline['col'] + terminal_baseline['duration']
+            )
+        else:
+            # No baseline on record for the terminal task (e.g. added to the
+            # chain after the planning->execution transition) - treat now as
+            # the reference point, so lateness starts at 0 rather than being
+            # unknowable.
+            baseline_finish = forecast_finish
+
+        forecast_lateness = forecast_finish - baseline_finish
+
+        return {'cpsl': cpsl, 'ppf': ppf, 'forecast_lateness': forecast_lateness}
+
+    def capture_fever_chart_snapshot(self, project_id: int = None) -> int:
+        """Recompute and log a fever chart point for every buffer that
+        currently supports one (Stage 8) - meant to be called after every
+        status update, since a buffer's numbers can only reliably be
+        captured live, not reconstructed after the fact (see planning.md).
+
+        Args:
+            project_id: if given, only recompute buffers belonging to this
+                project (the project of whichever task was just updated) -
+                this app supports multiple concurrent projects (rolling-wave
+                planning), and a status update in one project must not log a
+                redundant, unrelated point onto another project's buffers.
+                If None, recomputes every buffer in the whole model.
+
+        Returns the number of buffers a point was captured for.
+        """
+        captured_at = self.setdate.isoformat()
+        count = 0
+        for task in self.tasks:
+            if task.get('type') not in BUFFER_TASK_TYPES:
+                continue
+
+            if project_id is not None and task.get('project_id') != project_id:
+                continue
+
+            point = self.compute_fever_chart_point(task['task_id'])
+            if point is None:
+                continue
+
+            if 'fever_chart_history' not in task:
+                task['fever_chart_history'] = []
+
+            task['fever_chart_history'].append(
+                {
+                    'date': captured_at,
+                    'cpsl': point['cpsl'],
+                    'ppf': point['ppf'],
+                    'forecast_lateness': point['forecast_lateness'],
+                }
+            )
+            count += 1
+
+        return count
 
     def set_task_state(self, task_id: int, state: str) -> bool:
         """Set the state of a task.

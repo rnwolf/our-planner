@@ -1442,6 +1442,30 @@ class TaskOperations:
             row=1, column=1, sticky='w', padx=5, pady=5
         )
 
+        tk.Label(details_frame, text='Fever Chart Slope:').grid(
+            row=2, column=0, sticky='w', padx=5, pady=5
+        )
+        fever_slope_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=fever_slope_var, width=10).grid(
+            row=2, column=1, sticky='w', padx=5, pady=5
+        )
+
+        tk.Label(details_frame, text='Fever Chart Yellow Intercept:').grid(
+            row=3, column=0, sticky='w', padx=5, pady=5
+        )
+        fever_yellow_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=fever_yellow_var, width=10).grid(
+            row=3, column=1, sticky='w', padx=5, pady=5
+        )
+
+        tk.Label(details_frame, text='Fever Chart Red Intercept:').grid(
+            row=4, column=0, sticky='w', padx=5, pady=5
+        )
+        fever_red_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=fever_red_var, width=10).grid(
+            row=4, column=1, sticky='w', padx=5, pady=5
+        )
+
         def format_project_label(project):
             marker = ' (default)' if project['id'] == self.model.default_project_id else ''
             phase_label = project['phase'].capitalize()
@@ -1466,6 +1490,13 @@ class TaskOperations:
             if project:
                 project_name_var.set(project['name'])
                 project_url_var.set(project['url'])
+                fever_slope_var.set(str(project.get('fever_chart_slope', 0.55)))
+                fever_yellow_var.set(
+                    str(project.get('fever_chart_yellow_intercept', 10.0))
+                )
+                fever_red_var.set(
+                    str(project.get('fever_chart_red_intercept', 27.0))
+                )
 
         project_listbox.bind('<<ListboxSelect>>', on_project_select)
 
@@ -1506,8 +1537,25 @@ class TaskOperations:
                 )
                 return
 
+            try:
+                slope = float(fever_slope_var.get())
+                yellow_intercept = float(fever_yellow_var.get())
+                red_intercept = float(fever_red_var.get())
+            except ValueError:
+                messagebox.showwarning(
+                    'Invalid Fever Chart Settings',
+                    'Slope and intercepts must be numbers.',
+                    parent=dialog,
+                )
+                return
+
             if not self.model.update_project(
-                project['id'], name=new_name, url=project_url_var.get().strip()
+                project['id'],
+                name=new_name,
+                url=project_url_var.get().strip(),
+                fever_chart_slope=slope,
+                fever_chart_yellow_intercept=yellow_intercept,
+                fever_chart_red_intercept=red_intercept,
             ):
                 messagebox.showwarning(
                     'Error',
@@ -3552,6 +3600,20 @@ class TaskOperations:
             task = self.controller.selected_task
 
         if task:
+            project = self.model.get_project_by_id(task.get('project_id'))
+            if not project or project['phase'] != 'execution':
+                messagebox.showinfo(
+                    'Project Still in Planning',
+                    "Record Remaining Duration is only for tasks whose project "
+                    "is in the Execution phase - it tracks real progress "
+                    "against the plan, which isn't a planning-time concept. "
+                    f"'{project['name'] if project else 'This task'}' is still "
+                    "in Planning. Toggle its phase via "
+                    "Projects > Manage Projects... > Toggle Phase first.",
+                    parent=self.controller.root,
+                )
+                return
+
             # Get current remaining duration if any
             current_remaining = self.controller.model.get_latest_remaining_duration(
                 task['task_id']
@@ -3599,6 +3661,18 @@ class TaskOperations:
                 # exactly like a drag or resize would change them, so route
                 # through the same cascade used there.
                 self.apply_dependency_cascade(task)
+
+                # Log a fever chart point (Stage 8) for every buffer in this
+                # task's own project, now that the cascade above has settled
+                # every task's position - captured live because a buffer's
+                # historical numbers can't be reliably reconstructed after
+                # the fact (see planning.md). Scoped to this project so a
+                # status update doesn't log a redundant point onto an
+                # unrelated project's buffers (this app supports several
+                # concurrent projects via rolling-wave planning).
+                self.controller.model.capture_fever_chart_snapshot(
+                    project_id=task.get('project_id')
+                )
 
                 # Update the UI
                 self.controller.update_view()
@@ -3856,6 +3930,166 @@ class TaskOperations:
                     )
 
             tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
+
+    def view_fever_chart(self, task=None):
+        """Show a single buffer's fever chart (Stage 8) in its own dialog."""
+        if task is None:
+            task = self.controller.selected_task
+
+        if not task:
+            return
+
+        if task.get('type') not in BUFFER_TASK_TYPES:
+            messagebox.showinfo(
+                'Not a Buffer',
+                'Fever charts are only available for Project Buffer / Feeding '
+                "Buffer tasks. Check this task's type via Set Task Type.",
+                parent=self.controller.root,
+            )
+            return
+
+        project = self.model.get_project_by_id(task.get('project_id'))
+        if not project or project['phase'] != 'execution':
+            messagebox.showinfo(
+                'Not Yet in Execution',
+                "This buffer's project isn't in the execution phase yet, so "
+                'there is nothing to chart. Fever charts only make sense once '
+                'a project is executing and status updates are being recorded.',
+                parent=self.controller.root,
+            )
+            return
+
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title(f'Fever Chart: {task["description"]}')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.geometry('520x500')
+
+        canvas = tk.Canvas(dialog, bg='white', width=500, height=400)
+        canvas.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.controller.ui.draw_fever_chart(
+            canvas, task, project, x0=10, y0=10, width=480, height=360
+        )
+
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=(0, 10))
+        tk.Button(
+            button_frame,
+            text='Download (High-Res PNG)...',
+            command=lambda: self.controller.export_ops.export_single_fever_chart(
+                task, project
+            ),
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text='Close', command=dialog.destroy).pack(
+            side=tk.LEFT, padx=5
+        )
+
+    def view_project_fever_charts(self, project=None):
+        """Show every buffer's fever chart for a project together (Stage 8),
+        so all of a project's buffers can be scanned at a glance - real CCPM
+        practice is to review all buffers regularly, not one at a time.
+        """
+        if project is None:
+            if not self.model.projects:
+                messagebox.showinfo(
+                    'No Projects',
+                    'Create a project first via Projects > Manage Projects...',
+                    parent=self.controller.root,
+                )
+                return
+
+            if len(self.model.projects) == 1:
+                project = self.model.projects[0]
+            else:
+                names = [p['name'] for p in self.model.projects]
+                default = self.model.get_default_project()
+                dialog = OptionSelectDialog(
+                    self.controller.root,
+                    'Project Fever Charts',
+                    'Project:',
+                    names,
+                    initial_value=default['name'] if default else names[0],
+                )
+                if dialog.result is None:
+                    return
+                project = self.model.get_project_by_name(dialog.result)
+
+        if project['phase'] != 'execution':
+            messagebox.showinfo(
+                'Not Yet in Execution',
+                f"'{project['name']}' isn't in the execution phase yet, so "
+                'there is nothing to chart. Fever charts only make sense once '
+                'a project is executing and status updates are being recorded.',
+                parent=self.controller.root,
+            )
+            return
+
+        buffers = [
+            t
+            for t in self.model.tasks
+            if t.get('project_id') == project['id']
+            and t.get('type') in BUFFER_TASK_TYPES
+        ]
+
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title(f"Project Fever Charts: {project['name']}")
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.geometry('560x600')
+
+        outer = tk.Frame(dialog)
+        outer.pack(fill=tk.BOTH, expand=True)
+
+        scroll_canvas = tk.Canvas(outer)
+        scrollbar = ttk.Scrollbar(
+            outer, orient='vertical', command=scroll_canvas.yview
+        )
+        scroll_canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        content = tk.Frame(scroll_canvas)
+        scroll_canvas.create_window((0, 0), window=content, anchor='nw')
+        content.bind(
+            '<Configure>',
+            lambda e: scroll_canvas.configure(
+                scrollregion=scroll_canvas.bbox('all')
+            ),
+        )
+
+        if not buffers:
+            tk.Label(
+                content,
+                text=(
+                    f"'{project['name']}' has no tasks with type 'Project "
+                    "Buffer' or 'Feeding Buffer' assigned to it yet."
+                ),
+                wraplength=520,
+                padx=10,
+                pady=10,
+            ).pack()
+        else:
+            for buffer_task in buffers:
+                chart_canvas = tk.Canvas(content, bg='white', width=520, height=380)
+                chart_canvas.pack(padx=10, pady=10)
+                self.controller.ui.draw_fever_chart(
+                    chart_canvas, buffer_task, project, x0=10, y0=10, width=500,
+                    height=360,
+                )
+
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=(0, 10))
+        if buffers:
+            tk.Button(
+                button_frame,
+                text='Download All (High-Res PNG)...',
+                command=lambda: self.controller.export_ops.export_fever_charts(
+                    project=project
+                ),
+            ).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text='Close', command=dialog.destroy).pack(
+            side=tk.LEFT, padx=5
+        )
 
     def _update_resource_capacities_for_date_change(self, delta_days):
         """Update resource capacities when the start date changes."""

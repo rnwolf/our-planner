@@ -6,6 +6,7 @@ from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
 from src.utils.colors import COLOR_NAMES, DEFAULT_TASK_COLOR
 from src.model.dependency_notation import LINK_TYPES_ORDERED, BUFFER_LINK_TYPES
+from src.model.task_resource_model import classify_fever_chart_zone
 
 
 class UIComponents:
@@ -315,6 +316,10 @@ class UIComponents:
             command=lambda: self.controller.task_ops.manage_projects_dialog(
                 parent=self.controller.root
             ),
+        )
+        self.projects_menu.add_command(
+            label='Project Fever Charts...',
+            command=lambda: self.controller.task_ops.view_project_fever_charts(),
         )
 
         # Chains menu
@@ -690,6 +695,10 @@ class UIComponents:
         self.context_menu.add_command(
             label='View Buffer History...',
             command=lambda: self.controller.task_ops.view_buffer_history(),
+        )
+        self.context_menu.add_command(
+            label='View Fever Chart...',
+            command=lambda: self.controller.task_ops.view_fever_chart(),
         )
 
         # Add state submenu
@@ -1408,6 +1417,132 @@ class UIComponents:
             tags=('dependency',),
         )
         return arrow_id
+
+    def draw_fever_chart(
+        self, canvas, buffer_task, project, x0=10, y0=10, width=460, height=340
+    ):
+        """Draw a single buffer's fever chart (Stage 8) into a rectangular
+        region of `canvas` - progress % (x-axis, 0-100) against buffer
+        consumption % (y-axis, sloped green/yellow/red zones), trajectory
+        connected point-to-point and colored by zone, from
+        `buffer_task['fever_chart_history']`.
+        """
+        slope = project.get('fever_chart_slope', 0.55)
+        yellow_intercept = project.get('fever_chart_yellow_intercept', 10.0)
+        red_intercept = project.get('fever_chart_red_intercept', 27.0)
+
+        history = buffer_task.get('fever_chart_history', [])
+        baseline = buffer_task.get('baseline')
+        buffer_baseline_duration = (
+            baseline['duration'] if baseline else buffer_task['duration']
+        )
+
+        points = []
+        for entry in history:
+            cpsl = entry['cpsl']
+            progress_pct = (entry['ppf'] / cpsl * 100) if cpsl > 0 else 0.0
+            consumption_pct = (
+                (entry['forecast_lateness'] / buffer_baseline_duration * 100)
+                if buffer_baseline_duration > 0
+                else 0.0
+            )
+            points.append((entry['date'], progress_pct, consumption_pct))
+
+        # y-axis range: at least 0-100%, extended if any point exceeds 100%
+        # (consumption is never clamped for storage/calculation - only the
+        # display floors negative values at 0, per the design notes).
+        max_consumption = max([p[2] for p in points] + [100.0])
+        y_max = max(100.0, ((max_consumption // 20) + 2) * 20)
+
+        chart_x0, chart_y0 = x0 + 50, y0 + 34
+        chart_w, chart_h = width - 70, height - 74
+
+        def to_px(progress_pct, consumption_pct):
+            px = chart_x0 + (progress_pct / 100.0) * chart_w
+            clamped = max(0.0, min(y_max, consumption_pct))
+            py = chart_y0 + (1 - clamped / y_max) * chart_h
+            return px, py
+
+        def boundary(x_pct, intercept):
+            return max(0.0, min(y_max, slope * x_pct + intercept))
+
+        # Title
+        title = f'{buffer_task["task_id"]} - {buffer_task["description"]}'
+        canvas.create_text(
+            x0 + width / 2, y0, text=title, font=('Arial', 10, 'bold'), anchor='n'
+        )
+
+        # Zone bands (green / yellow / red), as three filled quadrilaterals
+        # spanning the full 0-100% progress width.
+        y_at_0 = boundary(0, yellow_intercept)
+        y_at_100 = boundary(100, yellow_intercept)
+        canvas.create_polygon(
+            *to_px(0, 0), *to_px(100, 0), *to_px(100, y_at_100), *to_px(0, y_at_0),
+            fill='#C8E6C9', outline='',
+        )
+
+        r_at_0 = boundary(0, red_intercept)
+        r_at_100 = boundary(100, red_intercept)
+        canvas.create_polygon(
+            *to_px(0, y_at_0), *to_px(100, y_at_100), *to_px(100, r_at_100),
+            *to_px(0, r_at_0),
+            fill='#FFF59D', outline='',
+        )
+
+        canvas.create_polygon(
+            *to_px(0, r_at_0), *to_px(100, r_at_100), *to_px(100, y_max),
+            *to_px(0, y_max),
+            fill='#EF9A9A', outline='',
+        )
+
+        # Axes + tick labels every 25% (x) / 20% (y, scaled to y_max)
+        canvas.create_rectangle(
+            chart_x0, chart_y0, chart_x0 + chart_w, chart_y0 + chart_h, outline='black'
+        )
+        for x_pct in (0, 25, 50, 75, 100):
+            px, _ = to_px(x_pct, 0)
+            canvas.create_text(
+                px, chart_y0 + chart_h + 10, text=f'{x_pct}%', font=('Arial', 7)
+            )
+        y_step = y_max / 5
+        for i in range(6):
+            y_pct = i * y_step
+            _, py = to_px(0, y_pct)
+            canvas.create_text(
+                chart_x0 - 15, py, text=f'{y_pct:.0f}%', font=('Arial', 7)
+            )
+        canvas.create_text(
+            x0 + width / 2, y0 + height - 8,
+            text='% of protected chain complete', font=('Arial', 8),
+        )
+        canvas.create_text(
+            x0 + 10, y0 + 22, text='% buffer consumed', font=('Arial', 8),
+            anchor='nw',
+        )
+
+        if not points:
+            canvas.create_text(
+                chart_x0 + chart_w / 2, chart_y0 + chart_h / 2,
+                text='No status updates recorded yet', font=('Arial', 9), fill='#777777',
+            )
+            return
+
+        # Trajectory: connect points in order, color each dot by its zone
+        prev_px = None
+        for date_str, progress_pct, consumption_pct in points:
+            px, py = to_px(progress_pct, max(0.0, consumption_pct))
+            if prev_px is not None:
+                canvas.create_line(prev_px[0], prev_px[1], px, py, fill='black', width=1.5)
+            zone = classify_fever_chart_zone(
+                progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
+            )
+            dot_color = {'green': '#2E7D32', 'yellow': '#F9A825', 'red': '#C62828'}[zone]
+            canvas.create_oval(
+                px - 4, py - 4, px + 4, py + 4, fill=dot_color, outline='black'
+            )
+            date_label = datetime.fromisoformat(date_str).strftime('%m-%d')
+            canvas.create_text(px, py - 10, text=date_label, font=('Arial', 7))
+            prev_px = (px, py)
 
     def draw_resource_grid(self):
         """Draw the resource loading grid with wider label column"""

@@ -18,12 +18,13 @@ canvas, sharing the same resource pool, each independently in "planning" or "exe
 ## Already implemented (this session)
 
 All of the following is built, tested (`uv run pytest`, 40 tests passing), and manually verified
-in the running app. **All 7 stages of the originally agreed build order (see each "Stage N — done"
-heading below) are now complete.** Stage 8 (fever chart reporting) has since been added as a new
-build item — see "Remaining work" below — now that Stages 4/7's data capture makes it practical to
-build. What's left after Stage 8 is everything listed under "Explicitly out of scope" (automated
-critical-chain detection, resource-constrained scheduling, event sourcing, and fever chart *export*
-specifically, deferred as a fast-follow after Stage 8's on-screen viewing).
+in the running app. **Stages 1-8 (see each "Stage N — done" heading below) are now complete** —
+the original 7-stage build order, plus Stage 8 (fever chart reporting, including PNG export), added
+afterward once Stages 4/7's data capture made it practical to build. Stage 9 (fever chart CSV data
+export) and Stage 10 (backlog full-kit readiness report) are the next build items — see "Remaining
+work" below. What's left after that is everything listed under "Explicitly out of scope" (automated
+critical-chain detection, resource-constrained
+scheduling, event sourcing, full plan-vs-baseline comparison UI).
 
 ### Dependency link types
 
@@ -216,6 +217,19 @@ real status updates. The original signed-off plan is not lost — it's preserved
 - **Full Kit stays informational, not a gate** — `Set Full Kit Done`/`fullkit_date` unchanged, no
   blocking behavior added. New: a small green circular badge in the task box's top-left corner
   (`ui_components.py:draw_task`), shown whenever `fullkit_date` is set, visible without hovering.
+- **`Record Remaining Duration`'s two guardrails** (`task_operations.py`):
+  - If the task hasn't started yet (no `actual_start_date`), the prompt itself warns that
+    recording a value now will anchor `actual_start_date` to today and suggests dragging the
+    task's edge instead if the goal is just to update the duration estimate for a not-yet-started
+    task (e.g. after completing its full kit) - added after the user found this anchoring
+    side-effect surprising when using the dialog for that purpose.
+  - **Hard block if the task's project is still in `planning`** (found necessary after the user
+    kept triggering the dialog by habit on planning-phase tasks): checked before the prompt is
+    even shown, replaced entirely with an info message pointing at `Manage Projects... > Toggle
+    Phase`. Recording progress is inherently an execution-phase concept - there's nothing to
+    "record remaining duration" against before a plan has actually started being executed.
+    Verified headlessly (blocked + no dialog shown in planning phase; unaffected + dialog shown
+    once the project is toggled to execution).
 - **Progress visualization.** New `model.get_task_progress_fraction(task_id)` — `None` before a
   task has started, `1.0` once `state == 'done'`, otherwise `(duration - latest_remaining) /
   duration` (i.e. how much of the current best-estimate span had elapsed as of the latest status
@@ -427,9 +441,7 @@ or get decomposed into smaller tasks — the push behavior should just react cor
 whatever the dependency graph looks like _right now_, keyed off each task's type/phase/chain,
 rather than needing to re-run some global "recompute the critical chain" step.
 
-## Remaining work
-
-### Stage 8 — Fever chart reporting (next up)
+### Fever chart reporting (Stage 8 — done)
 
 **Superseded design.** The formulation below replaces an earlier, simpler sketch (per-task
 progress fractions weighted by baseline duration). That sketch is wrong: it treats "% complete"
@@ -460,10 +472,15 @@ e.g. a downstream recovery, not an error to smooth away).
    *confirmed complete* (`state == 'done'`). If a chain task is 50% done, the frontier sits at its
    predecessor's finish, not partway into that task — this resolves the ambiguity of "% complete"
    on a chain where later work has progressed further than earlier work still isn't marked done.
-   Requires walking the chain's tasks **in dependency order** (derive from their `predecessors`
-   restricted to the same `chain_id`/`project_id` — a new capability; today's `chain_id` tags a
-   set of tasks but not their sequence) from chain start, stopping at the first task that isn't
-   `'done'`.
+   **Generalizes cleanly to branching/parallel feeder paths that merge before the buffer**: sort
+   *every* task tagged with the chain (`get_chain_tasks`, regardless of which parallel path it's
+   on) by **scheduled finish** (`col + duration`), then walk in that order, extending the frontier
+   past each `'done'` task's finish and stopping at the first task that isn't - so a later-finishing
+   task on a *different* path already being done can never let the frontier skip past an earlier,
+   still-incomplete one on another path (confirmed against `fever-chart-considerations.md`'s own
+   wording: "the frontier can't advance past an incomplete task even if later parallel work is
+   finished"). No dependency-order derivation needed - sorting by finish time already gives the
+   right answer regardless of topology.
 3. **Progress % = PPF ÷ CPSL.** If a task overruns and the horizon (CPSL) moves out, progress can
    *drop* even as the frontier (PPF) advances — e.g. week 1: 30/100 = 30%; week 2: frontier now 40
    but forecast horizon now 120 → 33%, not a misleadingly-improved 40%. This is why CPSL must be
@@ -504,12 +521,24 @@ neighboring task's cascade pushed/pulled it (Stage 2/3/6/7), and none of that le
 the task that moved. So the terminal task's forecast finish "as of some past date" isn't reliably
 recoverable after the fact — the same fundamental limitation that justified `buffer_size_history`
 being captured live in Stage 7, rather than reconstructed from the cascade's history. Following
-that precedent: after **every** `record_remaining_duration` call (any task, any chain — cheap to
-just recompute for every buffer in the plan given this app's scale), recompute the four quantities
-for every buffer and append `{'date': str, 'cpsl': int, 'ppf': int, 'forecast_lateness': int}` to
-a new `task['fever_chart_history']` list on that buffer (same append-only pattern as
-`buffer_size_history`; percentages are derived from these raw numbers at render time, not stored,
-so the zone-boundary formula can be re-tuned later without invalidating history already captured).
+that precedent: after **every** `record_remaining_duration` call, recompute the four quantities
+for every buffer *in that task's own project* and append `{'date': str, 'cpsl': int, 'ppf': int,
+'forecast_lateness': int}` to a new `task['fever_chart_history']` list on that buffer (same
+append-only pattern as `buffer_size_history`; percentages are derived from these raw numbers at
+render time, not stored, so the zone-boundary formula can be re-tuned later without invalidating
+history already captured).
+
+**Bug found and fixed during testing: cross-project bleed.** This app supports several concurrent
+projects on one canvas (rolling-wave planning). `capture_fever_chart_snapshot()` initially looped
+over *every* buffer in the whole model unconditionally — so recording a status update in Project
+One also logged a redundant point onto Project Two's completely unrelated buffers (same values,
+just a spurious extra timestamp, since Project Two's own tasks hadn't actually changed). Fixed by
+scoping the recompute to the triggering task's own `project_id`
+(`capture_fever_chart_snapshot(project_id=...)`); verified two independent projects each only log
+points from their own status updates. Known remaining simplification: an explicit *cross-project*
+dependency link (rolling-wave planning allows these structurally) could legitimately affect a
+different project's buffer, and this scoping wouldn't catch that — accepted as an edge case rather
+than threading affected-project-tracking through the whole cascade for it.
 
 **Zone model** — unchanged from the earlier discussion: sloped diagonal boundaries (not flat
 thirds), approximated from the reference chart
@@ -526,25 +555,127 @@ so different projects can carry a different risk appetite.
 visible by eye, each point labeled with its date (matching the reference chart's `W1..Week 6`
 weekly-snapshot style) — not just today's single dot.
 
-**Rendering**: hand-drawn on a Tkinter `Canvas` (axes, sloped zone bands, plotted
-trajectory/labels) — confirmed with the user, consistent with how the rest of the app already
-draws everything (the task grid, dependency arrows) rather than adding a charting dependency.
+**Rendering**: `UIComponents.draw_fever_chart(canvas, buffer_task, project, x0, y0, width, height)`
+(`ui_components.py`) — hand-drawn on a Tkinter `Canvas` (sloped zone bands as filled polygons,
+trajectory connected point-to-point with each dot colored by its own zone via
+`classify_fever_chart_zone`, axis ticks/labels, date labels per point), consistent with how the
+rest of the app already draws everything (the task grid, dependency arrows) rather than adding a
+charting dependency. Reused identically by both access points below.
 
-**Access points, confirmed with the user:**
-- `View Fever Chart...` right-click item on a buffer task (mirrors `View Buffer History...`) — a
-  single buffer's chart.
-- New `Project Fever Charts` item on the `Projects` menu — an aggregated view showing the Project
-  Buffer's chart together with every Feeding Buffer's chart for that project at a glance (real
-  CCPM practice is to scan all of a project's buffers together, not one at a time).
+**Access points, implemented:**
+- Right-click a buffer task → `View Fever Chart...` (`task_operations.py:view_fever_chart`,
+  mirrors `View Buffer History...`) — a single buffer's chart, with guard messages if the task
+  isn't actually typed as a buffer or its project isn't executing yet.
+- `Projects` menu → `Project Fever Charts...` (`task_operations.py:view_project_fever_charts`) —
+  prompts for a project if there's more than one (reusing `OptionSelectDialog`), then shows every
+  buffer's chart for that project stacked in a scrollable dialog.
+- `Manage Projects...` dialog extended with three new fields (Fever Chart Slope, Yellow Intercept,
+  Red Intercept), validated as numbers, wired to `model.update_project`.
 
-**Scope for this stage, confirmed with the user**: on-screen viewing only. PDF/PNG export is a
-deliberate fast-follow, not part of this stage — see "Explicitly out of scope" below for why
-that's still practical to add later.
+**Export (originally scoped as a fast-follow, now built as part of the same round of testing)**:
+- `ExportOperations.export_fever_charts(project)` (bulk) and
+  `ExportOperations.export_single_fever_chart(buffer_task, project)` (one buffer) —
+  `export_operations.py`. Both independently redraw the chart with PIL at 1600×1200 (far higher
+  resolution than the on-screen canvas, requested specifically so charts can be zoomed into for
+  manual annotation/distribution), via a new module-level `_draw_fever_chart_image` helper that
+  mirrors `draw_fever_chart`'s math exactly — same "redraw per format" pattern as every other
+  export in this codebase.
+- `Download All (High-Res PNG)...` button on the `Project Fever Charts` dialog;
+  `Download (High-Res PNG)...` button on the single-buffer `View Fever Chart` dialog.
+- A label-overlap bug (the "% buffer consumed" axis title colliding with tick labels or the chart
+  title depending on chart size) was found by visually inspecting the actual rendered output
+  (headless Tk + `canvas.postscript()` + Ghostscript, and the PIL image directly) — fixed by
+  repositioning the label above the plot area in both renderers, not just one, so they stay
+  visually consistent with each other.
+- Verified: headless render of both the Tkinter and PIL versions, visually inspected as actual
+  images (not just "no exception raised") — zones, colors, trajectory, and labels all correct and
+  non-overlapping. Confirmed manually in the running app for both charts, both export buttons.
 
-**Not yet resolved** (see "Open questions" below): how to handle a buffer whose terminal task has
-more than one direct chain predecessor (branching feeder paths merging before the buffer) when
-walking the frontier; the exact UI layout of `Project Fever Charts` when a project has many
-feeding buffers.
+**Resolved** (previously "not yet resolved" above): the branching-feeder-path PPF question is
+resolved — see item 2 above (sort by finish, not dependency order) — verified with a headless test
+(two parallel paths, one done, one not, merging into a shared terminal task: frontier correctly
+capped by the earlier-finishing incomplete task regardless of the other path being fully done and
+finishing later; correctly advances once both paths catch up). CSV export of the underlying data
+is the next build item — see Stage 9 in "Remaining work" below. The `Project Fever Charts`
+multi-buffer layout question remains genuinely open — see "Open questions".
+
+## Remaining work
+
+### Stage 9 — Fever chart CSV data export (next up)
+
+Requested as a further extension to the PNG export above: alongside charts for visual
+annotation/distribution, export the underlying numbers so they can be dropped into Excel (to build
+a firm's own chart formatting) or fed into a PMO reporting system, rather than only ever being
+consumable as a rendered image.
+
+- **Format: one long/tidy CSV per export, not one file per buffer.** A single table with a
+  `Buffer ID`/`Buffer Description` column to group/filter by is far more useful for Excel
+  PivotTables and PMO ingestion than N separate small files — mirrors why the existing task/
+  resource CSV exports are already structured this way.
+- **Columns**: `Project`, `Buffer ID`, `Buffer Description`, `Buffer Type` (`Project Buffer` /
+  `Feeding Buffer`), `Date`, `CPSL`, `PPF`, `Progress %`, `Baseline Buffer Duration`,
+  `Forecast Lateness`, `Consumption %`, `Zone` (`green`/`yellow`/`red`).
+- **Progress %, Consumption %, and Zone are computed at export time from the same raw
+  `fever_chart_history` entries** (`cpsl`, `ppf`, `forecast_lateness`) and the project's own
+  `fever_chart_slope`/`yellow_intercept`/`red_intercept` — the exact same derivation
+  `draw_fever_chart`/`_draw_fever_chart_image` already use for rendering, so the CSV numbers and
+  the chart images can never disagree with each other. Nothing new needs to be stored for this.
+- **Scope**: bulk, one project at a time (same project-selection flow as `export_fever_charts` -
+  reuse it rather than duplicating the "which project" prompt). A single-buffer CSV export wasn't
+  requested and isn't planned unless asked for.
+- **Execution-phase projects only, same as the fever charts themselves** (explicitly confirmed
+  with the user) - a project still in planning has no `fever_chart_history` at all
+  (`compute_fever_chart_point` already returns `None` outside execution, so nothing would ever
+  have been captured to export), so this falls out for free by reusing `export_fever_charts`'s
+  existing "Not Yet in Execution" guard rather than needing a new check.
+- **Access point**: a `Download Data (CSV)...` button alongside the existing `Download All
+  (High-Res PNG)...` button on the `Project Fever Charts` dialog.
+- Likely implementation shape: `ExportOperations.export_fever_chart_data(project)` in
+  `export_operations.py`, using the stdlib `csv` module (already the pattern used by the existing
+  task/resource CSV export) rather than any new dependency.
+
+### Stage 10 — Backlog Full Kit readiness report
+
+A different kind of report from the fever charts above, and explicitly **not** execution-only:
+full-kit readiness matters throughout a project's life - during planning, to make sure near-term
+work is being prepped ahead of execution kicking off; during execution, for whatever's still
+queued up but hasn't started. Applies regardless of `project['phase']`.
+
+- **"Backlog"** = a project's tasks that haven't started yet (`actual_start_date is None`) - the
+  queue of upcoming work, derivable directly from data already on every task, no new field needed.
+- **Report content**: for a chosen project, the % of backlog tasks with `fullkit_date` set (ready)
+  vs not, plus a listing of individual backlog tasks - sorted soonest-to-start first (by `col`),
+  since imminent tasks lacking a full kit are the actual risk, not distant ones - each showing its
+  full-kit status and scheduled start.
+- **Access point**: proposed `Projects` menu → `Backlog Full Kit Report...`, alongside `Manage
+  Projects...` and `Project Fever Charts...` - same project-selection flow as those (prompt if more
+  than one project), but *without* the execution-phase guard the other two have.
+- **Format**: a simple listing dialog (mirrors `View Duration History...`/`View Buffer History...`)
+  rather than a chart - there's no second axis or trend here, just a percentage and a sorted list,
+  so a chart would be overkill.
+- Not yet decided: whether this should also get a CSV/image export like the fever charts, or stay
+  on-screen only for now (leaning on-screen only until asked otherwise, consistent with how Stage 8
+  started before export was requested as a fast-follow).
+
+## UI polish backlog (not CCPM-specific, but worth fixing)
+
+Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
+and fix immediately, but real annoyances likely to be hit by other testers too, and distracting
+from evaluating the actual planning features. Worth picking up opportunistically.
+
+- **Keyboard zoom shortcuts.** Zoom currently only works via `Ctrl` + mouse wheel/middle-mouse
+  (fixed earlier this session for Linux's `Button-4`/`Button-5` scroll events). Add `Ctrl-+` (zoom
+  in) and `Ctrl--` (zoom out) as keyboard equivalents, reusing the same `on_zoom` logic the scroll
+  handler already calls. Should bind both the shifted `+` key and the unshifted `=` key on the same
+  physical key (`<Control-plus>`/`<Control-equal>`), since requiring the shift key for zoom-in but
+  not zoom-out is an easy inconsistency to trip over.
+- **Text overflow at higher zoom levels.** Two spots noticed so far:
+  - Timeline header text (dates/column labels) overflows its row once zoomed in past some point -
+    font size doesn't appear to be capped/scaled sensibly relative to the row height at high zoom.
+  - The resource loading indicator's text (allocation/percentage shown per grid cell) overflows its
+    own cell similarly, making it hard to read at higher zoom.
+  - Not diagnosed further yet - likely needs the font size to be clamped against the actual
+    cell/row pixel size at the current zoom level, rather than scaling unbounded with zoom.
 
 ## Explicitly out of scope (deferred, not forgotten)
 
@@ -561,15 +692,12 @@ feeding buffers.
   auto-inserting `PB`/`FB` buffer tasks is **not** being automated. The user creates buffer tasks,
   marks task types, and (Stage 5) assigns chains manually; the tool's job is to react correctly
   (via Stages 2–7) to whatever graph currently exists, not to construct that graph for them.
-- **Fever chart PDF/PNG export.** Now that Stage 8 covers on-screen viewing, exporting it is a
-  deliberate fast-follow, not bundled into that stage. Confirmed practical: the existing PNG/PDF
-  exports already work by independently redrawing the whole scene in PIL/reportlab respectively
-  rather than screenshotting the Tkinter canvas (e.g. the dashed `PB`/`FB` lines needed their own
-  manual PIL dashed-line helper) — a fever chart export would follow the same pattern, redrawing
-  the same computed data points/zone bands a second and third time with each library's own drawing
-  primitives. Rejected alternative: Tkinter's `canvas.postscript()` + Ghostscript conversion, which
-  would pull in an external system dependency with the same cross-platform fragility already seen
-  with `uv`/Tkinter on Linux and Windows.
+- **Fever chart PNG export is done** (see Stage 8 above) — built as PIL redraws at 1600×1200,
+  following the same "redraw per format" pattern as every other export in this codebase. PDF export
+  specifically was never actually requested (PNG covered the "high resolution for annotation" need)
+  and isn't planned unless asked for. Rejected alternative considered for either format: Tkinter's
+  `canvas.postscript()` + Ghostscript conversion, which would pull in an external system dependency
+  with the same cross-platform fragility already seen with `uv`/Tkinter on Linux and Windows.
 - **Full plan-vs-baseline comparison UI** (showing stakeholders "the whole plan, then vs. now,"
   not just a single buffer's fever chart). Stage 4's widened baseline capture is preparation for
   this, but the comparison UI itself is not part of this work.
@@ -614,10 +742,6 @@ feeding buffers.
   red_intercept=27`) are a visual approximation from a reference screenshot, not a verified
   canonical formula - reasonable starting defaults now that they're per-project settings, but not
   authoritative.
-- **Stage 8**: how to walk the Protected Progress Frontier when a buffer's terminal task has more
-  than one direct chain predecessor (branching feeder paths that merge before reaching the
-  buffer) - the write-up assumes a simple single-strand chain; this tool's chains are usually
-  modeled that way too, but it's not enforced anywhere.
 - **Stage 8**: whether `Manage Projects...` is really the right home for the fever chart
   slope/intercept settings, or whether a dedicated "Project Settings" dialog is warranted once
   there's more than one or two per-project tunables to hold.

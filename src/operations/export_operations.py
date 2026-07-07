@@ -38,6 +38,138 @@ def _draw_dashed_line(draw, x1, y1, x2, y2, fill, width, dash_length=6, gap_leng
         distance += dash_length + gap_length
 
 
+def _draw_fever_chart_image(
+    draw, x0, y0, width, height, buffer_task, project, font, title_font, small_font
+):
+    """Draw a single buffer's fever chart (Stage 8) with PIL, mirroring
+    `UIComponents.draw_fever_chart`'s on-screen Tkinter version - a separate
+    renderer at whatever resolution the caller chooses (independent redraw,
+    same pattern as every other export in this module), so it can be
+    exported far higher-resolution than the on-screen canvas allows.
+    """
+    from src.model.task_resource_model import classify_fever_chart_zone
+
+    slope = project.get("fever_chart_slope", 0.55)
+    yellow_intercept = project.get("fever_chart_yellow_intercept", 10.0)
+    red_intercept = project.get("fever_chart_red_intercept", 27.0)
+
+    history = buffer_task.get("fever_chart_history", [])
+    baseline = buffer_task.get("baseline")
+    buffer_baseline_duration = (
+        baseline["duration"] if baseline else buffer_task["duration"]
+    )
+
+    points = []
+    for entry in history:
+        cpsl = entry["cpsl"]
+        progress_pct = (entry["ppf"] / cpsl * 100) if cpsl > 0 else 0.0
+        consumption_pct = (
+            (entry["forecast_lateness"] / buffer_baseline_duration * 100)
+            if buffer_baseline_duration > 0
+            else 0.0
+        )
+        points.append((entry["date"], progress_pct, consumption_pct))
+
+    max_consumption = max([p[2] for p in points] + [100.0])
+    y_max = max(100.0, ((max_consumption // 20) + 2) * 20)
+
+    chart_x0, chart_y0 = x0 + 120, y0 + 110
+    chart_w, chart_h = width - 160, height - 230
+
+    def to_px(progress_pct, consumption_pct):
+        px = chart_x0 + (progress_pct / 100.0) * chart_w
+        clamped = max(0.0, min(y_max, consumption_pct))
+        py = chart_y0 + (1 - clamped / y_max) * chart_h
+        return (px, py)
+
+    def boundary(x_pct, intercept):
+        return max(0.0, min(y_max, slope * x_pct + intercept))
+
+    title = f'{buffer_task["task_id"]} - {buffer_task["description"]}'
+    draw.text((x0 + width / 2, y0 + 20), title, fill="black", font=title_font, anchor="ma")
+
+    y_at_0 = boundary(0, yellow_intercept)
+    y_at_100 = boundary(100, yellow_intercept)
+    draw.polygon(
+        [to_px(0, 0), to_px(100, 0), to_px(100, y_at_100), to_px(0, y_at_0)],
+        fill="#C8E6C9",
+    )
+
+    r_at_0 = boundary(0, red_intercept)
+    r_at_100 = boundary(100, red_intercept)
+    draw.polygon(
+        [to_px(0, y_at_0), to_px(100, y_at_100), to_px(100, r_at_100), to_px(0, r_at_0)],
+        fill="#FFF59D",
+    )
+
+    draw.polygon(
+        [to_px(0, r_at_0), to_px(100, r_at_100), to_px(100, y_max), to_px(0, y_max)],
+        fill="#EF9A9A",
+    )
+
+    draw.rectangle(
+        [chart_x0, chart_y0, chart_x0 + chart_w, chart_y0 + chart_h],
+        outline="black",
+        width=2,
+    )
+
+    for x_pct in (0, 25, 50, 75, 100):
+        px, _ = to_px(x_pct, 0)
+        draw.text(
+            (px, chart_y0 + chart_h + 15), f"{x_pct}%", fill="black", font=small_font,
+            anchor="ma",
+        )
+
+    y_step = y_max / 5
+    for i in range(6):
+        y_pct = i * y_step
+        _, py = to_px(0, y_pct)
+        draw.text(
+            (chart_x0 - 15, py), f"{y_pct:.0f}%", fill="black", font=small_font,
+            anchor="rm",
+        )
+
+    draw.text(
+        (x0 + width / 2, y0 + height - 30),
+        "% of protected chain complete",
+        fill="black",
+        font=font,
+        anchor="ma",
+    )
+    draw.text(
+        (x0 + 15, y0 + 55),
+        "% buffer consumed",
+        fill="black",
+        font=font,
+        anchor="la",
+    )
+
+    if not points:
+        draw.text(
+            (chart_x0 + chart_w / 2, chart_y0 + chart_h / 2),
+            "No status updates recorded yet",
+            fill="#777777",
+            font=font,
+            anchor="mm",
+        )
+        return
+
+    prev_px = None
+    for date_str, progress_pct, consumption_pct in points:
+        px, py = to_px(progress_pct, max(0.0, consumption_pct))
+        if prev_px is not None:
+            draw.line([prev_px, (px, py)], fill="black", width=3)
+        zone = classify_fever_chart_zone(
+            progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
+        )
+        dot_color = {"green": "#2E7D32", "yellow": "#F9A825", "red": "#C62828"}[zone]
+        r = 10
+        draw.ellipse([px - r, py - r, px + r, py + r], fill=dot_color, outline="black", width=2)
+        date_label = datetime.datetime.fromisoformat(date_str).strftime("%m-%d")
+        draw.text((px, py - 25), date_label, fill="black", font=small_font, anchor="ma")
+        prev_px = (px, py)
+
+
 class ExportOperations:
     def __init__(self, controller, model):
         self.controller = controller
@@ -1209,6 +1341,180 @@ class ExportOperations:
             return False
         except Exception as e:
             messagebox.showerror("Export Error", f"Error exporting to image: {e}")
+            return False
+
+    def export_fever_charts(self, project=None):
+        """Bulk-export every buffer's fever chart for a project to
+        high-resolution PNG files (Stage 8 fast-follow), for manual
+        annotation/distribution - the on-screen canvas charts are capped at
+        whatever fits on screen and can't be zoomed into, so this redraws
+        each chart at a much higher resolution with PIL instead.
+        """
+        if project is None:
+            if not self.model.projects:
+                messagebox.showinfo(
+                    "No Projects",
+                    "Create a project first via Projects > Manage Projects...",
+                    parent=self.controller.root,
+                )
+                return False
+
+            if len(self.model.projects) == 1:
+                project = self.model.projects[0]
+            else:
+                from src.operations.task_operations import OptionSelectDialog
+
+                names = [p["name"] for p in self.model.projects]
+                default = self.model.get_default_project()
+                dialog = OptionSelectDialog(
+                    self.controller.root,
+                    "Export Fever Charts",
+                    "Project:",
+                    names,
+                    initial_value=default["name"] if default else names[0],
+                )
+                if dialog.result is None:
+                    return False
+                project = self.model.get_project_by_name(dialog.result)
+
+        if project["phase"] != "execution":
+            messagebox.showinfo(
+                "Not Yet in Execution",
+                f"'{project['name']}' isn't in the execution phase yet, so "
+                "there is nothing to chart.",
+                parent=self.controller.root,
+            )
+            return False
+
+        buffers = [
+            t
+            for t in self.model.tasks
+            if t.get("project_id") == project["id"]
+            and t.get("type") in ("project_buffer", "feeding_buffer")
+        ]
+        if not buffers:
+            messagebox.showinfo(
+                "No Buffers Found",
+                f"'{project['name']}' has no buffer tasks to chart.",
+                parent=self.controller.root,
+            )
+            return False
+
+        directory_path = filedialog.askdirectory(
+            title="Choose folder to save fever chart images"
+        )
+        if not directory_path:
+            return False
+
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+
+            try:
+                font = ImageFont.truetype("arial.ttf", 22)
+                title_font = ImageFont.truetype("arial.ttf", 30)
+                small_font = ImageFont.truetype("arial.ttf", 18)
+            except IOError:
+                font = ImageFont.load_default()
+                title_font = ImageFont.load_default()
+                small_font = ImageFont.load_default()
+
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            width, height = 1600, 1200
+            exported = 0
+
+            for buffer_task in buffers:
+                image = Image.new("RGB", (width, height), "white")
+                draw = ImageDraw.Draw(image)
+                _draw_fever_chart_image(
+                    draw, 0, 0, width, height, buffer_task, project, font,
+                    title_font, small_font,
+                )
+
+                safe_project = "".join(
+                    c if c.isalnum() else "_" for c in project["name"]
+                )
+                safe_desc = "".join(
+                    c if c.isalnum() else "_" for c in buffer_task["description"]
+                )
+                filename = (
+                    f"{safe_project}_fever_chart_{buffer_task['task_id']}_"
+                    f"{safe_desc}_{timestamp}.png"
+                )
+                image.save(os.path.join(directory_path, filename))
+                exported += 1
+
+            messagebox.showinfo(
+                "Export Complete",
+                f"Exported {exported} fever chart(s) to:\n{directory_path}",
+                parent=self.controller.root,
+            )
+            return True
+
+        except ImportError:
+            messagebox.showerror(
+                "Export Error",
+                "Could not export fever charts. Please install the Pillow "
+                "library (pip install Pillow).",
+                parent=self.controller.root,
+            )
+            return False
+        except Exception as e:
+            messagebox.showerror(
+                "Export Error",
+                f"Error exporting fever charts: {e}",
+                parent=self.controller.root,
+            )
+            return False
+
+    def export_single_fever_chart(self, buffer_task, project):
+        """Export one buffer's fever chart to a high-resolution PNG file -
+        the single-chart counterpart to `export_fever_charts`' bulk export.
+        """
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".png",
+            filetypes=[("PNG files", "*.png"), ("All files", "*.*")],
+            title="Export Fever Chart",
+            initialfile=f"fever_chart_{buffer_task['task_id']}.png",
+        )
+        if not file_path:
+            return False
+
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+
+            try:
+                font = ImageFont.truetype("arial.ttf", 22)
+                title_font = ImageFont.truetype("arial.ttf", 30)
+                small_font = ImageFont.truetype("arial.ttf", 18)
+            except IOError:
+                font = ImageFont.load_default()
+                title_font = ImageFont.load_default()
+                small_font = ImageFont.load_default()
+
+            width, height = 1600, 1200
+            image = Image.new("RGB", (width, height), "white")
+            draw = ImageDraw.Draw(image)
+            _draw_fever_chart_image(
+                draw, 0, 0, width, height, buffer_task, project, font, title_font,
+                small_font,
+            )
+            image.save(file_path)
+            return True
+
+        except ImportError:
+            messagebox.showerror(
+                "Export Error",
+                "Could not export fever chart. Please install the Pillow "
+                "library (pip install Pillow).",
+                parent=self.controller.root,
+            )
+            return False
+        except Exception as e:
+            messagebox.showerror(
+                "Export Error",
+                f"Error exporting fever chart: {e}",
+                parent=self.controller.root,
+            )
             return False
 
     # def export_to_csv(self):
