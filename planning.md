@@ -431,51 +431,120 @@ rather than needing to re-run some global "recompute the critical chain" step.
 
 ### Stage 8 — Fever chart reporting (next up)
 
-CCPM's key buffer-management tool: for a given buffer, plots % of its protected chain complete
-(x-axis) against % of the buffer consumed (y-axis) over time, with green/yellow/red zones showing
-whether the buffer is being consumed faster than the chain is progressing - i.e. whether the
-insurance banked in that buffer is still sufficient, or a recovery plan is needed now.
+**Superseded design.** The formulation below replaces an earlier, simpler sketch (per-task
+progress fractions weighted by baseline duration). That sketch is wrong: it treats "% complete"
+as a smooth average, which doesn't hold up on chains with partially-done tasks, and it couldn't
+account for the fact that both axes need to be genuinely *forecast*-based (able to move backwards
+as estimates improve), not cumulative. The design below comes from a dedicated write-up the user
+provided (`fever-chart-considerations.md`, kept in the repo root) and is considerably more
+rigorous. Read that file directly if anything below is unclear — this is a summary, not a
+replacement for it.
 
-- **Reference chart** (confirmed with the user):
-  https://www.critical-chain-projects.com/medias/images/fever_chart_mono_projet_en.png - the
-  classic sloped/diagonal zone model, *not* flat thirds. Reading that chart: at 0% chain complete
-  the green/yellow boundary sits around 10% buffer consumed and yellow/red around 27%; at 100%
-  chain complete those rise to roughly 65% and 82%. Approximated as two straight lines - `y =
-  0.55x + 10` (green/yellow) and `y = 0.55x + 27` (yellow/red) - early consumption is judged more
-  harshly than the same % consumed later in the chain. Treat the exact slope/intercept as tunable
-  constants to nudge once real project data is on screen, not something to get pixel-perfect from
-  a reference screenshot.
-- **What chain a buffer's x-axis tracks**: a feeding buffer's own `chain_id` (e.g. `Feeding-01`)
-  identifies its protected feeding chain; the project buffer's x-axis is the `Critical` chain.
-  Reuses the existing chain-tagging convention directly - no new field needed.
-- **% chain complete as of a historical date D needs one new model method.**
-  `get_task_progress_fraction` (Stage 4) only computes progress *as of now* (via
-  `get_latest_remaining_duration`, unfiltered by date). Need a new
-  `get_task_progress_fraction_as_of(task_id, date)`: replay `remaining_duration_history` filtered
-  to entries with `date <= D` (same `(date, index)` most-recent tie-break as the existing same-day
-  bug fix), returning `0.0` if the task hadn't started as of D. Chain completion is then the
-  `baseline.duration`-weighted average of this across every ordinary (non-buffer) task sharing the
-  buffer's `chain_id` and `project_id`.
-- **% buffer consumed as of D** needs no new method - look up the latest `buffer_size_history`
-  entry with `date <= D` (or the `baseline` itself if none yet), compute `(baseline.duration -
-  duration_at_D) / baseline.duration`.
-- **Trajectory**: one point per distinct date in the union of every chain-tagged task's
-  `remaining_duration_history` dates and the buffer's own `buffer_size_history` dates (plus the
-  baseline's `captured_at` as the starting `(0%, 0%)` point) - a staircase across history, not
-  just today's single dot, matching the reference chart's `W1..Week 6` weekly-snapshot style.
-- **Rendering**: hand-drawn on a Tkinter `Canvas` (axes, sloped zone bands, plotted
-  trajectory/labels) - confirmed with the user, consistent with how the rest of the app already
-  draws everything (the task grid, dependency arrows) rather than adding a charting dependency.
-- **Access point**: new `View Fever Chart...` right-click item on a buffer task, mirroring `View
-  Buffer History...`'s placement and dialog-based approach.
-- **Scope for this stage, confirmed with the user**: on-screen viewing only. PDF/PNG export is a
-  deliberate fast-follow, not part of this stage - see "Explicitly out of scope" below for why
-  that's still easy to add later (the existing PNG/PDF exports already work by independently
-  redrawing the scene in PIL/reportlab rather than screenshotting the canvas, so a fever chart
-  would follow the same "redraw the same data with each library's own primitives" pattern already
-  established in this codebase).
-- Not yet decided: single buffer at a time (as scoped above) vs. also a project-wide dashboard
-  showing every buffer's chart together - flagged in "Open questions" below.
+**The question the chart answers.** Not "how have we performed?" but **"should I intervene
+today?"** — so every quantity is based on the *current forecast*, recalculated from scratch at
+every status update, and both axes are explicitly allowed to move backwards (that's information,
+e.g. a downstream recovery, not an error to smooth away).
+
+**Four independent quantities, computed per buffer, re-run on every status change:**
+
+1. **CPSL (Current Protected Schedule Length)** — the x-axis denominator. The forecast elapsed
+   time from the start of the protected chain to the forecast finish of the **terminal protected
+   task** (the one ordinary, non-buffer task that is the buffer's own direct predecessor — the
+   last work task before the buffer). It's a *timeline* (chain-start `col` to terminal task's
+   *current* `col + duration`), not a sum of task durations, and it **excludes the buffer itself**
+   — the buffer is protection, not planned progress. Chain start is the earliest `col` among the
+   chain's tasks (their live position, following Stage 4 anchoring if that first task has already
+   started).
+2. **PPF (Protected Progress Frontier)** — the x-axis numerator. The latest point on the chain
+   that is **known with certainty**: every task scheduled to finish before that point is
+   *confirmed complete* (`state == 'done'`). If a chain task is 50% done, the frontier sits at its
+   predecessor's finish, not partway into that task — this resolves the ambiguity of "% complete"
+   on a chain where later work has progressed further than earlier work still isn't marked done.
+   Requires walking the chain's tasks **in dependency order** (derive from their `predecessors`
+   restricted to the same `chain_id`/`project_id` — a new capability; today's `chain_id` tags a
+   set of tasks but not their sequence) from chain start, stopping at the first task that isn't
+   `'done'`.
+3. **Progress % = PPF ÷ CPSL.** If a task overruns and the horizon (CPSL) moves out, progress can
+   *drop* even as the frontier (PPF) advances — e.g. week 1: 30/100 = 30%; week 2: frontier now 40
+   but forecast horizon now 120 → 33%, not a misleadingly-improved 40%. This is why CPSL must be
+   forecast-based, not the chain's baseline length.
+4. **Buffer Consumption % = forecast lateness ÷ baseline buffer size**, where `forecast lateness =
+   (current forecast finish of the terminal task) − (that same task's baseline finish)`. The
+   **denominator is fixed** (the buffer's own `baseline.duration` — the insurance premium agreed
+   at the planning→execution transition; only a formal re-baselining would change it), but the
+   **numerator is forecast-based** — it decreases when downstream tasks recover time. For a
+   feeding buffer the protected object is the merge point with the critical chain, not project
+   finish; same math, different anchor (its terminal task is the feeding chain's own last task).
+   - **Not clamped.** Consumption can exceed 100% (forecast lateness bigger than the baseline
+     buffer — a forecast breach of the committed date; plot it, don't clamp it, that's exactly
+     the signal that should escalate rather than just intervene). Consumption can go negative
+     (chain forecast to finish *ahead* of plan); **floor the display at 0%** but don't discard the
+     underlying value — visible slack has its own value (an opportunity to pull downstream work
+     earlier), flooring just keeps the chart itself focused on risk.
+
+**This resolves the earlier open question about needing a baseline on every task — for the fever
+chart's own math, specifically.** CPSL/PPF/Consumption% only ever need: the buffer's own
+`baseline.duration`, the *terminal* task's baseline finish (`baseline.col + baseline.duration`),
+and each chain task's *current* `state`/position — not a baseline on every single task along the
+chain. A task added to a chain mid-execution (no baseline of its own) only affects the frontier
+walk (its completion status), not any of the four formulas above.
+
+**This is not a reason to narrow Stage 4's baseline capture back down.** Stage 4 deliberately
+widened `capture_project_baseline` to snapshot *every* task, not just buffers, precisely because
+the user wants to be able to retrospect after a project finishes — visualizing how the plan as a
+whole differed from what actually happened, not just how the buffers fared. That's a separate,
+still out-of-scope "full plan-vs-baseline comparison UI" (see "Explicitly out of scope" below) —
+the fever chart just doesn't happen to need most of that data itself.
+
+**Why history is captured proactively, not replayed retroactively (a real architectural
+decision).** The obvious approach — reconstruct each historical chart point after the fact from
+`remaining_duration_history` — doesn't work here. Ordinary chain tasks only log history when
+*they themselves* receive a direct status update; a task's position can also change because a
+neighboring task's cascade pushed/pulled it (Stage 2/3/6/7), and none of that leaves a trace on
+the task that moved. So the terminal task's forecast finish "as of some past date" isn't reliably
+recoverable after the fact — the same fundamental limitation that justified `buffer_size_history`
+being captured live in Stage 7, rather than reconstructed from the cascade's history. Following
+that precedent: after **every** `record_remaining_duration` call (any task, any chain — cheap to
+just recompute for every buffer in the plan given this app's scale), recompute the four quantities
+for every buffer and append `{'date': str, 'cpsl': int, 'ppf': int, 'forecast_lateness': int}` to
+a new `task['fever_chart_history']` list on that buffer (same append-only pattern as
+`buffer_size_history`; percentages are derived from these raw numbers at render time, not stored,
+so the zone-boundary formula can be re-tuned later without invalidating history already captured).
+
+**Zone model** — unchanged from the earlier discussion: sloped diagonal boundaries (not flat
+thirds), approximated from the reference chart
+(https://www.critical-chain-projects.com/medias/images/fever_chart_mono_projet_en.png) as `y =
+slope·x + yellow_intercept` and `y = slope·x + red_intercept`, defaults `slope=0.55,
+yellow_intercept=10, red_intercept=27` from that reading. **New**: these three constants become
+per-project settings (`project['fever_chart_slope']`, `project['fever_chart_yellow_intercept']`,
+`project['fever_chart_red_intercept']`), editable via the `Manage Projects...` dialog (extending
+its existing per-project fields — assumed rather than a wholly separate "Project Settings" dialog,
+since that's the established per-project settings surface; revisit if that assumption is wrong)
+so different projects can carry a different risk appetite.
+
+**Trajectory**: one point per `fever_chart_history` entry, connected by a line so trends are
+visible by eye, each point labeled with its date (matching the reference chart's `W1..Week 6`
+weekly-snapshot style) — not just today's single dot.
+
+**Rendering**: hand-drawn on a Tkinter `Canvas` (axes, sloped zone bands, plotted
+trajectory/labels) — confirmed with the user, consistent with how the rest of the app already
+draws everything (the task grid, dependency arrows) rather than adding a charting dependency.
+
+**Access points, confirmed with the user:**
+- `View Fever Chart...` right-click item on a buffer task (mirrors `View Buffer History...`) — a
+  single buffer's chart.
+- New `Project Fever Charts` item on the `Projects` menu — an aggregated view showing the Project
+  Buffer's chart together with every Feeding Buffer's chart for that project at a glance (real
+  CCPM practice is to scan all of a project's buffers together, not one at a time).
+
+**Scope for this stage, confirmed with the user**: on-screen viewing only. PDF/PNG export is a
+deliberate fast-follow, not part of this stage — see "Explicitly out of scope" below for why
+that's still practical to add later.
+
+**Not yet resolved** (see "Open questions" below): how to handle a buffer whose terminal task has
+more than one direct chain predecessor (branching feeder paths merging before the buffer) when
+walking the frontier; the exact UI layout of `Project Fever Charts` when a project has many
+feeding buffers.
 
 ## Explicitly out of scope (deferred, not forgotten)
 
@@ -541,13 +610,16 @@ insurance banked in that buffer is still sufficient, or a recovery plan is neede
 - Whether the progress-stripe/chain-stripe edge assignment (progress stripe implemented on the
   bottom edge in Stage 4; top edge reserved for Stage 5's chain color) reads well once the chain
   stripe is added, or should be swapped.
-- **Stage 8**: single-buffer-at-a-time viewing (`View Fever Chart...` on one buffer, as currently
-  scoped) vs. also a project-wide dashboard showing every buffer's chart together at a glance -
-  not decided; real CCPM practice often means scanning all of a project's buffers regularly, so
-  this may be worth revisiting once the single-buffer version exists and is being used.
-- **Stage 8**: the sloped zone boundary formula (`y = 0.55x + 10` / `y = 0.55x + 27`) is a visual
-  approximation from a reference screenshot, not a verified canonical formula - treat as a
-  starting point to tune once real project data is being viewed, not as authoritative.
-- **Stage 8**: what should happen for a task with no `baseline` when computing chain-%-complete
-  (e.g. a task added to the chain after the project's planning→execution transition) - exclude it
-  from the weighted average, or fall back to its current duration? Not discussed.
+- **Stage 8**: the sloped zone boundary defaults (`slope=0.55, yellow_intercept=10,
+  red_intercept=27`) are a visual approximation from a reference screenshot, not a verified
+  canonical formula - reasonable starting defaults now that they're per-project settings, but not
+  authoritative.
+- **Stage 8**: how to walk the Protected Progress Frontier when a buffer's terminal task has more
+  than one direct chain predecessor (branching feeder paths that merge before reaching the
+  buffer) - the write-up assumes a simple single-strand chain; this tool's chains are usually
+  modeled that way too, but it's not enforced anywhere.
+- **Stage 8**: whether `Manage Projects...` is really the right home for the fever chart
+  slope/intercept settings, or whether a dedicated "Project Settings" dialog is warranted once
+  there's more than one or two per-project tunables to hold.
+- **Stage 8**: exact layout of `Project Fever Charts` when a project has several feeding buffers -
+  side-by-side small multiples, a scrollable stack, tabs? Not discussed.
