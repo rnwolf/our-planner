@@ -752,6 +752,38 @@ cluster of tasks to move together while manually rebalancing resource loading.
   `on_task_drag`'s existing `len(selected_tasks) > 1` check) is unaffected by this - marquee-select
   only changes how the *selection* is built, not what happens once tasks are selected.
 
+### Stage 12 — Hand-verified fever chart scenario + regression test
+
+Every fever chart fix so far this session (the cross-project isolation bug, the PPF branching-path
+sort-by-finish fix, the CSV export numbers) was verified with a one-off headless script written for
+that specific change, then discarded - there's no standing, durable test that would catch a future
+change accidentally reintroducing one of those exact bugs. The underlying formulas
+(`compute_fever_chart_point`, `classify_fever_chart_zone`) are also intricate enough (frontier
+walk across parallel feeder paths, buffer absorb-then-overflow, per-project sloped zone
+boundaries) that spot-checking arithmetic in isolation, the way Stage 9's CSV numbers were
+verified, isn't the same as confirming the *whole* day-by-day trajectory a real execution would
+produce is correct.
+
+- **Work through a full scenario by hand, day by day.** Build a small project with a critical chain
+  plus at least one feeding chain/buffer (and ideally one with a branching/merging feeder path, to
+  exercise the Stage 8 PPF fix specifically), then walk it forward one simulated day at a time via
+  `record_remaining_duration`, capturing a fever chart point at each step. At every step, hand-
+  calculate the expected CPSL, PPF, Progress %, Consumption %, and Zone from the raw task
+  data - independently of the code - and compare against what `compute_fever_chart_point`/
+  `classify_fever_chart_zone` actually produce. The goal is confidence in the *narrative* (a buffer
+  correctly absorbing early, then correctly tipping into yellow/red as delays accumulate), not just
+  that individual formulas are internally consistent with each other.
+- **Turn that scenario into an automated regression test** once hand-verified - likely a new
+  `tests/test_fever_charts.py` (or an addition to `tests/test_scenarios.py`, which already has this
+  session's precedent for narrative/day-by-day integration tests), asserting the exact expected
+  CPSL/PPF/Progress %/Consumption %/Zone at each simulated day. This is the part that actually
+  protects future work: any change to the fever chart math that breaks this test fails loudly in
+  CI/`run_tests.py`, instead of relying on someone remembering to re-derive and re-verify by hand.
+- Worth covering in the same scenario (or a second one) if the first pass doesn't naturally exercise
+  it: a feeding buffer fully consumed (overflow into the critical chain, Stage 7) and the
+  cross-project isolation fix (a second, unrelated project's buffers must show zero change from an
+  update to the first project's tasks).
+
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
 Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
