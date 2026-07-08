@@ -694,6 +694,72 @@ queued up but hasn't started. Applies regardless of `project['phase']`.
   on-screen only for now (leaning on-screen only until asked otherwise, consistent with how Stage 8
   started before export was requested as a fast-follow).
 
+### Stage 11 — Filter menu restructure + marquee-select
+
+Prompted by manual testing making it clear the app needs more/clearer ways to select and filter
+tasks and resources: the `Tags` top-level menu no longer describes what it does now that
+project-based filtering is being added alongside tag-based filtering, and multi-select's only
+input (`Ctrl+click`, one task at a time) is a poor fit for its main real use case - selecting a
+cluster of tasks to move together while manually rebalancing resource loading.
+
+**Filter menu (replaces `Tags`)**
+
+- Rename the `Tags` top-level menu to `Filter`. Item order:
+  1. `Filter Tasks by Tags...` (existing, unchanged)
+  2. `Filter Tasks by Project...` (new)
+  3. `Filter Resources by Tags...` (existing, unchanged)
+  4. *(separator)*
+  5. `Select Tasks by Tags...` (existing, unchanged)
+  6. `Toggle Multi-Select Mode` (existing item; behavior extended - see marquee-select below)
+  7. *(separator)*
+  8. `Clear All Filters` (existing, extended to also reset the project filter)
+- **`Filter Tasks by Project...`**: checkbox list of `model.projects`. A task belongs to exactly one
+  project (`task['project_id']`), so - unlike the tag filter - this is inherently OR logic among
+  checked projects (a task matches if its project is *any* of the checked ones); no AND/OR toggle
+  needed. Combines with an active tag filter as AND (must match both), consistent with how the
+  existing task/resource tag filters already combine internally.
+- **No `Filter Resources by Project`.** Confirmed out of scope: resources are deliberately shared
+  across projects (rolling-wave planning), so "this resource belongs to project X" isn't a
+  meaningful direct filter the way it is for tasks. If a resource-side view ends up needed later,
+  it'd be a *derived* filter (resources with at least one task in the selected project(s)), not a
+  new field - revisit only if actually requested.
+- **Likely implementation shape**: `tag_operations.py` gains `task_project_filters` (a list of
+  project ids) alongside the existing `task_tag_filters`/`resource_tag_filters`, plus
+  `filter_tasks_by_project()` (opens a simplified version of the existing `TagFilterDialog` - no
+  AND/OR toggle needed) and `get_filtered_tasks()` extended to AND against it. `clear_all_filters`
+  (`task_manager.py`) and `update_filter_status()` both need to know about the new filter dimension
+  too, so the status bar correctly reflects it (e.g. `Tasks: ANY of [urgent] | Project: Kitchen
+  Renovation`).
+
+**Marquee-select**
+
+- Today, click-dragging on empty task-grid space *creates a new task* (existing rubber-band
+  behavior in `task_operations.py`/`ui_components.py`), and `Ctrl+click` only adds to
+  `selected_tasks` when Multi-Select Mode is already toggled on - otherwise Ctrl is ignored and any
+  click collapses to a single selection.
+- **Design**: reuse the existing Multi-Select Mode flag as the switch for what an empty-space drag
+  does, rather than introducing a new modifier key to remember:
+  - Mode **off** (default): empty-space drag creates a new task, exactly as today - untouched.
+  - Mode **on**: empty-space drag instead draws a marquee (selection) rectangle; on release, every
+    task whose bounding box overlaps the rectangle becomes the selection (replacing whatever was
+    previously selected). `Ctrl+click` continues to work exactly as it does today for adding/
+    removing individual tasks from whatever the marquee last produced.
+- **Likely implementation shape**: the existing rubber-band drag handlers (`on_task_press`/
+  `on_task_drag`/`on_task_release`-equivalents around the `self.controller.rubberband` canvas
+  rectangle in `task_operations.py`) branch on `self.controller.multi_select_mode` at the point
+  where they currently assume "empty space drag = new task": if the mode is on, skip task creation
+  and instead hit-test the rectangle against `task_ui_elements` on release, building the new
+  `selected_tasks` list and calling `ui.highlight_selected_tasks()` - which, thanks to the status
+  bar fix earlier this session, will already show a live "N tasks selected" count without further
+  changes needed there.
+- **Interaction to watch for**: dependency-link connector points (the small circles at task
+  corners used to draw predecessor/successor links) are hit-tested within the same canvas region -
+  need to confirm a marquee-mode drag starting near a connector doesn't get misinterpreted as
+  starting a dependency link instead of a marquee. Not yet investigated; flag during implementation.
+- Bulk-move (drag one selected task to move the whole group, already implemented via
+  `on_task_drag`'s existing `len(selected_tasks) > 1` check) is unaffected by this - marquee-select
+  only changes how the *selection* is built, not what happens once tasks are selected.
+
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
 Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
@@ -795,6 +861,22 @@ from evaluating the actual planning features. Worth picking up opportunistically
     a small (few-pixel) rounding/timing residual rather than the same structural bug - left
     unresolved rather than guessed at further, since it wasn't reproducible and the user isn't
     blocked on it. Worth another look if it turns out to be bigger/more consistent than that.
+- **Multi-select status indicator kept silently disappearing (fixed).** The user reported
+  repeatedly losing track of whether multi-select mode was still on while testing. Root cause: both
+  `toggle_multi_select_mode` and `highlight_selected_tasks()` wrote their "Multi-select mode:
+  ON..."/selection-count text into the *same* `filter_status` label used for the tag-filter
+  summary. `update_filter_status()` runs on every `update_view()` - i.e. after almost any edit,
+  move, or drag - and unconditionally overwrites that label back to the filter summary, silently
+  wiping the multi-select message even though `multi_select_mode` was still `True` underneath.
+  Fixed by giving multi-select its own persistent `multi_select_status` label
+  (`task_manager.py`), driven by a single `update_multi_select_status()` method that shows
+  mode-on-with-no-selection vs. a live selected-task count, called from
+  `toggle_multi_select_mode`, `highlight_selected_tasks()`/`clear_selections()` (so it updates the
+  moment selection changes), and `update_view()` itself (so it can never drift out of sync with a
+  redraw the way the old shared-label version did). Verified headlessly: toggled multi-select on,
+  selected two tasks, then triggered an unrelated `update_view()` (simulating an unconnected filter
+  change) - the multi-select label correctly still read "2 tasks selected" afterwards, with the
+  filter-status label showing its own text independently alongside it.
 
 ## Explicitly out of scope (deferred, not forgotten)
 
@@ -844,6 +926,9 @@ from evaluating the actual planning features. Worth picking up opportunistically
 - `src/operations/file_operations.py` — `New`/`Open`/`Save`, and `import_ccpm_schedule` (CCPM
   schedule.csv import).
 - `src/operations/export_operations.py` — PDF/PNG/CSV exports, fever chart PNG export.
+- `src/operations/tag_operations.py` — tag-based task/resource filtering and selection
+  (`get_filtered_tasks`/`get_filtered_resources`, `TagFilterDialog`) - Stage 11 extends this with
+  project-based filtering.
 - `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer; `file-structure.md`
   documents the expected CSV format.
 

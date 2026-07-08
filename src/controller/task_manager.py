@@ -185,6 +185,15 @@ class TaskResourceManager:
         )
         self.filter_status.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+        # Multi-select mode/selection indicator - kept as its own label
+        # rather than sharing filter_status: update_filter_status() runs on
+        # every update_view() (i.e. after almost any edit), which would
+        # otherwise silently clobber a multi-select message written there.
+        self.multi_select_status = tk.Label(
+            self.status_bar, text='', anchor=tk.W, padx=5
+        )
+        self.multi_select_status.pack(side=tk.LEFT)
+
         # Clear filters button
         self.clear_filters_btn = tk.Button(
             self.status_bar,
@@ -238,6 +247,24 @@ class TaskResourceManager:
             self.filter_status.config(text=' | '.join(status_text))
             self.clear_filters_btn.config(state=tk.NORMAL)
 
+    def update_multi_select_status(self):
+        """Keep the multi-select status label in sync with the mode and the
+        current selection count. Called from update_view() too (in addition
+        to every place selection actually changes) so it can never drift
+        out of sync with a redraw the way the old shared-label version did.
+        """
+        if not self.multi_select_mode:
+            self.multi_select_status.config(text='', bg=self.status_bar_default_bg)
+            return
+
+        count = len(self.selected_tasks)
+        if count:
+            plural = 's' if count != 1 else ''
+            text = f'Multi-Select: ON - {count} task{plural} selected'
+        else:
+            text = 'Multi-Select: ON - Ctrl+click tasks to select'
+        self.multi_select_status.config(text=text, bg='#ffeecc')
+
     def update_view(self):
         """Update all view components to reflect current model state."""
         self.ui.draw_timeline()
@@ -245,6 +272,7 @@ class TaskResourceManager:
         self.ui.draw_resource_grid()
         self.update_resource_loading()
         self.update_filter_status()
+        self.update_multi_select_status()
         self.update_default_project_status()
         self.ui.update_setdate_display()
 
@@ -300,23 +328,14 @@ class TaskResourceManager:
         self.multi_select_mode = not self.multi_select_mode
 
         # Update cursor to indicate mode
-        if self.multi_select_mode:
-            self.task_canvas.config(cursor='crosshair')
-            self.status_bar.config(
-                bg='#ffeecc'
-            )  # Light orange background to indicate mode
-            self.filter_status.config(
-                text='Multi-select mode: ON - Use Ctrl+click to select multiple tasks'
-            )
-        else:
-            self.task_canvas.config(cursor='')
-            self.status_bar.config(bg=self.status_bar_default_bg)  # Default background
-            self.update_filter_status()  # Reset to standard filter status display
+        self.task_canvas.config(cursor='crosshair' if self.multi_select_mode else '')
 
         # Clear selected tasks when disabling multi-select mode
         if not self.multi_select_mode:
             self.selected_tasks = []
             self.ui.remove_task_selections()
+
+        self.update_multi_select_status()
 
     def toggle_auto_scheduling(self):
         """Toggle automatic forward scheduling of dependent successor tasks."""

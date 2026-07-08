@@ -2250,14 +2250,7 @@ class UIComponents:
                 # Ensure the highlight is behind the task
                 self.controller.task_canvas.tag_lower(highlight_id)
 
-        # Update status bar with selection count if in multi-select mode
-        if (
-            self.controller.multi_select_mode
-            and len(self.controller.selected_tasks) > 0
-        ):
-            self.controller.filter_status.config(
-                text=f'Multi-select mode: {len(self.controller.selected_tasks)} tasks selected'
-            )
+        self.controller.update_multi_select_status()
 
     def remove_task_selections(self):
         """Remove highlighting from all tasks"""
@@ -2288,12 +2281,7 @@ class UIComponents:
         """Clear all task selections"""
         self.controller.selected_tasks = []
         self.remove_task_selections()
-
-        # Update status if in multi-select mode
-        if self.controller.multi_select_mode:
-            self.controller.filter_status.config(
-                text='Multi-select mode: ON - Use Ctrl+click to select multiple tasks'
-            )
+        self.controller.update_multi_select_status()
 
     def add_tag_to_selected_tasks(self):
         """Add a tag to all selected tasks with improved tag selection dialog"""
