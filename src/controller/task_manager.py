@@ -30,6 +30,10 @@ class TaskResourceManager:
         self.timeline_height = 60
         self.resource_grid_height = 150
         self.task_grid_height = 300
+        # The resource panel's ratio/drag-driven ceiling, tracked separately
+        # from resource_grid_height (the actual, content-fitted height
+        # applied to the widgets) - see UIComponents._fit_resource_pane.
+        self.resource_grid_ideal_height = 150
 
         # Zoom and scaling properties
         self.zoom_level = 1.0  # Default zoom level (no zoom)

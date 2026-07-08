@@ -713,6 +713,88 @@ from evaluating the actual planning features. Worth picking up opportunistically
     own cell similarly, making it hard to read at higher zoom.
   - Not diagnosed further yet - likely needs the font size to be clamped against the actual
     cell/row pixel size at the current zoom level, rather than scaling unbounded with zoom.
+- **Resource panel not resizing with the window (fixed, took several iterations).** Originally
+  reported as a grey dead-space block beneath the last resource row at a small default window
+  size; re-reported after maximizing as the label column simply not growing into the newly
+  available space; final report was the splitter bar becoming impossible to drag up at all after
+  maximizing (it kept sliding back down and clamping near the footer). All three turned out to be
+  the same underlying design problem surfacing in different ways, not independent bugs -
+  `task_frame` and `resource_frame` were both packed with `fill=tk.BOTH, expand=True` in
+  `main_frame`, which makes Tk's own pack manager equally-split *any* extra space between them on
+  every relayout, regardless of their current sizes or of whatever the code had explicitly
+  configured. That's an unpredictable, code-fighting-the-toolkit setup: a `Canvas` widget doesn't
+  auto-track its parent's growth once given an explicit height (unlike a `Frame`), so patching the
+  canvases' heights via a `<Configure>` handler bound to `resource_frame` only fixed the symptom
+  visible at the time, each time surfacing the next problem underneath:
+  1. Canvas heights explicitly bumped via `.config(height=...)` on every resize, but
+     `resource_label_frame`/`resource_scroll_frame` had no `pack_propagate(False)`, so each bump
+     inflated its parent's own *requested* size, cascading all the way up through
+     `resource_frame` -> `main_frame` -> `horizontal_layout_frame` -> root - eventually making
+     root's requested height exceed the actual window and squeezing `status_bar` (packed on root,
+     `side=tk.BOTTOM`, after this whole tree) down to an unmapped 1px. It only flickered into view
+     while manually dragging the window edge (briefly giving Tk enough real pixels to satisfy the
+     inflated request).
+  2. Adding `pack_propagate(False)` to those two frames (mirroring `task_frame`) stopped that
+     cascade, but without an explicit height of their own, a `pack_propagate(False)` frame reports
+     a natural size of ~1px - which starved `resource_frame`'s own share of Tk's equal-split
+     against `task_frame` (whose explicit height gave it a much bigger natural size floor). That's
+     what caused the splitter to seem to "clamp to the bottom": Tk's own layout negotiation kept
+     re-allocating almost everything to `task_frame` regardless of what the drag handler tried to
+     set.
+  - **Actual fix**: stopped relying on Tk's `expand=True` equal-split entirely. Removed
+    `expand=True` from both `task_frame.pack(...)` and `resource_frame.pack(...)`; gave
+    `resource_frame` its own `pack_propagate(False)` + explicit `height=resource_grid_height`
+    (matching `task_frame`); and replaced the `resource_frame`-scoped `<Configure>` binding with one
+    on `main_frame` (`on_main_frame_configure` in `ui_components.py`) that explicitly computes and
+    sets *both* frames' heights on every resize, preserving whatever task:resource height ratio is
+    currently in effect (startup default, or the user's last manual drag) rather than either frame
+    unpredictably keeping the extra space for itself. `on_resizer_drag` was updated to match
+    (it previously relied on `resource_frame` auto-tracking natively, which no longer happens with
+    `expand=True` removed, so it now explicitly sets `resource_frame`'s own height too, not just the
+    two canvases inside it). The fixed overhead (timeline frame, h-scrollbar, resizer bar, and all
+    the `pady` spacing between them) is measured once empirically right after widget creation
+    (`self._pane_overhead`) rather than guessed as a hardcoded constant - an under-estimate here was
+    exactly what caused `main_frame`'s true requirement to still slightly exceed its actual size and
+    re-starve the status bar even after the `pack_propagate(False)` fix.
+  - **Verified** by instrumenting a real `TaskResourceManager`: resized the root window from
+    600px to 1200px tall, then simulated a splitter drag up 150px followed by down 150px via direct
+    calls to `on_resizer_press`/`on_resizer_drag`/`on_resizer_release`. Confirmed at every step:
+    `status_bar.winfo_ismapped()` stays `1` at its full 57px height; `task_frame`/`resource_frame`
+    change by exactly the dragged amount and fully reverse (659/334 -> 509/484 -> back to 659/334);
+    `resource_frame` grows proportionally on the maximize step (132px -> 334px) rather than staying
+    pinned at its startup size.
+  - **Follow-on: dead grey space when there are few resources (fixed).** Once the panel correctly
+    tracked window size, maximizing with only a handful of resources (e.g. the 10-resource sample
+    project) reserved far more height than the actual rows needed, leaving a large blank area below
+    the last resource row - functionally the original dead-space complaint again, just for a
+    legitimate reason this time (the panel's *reserved* height growing with the window, exactly as
+    fixed above, while its *content* stayed the same). Fixed by having the resource pane give back
+    whatever part of its ratio-driven share its actual content doesn't need, to `task_frame`,
+    instead of leaving it as blank canvas background. `resource_grid_ideal_height` tracks the
+    ratio/drag-driven ceiling separately from `resource_grid_height` (the actual, content-fitted
+    height applied to the widgets), so the panel can still grow back up to that ceiling if content
+    grows later (more resources added, a filter cleared, zooming in) without needing another window
+    resize to recompute it from scratch. Implemented as a shared `_fit_resource_pane` helper used by
+    `on_main_frame_configure`, `on_resizer_drag`, and `draw_resource_grid` (the last one re-fits on
+    every redraw, since resource count/filters/zoom can change independently of any resize). Also
+    had to cap `on_resizer_drag`'s `new_task_height` at `total_available - 100`, otherwise dragging
+    the splitter down far enough could grow task_frame into resource_frame's 100px floor and
+    (rarely) squeeze the status bar again the same way. Verified with the 10-resource sample data:
+    after maximizing, `resource_frame` clamps to exactly `content_height` (300px, not the larger
+    ratio-implied share) with the surplus going to `task_frame`, while a 50-resource project (whose
+    content exceeds the ratio-implied share) correctly keeps the full share and would scroll -
+    confirming this doesn't regress the already-working case.
+  - **Residual: small gap still reported at 169% zoom (unresolved, low priority).** After the fix
+    above, the user still saw a smaller version of the same dead-space strip below the last
+    resource row at a specific window size + zoom (169%) with the 10-resource sample project, and
+    noted they can live with it. Re-tested several matching scenarios (various window sizes,
+    zoomed to 1.69, both before and after a window resize) and could not reproduce a positive gap
+    in any of them - `resource_frame`'s height always came out either an exact match for
+    `content_height` or smaller (correctly triggering scroll instead of showing dead space), per
+    the same `_fit_resource_pane` logic above. Whatever's left in the reported screenshot is likely
+    a small (few-pixel) rounding/timing residual rather than the same structural bug - left
+    unresolved rather than guessed at further, since it wasn't reproducible and the user isn't
+    blocked on it. Worth another look if it turns out to be bigger/more consistent than that.
 
 ## Explicitly out of scope (deferred, not forgotten)
 

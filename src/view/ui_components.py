@@ -434,7 +434,13 @@ class UIComponents:
         self.task_frame = tk.Frame(
             self.controller.main_frame, height=self.controller.task_grid_height
         )
-        self.task_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
+        # No expand=True: the split between this frame and resource_frame is
+        # driven entirely by on_main_frame_configure/on_resizer_drag, which
+        # explicitly set both frames' heights - letting Tk's own pack expand
+        # also compete for space here caused unpredictable equal-split
+        # behavior between the two frames that fought against those explicit
+        # heights.
+        self.task_frame.pack(fill=tk.BOTH, pady=(0, 5))
         self.task_frame.pack_propagate(False)  # Prevent frame from shrinking
 
         # Create a fixed label column on the left with wider width
@@ -559,14 +565,29 @@ class UIComponents:
 
     def create_resource_grid_frame(self):
         """Create the resource loading grid canvas with wider label column"""
-        self.resource_frame = tk.Frame(self.controller.main_frame)
-        self.resource_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
+        self.resource_frame = tk.Frame(
+            self.controller.main_frame, height=self.controller.resource_grid_height
+        )
+        # No expand=True, matching task_frame - see the comment there. Also
+        # needs its own pack_propagate(False) + explicit height so its size
+        # is fully controlled by on_main_frame_configure/on_resizer_drag
+        # rather than being derived from its children's requested sizes.
+        self.resource_frame.pack(fill=tk.BOTH, pady=(0, 5))
+        self.resource_frame.pack_propagate(False)
 
         # Create a fixed label column on the left with wider width
         self.controller.resource_label_frame = tk.Frame(
             self.resource_frame, width=self.controller.label_column_width
         )
         self.controller.resource_label_frame.pack(side=tk.LEFT, fill=tk.Y)
+        # Without this, the frame auto-inflates its own requested size to
+        # match whatever height we later explicitly set on the label canvas
+        # (see on_resource_frame_configure), and that inflation cascades
+        # all the way up through resource_frame/main_frame/
+        # horizontal_layout_frame to root - eventually squeezing the status
+        # bar (packed on root, after this whole tree) down to nothing.
+        # task_frame already guards against this the same way.
+        self.controller.resource_label_frame.pack_propagate(False)
         self.controller.resource_label_canvas = tk.Canvas(
             self.controller.resource_label_frame,
             width=self.controller.label_column_width,
@@ -579,6 +600,10 @@ class UIComponents:
         # Create resource canvas with vertical scrollbar
         self.resource_scroll_frame = tk.Frame(self.resource_frame)
         self.resource_scroll_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # Same reasoning as resource_label_frame above - resource_canvas's
+        # explicit height gets bumped in several places below, and without
+        # this the frame would inflate its own requested size to match.
+        self.resource_scroll_frame.pack_propagate(False)
 
         self.resource_vscrollbar = ttk.Scrollbar(
             self.resource_scroll_frame, orient=tk.VERTICAL
@@ -603,6 +628,28 @@ class UIComponents:
             height=self.controller.resource_grid_height
         )
 
+        # Measure (rather than guess) how much of main_frame's height is
+        # consumed by everything other than task_frame/resource_frame -
+        # timeline_frame, h_scrollbar, the resizer bar, and every pady
+        # between them. Nothing here has settled its real geometry yet at
+        # window resize time, and a guessed constant was consistently a bit
+        # short, which was enough for main_frame's real requirement to
+        # exceed its actual size and starve the status bar packed below it
+        # on root. This is measured once, right after creation with the
+        # frames still at their startup default heights, and stays valid
+        # since none of these other pieces change size afterwards.
+        self.controller.root.update_idletasks()
+        self._pane_overhead = (
+            self.controller.main_frame.winfo_height()
+            - self.task_frame.winfo_height()
+            - self.resource_frame.winfo_height()
+        )
+
+        # Keep both panes' heights in sync with the window's actual size -
+        # see on_main_frame_configure for why this can't just rely on Tk's
+        # own pack fill/expand.
+        self.controller.main_frame.bind('<Configure>', self.on_main_frame_configure)
+
         # Connect scrollbar to canvas and sync labels with canvas
         self.resource_vscrollbar.config(command=self.sync_resource_vertical_scroll)
 
@@ -616,6 +663,87 @@ class UIComponents:
                 len(self.model.resources) * self.controller.task_height,
             ),
         )
+
+    def on_main_frame_configure(self, event):
+        """Split main_frame's actual available height between task_frame and
+        resource_frame whenever it changes (window resize/maximize) -
+        preserving whatever ratio between the two is currently in effect
+        (the startup default, or whatever the user last dragged the
+        splitter to), rather than task_frame silently keeping the extra
+        space for itself.
+
+        This intentionally doesn't rely on Tk's own pack fill/expand to do
+        this split (task_frame/resource_frame both have expand=True
+        removed): with both frames expand=True, Tk divides *extra* space
+        equally between them regardless of their current sizes, and a
+        Canvas widget doesn't auto-track a parent's growth once given an
+        explicit height anyway - between the two, the split becomes
+        unpredictable and, combined with the resource panel's
+        `pack_propagate(False)` frames reporting a near-zero natural size,
+        could even end up starving resource_frame down to its 100px floor
+        with no way to drag it back. Driving both heights explicitly here
+        avoids all of that.
+
+        Skipped mid-drag: on_resizer_drag already does this same update
+        explicitly every motion step; doing it twice per step roughly
+        doubled the layout cost of every drag motion.
+        """
+        if self.controller.resizing_pane:
+            return
+
+        total_available = event.height - self._pane_overhead
+        if total_available <= 0:
+            return
+
+        current_total = (
+            self.controller.task_grid_height
+            + self.controller.resource_grid_ideal_height
+        )
+        if current_total <= 0:
+            return
+
+        task_ratio = self.controller.task_grid_height / current_total
+        ideal_task_height = max(100, int(total_available * task_ratio))
+        ideal_resource_height = max(100, total_available - ideal_task_height)
+
+        self._fit_resource_pane(ideal_task_height, ideal_resource_height)
+
+    def _fit_resource_pane(self, ideal_task_height, ideal_resource_height):
+        """Apply a task/resource height split, but let resource_frame give
+        back any part of its share that its actual content doesn't need
+        (fewer/shorter resource rows than the panel has room for) to
+        task_frame instead - otherwise that space just sits as blank canvas
+        background below the last resource row. `ideal_resource_height` -
+        the ceiling the panel is allowed to grow back up to as content
+        grows - is tracked separately as `resource_grid_ideal_height` so
+        repeated calls (e.g. every redraw) don't compound the shrinkage.
+        """
+        content_height = (
+            len(self.controller.tag_ops.get_filtered_resources())
+            * self.controller.task_height
+        )
+        resource_height = (
+            min(ideal_resource_height, content_height)
+            if content_height > 0
+            else ideal_resource_height
+        )
+        resource_height = max(100, resource_height)
+        task_height = max(100, ideal_task_height + (ideal_resource_height - resource_height))
+
+        self.controller.resource_grid_ideal_height = ideal_resource_height
+
+        if (
+            task_height == self.controller.task_grid_height
+            and resource_height == self.controller.resource_grid_height
+        ):
+            return
+
+        self.controller.task_grid_height = task_height
+        self.controller.resource_grid_height = resource_height
+        self.task_frame.config(height=task_height)
+        self.resource_frame.config(height=resource_height)
+        self.controller.resource_canvas.config(height=resource_height)
+        self.controller.resource_label_canvas.config(height=resource_height)
 
     def create_context_menu(self):
         """Create the right-click context menu."""
@@ -883,25 +1011,21 @@ class UIComponents:
 
         # Get current dimensions
         task_height = self.task_frame.winfo_height()
+        total_available = self.controller.main_frame.winfo_height() - self._pane_overhead
 
-        # Calculate new heights ensuring minimum sizes
-        new_task_height = max(100, task_height + delta_y)  # Minimum 100px
+        # Calculate new heights ensuring minimum sizes - task_frame is also
+        # capped so it can never grow into resource_frame's 100px floor
+        # (uncapped, a big enough drag could leave less than 100px for
+        # resource_frame, which then cascades into main_frame needing more
+        # room than it actually has).
+        new_task_height = max(100, min(total_available - 100, task_height + delta_y))
 
-        # Update the task frame height directly
-        self.task_frame.config(height=new_task_height)
-        self.controller.task_grid_height = new_task_height
-
-        # Update resource grid height based on available space
-        available_height = (
-            self.controller.main_frame.winfo_height()
-            - new_task_height
-            - self.controller.timeline_height
-            - 15
-        )
-        new_resource_height = max(100, available_height)  # Minimum 100px
-        self.controller.resource_grid_height = new_resource_height
-        self.controller.resource_canvas.config(height=new_resource_height)
-        self.controller.resource_label_canvas.config(height=new_resource_height)
+        # Ideal resource height based on available space - _fit_resource_pane
+        # applies it, but gives back anything the current resource count
+        # doesn't need to task_frame instead of leaving it blank.
+        available_height = total_available - new_task_height
+        ideal_resource_height = max(100, available_height)  # Minimum 100px
+        self._fit_resource_pane(new_task_height, ideal_resource_height)
 
         # Force layout update
         self.controller.root.update_idletasks()
@@ -1583,10 +1707,18 @@ class UIComponents:
             scrollregion=(0, 0, self.controller.label_column_width, canvas_height)
         )
 
-        # Ensure the resource label canvas has the right height
-        self.controller.resource_label_canvas.config(
-            height=self.controller.resource_grid_height
+        # Re-fit the panel split in case the resource count/filter/zoom
+        # changed since the last resize or drag (e.g. resources added, a
+        # filter applied, or zoom changing row height) - reconstructed from
+        # the current actual total plus the ideal ceiling, so this can both
+        # reclaim space back from task_frame (content grew back toward the
+        # ceiling) and give more back to it (content shrank further).
+        total_available = (
+            self.controller.task_grid_height + self.controller.resource_grid_height
         )
+        ideal_resource_height = self.controller.resource_grid_ideal_height
+        ideal_task_height = max(100, total_available - ideal_resource_height)
+        self._fit_resource_pane(ideal_task_height, ideal_resource_height)
 
         # Draw column lines
         for i in range(self.model.days + 1):
