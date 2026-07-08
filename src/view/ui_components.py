@@ -253,30 +253,35 @@ class UIComponents:
             command=self.controller.toggle_auto_scheduling,
         )
 
-        # Tags menu (new)
-        self.tags_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Tags', menu=self.tags_menu)
+        # Filter menu (Stage 11 - renamed from 'Tags' now that project-based
+        # filtering sits alongside tag-based filtering; 'Tags' no longer
+        # described what this menu does)
+        self.filter_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label='Filter', menu=self.filter_menu)
 
-        # Tags operations
-        self.tags_menu.add_command(
+        self.filter_menu.add_command(
             label='Filter Tasks by Tags...',
             command=self.controller.tag_ops.filter_tasks_by_tags,
         )
-        self.tags_menu.add_command(
+        self.filter_menu.add_command(
+            label='Filter Tasks by Project...',
+            command=self.controller.tag_ops.filter_tasks_by_project,
+        )
+        self.filter_menu.add_command(
             label='Filter Resources by Tags...',
             command=self.controller.tag_ops.filter_resources_by_tags,
         )
-        self.tags_menu.add_separator()
-        self.tags_menu.add_command(
+        self.filter_menu.add_separator()
+        self.filter_menu.add_command(
             label='Select Tasks by Tags...',
             command=self.controller.tag_ops.select_tasks_by_tag,
         )
-        self.tags_menu.add_command(
+        self.filter_menu.add_command(
             label='Toggle Multi-Select Mode',
             command=self.controller.toggle_multi_select_mode,
         )
-        self.tags_menu.add_separator()
-        self.tags_menu.add_command(
+        self.filter_menu.add_separator()
+        self.filter_menu.add_command(
             label='Clear All Filters', command=self.controller.clear_all_filters
         )
 

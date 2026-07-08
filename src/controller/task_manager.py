@@ -78,6 +78,11 @@ class TaskResourceManager:
         self.selected_tasks = []
         self.dragging_connector = False
         self.connector_line = None
+        # Marquee-select (Stage 11): an empty-space drag while
+        # multi_select_mode is on draws a free selection rectangle instead
+        # of creating a new task.
+        self.marquee_select_in_progress = False
+        self.marquee_start = None
 
         # Task selection mode
         self.multi_select_mode = False
@@ -185,14 +190,20 @@ class TaskResourceManager:
         )
         self.filter_status.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        # Multi-select mode/selection indicator - kept as its own label
+        # Multi-select mode/selection indicator - kept as its own widget
         # rather than sharing filter_status: update_filter_status() runs on
         # every update_view() (i.e. after almost any edit), which would
         # otherwise silently clobber a multi-select message written there.
-        self.multi_select_status = tk.Label(
-            self.status_bar, text='', anchor=tk.W, padx=5
+        # A clickable button (not just a label) in the status bar's bottom
+        # right corner, so toggling the mode is a single click to a fixed
+        # screen corner rather than navigating the Filter menu each time.
+        # Packed before clear_filters_btn so it ends up as the rightmost/
+        # corner-most widget - the easiest target to reach with the mouse.
+        self.multi_select_status = tk.Button(
+            self.status_bar, text='', command=self.toggle_multi_select_mode
         )
-        self.multi_select_status.pack(side=tk.LEFT)
+        self.multi_select_status.pack(side=tk.RIGHT, padx=5, pady=2)
+        self.multi_select_default_bg = self.multi_select_status.cget('bg')
 
         # Clear filters button
         self.clear_filters_btn = tk.Button(
@@ -226,8 +237,9 @@ class TaskResourceManager:
         """Update the filter status display in the status bar."""
         task_filters = self.tag_ops.task_tag_filters
         resource_filters = self.tag_ops.resource_tag_filters
+        project_filters = self.tag_ops.task_project_filters
 
-        if not task_filters and not resource_filters:
+        if not task_filters and not resource_filters and not project_filters:
             self.filter_status.config(text='No filters active')
             self.clear_filters_btn.config(state=tk.DISABLED)
         else:
@@ -237,6 +249,12 @@ class TaskResourceManager:
                 status_text.append(
                     f"Tasks: {match_type} of [{', '.join(task_filters)}]"
                 )
+
+            if project_filters:
+                names = [
+                    p['name'] for p in self.model.projects if p['id'] in project_filters
+                ]
+                status_text.append(f"Project: {', '.join(names)}")
 
             if resource_filters:
                 match_type = 'ALL' if self.tag_ops.resource_match_all else 'ANY'
@@ -248,21 +266,26 @@ class TaskResourceManager:
             self.clear_filters_btn.config(state=tk.NORMAL)
 
     def update_multi_select_status(self):
-        """Keep the multi-select status label in sync with the mode and the
-        current selection count. Called from update_view() too (in addition
-        to every place selection actually changes) so it can never drift
-        out of sync with a redraw the way the old shared-label version did.
+        """Keep the multi-select button's label/color in sync with the mode
+        and the current selection count. Called from update_view() too (in
+        addition to every place selection actually changes) so it can never
+        drift out of sync with a redraw the way the old shared-label version
+        did. Always shows a state, even when off, since the button is now a
+        permanent fixture in the status bar rather than only appearing when
+        on - clicking it toggles the mode directly.
         """
         if not self.multi_select_mode:
-            self.multi_select_status.config(text='', bg=self.status_bar_default_bg)
+            self.multi_select_status.config(
+                text='Multi-Select: OFF', bg=self.multi_select_default_bg
+            )
             return
 
         count = len(self.selected_tasks)
         if count:
             plural = 's' if count != 1 else ''
-            text = f'Multi-Select: ON - {count} task{plural} selected'
+            text = f'Multi-Select: ON ({count} task{plural} selected)'
         else:
-            text = 'Multi-Select: ON - Ctrl+click tasks to select'
+            text = 'Multi-Select: ON'
         self.multi_select_status.config(text=text, bg='#ffeecc')
 
     def update_view(self):

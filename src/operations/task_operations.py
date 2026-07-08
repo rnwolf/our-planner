@@ -2288,6 +2288,20 @@ class TaskOperations:
 
                     # Also update the single selected task
                     self.controller.selected_task = task
+                elif (
+                    task in self.controller.selected_tasks
+                    and len(self.controller.selected_tasks) > 1
+                ):
+                    # A plain (non-Ctrl) click on a task that's already part
+                    # of a multi-selection (built via marquee-select,
+                    # Ctrl+click, or Select Tasks by Tags) must not collapse
+                    # the group down to just this task - that would make
+                    # dragging one selected task to move the whole group
+                    # together impossible, since the selection would already
+                    # be down to one task before the drag even starts. Only
+                    # clicking a task *outside* the current selection (the
+                    # branch below) collapses it.
+                    self.controller.selected_task = task
                 else:
                     # Single task selection - clear previous selections if not Ctrl+click
                     if not ctrl_pressed:
@@ -2307,7 +2321,9 @@ class TaskOperations:
                 task_clicked = True
                 break
 
-        # If no task was clicked and we're in the grid area, start creating a new task
+        # If no task was clicked and we're in the grid area, either start a
+        # marquee selection (Stage 11 - multi-select mode on) or start
+        # creating a new task (the pre-existing behavior, mode off).
         if (
             not task_clicked
             and canvas_y >= 0
@@ -2317,6 +2333,24 @@ class TaskOperations:
             if not ctrl_pressed:
                 self.controller.selected_tasks = []
                 self.controller.ui.remove_task_selections()
+
+            if self.controller.multi_select_mode:
+                # Marquee-select: a free rectangle (not snapped to the grid),
+                # since it needs to span multiple rows/columns to catch
+                # tasks wherever they are, unlike the single-row rubberband
+                # used for sizing a new task's duration below.
+                self.controller.marquee_select_in_progress = True
+                self.controller.marquee_start = (canvas_x, canvas_y)
+                self.controller.rubberband = self.controller.task_canvas.create_rectangle(
+                    canvas_x,
+                    canvas_y,
+                    canvas_x,
+                    canvas_y,
+                    outline='orange',
+                    width=2,
+                    dash=(4, 4),
+                )
+                return
 
             # Snap to grid
             row, col = self.controller.convert_ui_to_model_coordinates(
@@ -2361,6 +2395,13 @@ class TaskOperations:
                     canvas_x,
                     canvas_y,
                 )
+            return
+
+        if self.controller.marquee_select_in_progress:
+            start_x, start_y = self.controller.marquee_start
+            self.controller.task_canvas.coords(
+                self.controller.rubberband, start_x, start_y, canvas_x, canvas_y
+            )
             return
 
         if not self.controller.resizing_pane:
@@ -2655,6 +2696,38 @@ class TaskOperations:
             self.controller.task_canvas.delete(self.controller.connector_line)
             self.controller.connector_line = None
             self.controller.dragging_connector = False
+            return
+
+        if self.controller.marquee_select_in_progress:
+            start_x, start_y = self.controller.marquee_start
+            x1, x2 = sorted((start_x, canvas_x))
+            y1, y2 = sorted((start_y, canvas_y))
+
+            selected = []
+            for task_id, ui_elements in self.controller.ui.task_ui_elements.items():
+                tx1, ty1, tx2, ty2 = (
+                    ui_elements['x1'],
+                    ui_elements['y1'],
+                    ui_elements['x2'],
+                    ui_elements['y2'],
+                )
+                # Standard rectangle-overlap test - any overlapping area
+                # counts, not just full containment. Strict inequalities
+                # deliberately exclude a task that merely touches the
+                # marquee rectangle's edge with zero overlapping area (e.g.
+                # an adjacent task positioned exactly flush against it).
+                if tx2 > x1 and tx1 < x2 and ty2 > y1 and ty1 < y2:
+                    task = self.model.get_task(task_id)
+                    if task:
+                        selected.append(task)
+
+            self.controller.selected_tasks = selected
+            self.controller.ui.highlight_selected_tasks()
+
+            self.controller.task_canvas.delete(self.controller.rubberband)
+            self.controller.rubberband = None
+            self.controller.marquee_select_in_progress = False
+            self.controller.marquee_start = None
             return
 
         if self.controller.selected_task:  # Existing task manipulation

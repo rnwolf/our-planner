@@ -480,6 +480,119 @@ class TagFilterDialog(tk.Toplevel):
         self.destroy()
 
 
+class ProjectFilterDialog(tk.Toplevel):
+    """Dialog for filtering tasks by project (Stage 11).
+
+    A task belongs to exactly one project, so unlike `TagFilterDialog` this
+    is inherently OR logic among checked projects - no match-all toggle.
+    """
+
+    def __init__(self, parent, title, projects=None, initially_selected=None, on_filter=None):
+        super().__init__(parent)
+        self.title(title)
+        self.transient(parent)
+        self.grab_set()
+
+        self.projects = projects or []
+        self.initially_selected = set(initially_selected or [])
+        self.on_filter = on_filter
+        self.project_vars = {}
+
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        self.geometry(f'320x400+{x}+{y}')
+
+        self.create_widgets()
+
+        self.wait_visibility()
+        self.focus_set()
+        self.bind('<Escape>', lambda e: self.destroy())
+
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+        x = parent.winfo_rootx() + (parent_width - width) // 2
+        y = parent.winfo_rooty() + (parent_height - height) // 2
+        self.geometry(f'+{x}+{y}')
+
+    def create_widgets(self):
+        main_frame = tk.Frame(self, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(main_frame, text='Select project(s) to filter by:', anchor='w').pack(
+            fill=tk.X, pady=(0, 10)
+        )
+
+        selection_frame = tk.Frame(main_frame)
+        selection_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        scrollbar = ttk.Scrollbar(selection_frame, orient='vertical')
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        project_canvas = tk.Canvas(
+            selection_frame,
+            yscrollcommand=scrollbar.set,
+            highlightthickness=1,
+            highlightbackground='gray',
+        )
+        project_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=project_canvas.yview)
+
+        project_container = tk.Frame(project_canvas)
+        project_canvas_window = project_canvas.create_window(
+            (0, 0), window=project_container, anchor='nw'
+        )
+        project_container.bind(
+            '<Configure>',
+            lambda e: project_canvas.configure(scrollregion=project_canvas.bbox('all')),
+        )
+        project_canvas.bind(
+            '<Configure>',
+            lambda e: project_canvas.itemconfig(project_canvas_window, width=e.width),
+        )
+
+        if not self.projects:
+            tk.Label(project_container, text='No projects available', fg='gray').pack(
+                anchor='w', padx=5, pady=5
+            )
+        else:
+            for project in self.projects:
+                var = tk.BooleanVar(value=project['id'] in self.initially_selected)
+                self.project_vars[project['id']] = var
+                tk.Checkbutton(
+                    project_container,
+                    text=f"{project['name']} ({project['phase'].capitalize()})",
+                    variable=var,
+                    anchor='w',
+                ).pack(fill=tk.X, padx=5, pady=1)
+
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        tk.Button(button_frame, text='Apply Filter', command=self.apply_filter).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text='Clear Filter', command=self.clear_filter).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text='Cancel', command=self.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
+
+    def apply_filter(self):
+        selected_ids = [pid for pid, var in self.project_vars.items() if var.get()]
+        if self.on_filter:
+            self.on_filter(selected_ids)
+        self.destroy()
+
+    def clear_filter(self):
+        if self.on_filter:
+            self.on_filter([])
+        self.destroy()
+
+
 class TagOperations:
     """Handles operations related to tags."""
 
@@ -492,6 +605,11 @@ class TagOperations:
         self.resource_tag_filters = []
         self.task_match_all = False
         self.resource_match_all = False
+
+        # Project filter (Stage 11) - list of project ids. A task belongs to
+        # exactly one project, so this is inherently OR logic among the
+        # selected ids; it ANDs against the tag filter above.
+        self.task_project_filters = []
 
     def edit_task_tags(self, task=None):
         """Edit tags for a task."""
@@ -644,6 +762,26 @@ class TagOperations:
 
         self.controller.update_view()
 
+    def filter_tasks_by_project(self):
+        """Open dialog to filter tasks by project (Stage 11)."""
+        ProjectFilterDialog(
+            self.controller.root,
+            'Filter Tasks by Project',
+            projects=self.model.projects,
+            initially_selected=self.task_project_filters,
+            on_filter=self.apply_task_project_filter,
+        )
+
+    def apply_task_project_filter(self, project_ids):
+        """Apply a project filter to tasks."""
+        self.task_project_filters = project_ids
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
+        self.controller.update_view()
+
     def filter_resources_by_tags(self):
         """Open dialog to filter resources by tags."""
         TagFilterDialog(
@@ -665,13 +803,21 @@ class TagOperations:
         self.controller.update_view()
 
     def get_filtered_tasks(self):
-        """Get tasks filtered by the current tag filter."""
-        if not self.task_tag_filters:
-            return self.model.tasks
+        """Get tasks filtered by the current tag and/or project filter (Stage
+        11 combines the two as AND - a task must match both to be shown)."""
+        if self.task_tag_filters:
+            tasks = self.model.get_tasks_by_tags(
+                self.task_tag_filters, match_all=self.task_match_all
+            )
+        else:
+            tasks = self.model.tasks
 
-        return self.model.get_tasks_by_tags(
-            self.task_tag_filters, match_all=self.task_match_all
-        )
+        if self.task_project_filters:
+            tasks = [
+                t for t in tasks if t.get('project_id') in self.task_project_filters
+            ]
+
+        return tasks
 
     def get_filtered_resources(self):
         """Get resources filtered by the current tag filter."""
@@ -683,9 +829,10 @@ class TagOperations:
         )
 
     def clear_task_filters(self):
-        """Clear all task filters."""
+        """Clear all task filters (tags and project)."""
         self.task_tag_filters = []
         self.task_match_all = False
+        self.task_project_filters = []
 
         # Clear multi-selections when filter changes
         self.controller.selected_tasks = []
@@ -706,7 +853,11 @@ class TagOperations:
 
     def has_active_filters(self):
         """Check if any filters are active."""
-        return bool(self.task_tag_filters or self.resource_tag_filters)
+        return bool(
+            self.task_tag_filters
+            or self.resource_tag_filters
+            or self.task_project_filters
+        )
 
     def select_tasks_by_tag(self):
         """Select all tasks with specific tags."""
