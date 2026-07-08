@@ -628,48 +628,40 @@ charting dependency. Reused identically by both access points below.
   images (not just "no exception raised") — zones, colors, trajectory, and labels all correct and
   non-overlapping. Confirmed manually in the running app for both charts, both export buttons.
 
+**CSV data export (Stage 9 — done)**, a further extension so the underlying numbers can be dropped
+into Excel or fed into a PMO reporting system, not just consumed as a rendered image:
+- `ExportOperations.export_fever_chart_data(project)` (`export_operations.py`) — one long/tidy CSV
+  per export (not one file per buffer), columns `Project`, `Buffer ID`, `Buffer Description`,
+  `Buffer Type`, `Date`, `CPSL`, `PPF`, `Progress %`, `Baseline Buffer Duration`,
+  `Forecast Lateness`, `Consumption %`, `Zone` — mirrors why the existing task/resource CSV export
+  is already structured as one table rather than many small files.
+- `Progress %`/`Consumption %`/`Zone` are recomputed at export time from the same raw
+  `fever_chart_history` entries and the project's own zone settings that
+  `_draw_fever_chart_image`/`draw_fever_chart` already use for rendering, via the same
+  `classify_fever_chart_zone` helper — so these numbers can never disagree with the chart images.
+  Nothing new is stored for this.
+- Reuses `export_fever_charts`' exact project-selection flow and execution-phase guard rather than
+  duplicating either — a project still in planning has no `fever_chart_history` to export
+  (`compute_fever_chart_point` already returns `None` outside execution), so the guard is free.
+- `Download Data (CSV)...` button added alongside `Download All (High-Res PNG)...` on the
+  `Project Fever Charts` dialog (`task_operations.py:view_project_fever_charts`).
+- Verified headlessly against a real model: built a project with a feeding buffer and a project
+  buffer, each with multiple `fever_chart_history` entries, exported, then re-read the CSV and
+  hand-checked the zone math for every row against `classify_fever_chart_zone`'s formula (all
+  matched); confirmed the execution-phase guard short-circuits before ever opening a save dialog
+  for a still-planning project.
+
 **Resolved** (previously "not yet resolved" above): the branching-feeder-path PPF question is
 resolved — see item 2 above (sort by finish, not dependency order) — verified with a headless test
 (two parallel paths, one done, one not, merging into a shared terminal task: frontier correctly
 capped by the earlier-finishing incomplete task regardless of the other path being fully done and
-finishing later; correctly advances once both paths catch up). CSV export of the underlying data
-is the next build item — see Stage 9 in "Remaining work" below. The `Project Fever Charts`
+finishing later; correctly advances once both paths catch up). The `Project Fever Charts`
 multi-buffer layout question remains genuinely open — see "Open questions".
 
 ## Remaining work
 
-### Stage 9 — Fever chart CSV data export (next up)
-
-Requested as a further extension to the PNG export above: alongside charts for visual
-annotation/distribution, export the underlying numbers so they can be dropped into Excel (to build
-a firm's own chart formatting) or fed into a PMO reporting system, rather than only ever being
-consumable as a rendered image.
-
-- **Format: one long/tidy CSV per export, not one file per buffer.** A single table with a
-  `Buffer ID`/`Buffer Description` column to group/filter by is far more useful for Excel
-  PivotTables and PMO ingestion than N separate small files — mirrors why the existing task/
-  resource CSV exports are already structured this way.
-- **Columns**: `Project`, `Buffer ID`, `Buffer Description`, `Buffer Type` (`Project Buffer` /
-  `Feeding Buffer`), `Date`, `CPSL`, `PPF`, `Progress %`, `Baseline Buffer Duration`,
-  `Forecast Lateness`, `Consumption %`, `Zone` (`green`/`yellow`/`red`).
-- **Progress %, Consumption %, and Zone are computed at export time from the same raw
-  `fever_chart_history` entries** (`cpsl`, `ppf`, `forecast_lateness`) and the project's own
-  `fever_chart_slope`/`yellow_intercept`/`red_intercept` — the exact same derivation
-  `draw_fever_chart`/`_draw_fever_chart_image` already use for rendering, so the CSV numbers and
-  the chart images can never disagree with each other. Nothing new needs to be stored for this.
-- **Scope**: bulk, one project at a time (same project-selection flow as `export_fever_charts` -
-  reuse it rather than duplicating the "which project" prompt). A single-buffer CSV export wasn't
-  requested and isn't planned unless asked for.
-- **Execution-phase projects only, same as the fever charts themselves** (explicitly confirmed
-  with the user) - a project still in planning has no `fever_chart_history` at all
-  (`compute_fever_chart_point` already returns `None` outside execution, so nothing would ever
-  have been captured to export), so this falls out for free by reusing `export_fever_charts`'s
-  existing "Not Yet in Execution" guard rather than needing a new check.
-- **Access point**: a `Download Data (CSV)...` button alongside the existing `Download All
-  (High-Res PNG)...` button on the `Project Fever Charts` dialog.
-- Likely implementation shape: `ExportOperations.export_fever_chart_data(project)` in
-  `export_operations.py`, using the stdlib `csv` module (already the pattern used by the existing
-  task/resource CSV export) rather than any new dependency.
+(Stage 9, fever chart CSV data export, is done — see "Fever chart reporting (Stage 8 — done)"
+above.)
 
 ### Stage 10 — Backlog Full Kit readiness report
 

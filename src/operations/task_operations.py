@@ -4087,6 +4087,13 @@ class TaskOperations:
                     project=project
                 ),
             ).pack(side=tk.LEFT, padx=5)
+            tk.Button(
+                button_frame,
+                text='Download Data (CSV)...',
+                command=lambda: self.controller.export_ops.export_fever_chart_data(
+                    project=project
+                ),
+            ).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text='Close', command=dialog.destroy).pack(
             side=tk.LEFT, padx=5
         )

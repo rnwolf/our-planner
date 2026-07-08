@@ -1517,6 +1517,175 @@ class ExportOperations:
             )
             return False
 
+    def export_fever_chart_data(self, project=None):
+        """Export every buffer's fever chart history for a project to a
+        single tidy CSV (Stage 9) - the underlying numbers behind the PNG
+        charts, for building charts in Excel or feeding a PMO reporting
+        system, rather than only ever being consumable as a rendered image.
+
+        One long table (not one file per buffer) so it drops straight into
+        an Excel PivotTable or PMO ingestion - mirrors why the existing
+        task/resource CSV export (`export_to_csv`) is already structured
+        this way. Progress %/Consumption %/Zone are recomputed here from the
+        same raw `fever_chart_history` entries and the project's own zone
+        settings that `_draw_fever_chart_image`/`draw_fever_chart` already
+        use for rendering, so these numbers can never disagree with the
+        chart images - nothing new is stored for this.
+        """
+        from src.model.task_resource_model import classify_fever_chart_zone
+
+        if project is None:
+            if not self.model.projects:
+                messagebox.showinfo(
+                    "No Projects",
+                    "Create a project first via Projects > Manage Projects...",
+                    parent=self.controller.root,
+                )
+                return False
+
+            if len(self.model.projects) == 1:
+                project = self.model.projects[0]
+            else:
+                from src.operations.task_operations import OptionSelectDialog
+
+                names = [p["name"] for p in self.model.projects]
+                default = self.model.get_default_project()
+                dialog = OptionSelectDialog(
+                    self.controller.root,
+                    "Export Fever Chart Data",
+                    "Project:",
+                    names,
+                    initial_value=default["name"] if default else names[0],
+                )
+                if dialog.result is None:
+                    return False
+                project = self.model.get_project_by_name(dialog.result)
+
+        if project["phase"] != "execution":
+            messagebox.showinfo(
+                "Not Yet in Execution",
+                f"'{project['name']}' isn't in the execution phase yet, so "
+                "there is no fever chart data to export.",
+                parent=self.controller.root,
+            )
+            return False
+
+        buffers = [
+            t
+            for t in self.model.tasks
+            if t.get("project_id") == project["id"]
+            and t.get("type") in ("project_buffer", "feeding_buffer")
+        ]
+        if not buffers:
+            messagebox.showinfo(
+                "No Buffers Found",
+                f"'{project['name']}' has no buffer tasks to export data for.",
+                parent=self.controller.root,
+            )
+            return False
+
+        safe_project = "".join(c if c.isalnum() else "_" for c in project["name"])
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+            title="Export Fever Chart Data",
+            initialfile=f"{safe_project}_fever_chart_data_{timestamp}.csv",
+        )
+        if not file_path:
+            return False
+
+        slope = project.get("fever_chart_slope", 0.55)
+        yellow_intercept = project.get("fever_chart_yellow_intercept", 10.0)
+        red_intercept = project.get("fever_chart_red_intercept", 27.0)
+        buffer_type_labels = {
+            "project_buffer": "Project Buffer",
+            "feeding_buffer": "Feeding Buffer",
+        }
+
+        try:
+            import csv
+
+            fieldnames = [
+                "Project",
+                "Buffer ID",
+                "Buffer Description",
+                "Buffer Type",
+                "Date",
+                "CPSL",
+                "PPF",
+                "Progress %",
+                "Baseline Buffer Duration",
+                "Forecast Lateness",
+                "Consumption %",
+                "Zone",
+            ]
+
+            rows_written = 0
+            with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+
+                for buffer_task in buffers:
+                    baseline = buffer_task.get("baseline")
+                    buffer_baseline_duration = (
+                        baseline["duration"] if baseline else buffer_task["duration"]
+                    )
+
+                    for entry in buffer_task.get("fever_chart_history", []):
+                        cpsl = entry["cpsl"]
+                        ppf = entry["ppf"]
+                        forecast_lateness = entry["forecast_lateness"]
+                        progress_pct = (ppf / cpsl * 100) if cpsl > 0 else 0.0
+                        consumption_pct = (
+                            (forecast_lateness / buffer_baseline_duration * 100)
+                            if buffer_baseline_duration > 0
+                            else 0.0
+                        )
+                        zone = classify_fever_chart_zone(
+                            progress_pct, consumption_pct, slope, yellow_intercept,
+                            red_intercept,
+                        )
+                        date_str = datetime.datetime.fromisoformat(
+                            entry["date"]
+                        ).strftime("%Y-%m-%d")
+
+                        writer.writerow(
+                            {
+                                "Project": project["name"],
+                                "Buffer ID": buffer_task["task_id"],
+                                "Buffer Description": buffer_task["description"],
+                                "Buffer Type": buffer_type_labels.get(
+                                    buffer_task.get("type"), buffer_task.get("type")
+                                ),
+                                "Date": date_str,
+                                "CPSL": cpsl,
+                                "PPF": ppf,
+                                "Progress %": round(progress_pct, 1),
+                                "Baseline Buffer Duration": buffer_baseline_duration,
+                                "Forecast Lateness": forecast_lateness,
+                                "Consumption %": round(consumption_pct, 1),
+                                "Zone": zone,
+                            }
+                        )
+                        rows_written += 1
+
+            messagebox.showinfo(
+                "Export Complete",
+                f"Exported {rows_written} fever chart data point(s) across "
+                f"{len(buffers)} buffer(s) to:\n{file_path}",
+                parent=self.controller.root,
+            )
+            return True
+
+        except Exception as e:
+            messagebox.showerror(
+                "Export Error",
+                f"Error exporting fever chart data: {e}",
+                parent=self.controller.root,
+            )
+            return False
+
     # def export_to_csv(self):
     #     """Export task and resource data to CSV."""
     #     # For a full implementation, we would:
