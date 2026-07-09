@@ -718,6 +718,103 @@ case (selecting a cluster of tasks to move together while rebalancing resource l
   tasks, then simulated a plain click-drag starting on one of them - both moved together by the
   same delta and the selection stayed intact throughout; separately confirmed a plain click on a
   task *outside* an existing multi-selection still correctly collapses to just that task.
+- **Follow-on bug found while preparing for Stage 12: connector-drag and edge-resize both silently
+  stopped working (fixed, took two passes).**
+  - **First pass**: found and fixed a real but, as it turned out, unrelated defect -
+    `marquee_select_in_progress`, `dragging_connector`, and `new_task_in_progress` are all checked
+    *before* the connector/edge-resize/move logic in `on_task_drag`, so if any one of them was ever
+    left `True` because its own `on_task_release` never fired (e.g. the mouse released outside the
+    canvas), every subsequent drag of *any* kind would silently short-circuit at that stale check.
+    Fixed by resetting all three at the top of `on_task_press`. Verified headlessly and genuinely
+    correct, but the user reported the original symptom was unchanged - this bug wasn't what they
+    were hitting.
+  - **Actual root cause, found via a live diagnostic + screenshot the user provided**: a temporary
+    print added to `on_task_press` captured the real click at 300% zoom landing at canvas (419,
+    413), 14px away from the connector's true center (405, 405) - a genuine, realistic mouse-aiming
+    miss, not a logic bug. The connector's *drawn* radius scales with zoom (`draw_task` in
+    `ui_components.py`) but its *hit-test* radius was a hardcoded 5px regardless of zoom (same for
+    the edge-resize tolerance) - at high zoom the visibly-drawn dot extended past its own clickable
+    area, compounding an already-too-tight 5px tolerance to begin with.
+  - Fixed with a shared `connector_hit_radius()` (`task_manager.py`), used by both the drawing code
+    and every hit-test (`on_task_press`/`on_task_hover` in `task_operations.py`) so they can never
+    drift apart again, widened well beyond just matching the two: `max(8, min(20, 5 *
+    zoom_level))` - 8px even at 100% zoom (up from 5px), scaling to 15px at the reported 300% zoom,
+    comfortably covering the actual 14px miss observed. The edge-resize tolerance reuses the same
+    value, on the reasoning that both are small, precise targets that should get *easier* to hit as
+    the view zooms in, not stay pinned to a fixed pixel count regardless of how large everything
+    else has gotten.
+  - Verified by reproducing the user's exact reported click (canvas 419, 413 at 300% zoom) against
+    task 4's real stored position (connector at 405, 405) - correctly resolved to
+    `dragging_connector = True` after the fix, versus falling through to new-task-creation before
+    it; separately confirmed edge-resize tolerates a comparably-imprecise (10px off) click too.
+  - **Note for next time**: z-ordering was raised as a possible cause during investigation and
+    ruled out directly rather than assumed - this hit-testing loops through stored coordinates in a
+    fixed code order and never relies on Tkinter's canvas item stacking, so it can't be affected by
+    which item renders on top.
+  - **Still not fully resolved** - the radius fix measurably helped, but the user reports the
+    interaction is still inconsistent (sometimes edge-resize, sometimes connector-drag, sometimes a
+    plain move triggers instead) and, critically, `on_task_hover`'s cursor-change feedback isn't
+    visibly working for them at all, making it hard to tell in advance what a click-drag will do.
+    Added a **hover-state diagnostic** to the status bar (`hover_status` label, `task_manager.py`)
+    as a more reliable substitute for the cursor cue - a plain text label doesn't depend on cursor
+    theme/rendering working correctly on a given platform/WM the way a custom cursor shape does.
+    `on_task_hover` (`task_operations.py`) now updates it at every branch (`Hover: Connector (Task
+    N) - drag to link`, `Left edge`/`Right edge - drag to resize`, `Task N body - drag to move`,
+    or `Hover: -` when over empty space), verified to update correctly for all four zones in a
+    headless test. This also doubles as a debugging tool: if the label doesn't update as expected
+    while actually hovering in the running app, that points to something more fundamental (event
+    delivery not reaching `on_task_hover` at all) rather than a hit-zone sizing issue, which the
+    radius fix already addressed. Root cause of the remaining inconsistency not yet found.
+  - **Confirmed by the user: the hover-status label correctly reflects the detected zone, and the
+    native cursor genuinely never changes on this platform/WM at all** - not a rendering flake, a
+    real, apparently permanent limitation here. That reframes the label from "debugging aid" to the
+    user's actual primary visual signal for what a click-drag will do, so it needed to hold up as
+    one: widened from 28 to 48 characters (the longest message, `Hover: Right edge (Task 12) - drag
+    to resize`, was being cut off) and given a background color per zone (`#cfe2ff` connector/URL,
+    `#d4edda` edges, `#fff3cd` body, reset to the label's own captured default over empty space) -
+    color rendering goes through Tk's own painting rather than the platform cursor-theme rendering
+    that isn't working, so it doesn't depend on whatever is broken about cursors here. Verified
+    headlessly: label width and all four background colors update correctly, including the reset
+    back to the exact captured default over empty space.
+  - **Follow-on: hover state got stuck on "drag to move" after moving the mouse away from a task.**
+    `on_task_hover` is only bound to `<Motion>`, which exclusively fires while the cursor is
+    *inside* task_canvas - so moving the mouse off a task's body straight out of the canvas
+    entirely (into the timeline header, resource panel, or off the window), without passing over
+    empty grid space first, never re-triggered `on_task_hover` to reset anything, leaving the last
+    hover state stuck indefinitely. Fixed by extracting the existing reset logic into
+    `reset_hover_state()` (`task_operations.py`) and binding it to `<Leave>` on `task_canvas`
+    (`ui_components.py`) - Tk's dedicated "cursor exited this widget" event, which fires
+    regardless of how the cursor left, closing exactly the gap `<Motion>` alone couldn't cover.
+    Verified headlessly with a real `<Leave>` event after hovering a task body: label and cursor
+    both correctly reset to their neutral state.
+  - **Follow-on: the native cursor still doesn't render at all** (suspected Wayland/XWayland cursor
+    theme issue, possibly tied to a pending OS update - being investigated by the user separately
+    via a restart) - **but this matters, since the user will be watching the mouse position while
+    working, not the status bar.** Added a canvas-drawn highlight directly at the hovered
+    connector/edge/body as a platform-independent substitute: a blue ring around the connector
+    (`create_oval`), a thick green line over whichever edge (`create_line`), and a dashed border
+    around the task body (`create_rectangle`, deliberately dashed and a different color from
+    `highlight_selected_tasks`'s solid orange so "hovering" and "selected" read as visually
+    distinct) - all tracked via a single `hover_highlight_id` (`task_manager.py`) that gets deleted
+    and redrawn fresh on every hover change, and cleaned up by `reset_hover_state` too. Since this
+    is Tk's own canvas painting rather than platform cursor-theme rendering, it doesn't depend on
+    whatever is broken about cursors here - confirmed working by the user. Also swapped the
+    connector's cursor from `hand2` to `target` (a bullseye) on the user's suggestion - a better
+    semantic fit for "aim here to drag out a link" than a plain pointing hand, which stays reserved
+    for the "click to open" URL-hover case. Verified headlessly with carefully-isolated coordinates
+    for each zone (an earlier pass had accidentally tested overlapping zones, e.g. a point that
+    matches both the connector and the right edge since they share the same x-position): connector
+    -> `target` cursor + blue oval, both edges -> `sb_h_double_arrow` + green line, body -> `fleur`
+    + dashed rectangle, and `<Leave>` still correctly clears everything.
+  - **Open issue, deliberately parked**: the user restarted their machine (hoping a pending
+    Wayland/OS update was the cause) and the native cursor shape still does not render, even though
+    `task_canvas.cget('cursor')` reports the correct value at every step (confirmed above) - so this
+    is specifically a display/rendering problem, not a logic bug in this codebase, and not something
+    a code change here is likely to fix. Not investigated further for now; the canvas-drawn
+    highlight + hover-status label are the reliable, working substitutes in the meantime. Worth
+    revisiting later if it turns out to matter more than it does today, but low priority given the
+    substitutes already cover the actual need (knowing what a click-drag will do before committing
+    to it).
 
 ## Remaining work
 

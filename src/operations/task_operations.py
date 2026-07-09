@@ -96,6 +96,13 @@ class TaskOperations:
         canvas_x = self.controller.task_canvas.canvasx(x)
         canvas_y = self.controller.task_canvas.canvasy(y)
 
+        # Clear any previous hover highlight before deciding the new one -
+        # only one zone can be "current" at a time, and this also covers
+        # the case where the mouse has moved off every task entirely.
+        if self.controller.hover_highlight_id:
+            self.controller.task_canvas.delete(self.controller.hover_highlight_id)
+            self.controller.hover_highlight_id = None
+
         # Check if we're over a task edge or body
         task_ui_elements = self.controller.ui.task_ui_elements
 
@@ -108,28 +115,64 @@ class TaskOperations:
                 ui_elements['connector_x'],
                 ui_elements['connector_y'],
             )
-            connector_radius = 5
+            # Shared with the drawn connector size (see
+            # `connector_hit_radius`) so the clickable zone always matches
+            # what's actually visible, and re-used for the edge tolerance
+            # too - both are small, precise targets that should get easier
+            # to hit as the view zooms in, not stay pinned to a fixed pixel
+            # count regardless of how large everything else has gotten.
+            hit_radius = self.controller.connector_hit_radius()
 
             # Connector (for adding dependencies)
             if (
-                connector_x - connector_radius
+                connector_x - hit_radius
                 < canvas_x
-                < connector_x + connector_radius
-                and connector_y - connector_radius
+                < connector_x + hit_radius
+                and connector_y - hit_radius
                 < canvas_y
-                < connector_y + connector_radius
+                < connector_y + hit_radius
             ):
-                self.controller.task_canvas.config(cursor='hand2')
+                # 'target' (a bullseye) reads as "aim here to drag out a
+                # link" much better than a plain pointing hand, which is
+                # already used for the "click to open" URL case below.
+                self.controller.task_canvas.config(cursor='target')
+                self.controller.hover_status.config(
+                    text=f'Hover: Connector (Task {task_id}) - drag to link',
+                    bg='#cfe2ff',
+                )
+                # Canvas-drawn highlight ring around the connector - the
+                # actual, reliable signal (see reset_hover_state's docstring
+                # for why the cursor shape alone isn't enough here).
+                ring = hit_radius + 4
+                self.controller.hover_highlight_id = self.controller.task_canvas.create_oval(
+                    connector_x - ring, connector_y - ring,
+                    connector_x + ring, connector_y + ring,
+                    outline='#0d6efd', width=3, tags=('hover_highlight',),
+                )
                 return
 
             # Left edge (for resizing)
-            if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
+            if abs(canvas_x - x1) < hit_radius and y1 < canvas_y < y2:
                 self.controller.task_canvas.config(cursor='sb_h_double_arrow')
+                self.controller.hover_status.config(
+                    text=f'Hover: Left edge (Task {task_id}) - drag to resize',
+                    bg='#d4edda',
+                )
+                self.controller.hover_highlight_id = self.controller.task_canvas.create_line(
+                    x1, y1, x1, y2, fill='#198754', width=5, tags=('hover_highlight',),
+                )
                 return
 
             # Right edge (for resizing)
-            if abs(canvas_x - x2) < 5 and y1 < canvas_y < y2:
+            if abs(canvas_x - x2) < hit_radius and y1 < canvas_y < y2:
                 self.controller.task_canvas.config(cursor='sb_h_double_arrow')
+                self.controller.hover_status.config(
+                    text=f'Hover: Right edge (Task {task_id}) - drag to resize',
+                    bg='#d4edda',
+                )
+                self.controller.hover_highlight_id = self.controller.task_canvas.create_line(
+                    x2, y1, x2, y2, fill='#198754', width=5, tags=('hover_highlight',),
+                )
                 return
 
             # Task body (for moving or URL hover)
@@ -144,13 +187,50 @@ class TaskOperations:
                         and text_bbox[1] <= canvas_y <= text_bbox[3]
                     ):
                         self.controller.task_canvas.config(cursor='hand2')
+                        self.controller.hover_status.config(
+                            text=f'Hover: Task {task_id} URL - click to open',
+                            bg='#cfe2ff',
+                        )
+                        self.controller.hover_highlight_id = self.controller.task_canvas.create_rectangle(
+                            x1 - 3, y1 - 3, x2 + 3, y2 + 3,
+                            outline='#0d6efd', width=2, tags=('hover_highlight',),
+                        )
                         return
 
                 self.controller.task_canvas.config(cursor='fleur')
+                self.controller.hover_status.config(
+                    text=f'Hover: Task {task_id} body - drag to move',
+                    bg='#fff3cd',
+                )
+                # Dashed so it reads as "hovering", distinct at a glance
+                # from the solid orange rectangle highlight_selected_tasks
+                # draws for an actually-selected task.
+                self.controller.hover_highlight_id = self.controller.task_canvas.create_rectangle(
+                    x1 - 3, y1 - 3, x2 + 3, y2 + 3,
+                    outline='#997404', width=2, dash=(4, 3), tags=('hover_highlight',),
+                )
                 return
 
         # Reset cursor if not over a task
+        self.reset_hover_state()
+
+    def reset_hover_state(self, event=None):
+        """Reset the cursor and hover-status label to their neutral state.
+        Shared between on_task_hover's own "not over anything" fallthrough
+        and a `<Leave>` binding on task_canvas: `<Motion>` only fires while
+        the cursor is inside the canvas, so moving off a task's body
+        straight out of the canvas entirely (into the timeline header,
+        resource panel, or off the window) - without passing over empty
+        grid space first - left the last hover state stuck indefinitely,
+        since nothing ever fired to reset it.
+        """
         self.controller.task_canvas.config(cursor='')
+        self.controller.hover_status.config(
+            text='Hover: -', bg=self.controller.hover_status_default_bg
+        )
+        if self.controller.hover_highlight_id:
+            self.controller.task_canvas.delete(self.controller.hover_highlight_id)
+            self.controller.hover_highlight_id = None
 
     def edit_task_name(self, parent=None, task=None):
         """Edit the name of the selected task"""
@@ -2188,6 +2268,33 @@ class TaskOperations:
 
     def on_task_press(self, event):
         """Handle mouse press on tasks or grid"""
+        # Defensive: a new press unambiguously means any previous
+        # drag-in-progress state is stale - its own release should already
+        # have cleared it, but if that release never fired for any reason
+        # (e.g. released outside the canvas, or any other interruption),
+        # these flags would otherwise stay stuck forever. on_task_drag
+        # checks them *before* reaching the connector/edge-resize/move
+        # logic, so a stuck flag silently disables every other drag
+        # interaction (including ones unrelated to whichever drag got
+        # interrupted) until the app is restarted.
+        if self.controller.marquee_select_in_progress:
+            if self.controller.rubberband:
+                self.controller.task_canvas.delete(self.controller.rubberband)
+            self.controller.marquee_select_in_progress = False
+            self.controller.marquee_start = None
+            self.controller.rubberband = None
+        if self.controller.new_task_in_progress:
+            if self.controller.rubberband:
+                self.controller.task_canvas.delete(self.controller.rubberband)
+            self.controller.new_task_in_progress = False
+            self.controller.new_task_start = None
+            self.controller.rubberband = None
+        if self.controller.dragging_connector:
+            if self.controller.connector_line:
+                self.controller.task_canvas.delete(self.controller.connector_line)
+            self.controller.dragging_connector = False
+            self.controller.connector_line = None
+
         x, y = event.x, event.y
 
         # Convert canvas coordinates to account for scrolling
@@ -2213,15 +2320,20 @@ class TaskOperations:
                 ui_elements['connector_x'],
                 ui_elements['connector_y'],
             )
-            connector_radius = 5
+            # Shared with the drawn connector size and on_task_hover's hover
+            # detection (see `connector_hit_radius`) - previously a fixed
+            # 5px regardless of zoom, while the drawn dot scaled up to 8px,
+            # so at high zoom the visible dot extended past its own
+            # clickable area on top of an already-small 5px target.
+            hit_radius = self.controller.connector_hit_radius()
 
             if (
-                connector_x - connector_radius
+                connector_x - hit_radius
                 < canvas_x
-                < connector_x + connector_radius
-                and connector_y - connector_radius
+                < connector_x + hit_radius
+                and connector_y - hit_radius
                 < canvas_y
-                < connector_y + connector_radius
+                < connector_y + hit_radius
             ):
                 self.controller.selected_task = self.model.get_task(task_id)
                 self.controller.dragging_connector = True
@@ -2239,7 +2351,7 @@ class TaskOperations:
                 return
 
             # Check if clicking on left edge (for left resize)
-            if abs(canvas_x - x1) < 5 and y1 < canvas_y < y2:
+            if abs(canvas_x - x1) < hit_radius and y1 < canvas_y < y2:
                 task = self.model.get_task(task_id)
                 self.controller.selected_task = task
 
@@ -2257,7 +2369,7 @@ class TaskOperations:
                 break
 
             # Check if clicking on right edge (for right resize)
-            if abs(canvas_x - x2) < 5 and y1 < canvas_y < y2:
+            if abs(canvas_x - x2) < hit_radius and y1 < canvas_y < y2:
                 task = self.model.get_task(task_id)
                 self.controller.selected_task = task
 

@@ -93,6 +93,13 @@ class TaskResourceManager:
         self.marquee_select_in_progress = False
         self.marquee_start = None
 
+        # Transient hover highlight (canvas item id) drawn directly at the
+        # connector/edge being hovered - a substitute for the cursor-shape
+        # change in on_task_hover, which doesn't render on every
+        # platform/WM. Canvas drawing goes through Tk's own painting, so
+        # it's reliable regardless of what's broken about cursor theming.
+        self.hover_highlight_id = None
+
         # Task selection mode
         self.multi_select_mode = False
 
@@ -192,6 +199,22 @@ class TaskResourceManager:
             self.status_bar, text='Default Project: None', anchor=tk.W, padx=5
         )
         self.default_project_status.pack(side=tk.LEFT)
+
+        # Hover-state diagnostic - the cursor-change feedback in
+        # on_task_hover isn't rendering reliably on this platform/WM at all,
+        # confirmed by the user, so this is the actual primary visual
+        # signal for what a click-drag will do (connector-link vs
+        # edge-resize vs move), not just a debugging aid. Background color
+        # is used as a substitute for the missing cursor cue - color
+        # rendering goes through Tk's own painting, independent of the
+        # platform cursor-theme rendering that isn't working here. Width
+        # sized for the longest message ("Hover: Right edge (Task 12) -
+        # drag to resize") with a bit of margin.
+        self.hover_status = tk.Label(
+            self.status_bar, text='Hover: -', anchor=tk.W, padx=5, width=48
+        )
+        self.hover_status.pack(side=tk.LEFT)
+        self.hover_status_default_bg = self.hover_status.cget('bg')
 
         # Status message for filters
         self.filter_status = tk.Label(
@@ -348,6 +371,22 @@ class TaskResourceManager:
         x2 = x1 + width
         y2 = y1 + self.task_height
         return x1, y1, x2, y2
+
+    def connector_hit_radius(self):
+        """The task connector dot's radius, scaled with zoom - shared by
+        both drawing (`UIComponents.draw_task`) and hit-testing
+        (`TaskOperations.on_task_press`/`on_task_hover`) so they can never
+        drift apart. They used to compute this independently - drawing
+        scaled with zoom while hit-testing stayed a fixed 5px - so at high
+        zoom the visibly-drawn dot extended past its own clickable area, on
+        top of an already-small 5px target to begin with. Widened
+        significantly beyond just matching the two: a real reported click
+        at 300% zoom landed 14px from the connector's center - a
+        size-matched ~8px radius still wouldn't have covered it, so 5px was
+        simply too tight a tolerance for realistic mouse aiming, not just
+        inconsistent between drawing and hit-testing.
+        """
+        return max(8, min(20, 5 * self.zoom_level))
 
     def convert_ui_to_model_coordinates(self, x, y):
         """Convert UI coordinates to model coordinates (row, col)."""

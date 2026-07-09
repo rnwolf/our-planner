@@ -507,6 +507,14 @@ class UIComponents:
         self.controller.task_canvas.bind(
             '<Motion>', self.controller.task_ops.on_task_hover
         )
+        # <Motion> only fires while the cursor is inside the canvas, so
+        # moving off a task straight out of the canvas entirely (rather
+        # than via empty grid space first) never re-triggered on_task_hover
+        # to reset the cursor/hover-status label - <Leave> fires
+        # specifically for "cursor exited this widget" and closes that gap.
+        self.controller.task_canvas.bind(
+            '<Leave>', self.controller.task_ops.reset_hover_state
+        )
         self.controller.task_canvas.bind(
             '<ButtonPress-3>', self.controller.task_ops.on_right_click
         )
@@ -2242,10 +2250,10 @@ class UIComponents:
                 tags=('task', 'task_tags', f'task_tags_{task_id}'),
             )
 
-        # Add grab connector circle - scale the size with zoom
-        connector_radius = max(
-            4, min(8, 5 * self.controller.zoom_level / 2)
-        )  # Scale with zoom, with min/max limits
+        # Add grab connector circle - scale the size with zoom. Shared with
+        # the hit-test in on_task_press/on_task_hover so drawn size and
+        # clickable size can never drift apart.
+        connector_radius = self.controller.connector_hit_radius()
         connector_x = x2
         connector_y = (y1 + y2) / 2
         connector_id = self.controller.task_canvas.create_oval(
