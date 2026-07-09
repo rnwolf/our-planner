@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import font as tkfont
 import webbrowser
 from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
@@ -514,6 +515,32 @@ class UIComponents:
             'dependency', '<ButtonPress-3>', self.controller.task_ops.on_dependency_right_click
         )
 
+        # Arrow-key grid navigation - the scrollbars are thin and fiddly to
+        # grab precisely, especially once zoomed in. Bound on root rather
+        # than task_canvas specifically: root.bind() only needs the *window*
+        # to have OS-level keyboard focus (true as soon as the user clicks
+        # anywhere in it), whereas binding to one specific child widget
+        # depends on that widget holding Tk's internal focus too - a much
+        # more fragile, window-manager-dependent thing that isn't
+        # guaranteed to follow a plain click on every platform/WM. Every
+        # text-entry widget in this app (date entry, tag entry, etc.) lives
+        # inside a grab_set()'d dialog, so a dialog's own arrow-key use
+        # (cursor movement, list navigation) still can't be interfered with
+        # here - a dialog's local grab blocks root-level bindings entirely
+        # while it's open.
+        self.controller.root.bind(
+            '<Left>', lambda e: self.controller.scroll_task_grid(dx_cells=-1)
+        )
+        self.controller.root.bind(
+            '<Right>', lambda e: self.controller.scroll_task_grid(dx_cells=1)
+        )
+        self.controller.root.bind(
+            '<Up>', lambda e: self.controller.scroll_task_grid(dy_rows=-1)
+        )
+        self.controller.root.bind(
+            '<Down>', lambda e: self.controller.scroll_task_grid(dy_rows=1)
+        )
+
         # Create a resizer between task and resource grids
         self.grid_resizer_frame = tk.Frame(
             self.controller.main_frame, height=5, bg='gray', cursor='sb_v_double_arrow'
@@ -562,6 +589,19 @@ class UIComponents:
 
         # Add Ctrl+0 keyboard shortcut to reset zoom
         self.controller.root.bind('<Control-0>', lambda e: self.controller.reset_zoom())
+
+        # Keyboard zoom shortcuts, equivalent to Ctrl+mousewheel. '+' and '='
+        # are the same physical key on most keyboards (shifted/unshifted),
+        # as are '-' and '_' - bind both of each pair so neither zoom
+        # direction requires remembering whether shift is needed.
+        for key in ('<Control-plus>', '<Control-equal>', '<Control-KP_Add>'):
+            self.controller.root.bind(
+                key, lambda e: self.controller.zoom_via_keyboard(1)
+            )
+        for key in ('<Control-minus>', '<Control-underscore>', '<Control-KP_Subtract>'):
+            self.controller.root.bind(
+                key, lambda e: self.controller.zoom_via_keyboard(-1)
+            )
 
         # Add Ctrl+E for export
         self.controller.root.bind(
@@ -1274,6 +1314,24 @@ class UIComponents:
         # Draw dependencies
         self.draw_dependencies()
 
+    def _truncate_text_to_width(self, text, font, max_width, suffix=''):
+        """Truncate `text` with a trailing ellipsis (before `suffix`, e.g. a
+        closing bracket that should survive truncation) so `text + suffix`
+        fits within `max_width` pixels for the given font, shrinking `text`
+        from the end until `text + '...' + suffix` fits. Returns
+        `(display_text, was_truncated)` - callers use `was_truncated` to
+        decide whether a tooltip with the full text is worth adding.
+        """
+        if font.measure(text + suffix) <= max_width:
+            return text + suffix, False
+
+        truncated = text
+        while truncated and font.measure(truncated + '...' + suffix) > max_width:
+            truncated = truncated[:-1]
+        return (
+            (truncated + '...' + suffix) if truncated else ('...' + suffix)
+        ), True
+
     def add_tag_tooltip(self, canvas, item_id, tooltip_text):
         """Add a tooltip to a canvas item with better tracking."""
         # Create a class attribute to track active tooltips if it doesn't exist
@@ -1748,15 +1806,30 @@ class UIComponents:
 
             # Create resource name with tag indicators
             resource_text = resource['name']
-
-            # Bind right-click event to show context menu
-            tag_y = y + self.controller.task_height / 2
             resource_id = resource['id']
+
+            # Split the row into two independent, non-overlapping zones
+            # when a tag will also be shown - name in the upper half, tag
+            # in the lower half - rather than centering the name and
+            # positioning the tag as an offset *from* it. That older
+            # formula coupled the tag's position to tag_font_size itself,
+            # so the two could grow to overlap each other even though each
+            # individually still fit within the row's own outer boundary.
+            has_tags = (
+                bool(resource.get('tags'))
+                and self.show_tags_var.get()
+                and self.controller.resource_tag_zone_fits()
+            )
+            if has_tags:
+                name_y = y + self.controller.task_height / 4
+                tag_y = y + self.controller.task_height * 3 / 4
+            else:
+                name_y = y + self.controller.task_height / 2
 
             # Draw resource name centered in wider column
             name_id = self.controller.resource_label_canvas.create_text(
                 self.controller.label_column_width / 2,  # Center in wider column
-                tag_y,
+                name_y,
                 text=resource_text,
                 anchor='center',
                 font=(
@@ -1774,17 +1847,38 @@ class UIComponents:
             )
 
             # Draw tags if present - centered in wider column
-            if 'tags' in resource and resource['tags'] and self.show_tags_var.get():
+            if has_tags:
                 tag_text = ', '.join(resource['tags'])
+                full_text = f'[{tag_text}]'
+                tag_font = tkfont.Font(family='Arial', size=self.controller.tag_font_size)
+                display_text, was_truncated = self._truncate_text_to_width(
+                    f'[{tag_text}',
+                    tag_font,
+                    self.controller.label_column_width - 10,
+                    suffix=']',
+                )
                 tag_id = self.controller.resource_label_canvas.create_text(
                     self.controller.label_column_width / 2,  # Center in wider column
-                    tag_y
-                    + self.controller.tag_font_size
-                    + 3,  # Scale the spacing with font
-                    text=f'[{tag_text}]',
+                    tag_y,
+                    text=display_text,
                     anchor='center',
                     font=('Arial', self.controller.tag_font_size),
                     tags=(f'resource_tags_{resource_id}',),
+                )
+                if was_truncated:
+                    self.add_tag_tooltip(
+                        self.controller.resource_label_canvas, tag_id, full_text
+                    )
+
+                # Right-click on the tag text itself should reach the same
+                # "Edit Resource Tags" menu as right-clicking the name above
+                # it - previously only the name had this binding, so
+                # right-clicking directly on the tags (the natural thing to
+                # try when you want to edit them) silently did nothing.
+                self.controller.resource_label_canvas.tag_bind(
+                    f'resource_tags_{resource_id}',
+                    '<ButtonPress-3>',
+                    lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
                 )
 
         # Draw bottom line

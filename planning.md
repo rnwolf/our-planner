@@ -786,19 +786,162 @@ Small, unrelated-to-CCPM items flagged during this session's testing — not urg
 and fix immediately, but real annoyances likely to be hit by other testers too, and distracting
 from evaluating the actual planning features. Worth picking up opportunistically.
 
-- **Keyboard zoom shortcuts.** Zoom currently only works via `Ctrl` + mouse wheel/middle-mouse
-  (fixed earlier this session for Linux's `Button-4`/`Button-5` scroll events). Add `Ctrl-+` (zoom
-  in) and `Ctrl--` (zoom out) as keyboard equivalents, reusing the same `on_zoom` logic the scroll
-  handler already calls. Should bind both the shifted `+` key and the unshifted `=` key on the same
-  physical key (`<Control-plus>`/`<Control-equal>`), since requiring the shift key for zoom-in but
-  not zoom-out is an easy inconsistency to trip over.
-- **Text overflow at higher zoom levels.** Two spots noticed so far:
-  - Timeline header text (dates/column labels) overflows its row once zoomed in past some point -
-    font size doesn't appear to be capped/scaled sensibly relative to the row height at high zoom.
-  - The resource loading indicator's text (allocation/percentage shown per grid cell) overflows its
-    own cell similarly, making it hard to read at higher zoom.
-  - Not diagnosed further yet - likely needs the font size to be clamped against the actual
-    cell/row pixel size at the current zoom level, rather than scaling unbounded with zoom.
+- **Arrow-key grid navigation (fixed, one iteration).** Requested after repeatedly finding the
+  scrollbars too thin and fiddly to grab precisely, especially once zoomed in.
+  `scroll_task_grid(dx_cells, dy_rows)` (`task_manager.py`) scrolls the task grid by exactly one
+  `cell_width`/`task_height` per key press (whatever they currently are at the active zoom level -
+  fraction math mirrors the same pattern `on_zoom` already uses for precise positioning) rather
+  than relying on Canvas's own imprecise built-in "unit" scroll amount. `<Left>`/`<Right>` call
+  `sync_horizontal_scroll`, `<Up>`/`<Down>` call `sync_vertical_scroll` (`ui_components.py`) -
+  reusing the exact same sync methods the scrollbars themselves already call, so the timeline and
+  task-label canvases stay aligned automatically; deliberately does *not* touch the resource grid's
+  own separate vertical scroll region, since this is grid-specific navigation, not "move
+  everything."
+  - **First attempt bound the keys to `task_canvas` itself** (relying on `task_canvas.focus_set()`
+    at startup and on every grid click) reasoning that this would naturally scope the feature away
+    from dialogs. Verified headlessly via `event_generate` and appeared to work - but
+    `event_generate` injects synthetic events directly into Tk's queue, bypassing the operating
+    system entirely, so it only proved the binding *logic* was correct, not that a real physical
+    key-press would reach that specific widget. The user reported it not working after a real
+    click in the actual running app: `focus_set()` only requests focus *within* the Tk
+    application - it doesn't guarantee the window manager has actually made that widget (as
+    opposed to some other part of the window, or the window not being considered active at all)
+    the real keyboard target, which is a much more fragile, WM/platform-dependent thing than it
+    appears from headless testing alone.
+  - **Fixed by binding to `root` instead.** `root.bind()` only needs the whole *window* to have
+    OS-level keyboard focus - true as soon as the user clicks anywhere in it - rather than one
+    specific child widget holding Tk's internal focus too. Every text-entry widget in this app
+    (date entry, tag entry, tkcalendar, etc.) lives inside a `grab_set()`'d dialog, confirmed by
+    checking every `tk.Entry`/`tk.Text` instance in `ui_components.py` - so a dialog's own
+    arrow-key use (cursor movement, calendar day navigation) still can't be interfered with here:
+    a dialog's local grab blocks root-level bindings from firing at all while it's open, which
+    needed no special-casing to get for free.
+  - Verified headlessly against a real `TaskResourceManager`, this time including the actual
+    mechanism being relied on rather than just the scroll math: real `event_generate('<Right>')`
+    scrolled `task_canvas` correctly with `timeline_canvas` staying in sync when only `root` (not
+    any specific child widget) had focus; and, with a real `grab_set()`'d `Toplevel` and a focused
+    `Entry` inside it, confirmed the root-level arrow-key binding was completely blocked from
+    firing while the entry's own cursor-movement behavior kept working normally.
+- **Keyboard zoom shortcuts (fixed).** Added `Ctrl-+`/`Ctrl-=` (zoom in) and `Ctrl--` (zoom out) as
+  keyboard equivalents to `Ctrl`+mouse wheel, via a new `zoom_via_keyboard(direction)`
+  (`task_manager.py`) that reuses `on_zoom`'s exact logic through a synthetic event - the same
+  approach already used for Linux's `Button-4`/`Button-5` scroll events. Bound both the shifted
+  `+`/unshifted `=` keysyms (`<Control-plus>`/`<Control-equal>`) for zoom in, and both `-`/`_`
+  (`<Control-minus>`/`<Control-underscore>`) for zoom out, plus the numpad equivalents
+  (`<Control-KP_Add>`/`<Control-KP_Subtract>`) - same physical key either way, so neither direction
+  requires remembering whether shift is needed. A keyboard shortcut has no mouse position to anchor
+  the zoom on (unlike scroll-wheel zoom, which keeps the point under the cursor fixed), so it zooms
+  toward the center of the current viewport instead. Verified both by calling the method directly
+  and via real `event_generate('<Control-plus>')`/`('<Control-minus>')` calls against a live
+  `TaskResourceManager`.
+- **Text overflow at higher zoom levels (fixed).** Two spots, both confirmed with real
+  `tkinter.font.Font` measurements rather than guessing, and both root-caused to the same pattern:
+  a font size that grows with zoom (`font_scale_factor = max(1.0, zoom_level * 0.8)`, no ceiling)
+  measured against a dimension that doesn't grow enough (or at all) to keep up.
+  - **Timeline header** (`timeline_font_size`): the three stacked rows (month/date/day) share a
+    *fixed* `timeline_height` that never scales with zoom. Measuring actual font metrics
+    (`Font.metrics('linespace')`) showed the default 8pt font is already 25px tall in a ~20px row
+    even at 100% zoom (not exclusively a high-zoom problem, just far more visually obvious once the
+    gap widens further with zoom) - the three rows' text would genuinely bleed into each other at
+    the row boundaries, not just get clipped. Fixed with `_clamp_timeline_font_size()`
+    (`task_manager.py`), which shrinks the font down (never below 6pt) until its measured
+    `linespace` fits the actual `timeline_height / 3`, applied in both `on_zoom` and `reset_zoom`.
+    This does mean the timeline font is now 6pt even at default 100% zoom (down from 8pt) rather
+    than growing with zoom at all past that point - a deliberate, discussed trade-off in favor of a
+    simple, low-risk fix (pure font-size logic, no changes to `timeline_height` or the pane-height
+    layout math that caused several tricky bugs earlier this session) over a fully "correct" one
+    that would keep 8pt at baseline by scaling the header rows themselves with zoom.
+  - **Resource loading indicator** (`resource_font_size`): here `cell_width` *does* scale with
+    zoom, so this could be fixed without any baseline visual change. `_clamp_resource_font_size()`
+    shrinks the font (never below 6pt) until it measures within `cell_width` for a generous
+    worst-case load/capacity string (`'99.9/99.9'`) - sized against a fixed reference string rather
+    than each cell's actual text, so every cell shares one consistent font size instead of varying
+    cell-by-cell. Verified against the realistic `'0.5/1.0'`-style text actually seen in the app:
+    fits cleanly from 110% zoom upward, with a negligible 3px overflow remaining only exactly at
+    100% zoom (down from 21px before the fix) - a pre-existing baseline tightness for that specific
+    string length, not something that gets worse with zoom, and not what was reported.
+  - Both `_clamp_*_font_size` helpers share a small `_max_font_size_that_fits(ideal_size, min_size,
+    max_pixels, measure_fn)` helper (`task_manager.py`) that shrinks a candidate size using a real
+    `tkinter.font.Font` instance rather than an estimated ratio.
+  - **Follow-on: resource tags (fixed, took two iterations).** A third spot noticed afterward,
+    using the same shared `tag_font_size` as task tags: the resource label's tag line is drawn
+    below its name at `task_height/2 + tag_font_size + 3` (`draw_resource_grid`) - as the font grows
+    with zoom, both its own height *and* its distance from the row's center grow together, so it
+    outgrows the row faster than the timeline/resource-loading cases even though `task_height` does
+    scale with zoom. First pass added `_clamp_tag_font_size()` (`task_manager.py`), clamping against
+    the tag line's own computed bottom edge using the same formula the drawing code itself uses -
+    verified correct against real font metrics, but the user reported no visible difference.
+    - **Root cause of the miss**: `resource_font_size` - used for the resource *name* text directly
+      above the tag line, sharing the row with it - had only ever been clamped against `cell_width`
+      (a different dimension, in the loading-grid's own column, from an earlier fix). It was never
+      checked against the row's height at all, so the name text itself kept growing unbounded with
+      zoom regardless of the tag fix, which is what the screenshot actually showed overflowing.
+    - `_clamp_resource_font_size()` now also clamps against half of `task_height` (leaving room for
+      the tag line below), in addition to its existing `cell_width` clamp for the loading-grid
+      numbers - one variable, two independent constraints, both now enforced.
+    - Verified this second pass by rendering the *actual* `draw_resource_grid` output (not just
+      reimplemented formula checks, which is exactly what missed the gap the first time) via
+      headless Tk + `postscript()` + Ghostscript, at a zoom level matching the reported screenshot's
+      density (2.2x, `task_height=66px`) - every resource's name and tag sat cleanly within their
+      own row. The user reported *still* no visible difference after a confirmed fresh restart.
+    - **Actual root cause, third pass**: `TaskResourceManager.__init__` set the app's *initial*
+      font sizes directly from the raw base values (`self.tag_font_size = self.base_tag_font_size`,
+      etc.) - completely bypassing every one of these clamp functions, which only ever ran inside
+      `on_zoom`/`reset_zoom`. So the very first, never-zoomed view (almost certainly what was being
+      re-tested after each restart) always showed the old unclamped sizes regardless of how correct
+      the zoom-time fix was - explaining why *every* one of this session's zoom-related font fixes
+      (timeline, resource-loading numbers, resource name, resource tag) kept "not working": none of
+      them had ever actually been exercised at the point being tested. Fixed by routing `__init__`'s
+      initial values through the exact same `_clamp_timeline_font_size`/`_clamp_resource_font_size`/
+      `_clamp_tag_font_size` calls `on_zoom`/`reset_zoom` already use. Confirmed via a fresh
+      (never-zoomed) `TaskResourceManager` instance: `resource_font_size`/`tag_font_size`/
+      `timeline_font_size` all now come out clamped to 6pt at startup (previously 8/7/8pt
+      unclamped) - the user still reported no visible difference after this fix too.
+    - **Fourth pass - the actual remaining bug, and a request to go with it**: the name and tag
+      clamps each independently checked their own text against the row's *outer* boundary, but
+      never checked against *each other* - the name (centered at the row's midpoint) and the tag
+      (positioned as an offset below that same midpoint, using `tag_font_size` for the offset
+      itself) could each individually "fit the row" while still overlapping each other in the
+      middle. Confirmed numerically: at 100% zoom, even both floored to 6pt, the name spans
+      roughly [5.5, 24.5]px and the tag [14.5, 33.5]px - a real 10px overlap. The user separately
+      asked for the name to be nudged up so the two "don't compete for attention," which is the
+      same underlying fix. Redesigned `draw_resource_grid` (`ui_components.py`) to use two fixed,
+      independent zones instead of a name-centered-plus-offset formula: when a tag is shown, the
+      name sits at the row's upper quarter and the tag at its lower quarter - a pure geometric
+      split with no dependency on either font's own size, so they can no longer grow into each
+      other. `_clamp_tag_font_size` (`task_manager.py`) simplified to match - it now only needs to
+      fit its own linespace within half the row height, the same check `_clamp_resource_font_size`
+      already does for the name.
+    - **Residual, resolved decisively rather than left as a caveat**: at 100%-120% zoom, the row is
+      genuinely too short to fit two stacked lines without overlap even at the 6pt floor - a real
+      physical space constraint. Rather than report yet another "small residual," added
+      `resource_tag_zone_fits()` (`task_manager.py`): when there truly isn't room, the tag line is
+      suppressed entirely (name only) instead of rendering overlapping/garbled text, and it
+      reappears automatically once zooming in enough to fit (confirmed at exactly 130% zoom in
+      testing). Verified both states by rendering the actual `draw_resource_grid` output at 100%
+      zoom (tags cleanly absent) and 200% zoom (name and tag clearly separated, no overlap).
+    - **Follow-on: long tag lists overflowing the label column width.** The vertical fix above says
+      nothing about horizontal space - a resource with many tags (e.g.
+      `[team1, developer, senior, backend, on-call, contractor]`) had no width constraint at all
+      and would overflow past the label column's edges into whatever's drawn next to it. Fixed with
+      `UIComponents._truncate_text_to_width(text, font, max_width, suffix='')` - shrinks `text` from
+      the end until `text + '...' + suffix` fits, with `suffix` (the closing `]`) guaranteed to
+      survive truncation rather than getting chopped along with everything else. When truncated, a
+      tooltip with the full untruncated tag list is added via the existing `add_tag_tooltip()`
+      (already used elsewhere for task tooltips) - hover to see the whole list. Verified: a
+      6-tag resource truncates to `[team1, developer, senio...]` (bracket intact, tooltip bound)
+      while a 1-tag resource on the same row draws untruncated with no tooltip added.
+    - **Follow-on: right-click on the tag text itself didn't work (fixed).** The user reported
+      there seemed to be no way to edit a resource's tags at all - the feature already existed
+      (right-click a resource's *name* -> `Edit Resource Tags`), but the `<ButtonPress-3>` binding
+      was only ever attached to the name text item, never to the tag text below it. Right-clicking
+      directly on the tags themselves - the natural thing to try when you want to edit them,
+      especially now that they sit in their own zone lower in the row - silently did nothing,
+      which reasonably read as "this feature doesn't exist." Fixed by adding the same
+      `show_resource_context_menu` binding to the `resource_tags_{resource_id}` canvas tag. Verified
+      with a real simulated `<ButtonPress-3>` event at the tag text's actual on-screen coordinates
+      (not just checking the binding exists) - correctly posts the context menu and sets
+      `selected_resource_id`.
 - **Resource panel not resizing with the window (fixed, took several iterations).** Originally
   reported as a grey dead-space block beneath the last resource row at a small default window
   size; re-reported after maximizing as the label column simply not growing into the newly

@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import font as tkfont
 
 from src.model import TaskResourceModel
 from src.view import UIComponents
@@ -58,11 +59,19 @@ class TaskResourceManager:
         self.base_timeline_font_size = 8  # Base font size for timeline text
         self.base_resource_font_size = 8  # Base font size for resource labels
 
-        # Current font sizes (will be scaled with zoom)
+        # Current font sizes (will be scaled with zoom). Clamped the same
+        # way on_zoom/reset_zoom do - this is the app's initial state,
+        # before any zoom action has ever run, so without this the raw
+        # (unclamped) base values would be what's actually on screen at
+        # startup, regardless of any zoom-time fix.
         self.task_font_size = self.base_task_font_size
-        self.tag_font_size = self.base_tag_font_size
-        self.timeline_font_size = self.base_timeline_font_size
-        self.resource_font_size = self.base_resource_font_size
+        self.tag_font_size = self._clamp_tag_font_size(self.base_tag_font_size)
+        self.timeline_font_size = self._clamp_timeline_font_size(
+            self.base_timeline_font_size
+        )
+        self.resource_font_size = self._clamp_resource_font_size(
+            self.base_resource_font_size
+        )
 
         # Dragging state for resizing panes
         self.dragging_task = None
@@ -364,6 +373,86 @@ class TaskResourceManager:
         """Toggle automatic forward scheduling of dependent successor tasks."""
         self.auto_scheduling_enabled = self.ui.auto_scheduling_var.get()
 
+    def _max_font_size_that_fits(self, ideal_size, min_size, max_pixels, measure_fn):
+        """Shrink a font size down from `ideal_size` (never below `min_size`)
+        until `measure_fn(candidate_size)` - a pixel measurement from a real
+        `tkinter.font.Font` at that size - fits within `max_pixels`. Used to
+        clamp the timeline header and resource loading indicator fonts
+        against their actual (fixed) row/cell pixel size, rather than
+        letting them grow unbounded with zoom and overflow.
+        """
+        size = ideal_size
+        while size > min_size and measure_fn(size) > max_pixels:
+            size -= 1
+        return max(min_size, size)
+
+    def _clamp_timeline_font_size(self, ideal_size):
+        row_height = self.timeline_height / 3
+        return self._max_font_size_that_fits(
+            ideal_size,
+            6,
+            row_height,
+            lambda size: tkfont.Font(family='Arial', size=size).metrics('linespace'),
+        )
+
+    def _clamp_resource_font_size(self, ideal_size):
+        # resource_font_size is used for two different things that share
+        # one variable: the loading-grid numbers (width-constrained by
+        # cell_width) and the resource *name* label (height-constrained by
+        # the row height, task_height) - both need to be satisfied. The
+        # name-label constraint was missing entirely before, which is why
+        # clamping only the loading-grid width didn't stop the resource
+        # name text itself from overflowing its row at high zoom.
+        size = self._max_font_size_that_fits(
+            ideal_size,
+            6,
+            self.cell_width,
+            lambda size: tkfont.Font(family='Arial', size=size).measure('99.9/99.9'),
+        )
+        # Halved: when a tag is shown, the name occupies the upper half of
+        # the row and the tag the lower half (see `draw_resource_grid`/
+        # `_clamp_tag_font_size`) - a fixed geometric split, so the name
+        # only needs to fit within its own half, independent of whatever
+        # size the tag line ends up at.
+        size = self._max_font_size_that_fits(
+            size,
+            6,
+            self.task_height / 2,
+            lambda size: tkfont.Font(family='Arial', size=size).metrics('linespace'),
+        )
+        return size
+
+    def _clamp_tag_font_size(self, ideal_size):
+        """`tag_font_size` is shared by task tags and resource tags. The
+        resource label row is the tighter constraint: when a tag is shown,
+        it occupies the lower half of the row (the name takes the upper
+        half - see `draw_resource_grid`), a fixed geometric split
+        independent of either font's own size, so this only needs to fit
+        its own linespace within that half - no position-dependent
+        coupling that could let it collide with the name above it.
+        """
+        return self._max_font_size_that_fits(
+            ideal_size,
+            6,
+            self.task_height / 2,
+            lambda size: tkfont.Font(family='Arial', size=size).metrics('linespace'),
+        )
+
+    def resource_tag_zone_fits(self):
+        """Whether the current row height genuinely has room to show a
+        resource's tag line below its name without the two overlapping -
+        even the smallest floor font (6pt) can't always fit two stacked
+        lines in a very short row (e.g. task_height below ~40px, which
+        includes the default 100%-120% zoom range). Showing overlapping,
+        garbled text would be worse than simply not showing the tag line
+        until there's enough room - `draw_resource_grid` uses this to
+        decide whether to draw it at all.
+        """
+        linespace = tkfont.Font(
+            family='Arial', size=self.tag_font_size
+        ).metrics('linespace')
+        return linespace <= self.task_height / 2
+
     def on_zoom(self, event):
         """Handle zoom in/out with Ctrl+mouse wheel, ensuring the column under cursor stays fixed
         and scaling fonts, row heights, and label column width appropriately"""
@@ -403,14 +492,14 @@ class TaskResourceManager:
             self.task_font_size = max(
                 7, int(self.base_task_font_size * font_scale_factor)
             )
-            self.tag_font_size = max(
-                6, int(self.base_tag_font_size * font_scale_factor)
+            self.tag_font_size = self._clamp_tag_font_size(
+                max(6, int(self.base_tag_font_size * font_scale_factor))
             )
-            self.timeline_font_size = max(
-                6, int(self.base_timeline_font_size * font_scale_factor)
+            self.timeline_font_size = self._clamp_timeline_font_size(
+                max(6, int(self.base_timeline_font_size * font_scale_factor))
             )
-            self.resource_font_size = max(
-                6, int(self.base_resource_font_size * font_scale_factor)
+            self.resource_font_size = self._clamp_resource_font_size(
+                max(6, int(self.base_resource_font_size * font_scale_factor))
             )
 
             # Update all canvas scrollregions
@@ -475,6 +564,30 @@ class TaskResourceManager:
             # Update title to show current zoom level
             self.update_window_title(self.model.current_file_path, show_zoom=True)
 
+    def zoom_via_keyboard(self, direction):
+        """Zoom in/out via a keyboard shortcut (`Ctrl-+`/`Ctrl-=`/`Ctrl--`),
+        reusing `on_zoom`'s exact logic through a synthetic event - the same
+        approach already used for Linux's `Button-4`/`Button-5` scroll
+        events. A keyboard shortcut has no mouse position to anchor on, so
+        it zooms toward the center of the current viewport instead of
+        wherever the cursor happens to be.
+        """
+        center_x = self.task_canvas.winfo_width() / 2
+        center_y = self.task_canvas.winfo_height() / 2
+        self.on_zoom(
+            type(
+                'event',
+                (),
+                {
+                    'delta': 120 if direction > 0 else -120,
+                    'x': center_x,
+                    'y': center_y,
+                    'state': 0x4,  # Ctrl - on_zoom checks this even though
+                    # a Ctrl-bound keyboard shortcut already implies it.
+                },
+            )
+        )
+
     # Add a method to reset zoom to 100%
     def reset_zoom(self):
         """Reset zoom level to 100% and restore default sizes and fonts"""
@@ -492,9 +605,13 @@ class TaskResourceManager:
 
         # Reset font sizes to base values
         self.task_font_size = self.base_task_font_size
-        self.tag_font_size = self.base_tag_font_size
-        self.timeline_font_size = self.base_timeline_font_size
-        self.resource_font_size = self.base_resource_font_size
+        self.tag_font_size = self._clamp_tag_font_size(self.base_tag_font_size)
+        self.timeline_font_size = self._clamp_timeline_font_size(
+            self.base_timeline_font_size
+        )
+        self.resource_font_size = self._clamp_resource_font_size(
+            self.base_resource_font_size
+        )
 
         # Resize the label column frames and canvases
         self.timeline_label_frame.config(width=self.label_column_width)
@@ -530,6 +647,27 @@ class TaskResourceManager:
 
         # Update window title
         self.update_window_title(self.model.current_file_path)
+
+    def scroll_task_grid(self, dx_cells=0, dy_rows=0):
+        """Scroll the main task grid by whole cells/rows via arrow keys -
+        the scrollbars are thin and fiddly to grab precisely, especially
+        once zoomed in. Scrolls by exactly one `cell_width`/`task_height`
+        (whatever they currently are at the active zoom level) rather than
+        relying on Canvas's own imprecise built-in 'unit' scroll amount.
+        """
+        if dx_cells:
+            total_width = self.cell_width * self.model.days
+            current_left = self.task_canvas.xview()[0] * total_width
+            new_left = current_left + dx_cells * self.cell_width
+            new_fraction = max(0, min(1.0, new_left / total_width))
+            self.ui.sync_horizontal_scroll('moveto', new_fraction)
+
+        if dy_rows:
+            total_height = self.task_height * self.model.max_rows
+            current_top = self.task_canvas.yview()[0] * total_height
+            new_top = current_top + dy_rows * self.task_height
+            new_fraction = max(0, min(1.0, new_top / total_height))
+            self.ui.sync_vertical_scroll('moveto', new_fraction)
 
     def update_all_scrollregions(self):
         """Update scrollregions for all canvases based on the current zoom level and row height"""
