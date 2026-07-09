@@ -780,6 +780,78 @@ produce is correct.
   cross-project isolation fix (a second, unrelated project's buffers must show zero change from an
   update to the first project's tasks).
 
+### Stage 13 — Rolling timeline compaction (design discussion only, not scheduled)
+
+A rolling-wave planning tool will eventually accumulate a grid where the earliest columns are all
+long-completed history with nothing actionable left in them, while there's no room left to plan
+further into the future (`model.days` is a fixed-width window). This stage is **not** queued for
+implementation - it's a design discussion, captured here so the groundwork is understood before
+anyone picks it up.
+
+**Assumed usage pattern** (confirmed with the user, shapes several decisions below): the project
+manager is expected to leave many weeks of completed history sitting in the timeline and only chop
+it off when it's clearly safe to do so - this is an occasional, deliberate housekeeping action by
+someone who already understands the risk, not something the tool needs to manage aggressively or
+automatically. The PM is also expected to be saving the current plan to a version-controlled repo
+as a matter of course, so a past plan can always be recovered from there if needed - the
+application itself is not expected to be the sole source of historical truth. Both points directly
+support the "delete outright, no archive" decision below, and mean the performance question further
+down is unlikely to bite in the first several chop cycles of a given plan's life.
+
+**Grounded in the actual model first**, rather than assumed: checked every timing-related field on
+a task. Only `col` (and the `col`/`duration` inside a task's `baseline` dict) is relative to the
+timeline's day-zero (`model.start_date`). Everything with real reporting value -
+`actual_start_date`, `actual_end_date`, `fullkit_date`, `fever_chart_history[].date`,
+`buffer_size_history[].date` - is an absolute calendar date/string, entirely independent of where
+day-zero sits. So shifting `col` values to compact the timeline does **not** touch or invalidate
+any fever chart history, buffer history, or completion record - a much smaller blast radius than
+"reindex everything" might suggest. Predecessor/successor `lag` values are relative *between
+tasks*, not to day-zero, so links are unaffected by a shift too.
+
+**The mechanism already mostly exists.** `update_project_start_date` (`task_operations.py:1866`)
+already shifts every task's `col` by a date delta and shifts every resource's `capacity` array
+(`_update_resource_capacities_for_date_change`) - and, importantly, it operates on `self.model.tasks`
+globally, not scoped to one project. All projects share a single day-axis (there's no per-project
+timeline), so there's no "whose chop point wins" ambiguity across concurrent projects to design
+around - it's inherently one shared operation. This existing function is **not** safe to reuse
+as-is for a compaction feature, though, for two reasons:
+1. It confirms every deleted task with an individual `messagebox.askyesno` popup - fine for
+   correcting one project's start date by a few days, unworkable for "compact 6 months of
+   completed history across 3 projects" (dozens of dialogs to click through one at a time).
+2. It deletes any task that falls off the edge, completed or not, with no distinction - a
+   delayed-but-not-yet-started task sitting in the chopped region would be silently lost.
+
+**Decisions made in discussion so far:**
+- **Chopped tasks are deleted outright, not archived** - matches how `update_project_start_date`
+  already behaves, and matches the assumed usage pattern above: the PM's own version-controlled
+  save history is the recovery mechanism for old task details, not a feature the app itself needs
+  to build.
+- **The operation warns but allows override** when a task that isn't fully `done` would fall in the
+  chopped region, rather than hard-refusing - flexible, consistent with the "warn, don't block"
+  precedent `update_project_start_date` already sets, but does mean the user can still choose to
+  lose track of an incomplete task if they override the warning.
+
+**Still open:**
+- **Bulk confirmation UX.** Given the decisions above, a compaction feature needs one summary
+  dialog (total tasks to delete, date range, and specifically call out how many are *not* `done` -
+  the risky ones) with a single confirm/cancel, not `update_project_start_date`'s one-popup-per-task
+  pattern, which doesn't scale to a bulk housekeeping operation.
+- **Trigger mechanism.** Leaning toward a manual, explicit, user-triggered action (e.g. a
+  `Compact Timeline...` command) rather than anything automatic - this reindexes a shared,
+  cross-project coordinate system, so it should never happen as a side effect of something else.
+  Not decided whether it should also be proactively *suggested* (e.g. "N days of fully-completed
+  history exist before the earliest active task - compact now?") or purely opt-in.
+- **Growing the right side is comparatively low-risk and likely already solved.** Extending
+  `model.days` and every resource's `capacity` array is exactly what `_ensure_model_days` already
+  does for the CCPM import feature (`file_operations.py`) - the compaction feature's "add columns"
+  half should reuse that rather than building new growth logic. The genuinely new part is
+  specifically the "chop the left" half.
+- **Performance motivation, not yet quantified.** Part of the reason to ever trim rather than just
+  let `model.days` grow indefinitely: `calculate_resource_loading` and related functions iterate
+  every resource's `capacity` array per day (`task_resource_model.py`), so an ever-growing window
+  has a real, if unquantified, per-redraw cost as a plan accumulates years of history. Worth
+  measuring before committing to a design that assumes this is a real problem in practice.
+
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
 Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
