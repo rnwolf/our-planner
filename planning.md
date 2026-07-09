@@ -933,11 +933,14 @@ as-is for a compaction feature, though, for two reasons:
   dialog (total tasks to delete, date range, and specifically call out how many are *not* `done` -
   the risky ones) with a single confirm/cancel, not `update_project_start_date`'s one-popup-per-task
   pattern, which doesn't scale to a bulk housekeeping operation.
-- **Trigger mechanism.** Leaning toward a manual, explicit, user-triggered action (e.g. a
-  `Compact Timeline...` command) rather than anything automatic - this reindexes a shared,
-  cross-project coordinate system, so it should never happen as a side effect of something else.
-  Not decided whether it should also be proactively *suggested* (e.g. "N days of fully-completed
-  history exist before the earliest active task - compact now?") or purely opt-in.
+- **Trigger mechanism.** Leaning toward a manual, explicit, user-triggered action - named
+  `Delete History...`, not `Compact Timeline...` as originally drafted, since "compact" undersells
+  that this is a destructive, delete-outright operation (per the decision above) and "Delete
+  History" says so plainly, matching how directly this codebase already names other destructive
+  actions rather than softening them - rather than anything automatic, since this reindexes a
+  shared, cross-project coordinate system and should never happen as a side effect of something
+  else. Not decided whether it should also be proactively *suggested* (e.g. "N days of
+  fully-completed history exist before the earliest active task - delete now?") or purely opt-in.
 - **Growing the right side is comparatively low-risk and likely already solved.** Extending
   `model.days` and every resource's `capacity` array is exactly what `_ensure_model_days` already
   does for the CCPM import feature (`file_operations.py`) - the compaction feature's "add columns"
