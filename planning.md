@@ -949,6 +949,146 @@ as-is for a compaction feature, though, for two reasons:
   has a real, if unquantified, per-redraw cost as a plan accumulates years of history. Worth
   measuring before committing to a design that assumes this is a real problem in practice.
 
+### Stage 14 — Rename "Aggressive" to "Optimal", and clarify the three-duration workflow
+
+The app's task-estimate terminology is being aligned to: **Realistic = Optimal + Contingency**.
+"Aggressive" carries a negative emotional connotation (implying recklessness) that "Optimal"
+doesn't, for what's meant to be a best-case/50%-confidence estimate. "Realistic" already exists in
+the app today under the name "Safe." The rename itself is small and mechanical; the more important
+part of this stage is the workflow explanation behind it, which corrects an earlier wrong
+assumption (see below) and clarifies what each of the three duration-related fields is actually
+*for* - important groundwork given the currently out-of-scope automated buffer-cutting feature
+(see "Explicitly out of scope" below) is exactly what eventually turns this data into buffers.
+
+**The real-world estimating conversation this models**, as explained by the user: ask the people
+doing the work "how long will this take?" - that answer, which already has normal everyday
+contingency baked in, is the **Realistic** estimate, captured first. Then ask "if everything went
+perfectly, no disruptions, best case - how long?" - that's the **Optimal** estimate. The gap between
+them is the task's individual contingency. A not-yet-built function is meant to eventually strip
+that contingency out of each task, pool the sum of it into that chain's project/feeding buffer, and
+re-schedule the now-shorter tasks against resource availability.
+
+**This means `duration` (the field actually shown on the grid and used for scheduling) is not
+permanently tied to one meaning - it changes over a task's lifecycle**: it starts out equal to the
+Realistic estimate (what's naturally entered first, before any buffer-cutting has happened), and
+would later be *overwritten* to the Optimal estimate once the buffer-cutting function runs and
+pools the difference into a buffer. This is why a separate, permanent field to remember the original
+Realistic estimate is genuinely necessary, not redundant as first assumed when this stage was
+initially drafted - `duration` itself can't be trusted to still hold it later.
+
+**Corrected field mapping** (supersedes the earlier draft of this stage, which incorrectly
+recommended retiring the "Safe" field entirely - wrong, once the above is understood):
+- `duration` - unchanged name, but its *role* should be documented clearly wherever it's defined:
+  the task's current, active, schedulable duration. Starts as a copy of the Realistic estimate;
+  later may be reduced to the Optimal estimate once buffer-cutting (not yet built) runs.
+- `aggressive_duration` -> **`optimal_duration`** - the captured "if everything went perfectly"
+  estimate. Optional/nullable until explicitly set, same as today.
+- `safe_duration` -> **`realistic_duration`** - the captured "how long will this really take"
+  estimate, defaulting to a copy of `duration` at task creation (as today) and then **preserved
+  unchanged even if `duration` itself is later reduced** - a permanent historical record of what was
+  originally estimated, distinct from whatever `duration` currently holds.
+
+**Every current occurrence found** (grep'd, not assumed):
+- User-facing text: `Set Aggressive Duration...` (task context menu, `ui_components.py:870`),
+  the `Aggressive Duration` dialog title and `Enter aggressive duration (days):` prompt
+  (`task_operations.py:3767-3768`), and `Aggressive Duration: N days` shown in both the task
+  tooltip (`ui_components.py:1448`) and the task details dialog (`task_operations.py:3946`).
+  `Safe Duration: N days` (tooltip `ui_components.py:1455`, details dialog
+  `task_operations.py:3951`) and `Baseline Safe Duration: N days` (`task_operations.py:3971`) are
+  the "Realistic" counterparts already in the UI today.
+- Model field: `task['aggressive_duration']` (`task_resource_model.py:526`, default `None`),
+  `model.set_aggressive_duration(task_id, duration)` (`task_resource_model.py:1810`), and its
+  `task_operations.py` wrapper `set_aggressive_duration(task=None)` (`task_operations.py:3756`).
+  `task['safe_duration']` (`task_resource_model.py:525`, defaults to the task's own `duration` at
+  creation) and `model.set_safe_duration(task_id, duration)` (`task_resource_model.py:1827`) are
+  the "Realistic" counterparts.
+- `baseline` dict snapshots also carry a `safe_duration` key (`task_resource_model.py:422, 531`).
+
+**Important asymmetry to design around**: `model.set_safe_duration`/`set_realistic_duration` is
+defined but **never actually called from anywhere** in the operations/UI layer - there's no
+`Set Safe Duration...`/`Set Realistic Duration...` menu item today, unlike Optimal. Given
+`duration` itself already captures the Realistic estimate at creation time (per the workflow
+above), the missing entry point is arguably fine as-is for *initial* capture - but there's
+currently no way to *edit* the preserved `realistic_duration` after the fact if the original
+estimate turns out to have been wrong, the way `Set Aggressive/Optimal Duration...` already allows
+for the optimal side. Worth deciding whether this stage should add that, or whether it's genuinely
+only needed once the buffer-cutting function (which would be the main thing making `duration` and
+`realistic_duration` diverge) actually exists.
+
+**Full internal rename requested, not just displayed text** - the user has explicitly asked for a
+clean internal + wording refactor, not a text-only relabel, specifically because the application
+hasn't been distributed yet and this is the opportunity to fix the inconsistency properly. This
+does mean the model field names themselves change (`aggressive_duration` -> `optimal_duration`,
+`safe_duration` -> `realistic_duration`), which affects the dict keys written into every existing
+saved `.json` file - **no migration needed**: the user confirmed the repo's own `sample-*.json`
+files can simply be deleted and re-saved fresh once the rename is done, rather than needing a
+load-time key migration. Simplifies this stage considerably - it's a clean rename, not a
+compatibility-preserving one.
+
+**Resolved: the buffer-cutting algorithm itself stays out of scope for our-planner, but the
+*strategy* around it is now clear.** The user has a **separate existing repo** with a script that
+computes the actual CCPM schedule (critical chain, buffer sizing) given a project network and
+resource availability - getting that algorithm right is complex, and it is *not* being rebuilt
+inside our-planner. The intended path instead: our-planner's job is to be the easy-to-use interface
+supporting every basic CCPM operation manually (which Stages 1-11 already substantially deliver),
+so that projects can be run "the CCPM way" by hand from day one. The automated scheduler then gets
+integrated *incrementally*, on our-planner's own timeline, with manual and automated results
+compared side by side to build confidence in the automation before depending on it. **Very likely
+integration point**: the CCPM schedule import feature (`import_ccpm_schedule`,
+`file_operations.py`, documented under "CCPM schedule import" in "Already implemented" above),
+built earlier this session to read exactly the `schedule.csv`/`resources.csv`/`calendar.csv` output
+format an external CCPM tool would produce (see `sample-ccpm-projects/file-structure.md`) - almost
+certainly describes the same external tool. A future "import an automated schedule and compare
+against the manually-built one" feature would likely build on that importer rather than needing a
+new one. Not yet scoped as its own stage; noted here so the connection isn't lost.
+
+### Stage 15 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import)
+
+The other half of the round trip described in Stage 14: export a chosen project's network,
+resources, and calendars for a given time frame, in the format the external CCPM scheduling tool
+actually consumes as *input* - upload that, let the external tool compute the schedule, then bring
+the result back into our-planner via the already-built `import_ccpm_schedule`
+(`file_operations.py`). Manual and automated schedules can then be compared side by side, per the
+strategy in Stage 14/the "out of scope" note above.
+
+**Grounded in the tool's real input format**, not guessed - re-checked `sample-ccpm-projects/
+file-structure.md`, which documents the *input* side (not just the `schedule.csv` output the
+importer already reads):
+- **`tasks.csv`** (column names below reflect the *current* documented format -
+  `duration_safe`/`duration_aggressive`; the user owns the external CCPM utility too and intends to
+  rename these columns there to match our-planner's new `realistic`/`optimal` convention, so the
+  export's column names should follow whatever that ends up being rather than the "safe"/
+  "aggressive" names quoted here - confirm the exact renamed columns against that repo once it's
+  updated, rather than assuming): `id, name, duration_safe, duration_aggressive (optional),
+  predecessor_ids, resource_ids, url (optional)`. This is the direct, concrete link to Stage 14 -
+  the export needs **both** duration estimates per task, mapping our `realistic_duration` and
+  `optimal_duration` onto whichever two columns the aligned format uses. The doc notes that if the
+  optimal-estimate column is omitted the tool applies a classic 50% cut itself - worth deciding
+  whether to omit it for tasks where the user never captured an explicit Optimal estimate, rather
+  than exporting a guessed value.
+  Predecessor notation (`A:SS+2` style) needs re-serializing from our model's predecessor list -
+  `format_predecessor_notation` (`dependency_notation.py`, already built and used for tooltips this
+  session) is the natural fit, just needs the reverse of the importer's id-mapping (our integer
+  `task_id` -> whatever id scheme goes out, could just be the stringified integer).
+- **`resources.csv`**: `id, name, capacity (default 1), url (optional)` - straightforward from
+  `model.resources`.
+- **`calendar.csv`**: `resource_id, from, to, capacity` half-open-interval overrides - derived from
+  each exported resource's `capacity` array, collapsing consecutive equal-capacity days into ranges
+  rather than emitting one row per day.
+
+**Open design questions**:
+- **"For a given time frame"** - how is the export scoped? A date range picked by the user, the
+  project's full remaining (not-yet-`done`) work, or something tied to rolling-wave planning (e.g.
+  only the near-term window that's about to be worked, matching Stage 13's eventual timeline
+  compaction)? Not yet decided.
+- **Task eligibility**: should already-`done` tasks be excluded from the export entirely (the
+  external tool only needs to schedule remaining work), or included for context? Likely excluded,
+  but not confirmed.
+- **Buffers**: our model's existing `project_buffer`/`feeding_buffer` tasks presumably shouldn't be
+  sent as regular input tasks (the external tool computes its own buffer sizing from the safe/
+  aggressive gap) - needs to only export ordinary tasks, not the buffers we may have manually
+  placed for the interim manual workflow.
+
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
 Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
@@ -1240,6 +1380,11 @@ from evaluating the actual planning features. Worth picking up opportunistically
   auto-inserting `PB`/`FB` buffer tasks is **not** being automated. The user creates buffer tasks,
   marks task types, and (Stage 5) assigns chains manually; the tool's job is to react correctly
   (via Stages 2–7) to whatever graph currently exists, not to construct that graph for them.
+  **Confirmed still out of scope, with the strategy now clarified** (see Stage 14): the actual
+  scheduling algorithm lives in a separate repo the user already has, and is deliberately not being
+  rebuilt here - our-planner's role is the manual, easy-to-use CCPM interface, with the automated
+  scheduler integrated incrementally later (likely via the existing `import_ccpm_schedule` feature)
+  so manual and automated results can be compared side by side before depending on the automation.
 - **Fever chart PNG export is done** (see Stage 8 above) — built as PIL redraws at 1600×1200,
   following the same "redraw per format" pattern as every other export in this codebase. PDF export
   specifically was never actually requested (PNG covered the "high resolution for annotation" need)
