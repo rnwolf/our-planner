@@ -17,14 +17,20 @@ canvas, sharing the same resource pool, each independently in "planning" or "exe
 
 ## Already implemented (this session)
 
-All of the following is built, tested (`uv run pytest`, 40 tests passing), and manually verified
-in the running app. **Stages 1-8 (see each "Stage N — done" heading below) are now complete** —
-the original 7-stage build order, plus Stage 8 (fever chart reporting, including PNG export), added
-afterward once Stages 4/7's data capture made it practical to build. Stage 9 (fever chart CSV data
-export) and Stage 10 (backlog full-kit readiness report) are the next build items — see "Remaining
-work" below. What's left after that is everything listed under "Explicitly out of scope" (automated
-critical-chain detection, resource-constrained
-scheduling, event sourcing, full plan-vs-baseline comparison UI).
+All of the following is built, tested (`uv run pytest`, 58 tests passing), and manually verified
+in the running app. **Stages 1-9, 11, 14, and 15 (see each "Stage N — done" heading below) are now
+complete** — the original 7-stage build order, Stage 8 (fever chart reporting, including PNG
+export) and Stage 9 (fever chart CSV data export) added once Stages 4/7's data capture made them
+practical to build, Stage 11 (task/project filtering + marquee-select), Stage 14 (Optimal/Realistic
+terminology rename), and Stage 15 (merge-point pull rule + feeding-buffer shock-absorber fix,
+prompted by hand-verifying the fever chart math for Stage 12). **Still open**: Stage 10 (backlog
+full-kit readiness report), the rest of Stage 12 (a longer day-by-day fever chart narrative test —
+full buffer consumption/overflow, cross-project isolation — the merge-pull scenario itself is now
+covered by Stage 15's regression test), Stage 13 (rolling timeline compaction, design only, not
+scheduled), and Stage 16 (export a project network for the external CCPM scheduler) — see
+"Remaining work" below. What's left after that is everything listed under "Explicitly out of scope"
+(automated critical-chain detection, resource-constrained scheduling, event sourcing, full
+plan-vs-baseline comparison UI).
 
 ### Dependency link types
 
@@ -903,11 +909,65 @@ one-off headless script:
 
 Full suite (`uv run pytest tests/ -q`): **54 passed** (40 pre-existing + 14 new), 0 failures.
 
+### Merge-point pull rule and the shock-absorber fever signal (Stage 15 — done)
+
+Triggered by a real bug found while hand-verifying the fever chart math on a merge scenario, as
+part of Stage 12's "work through a full scenario by hand" exercise (C1 critical 0–5; F1 feeding
+0–3; FB 3–8, baseline 5d; C2 merge 8–13): recording a routine "on track, no change" status update
+on C1 fired Stage 6's bidirectional cascade, which set `C2.col = C1.finish` from whichever single
+link was cascading — ignoring the feeding path — yanking C2 to day 5 and dragging the glued buffer
+with it. The merge task was whipsawed by whichever predecessor last fired: exactly the "merge task"
+ambiguity previously parked in the open questions below.
+
+**The design conversation that shaped the fix** (user's train analogy vs relay runners): waiting
+for planned dates is timetable thinking — CCPM wants the next runner lined up the moment the
+baton *can* arrive. But the relay rule is still a max: the runner can't leave without the baton
+AND the track. And a buffer is a shock absorber — it doesn't matter whether the shock comes from
+the feeding chain slipping (push) or the merge point being pulled earlier by the critical chain
+running to plan (pull); either way "we thought 5 days of protection would be sufficient, now we
+find we only have 2" and the fever chart must say so at that exact status update.
+
+What was implemented (all in `task_operations.py` / `task_resource_model.py`):
+
+- **Pull = max across ALL gating predecessor links** (`_earliest_allowed_start`): a merge task
+  is pulled back only to the latest of every incoming constraint. An ordinary predecessor gates
+  at its finish (+lag); a buffer predecessor gates at the finish of the work feeding it
+  (`_buffer_feed_floor`) — a buffer is protection, not work: it may compress to nothing, but the
+  work behind it can never be jumped.
+- **Stage 3's glue is now execution-phase size-aware**: the buffer's end stays glued to the merge
+  point, and its size reacts in both directions — compressed against the feed floor when the
+  merge point is pulled earlier, regrown toward (never past) its baseline when it moves later.
+  Every size change is logged to `buffer_size_history` (reasons `merge_pulled_earlier` /
+  `merge_moved_later`), mirroring Stage 7's absorb which owns the feeding-chain side.
+- **Feeding buffer fever chart formula** (`compute_fever_chart_point`): effective lateness =
+  `baseline size − live size + overflow`, where overflow is how far the merge point sits past its
+  own baseline once the buffer is fully consumed. Consumers already divide by the baseline size,
+  so the history schema and all chart/export code are untouched. Scenario numbers: the on-track
+  update on C1 plots 3/5 = 60% on the feeding buffer at that instant; F1 slipping 2 days plots
+  40% exactly as the old push-only formula did (the new formula strictly generalizes it, and
+  >100% still means forecast breach). Trade-off knowingly accepted: a feeding chain running
+  *early* now reads 0% rather than negative, since regrowth is capped at baseline.
+- **Regression tests** (`tests/test_fever_chart_merge_signal.py`, 4 tests): the pull rings the 60%
+  alarm with all baselines untouched; status updates are idempotent (same news twice changes
+  nothing); the pull never jumps unfinished feeding work (F1 slips first, then a C1 update — C2
+  lands at 7, not 5); the push-side signal is numerically unchanged.
+
+Full suite (`uv run pytest tests/ -q`): **58 passed** (54 pre-existing + 4 new), 0 failures.
+
+**What Stage 12 still needs**: this covered the specific merge-pull scenario that surfaced the bug,
+not the full narrative Stage 12 originally scoped (a longer day-by-day walk asserting CPSL/PPF/
+Progress %/Consumption %/Zone at every step, a feeding buffer fully consumed with overflow onto the
+critical chain, and cross-project isolation). See Stage 12 under "Remaining work" below for what's
+left.
+
 ## Remaining work
 
 (Stage 9, fever chart CSV data export, is done — see "Fever chart reporting (Stage 8 — done)"
 above. Stage 11, filter menu restructure + marquee-select, is done — see "Task/project filtering +
-marquee-select (Stage 11 — done)" above.)
+marquee-select (Stage 11 — done)" above. Stage 14, the Optimal/Realistic rename, and Stage 15, the
+merge-point pull rule + shock-absorber fever fix, are both done too — see their own "— done"
+headings above. Stage 12 below is partially done — the merge-pull scenario it surfaced is now
+Stage 15's regression test; what remains of Stage 12 is narrower than originally scoped.)
 
 ### Stage 10 — Backlog Full Kit readiness report
 
@@ -932,37 +992,29 @@ queued up but hasn't started. Applies regardless of `project['phase']`.
   on-screen only for now (leaning on-screen only until asked otherwise, consistent with how Stage 8
   started before export was requested as a fast-follow).
 
-### Stage 12 — Hand-verified fever chart scenario + regression test
+### Stage 12 — Remaining fever chart hand-verification (narrative test + cross-project isolation)
 
-Every fever chart fix so far this session (the cross-project isolation bug, the PPF branching-path
-sort-by-finish fix, the CSV export numbers) was verified with a one-off headless script written for
-that specific change, then discarded - there's no standing, durable test that would catch a future
-change accidentally reintroducing one of those exact bugs. The underlying formulas
-(`compute_fever_chart_point`, `classify_fever_chart_zone`) are also intricate enough (frontier
-walk across parallel feeder paths, buffer absorb-then-overflow, per-project sloped zone
-boundaries) that spot-checking arithmetic in isolation, the way Stage 9's CSV numbers were
-verified, isn't the same as confirming the *whole* day-by-day trajectory a real execution would
-produce is correct.
+Originally scoped as one big hand-verified day-by-day scenario; the first pass through that
+exercise (a critical chain merging with a feeding chain via a buffer) surfaced the real
+merge-point cascade bug now fixed and regression-tested as Stage 15. What's left is narrower than
+the original scope:
 
-- **Work through a full scenario by hand, day by day.** Build a small project with a critical chain
-  plus at least one feeding chain/buffer (and ideally one with a branching/merging feeder path, to
-  exercise the Stage 8 PPF fix specifically), then walk it forward one simulated day at a time via
-  `record_remaining_duration`, capturing a fever chart point at each step. At every step, hand-
-  calculate the expected CPSL, PPF, Progress %, Consumption %, and Zone from the raw task
-  data - independently of the code - and compare against what `compute_fever_chart_point`/
-  `classify_fever_chart_zone` actually produce. The goal is confidence in the *narrative* (a buffer
-  correctly absorbing early, then correctly tipping into yellow/red as delays accumulate), not just
-  that individual formulas are internally consistent with each other.
-- **Turn that scenario into an automated regression test** once hand-verified - likely a new
-  `tests/test_fever_charts.py` (or an addition to `tests/test_scenarios.py`, which already has this
-  session's precedent for narrative/day-by-day integration tests), asserting the exact expected
-  CPSL/PPF/Progress %/Consumption %/Zone at each simulated day. This is the part that actually
-  protects future work: any change to the fever chart math that breaks this test fails loudly in
-  CI/`run_tests.py`, instead of relying on someone remembering to re-derive and re-verify by hand.
-- Worth covering in the same scenario (or a second one) if the first pass doesn't naturally exercise
-  it: a feeding buffer fully consumed (overflow into the critical chain, Stage 7) and the
-  cross-project isolation fix (a second, unrelated project's buffers must show zero change from an
-  update to the first project's tasks).
+- **A longer day-by-day narrative test**, asserting the exact expected CPSL/PPF/Progress %/
+  Consumption %/Zone at each simulated status update across a whole small execution (not just the
+  single instant Stage 15's test isolates) - likely a new `tests/test_fever_charts.py` (or an
+  addition to `tests/test_scenarios.py`, which already has this session's precedent for narrative/
+  day-by-day integration tests). The goal is confidence in the *narrative* (a buffer correctly
+  absorbing early, then correctly tipping into yellow/red as delays accumulate over several
+  updates), not just that individual formulas are internally consistent with each other at one
+  point in time.
+- **A feeding buffer fully consumed, with overflow onto the critical chain** (Stage 7's
+  push-side absorb-then-overflow) - not yet covered by a durable test; Stage 15's regression tests
+  cover the pull side (merge point pulled earlier compressing the buffer) but not a feeding chain
+  slipping far enough to exhaust its buffer and push into the critical chain.
+- **Cross-project isolation**, re-verified as a durable test rather than the one-off headless
+  script used when the bug was originally fixed (see Stage 8's "bleed" bug write-up above): a
+  second, unrelated project's buffers must show zero change from a status update in the first
+  project.
 
 ### Stage 13 — Rolling timeline compaction (design discussion only, not scheduled)
 
@@ -1039,7 +1091,7 @@ as-is for a compaction feature, though, for two reasons:
   has a real, if unquantified, per-redraw cost as a plan accumulates years of history. Worth
   measuring before committing to a design that assumes this is a real problem in practice.
 
-### Stage 15 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import)
+### Stage 16 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import)
 
 The other half of the round trip described in Stage 14: export a chosen project's network,
 resources, and calendars for a given time frame, in the format the external CCPM scheduling tool
@@ -1420,56 +1472,11 @@ from evaluating the actual planning features. Worth picking up opportunistically
 - `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer; `file-structure.md`
   documents the expected CSV format.
 
-### Stage 15 — merge-point pull rule and the shock-absorber fever signal (done)
-
-Triggered by a real bug found while hand-verifying the fever chart math on a merge scenario
-(C1 critical 0–5; F1 feeding 0–3; FB 3–8, baseline 5d; C2 merge 8–13): recording a routine
-"on track, no change" status update on C1 fired Stage 6's bidirectional cascade, which set
-`C2.col = C1.finish` from whichever single link was cascading — ignoring the feeding path —
-yanking C2 to day 5 and dragging the glued buffer with it. The merge task was whipsawed by
-whichever predecessor last fired: exactly the "merge task" ambiguity previously parked in the
-open questions below.
-
-**The design conversation that shaped the fix** (user's train analogy vs relay runners): waiting
-for planned dates is timetable thinking — CCPM wants the next runner lined up the moment the
-baton *can* arrive. But the relay rule is still a max: the runner can't leave without the baton
-AND the track. And a buffer is a shock absorber — it doesn't matter whether the shock comes from
-the feeding chain slipping (push) or the merge point being pulled earlier by the critical chain
-running to plan (pull); either way "we thought 5 days of protection would be sufficient, now we
-find we only have 2" and the fever chart must say so at that exact status update.
-
-What was implemented (all in `task_operations.py` / `task_resource_model.py`):
-
-- **Pull = max across ALL gating predecessor links** (`_earliest_allowed_start`): a merge task
-  is pulled back only to the latest of every incoming constraint. An ordinary predecessor gates
-  at its finish (+lag); a buffer predecessor gates at the finish of the work feeding it
-  (`_buffer_feed_floor`) — a buffer is protection, not work: it may compress to nothing, but the
-  work behind it can never be jumped.
-- **Stage 3's glue is now execution-phase size-aware**: the buffer's end stays glued to the merge
-  point, and its size reacts in both directions — compressed against the feed floor when the
-  merge point is pulled earlier, regrown toward (never past) its baseline when it moves later.
-  Every size change is logged to `buffer_size_history` (reasons `merge_pulled_earlier` /
-  `merge_moved_later`), mirroring Stage 7's absorb which owns the feeding-chain side.
-- **Feeding buffer fever chart formula** (`compute_fever_chart_point`): effective lateness =
-  `baseline size − live size + overflow`, where overflow is how far the merge point sits past its
-  own baseline once the buffer is fully consumed. Consumers already divide by the baseline size,
-  so the history schema and all chart/export code are untouched. Scenario numbers: the on-track
-  update on C1 plots 3/5 = 60% on the feeding buffer at that instant; F1 slipping 2 days plots
-  40% exactly as the old push-only formula did (the new formula strictly generalizes it, and
-  >100% still means forecast breach). Trade-off knowingly accepted: a feeding chain running
-  *early* now reads 0% rather than negative, since regrowth is capped at baseline.
-- **Regression tests** (`tests/test_fever_chart_merge_signal.py`): the pull rings the 60% alarm
-  with all baselines untouched; status updates are idempotent (same news twice changes nothing);
-  the pull never jumps unfinished feeding work (F1 slips first, then a C1 update — C2 lands at 7,
-  not 5); the push-side signal is numerically unchanged.
-
 ## Open questions for whoever picks this up next
 
-- ~~Whether "the merge task" in Stage 3/7 (a buffer's `FS`/`FB` successor) needs to be uniquely
-  identifiable~~ — resolved by Stage 15: Stage 6's pull takes the max across ALL predecessor
-  links (`_earliest_allowed_start`), so no single successor link can whipsaw a merge task; and
-  the fever chart resolves the merge point via `get_buffer_merge_task`, which requires exactly
-  one ordinary successor and falls back to buffer-local math (no overflow term) otherwise.
+(The "merge task" uniqueness question previously parked here is resolved — see "Merge-point pull
+rule and the shock-absorber fever signal (Stage 15 — done)" above.)
+
 - Whether removing a `Chains` entry that's still referenced by tasks should be blocked, or should
   null out `chain_id` on those tasks — not discussed. (`remove_project` sets the precedent of
   unassigning rather than blocking.)
