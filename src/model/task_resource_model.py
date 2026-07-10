@@ -419,7 +419,9 @@ class TaskResourceModel:
                 task['baseline'] = {
                     'col': task['col'],
                     'duration': task['duration'],
-                    'safe_duration': task.get('safe_duration', task['duration']),
+                    'realistic_duration': task.get(
+                        'realistic_duration', task['duration']
+                    ),
                     'captured_at': captured_at,
                 }
                 count += 1
@@ -522,13 +524,22 @@ class TaskResourceModel:
             # New CCPM-related properties
             'type': 'task',  # 'task', 'project_buffer', or 'feeding_buffer'
             'state': 'planning',  # Initial state: 'planning', 'buffered', or 'done'
-            'safe_duration': duration,  # Initially set to the provided duration
-            'aggressive_duration': None,  # Optimistic duration (if set)
+            # Realistic = Optimal + Contingency. `duration` (above) is the
+            # task's current, active, schedulable duration - it starts as a
+            # copy of the Realistic estimate (what's naturally captured
+            # first, before any buffer-cutting), but may later be reduced to
+            # the Optimal estimate once a (not yet built) buffer-cutting
+            # step pools the stripped contingency into that chain's buffer -
+            # so `realistic_duration` is a permanent record of the original
+            # estimate, since `duration` itself can't be trusted to still
+            # hold it after that happens.
+            'realistic_duration': duration,  # Initially set to the provided duration
+            'optimal_duration': None,  # "If everything went perfectly" estimate (if set)
             'actual_start_date': None,  # When work actually started
             'actual_end_date': None,  # When work was completed
             'fullkit_date': None,  # When all prerequisites were ready
             'remaining_duration_history': [],  # Track history of remaining duration estimates
-            'baseline': None,  # {'col', 'duration', 'safe_duration', 'captured_at'} snapshot,
+            'baseline': None,  # {'col', 'duration', 'realistic_duration', 'captured_at'} snapshot,
             # set for every task in a project when it moves from planning to execution
             'buffer_size_history': [],  # For buffer tasks: {'date', 'duration', 'reason',
             # 'trigger_task_id'} log of every execution-phase size change (Stage 7)
@@ -1096,11 +1107,11 @@ class TaskResourceModel:
                     task['fever_chart_history'] = []
 
                 # Add fields if they don't exist fir backward compatability
-                if 'safe_duration' not in task:
-                    task['safe_duration'] = task['duration']
+                if 'realistic_duration' not in task:
+                    task['realistic_duration'] = task['duration']
 
-                if 'aggressive_duration' not in task:
-                    task['aggressive_duration'] = None
+                if 'optimal_duration' not in task:
+                    task['optimal_duration'] = None
 
                 if 'actual_start_date' not in task:
                     task['actual_start_date'] = None
@@ -1807,12 +1818,14 @@ class TaskResourceModel:
         task['project_id'] = project_id
         return True
 
-    def set_aggressive_duration(self, task_id: int, duration: int) -> bool:
-        """Set the aggressive duration for a task.
+    def set_optimal_duration(self, task_id: int, duration: int) -> bool:
+        """Set the optimal duration for a task - "if everything went
+        perfectly, no disruptions, best case" (see Realistic = Optimal +
+        Contingency in planning.md).
 
         Args:
             task_id: ID of the task
-            duration: The aggressive duration in days
+            duration: The optimal duration in days
 
         Returns:
             bool: True if successful, False if task not found
@@ -1821,15 +1834,17 @@ class TaskResourceModel:
         if not task:
             return False
 
-        task['aggressive_duration'] = duration
+        task['optimal_duration'] = duration
         return True
 
-    def set_safe_duration(self, task_id: int, duration: int) -> bool:
-        """Set the safe duration for a task.
+    def set_realistic_duration(self, task_id: int, duration: int) -> bool:
+        """Set the realistic duration for a task - "how long will this
+        actually take", including normal everyday contingency (see
+        Realistic = Optimal + Contingency in planning.md).
 
         Args:
             task_id: ID of the task
-            duration: The safe duration in days
+            duration: The realistic duration in days
 
         Returns:
             bool: True if successful, False if task not found
@@ -1838,7 +1853,7 @@ class TaskResourceModel:
         if not task:
             return False
 
-        task['safe_duration'] = duration
+        task['realistic_duration'] = duration
         return True
 
     def set_fullkit_date(self, task_id: int) -> bool:

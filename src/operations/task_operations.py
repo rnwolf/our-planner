@@ -3753,26 +3753,26 @@ class TaskOperations:
             return True
         return False
 
-    def set_aggressive_duration(self, task=None):
-        """Set the aggressive duration for a task."""
+    def set_optimal_duration(self, task=None):
+        """Set the optimal duration for a task."""
         if task is None:
             task = self.controller.selected_task
 
         if task:
-            # Get current aggressive duration or use task duration as default
-            current_duration = task.get('aggressive_duration') or task['duration']
+            # Get current optimal duration or use task duration as default
+            current_duration = task.get('optimal_duration') or task['duration']
 
             # Ask for new duration
             new_duration = simpledialog.askinteger(
-                'Aggressive Duration',
-                'Enter aggressive duration (days):',
+                'Optimal Duration',
+                'Enter optimal duration (days):',
                 initialvalue=current_duration,
                 minvalue=1,
                 parent=self.controller.root,
             )
 
             if new_duration is not None:
-                self.controller.model.set_aggressive_duration(
+                self.controller.model.set_optimal_duration(
                     task['task_id'], new_duration
                 )
 
@@ -3941,16 +3941,16 @@ class TaskOperations:
             current_duration_text = f'Current Duration: {task["duration"]} days'
             tk.Label(frame, text=current_duration_text).pack(anchor='w')
 
-            if task.get('aggressive_duration'):
-                aggressive_text = (
-                    f'Aggressive Duration: {task["aggressive_duration"]} days'
+            if task.get('optimal_duration'):
+                optimal_text = (
+                    f'Optimal Duration: {task["optimal_duration"]} days'
                 )
-                tk.Label(frame, text=aggressive_text).pack(anchor='w')
+                tk.Label(frame, text=optimal_text).pack(anchor='w')
 
-            safe_text = (
-                f'Safe Duration: {task.get("safe_duration", task["duration"])} days'
+            realistic_text = (
+                f'Realistic Duration: {task.get("realistic_duration", task["duration"])} days'
             )
-            tk.Label(frame, text=safe_text).pack(anchor='w')
+            tk.Label(frame, text=realistic_text).pack(anchor='w')
 
             # Baseline values, captured when the project moved planning ->
             # execution (see Stage 1/4) - the actual signed-off plan, distinct
@@ -3963,14 +3963,15 @@ class TaskOperations:
                 tk.Label(frame, text=baseline_duration_text).pack(anchor='w')
 
                 # Older baselines (captured before this field was added) won't
-                # have it - fall back to the task's current safe_duration.
-                baseline_safe_duration = baseline.get(
-                    'safe_duration', task.get('safe_duration', baseline['duration'])
+                # have it - fall back to the task's current realistic_duration.
+                baseline_realistic_duration = baseline.get(
+                    'realistic_duration',
+                    task.get('realistic_duration', baseline['duration']),
                 )
-                baseline_safe_text = (
-                    f'Baseline Safe Duration: {baseline_safe_duration} days'
+                baseline_realistic_text = (
+                    f'Baseline Realistic Duration: {baseline_realistic_duration} days'
                 )
-                tk.Label(frame, text=baseline_safe_text).pack(anchor='w')
+                tk.Label(frame, text=baseline_realistic_text).pack(anchor='w')
 
             # Actual dates
             if task.get('actual_start_date'):

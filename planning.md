@@ -816,6 +816,93 @@ case (selecting a cluster of tasks to move together while rebalancing resource l
     substitutes already cover the actual need (knowing what a click-drag will do before committing
     to it).
 
+### Rename "Aggressive" to "Optimal", clarify the three-duration workflow (Stage 14 — done)
+
+The app's task-estimate terminology is now aligned to: **Realistic = Optimal + Contingency**.
+"Aggressive" carried a negative emotional connotation (implying recklessness) that "Optimal"
+doesn't, for what's meant to be a best-case/50%-confidence estimate. "Realistic" replaces "Safe,"
+which implied hidden padding rather than a transparent, normal-contingency-included estimate.
+
+**The real-world estimating conversation this models**, as explained by the user: ask the people
+doing the work "how long will this take?" - that answer, which already has normal everyday
+contingency baked in, is the **Realistic** estimate, captured first. Then ask "if everything went
+perfectly, no disruptions, best case - how long?" - that's the **Optimal** estimate. The gap between
+them is the task's individual contingency. A not-yet-built function is meant to eventually strip
+that contingency out of each task, pool the sum of it into that chain's project/feeding buffer, and
+re-schedule the now-shorter tasks against resource availability.
+
+**`duration` (the field actually shown on the grid and used for scheduling) is not permanently tied
+to one meaning - it changes over a task's lifecycle**: it starts out equal to the Realistic
+estimate (what's naturally entered first, before any buffer-cutting has happened), and would later
+be *overwritten* to the Optimal estimate once the buffer-cutting function (still not built) runs and
+pools the difference into a buffer. This is why a separate, permanent field to remember the original
+Realistic estimate was kept rather than retired, correcting this stage's own initial draft, which
+had wrongly proposed retiring the "Safe" field entirely.
+
+**Final field mapping, implemented as a full internal rename** (model field names, method names,
+and all displayed text - not just a cosmetic label change, since the app hasn't been distributed
+yet and this was the opportunity to fix the inconsistency properly):
+- `duration` - unchanged name; its *role* is now documented at every definition site: the task's
+  current, active, schedulable duration. Starts as a copy of the Realistic estimate; later may be
+  reduced to the Optimal estimate once buffer-cutting (not yet built) runs.
+- `aggressive_duration` -> **`optimal_duration`** (`task_resource_model.py`) - the captured "if
+  everything went perfectly" estimate. Optional/nullable until explicitly set, same as before.
+  `set_aggressive_duration` -> `set_optimal_duration` (model and `task_operations.py` wrapper);
+  `Set Aggressive Duration...` menu item -> `Set Optimal Duration...` (`ui_components.py`).
+- `safe_duration` -> **`realistic_duration`** (`task_resource_model.py`) - the captured "how long
+  will this really take" estimate, defaulting to a copy of `duration` at task creation and
+  preserved unchanged even if `duration` itself is later reduced - a permanent historical record of
+  the original estimate. `set_safe_duration` -> `set_realistic_duration`.
+- `baseline` snapshot dict's `safe_duration` key -> `realistic_duration` (`capture_project_baseline`
+  and its consumers in `task_operations.py`'s details dialog).
+- All UI text updated to match: task tooltip and task details dialog now show `Optimal Duration: N
+  days` / `Realistic Duration: N days` / `Baseline Realistic Duration: N days`.
+
+**No migration needed** - the user confirmed old `sample-*.json` files can simply be deleted and
+re-saved fresh now that the rename is done, rather than needing a load-time key migration. The
+existing backward-compatibility repair pattern in `load_from_file` (fill in a default if a field is
+missing) was kept, just updated to the new key names - an old save file with the old key names
+gets fresh defaults for the new ones (silently losing whatever was in the old fields), an explicitly
+accepted outcome given no migration was requested.
+
+**Verified clean by grep**: zero remaining occurrences of `aggressive_duration`, `safe_duration`,
+`set_aggressive_duration`, `set_safe_duration`, `Aggressive Duration`, or `Safe Duration` anywhere
+under `src/` or `tests/` after the rename.
+
+**Still-open asymmetry, not resolved by this stage**: `model.set_realistic_duration` is defined but
+still never called from anywhere in the operations/UI layer - there's no `Set Realistic
+Duration...` menu item, unlike Optimal. Fine for *initial* capture (`duration` already captures the
+Realistic estimate at creation time), but there's still no way to *edit* the preserved
+`realistic_duration` after the fact. Left as-is, since it's arguably only needed once the
+buffer-cutting function actually exists.
+
+**Test coverage added** (per explicit user request to use this refactor as an opportunity to check
+test coverage of key functionality): surveying the existing suite (~40 tests, ~1,490 lines across
+9 files) found essentially zero coverage of any of this session's CCPM-specific work (chains,
+buffers, fever charts, baseline capture, phase transitions, marquee-select/filtering, or the
+duration fields being renamed here) - the only file matching a broad grep, `test_critical_path.py`,
+tests the unrelated pre-existing plain-CPM algorithm in `network_operations.py`. Given the size of
+that gap, the user explicitly scoped this session's test-writing to the Stage 14 area only, leaving
+the broader gap (chains, buffers, phase transitions, fever charts, marquee-select) as a
+separately-scoped future follow-up.
+
+New `tests/test_duration_estimates.py` (14 tests) covers, against the real model rather than a
+one-off headless script:
+- `add_task` defaults: `realistic_duration` copies `duration`, `optimal_duration` starts `None`.
+- `set_optimal_duration`/`set_realistic_duration`: update the intended field, leave `duration` (and
+  the other duration field) untouched, and return `False` for a non-existent task id.
+- `capture_project_baseline`: the baseline snapshot correctly records `realistic_duration` as of the
+  moment it's captured, and - the specific regression this field exists to prevent - survives later
+  changes to `duration`/`realistic_duration` unaffected; also covers the task-count return value and
+  the `-1` return for an unknown project.
+- Save/load round trip: `optimal_duration`/`realistic_duration` survive a real `save_to_file`/
+  `load_from_file` cycle through an actual temp file.
+- Backward-compatible load repair: a hand-built legacy save file missing both fields entirely loads
+  cleanly with `realistic_duration` defaulted from `duration` and `optimal_duration` defaulted to
+  `None`, exercising the exact fallback branch added to `load_from_file`.
+
+Full suite (`uv run pytest tests/ -q`): **54 passed** (40 pre-existing + 14 new), 0 failures.
+
 ## Remaining work
 
 (Stage 9, fever chart CSV data export, is done — see "Fever chart reporting (Stage 8 — done)"
@@ -951,99 +1038,6 @@ as-is for a compaction feature, though, for two reasons:
   every resource's `capacity` array per day (`task_resource_model.py`), so an ever-growing window
   has a real, if unquantified, per-redraw cost as a plan accumulates years of history. Worth
   measuring before committing to a design that assumes this is a real problem in practice.
-
-### Stage 14 — Rename "Aggressive" to "Optimal", and clarify the three-duration workflow
-
-The app's task-estimate terminology is being aligned to: **Realistic = Optimal + Contingency**.
-"Aggressive" carries a negative emotional connotation (implying recklessness) that "Optimal"
-doesn't, for what's meant to be a best-case/50%-confidence estimate. "Realistic" already exists in
-the app today under the name "Safe." The rename itself is small and mechanical; the more important
-part of this stage is the workflow explanation behind it, which corrects an earlier wrong
-assumption (see below) and clarifies what each of the three duration-related fields is actually
-*for* - important groundwork given the currently out-of-scope automated buffer-cutting feature
-(see "Explicitly out of scope" below) is exactly what eventually turns this data into buffers.
-
-**The real-world estimating conversation this models**, as explained by the user: ask the people
-doing the work "how long will this take?" - that answer, which already has normal everyday
-contingency baked in, is the **Realistic** estimate, captured first. Then ask "if everything went
-perfectly, no disruptions, best case - how long?" - that's the **Optimal** estimate. The gap between
-them is the task's individual contingency. A not-yet-built function is meant to eventually strip
-that contingency out of each task, pool the sum of it into that chain's project/feeding buffer, and
-re-schedule the now-shorter tasks against resource availability.
-
-**This means `duration` (the field actually shown on the grid and used for scheduling) is not
-permanently tied to one meaning - it changes over a task's lifecycle**: it starts out equal to the
-Realistic estimate (what's naturally entered first, before any buffer-cutting has happened), and
-would later be *overwritten* to the Optimal estimate once the buffer-cutting function runs and
-pools the difference into a buffer. This is why a separate, permanent field to remember the original
-Realistic estimate is genuinely necessary, not redundant as first assumed when this stage was
-initially drafted - `duration` itself can't be trusted to still hold it later.
-
-**Corrected field mapping** (supersedes the earlier draft of this stage, which incorrectly
-recommended retiring the "Safe" field entirely - wrong, once the above is understood):
-- `duration` - unchanged name, but its *role* should be documented clearly wherever it's defined:
-  the task's current, active, schedulable duration. Starts as a copy of the Realistic estimate;
-  later may be reduced to the Optimal estimate once buffer-cutting (not yet built) runs.
-- `aggressive_duration` -> **`optimal_duration`** - the captured "if everything went perfectly"
-  estimate. Optional/nullable until explicitly set, same as today.
-- `safe_duration` -> **`realistic_duration`** - the captured "how long will this really take"
-  estimate, defaulting to a copy of `duration` at task creation (as today) and then **preserved
-  unchanged even if `duration` itself is later reduced** - a permanent historical record of what was
-  originally estimated, distinct from whatever `duration` currently holds.
-
-**Every current occurrence found** (grep'd, not assumed):
-- User-facing text: `Set Aggressive Duration...` (task context menu, `ui_components.py:870`),
-  the `Aggressive Duration` dialog title and `Enter aggressive duration (days):` prompt
-  (`task_operations.py:3767-3768`), and `Aggressive Duration: N days` shown in both the task
-  tooltip (`ui_components.py:1448`) and the task details dialog (`task_operations.py:3946`).
-  `Safe Duration: N days` (tooltip `ui_components.py:1455`, details dialog
-  `task_operations.py:3951`) and `Baseline Safe Duration: N days` (`task_operations.py:3971`) are
-  the "Realistic" counterparts already in the UI today.
-- Model field: `task['aggressive_duration']` (`task_resource_model.py:526`, default `None`),
-  `model.set_aggressive_duration(task_id, duration)` (`task_resource_model.py:1810`), and its
-  `task_operations.py` wrapper `set_aggressive_duration(task=None)` (`task_operations.py:3756`).
-  `task['safe_duration']` (`task_resource_model.py:525`, defaults to the task's own `duration` at
-  creation) and `model.set_safe_duration(task_id, duration)` (`task_resource_model.py:1827`) are
-  the "Realistic" counterparts.
-- `baseline` dict snapshots also carry a `safe_duration` key (`task_resource_model.py:422, 531`).
-
-**Important asymmetry to design around**: `model.set_safe_duration`/`set_realistic_duration` is
-defined but **never actually called from anywhere** in the operations/UI layer - there's no
-`Set Safe Duration...`/`Set Realistic Duration...` menu item today, unlike Optimal. Given
-`duration` itself already captures the Realistic estimate at creation time (per the workflow
-above), the missing entry point is arguably fine as-is for *initial* capture - but there's
-currently no way to *edit* the preserved `realistic_duration` after the fact if the original
-estimate turns out to have been wrong, the way `Set Aggressive/Optimal Duration...` already allows
-for the optimal side. Worth deciding whether this stage should add that, or whether it's genuinely
-only needed once the buffer-cutting function (which would be the main thing making `duration` and
-`realistic_duration` diverge) actually exists.
-
-**Full internal rename requested, not just displayed text** - the user has explicitly asked for a
-clean internal + wording refactor, not a text-only relabel, specifically because the application
-hasn't been distributed yet and this is the opportunity to fix the inconsistency properly. This
-does mean the model field names themselves change (`aggressive_duration` -> `optimal_duration`,
-`safe_duration` -> `realistic_duration`), which affects the dict keys written into every existing
-saved `.json` file - **no migration needed**: the user confirmed the repo's own `sample-*.json`
-files can simply be deleted and re-saved fresh once the rename is done, rather than needing a
-load-time key migration. Simplifies this stage considerably - it's a clean rename, not a
-compatibility-preserving one.
-
-**Resolved: the buffer-cutting algorithm itself stays out of scope for our-planner, but the
-*strategy* around it is now clear.** The user has a **separate existing repo** with a script that
-computes the actual CCPM schedule (critical chain, buffer sizing) given a project network and
-resource availability - getting that algorithm right is complex, and it is *not* being rebuilt
-inside our-planner. The intended path instead: our-planner's job is to be the easy-to-use interface
-supporting every basic CCPM operation manually (which Stages 1-11 already substantially deliver),
-so that projects can be run "the CCPM way" by hand from day one. The automated scheduler then gets
-integrated *incrementally*, on our-planner's own timeline, with manual and automated results
-compared side by side to build confidence in the automation before depending on it. **Very likely
-integration point**: the CCPM schedule import feature (`import_ccpm_schedule`,
-`file_operations.py`, documented under "CCPM schedule import" in "Already implemented" above),
-built earlier this session to read exactly the `schedule.csv`/`resources.csv`/`calendar.csv` output
-format an external CCPM tool would produce (see `sample-ccpm-projects/file-structure.md`) - almost
-certainly describes the same external tool. A future "import an automated schedule and compare
-against the manually-built one" feature would likely build on that importer rather than needing a
-new one. Not yet scoped as its own stage; noted here so the connection isn't lost.
 
 ### Stage 15 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import)
 

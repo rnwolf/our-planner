@@ -867,8 +867,8 @@ class UIComponents:
 
         # CCPM-related menu items
         self.context_menu.add_command(
-            label='Set Aggressive Duration...',
-            command=lambda: self.controller.task_ops.set_aggressive_duration(),
+            label='Set Optimal Duration...',
+            command=lambda: self.controller.task_ops.set_optimal_duration(),
         )
         self.context_menu.add_command(
             label='Record Remaining Duration...',
@@ -1443,16 +1443,18 @@ class UIComponents:
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')
 
-            if task.get('aggressive_duration'):
+            if task.get('optimal_duration'):
                 tooltip_parts.append(
-                    f'Aggressive Duration: {task["aggressive_duration"]} days'
+                    f'Optimal Duration: {task["optimal_duration"]} days'
                 )
 
             if (
-                task.get('safe_duration')
-                and task.get('safe_duration') != task['duration']
+                task.get('realistic_duration')
+                and task.get('realistic_duration') != task['duration']
             ):
-                tooltip_parts.append(f'Safe Duration: {task["safe_duration"]} days')
+                tooltip_parts.append(
+                    f'Realistic Duration: {task["realistic_duration"]} days'
+                )
 
             # Add remaining duration if available
             remaining_duration = self.controller.model.get_latest_remaining_duration(
