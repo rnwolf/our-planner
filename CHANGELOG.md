@@ -1,4 +1,25 @@
 
+    ## [Unreleased]
+    ### Fixed
+    - Merge-task cascade bug: Stage 6's bidirectional pull now takes the max across ALL of a
+      successor's predecessor links instead of whichever single link cascaded last - a routine
+      status update on one branch can no longer drag a merge task in front of the other branch's
+      unfinished work, and never corrupts the feeding buffer silently.
+    ### Changed
+    - Feeding buffers now behave as two-sided shock absorbers during execution: the buffer
+      compresses (logged, reason "merge_pulled_earlier") when the relay-runner cascade pulls its
+      merge point earlier, and regrows toward its baseline (logged, "merge_moved_later") when the
+      merge point moves later. The fever chart's feeding-buffer consumption reflects both shock
+      directions: effective lateness = baseline size - live size + overflow past the merge
+      baseline, divided by the baseline size as before (push-only numbers are unchanged; >100%
+      still means forecast breach).
+    ### Added
+    - Regression tests for the merge scenario (tests/test_fever_chart_merge_signal.py):
+      pull-side alarm at 60%, idempotent status updates, pull never jumps unfinished feeding
+      work, push-side signal unchanged.
+
+    
+
     ## [0.1.17] - 2025-04-08
     ### Added
     - New Feature: Added MKDoc and documentation to publish to gh-pages.

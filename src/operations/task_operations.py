@@ -3396,7 +3396,17 @@ class TaskOperations:
             required_start = finish + link['lag']
 
             if bidirectional:
-                new_col = required_start
+                # A merge task can have several incoming paths. Pulling it
+                # back to *this* link's required start alone would let
+                # whichever predecessor happened to cascade last override
+                # every other constraint - recording routine status on one
+                # branch could then drag the merge point (and the feeding
+                # buffer glued to it) in front of the other branch's work
+                # (the "merge task" ambiguity noted in planning.md's open
+                # questions). The relay-runner rule is a max: the next
+                # runner starts at the earliest moment EVERY incoming path
+                # allows, not the moment one of them shouts.
+                new_col = self._earliest_allowed_start(successor)
             elif successor['col'] < required_start:
                 new_col = required_start
             else:
@@ -3413,23 +3423,73 @@ class TaskOperations:
 
         return moved_any
 
+    def _buffer_feed_floor(self, buffer_task) -> int:
+        """The finish of the work feeding `buffer_task` (+lag): the earliest
+        point the buffer's own start may ever be squeezed back to. 0 if the
+        buffer has no ordinary-task predecessors on record.
+        """
+        floor = 0
+        for entry in buffer_task.get('predecessors', []):
+            if entry['type'] not in ('FS', 'FB', 'PB'):
+                continue
+            feeder = self.model.get_task(entry['id'])
+            if not feeder or feeder.get('type') in BUFFER_TASK_TYPES:
+                continue
+            floor = max(
+                floor, feeder['col'] + feeder['duration'] + entry.get('lag', 0)
+            )
+        return floor
+
+    def _earliest_allowed_start(self, task) -> int:
+        """The earliest start `task` may be pulled back to (Stage 6): the max
+        across ALL its gating predecessor links, not whichever single link is
+        currently cascading.
+
+        An ordinary predecessor gates at its own finish (+lag). A buffer
+        predecessor gates at the finish of the work feeding it (+lags): a
+        buffer is protection, not work - it may compress to nothing when the
+        merge point moves earlier (that shrinkage is exactly the signal that
+        the feeding chain's protection is being consumed, see Stage 3's glue
+        and the fever chart) - but the work behind it can never be jumped.
+        """
+        floor = 0
+        for entry in task.get('predecessors', []):
+            if entry['type'] not in ('FS', 'FB', 'PB'):
+                continue
+            pred = self.model.get_task(entry['id'])
+            if not pred:
+                continue
+            lag = entry.get('lag', 0)
+            if pred.get('type') in BUFFER_TASK_TYPES:
+                floor = max(floor, self._buffer_feed_floor(pred) + lag)
+            else:
+                floor = max(floor, pred['col'] + pred['duration'] + lag)
+        return floor
+
     def _glue_buffer_predecessors(self, task, visiting) -> bool:
-        """Keep any buffer predecessor of `task` glued to it, at a fixed size.
+        """Keep any buffer predecessor of `task` glued to it (its end at
+        `task.col`), regardless of which direction `task` moved.
 
         A buffer feeding into `task` via a plain FS link, or via the explicit
-        FB (feeding buffer) link type, is treated as being attached to `task`:
-        `buffer.col + buffer.duration + lag` is kept exactly equal to
-        `task.col`, regardless of which direction `task` moved. This applies
-        in both planning and execution - a feeding buffer's whole purpose is
-        to protect its merge point, so it must track that merge point
-        whenever it moves, for whatever reason (including Stage 6's
-        relay-runner cascade elsewhere on the critical chain).
+        FB (feeding buffer) link type, is treated as being attached to `task`
+        - a feeding buffer's whole purpose is to protect its merge point, so
+        it must track that merge point whenever it moves, for whatever reason
+        (including Stage 6's relay-runner cascade elsewhere on the critical
+        chain).
 
-        This is independent of - and unaffected by - what's happening on the
-        buffer's *own* predecessor side (the feeding chain). During planning,
-        the feeding chain moving later just opens a gap in front of the
-        (still glued) buffer; during execution, that side is Stage 7's job
-        (buffer absorbs/grows, then overflows once fully consumed).
+        During planning the buffer keeps its planned size and only its
+        position follows. During execution the buffer is a shock absorber
+        and its SIZE reacts too, in both directions:
+        - merge point pulled earlier (the critical chain running to the
+          relay-runner rule): the buffer may not overlap the work feeding it
+          (`_buffer_feed_floor`), so it compresses against that floor - the
+          protection genuinely available to the feeding chain has shrunk,
+          and the shrink is logged so the fever chart can raise the alarm.
+        - merge point moving later: the buffer regrows toward (never past)
+          its baseline size.
+        Every size change is logged to `buffer_size_history`, mirroring
+        Stage 7's absorb-then-overflow which owns the feeding-chain side
+        (this glue owns the merge-point side).
         """
         moved_any = False
 
@@ -3441,12 +3501,42 @@ class TaskOperations:
             if not buffer_task or buffer_task.get('type') not in BUFFER_TASK_TYPES:
                 continue
 
-            new_col = max(0, task['col'] - buffer_task['duration'] - entry['lag'])
-            if new_col == buffer_task['col']:
+            end = task['col'] - entry['lag']
+            project = self.model.get_project_by_id(buffer_task.get('project_id'))
+            executing = bool(project and project['phase'] == 'execution')
+
+            if executing:
+                baseline = buffer_task.get('baseline')
+                baseline_duration = (
+                    baseline['duration'] if baseline else buffer_task['duration']
+                )
+                floor = self._buffer_feed_floor(buffer_task)
+                new_duration = max(0, min(end - floor, baseline_duration))
+                new_col = end - new_duration
+            else:
+                new_duration = buffer_task['duration']
+                new_col = max(0, end - new_duration)
+
+            if (
+                new_col == buffer_task['col']
+                and new_duration == buffer_task['duration']
+            ):
                 continue
 
+            grew = new_duration > buffer_task['duration']
+            size_changed = new_duration != buffer_task['duration']
             buffer_task['col'] = new_col
+            buffer_task['duration'] = new_duration
             moved_any = True
+
+            if size_changed:
+                self.model.record_buffer_size_change(
+                    buffer_task['task_id'],
+                    new_duration,
+                    'merge_moved_later' if grew else 'merge_pulled_earlier',
+                    task['task_id'],
+                )
+
             self._propagate_from_task(buffer_task, visiting)
 
         return moved_any

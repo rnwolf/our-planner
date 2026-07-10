@@ -1420,12 +1420,56 @@ from evaluating the actual planning features. Worth picking up opportunistically
 - `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer; `file-structure.md`
   documents the expected CSV format.
 
+### Stage 15 — merge-point pull rule and the shock-absorber fever signal (done)
+
+Triggered by a real bug found while hand-verifying the fever chart math on a merge scenario
+(C1 critical 0–5; F1 feeding 0–3; FB 3–8, baseline 5d; C2 merge 8–13): recording a routine
+"on track, no change" status update on C1 fired Stage 6's bidirectional cascade, which set
+`C2.col = C1.finish` from whichever single link was cascading — ignoring the feeding path —
+yanking C2 to day 5 and dragging the glued buffer with it. The merge task was whipsawed by
+whichever predecessor last fired: exactly the "merge task" ambiguity previously parked in the
+open questions below.
+
+**The design conversation that shaped the fix** (user's train analogy vs relay runners): waiting
+for planned dates is timetable thinking — CCPM wants the next runner lined up the moment the
+baton *can* arrive. But the relay rule is still a max: the runner can't leave without the baton
+AND the track. And a buffer is a shock absorber — it doesn't matter whether the shock comes from
+the feeding chain slipping (push) or the merge point being pulled earlier by the critical chain
+running to plan (pull); either way "we thought 5 days of protection would be sufficient, now we
+find we only have 2" and the fever chart must say so at that exact status update.
+
+What was implemented (all in `task_operations.py` / `task_resource_model.py`):
+
+- **Pull = max across ALL gating predecessor links** (`_earliest_allowed_start`): a merge task
+  is pulled back only to the latest of every incoming constraint. An ordinary predecessor gates
+  at its finish (+lag); a buffer predecessor gates at the finish of the work feeding it
+  (`_buffer_feed_floor`) — a buffer is protection, not work: it may compress to nothing, but the
+  work behind it can never be jumped.
+- **Stage 3's glue is now execution-phase size-aware**: the buffer's end stays glued to the merge
+  point, and its size reacts in both directions — compressed against the feed floor when the
+  merge point is pulled earlier, regrown toward (never past) its baseline when it moves later.
+  Every size change is logged to `buffer_size_history` (reasons `merge_pulled_earlier` /
+  `merge_moved_later`), mirroring Stage 7's absorb which owns the feeding-chain side.
+- **Feeding buffer fever chart formula** (`compute_fever_chart_point`): effective lateness =
+  `baseline size − live size + overflow`, where overflow is how far the merge point sits past its
+  own baseline once the buffer is fully consumed. Consumers already divide by the baseline size,
+  so the history schema and all chart/export code are untouched. Scenario numbers: the on-track
+  update on C1 plots 3/5 = 60% on the feeding buffer at that instant; F1 slipping 2 days plots
+  40% exactly as the old push-only formula did (the new formula strictly generalizes it, and
+  >100% still means forecast breach). Trade-off knowingly accepted: a feeding chain running
+  *early* now reads 0% rather than negative, since regrowth is capped at baseline.
+- **Regression tests** (`tests/test_fever_chart_merge_signal.py`): the pull rings the 60% alarm
+  with all baselines untouched; status updates are idempotent (same news twice changes nothing);
+  the pull never jumps unfinished feeding work (F1 slips first, then a C1 update — C2 lands at 7,
+  not 5); the push-side signal is numerically unchanged.
+
 ## Open questions for whoever picks this up next
 
-- Whether "the merge task" in Stage 3/7 (a buffer's `FS`/`FB` successor) needs to be uniquely
-  identifiable — i.e., what happens if a buffer somehow has more than one such successor. Not
-  discussed; likely worth a guard/validation when this is built. `chain_id` doesn't resolve this
-  ambiguity by itself.
+- ~~Whether "the merge task" in Stage 3/7 (a buffer's `FS`/`FB` successor) needs to be uniquely
+  identifiable~~ — resolved by Stage 15: Stage 6's pull takes the max across ALL predecessor
+  links (`_earliest_allowed_start`), so no single successor link can whipsaw a merge task; and
+  the fever chart resolves the merge point via `get_buffer_merge_task`, which requires exactly
+  one ordinary successor and falls back to buffer-local math (no overflow term) otherwise.
 - Whether removing a `Chains` entry that's still referenced by tasks should be blocked, or should
   null out `chain_id` on those tasks — not discussed. (`remove_project` sets the precedent of
   unassigning rather than blocking.)

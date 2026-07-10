@@ -1649,6 +1649,24 @@ class TaskResourceModel:
 
         return None
 
+    def get_buffer_merge_task(
+        self, buffer_task_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """Return the one ordinary task on a buffer's successor side - the
+        merge point it protects. Returns None unless exactly one such
+        successor exists: a buffer with several merge successors is
+        ambiguous (the open question flagged in planning.md), so callers
+        must fall back to buffer-local math rather than guess.
+        """
+        merge_tasks = []
+        for link in self.get_successor_links(buffer_task_id):
+            if link['type'] not in ('FS', 'FB', 'PB'):
+                continue
+            successor = self.get_task(link['task_id'])
+            if successor and successor.get('type') not in BUFFER_TASK_TYPES:
+                merge_tasks.append(successor)
+        return merge_tasks[0] if len(merge_tasks) == 1 else None
+
     def compute_fever_chart_point(
         self, buffer_task_id: int
     ) -> Optional[Dict[str, Any]]:
@@ -1710,6 +1728,42 @@ class TaskResourceModel:
             baseline_finish = forecast_finish
 
         forecast_lateness = forecast_finish - baseline_finish
+
+        if buffer_task.get('type') == 'feeding_buffer':
+            buffer_baseline = buffer_task.get('baseline')
+            if buffer_baseline:
+                # Shock-absorber accounting for feeding buffers: consumption
+                # measures how much of the originally agreed protection is
+                # no longer available, regardless of which side the shock
+                # came from - the feeding chain slipping into the buffer
+                # (push, Stage 7's absorb) or the merge point being pulled
+                # earlier by the relay-runner cascade on the critical chain
+                # (pull, Stage 3's glue). Both already land in the buffer's
+                # LIVE duration, so:
+                #
+                #   effective lateness = baseline size - live size + overflow
+                #
+                # where overflow is how far the merge point has been pushed
+                # past its own baseline once the buffer is fully consumed
+                # (>100% consumption = forecast breach, matching the
+                # push-only formula this generalizes). Consumers divide by
+                # the baseline buffer size, giving e.g. (5-2)/5 = 60% the
+                # moment a routine on-track update on the critical chain
+                # pulls the merge point early - the fever chart's job is to
+                # tell the feeding team the race has changed.
+                overflow = 0
+                merge_task = self.get_buffer_merge_task(buffer_task_id)
+                if merge_task:
+                    merge_baseline = merge_task.get('baseline')
+                    if merge_baseline:
+                        overflow = max(
+                            0, merge_task['col'] - merge_baseline['col']
+                        )
+                forecast_lateness = (
+                    buffer_baseline['duration']
+                    - buffer_task['duration']
+                    + overflow
+                )
 
         return {'cpsl': cpsl, 'ppf': ppf, 'forecast_lateness': forecast_lateness}
 
