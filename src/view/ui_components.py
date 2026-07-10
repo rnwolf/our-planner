@@ -518,10 +518,6 @@ class UIComponents:
         self.controller.task_canvas.bind(
             '<ButtonPress-3>', self.controller.task_ops.on_right_click
         )
-        # Right-click directly on a dependency arrow to edit its type/lag
-        self.controller.task_canvas.tag_bind(
-            'dependency', '<ButtonPress-3>', self.controller.task_ops.on_dependency_right_click
-        )
 
         # Arrow-key grid navigation - the scrollbars are thin and fiddly to
         # grab precisely, especially once zoomed in. Bound on root rather

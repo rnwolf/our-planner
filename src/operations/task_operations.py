@@ -496,19 +496,7 @@ class TaskOperations:
         if self.model.remove_predecessor(successor_id, predecessor_id):
             self.controller.ui.draw_dependencies()
 
-    def on_dependency_right_click(self, event):
-        """Show the link edit menu for the dependency arrow under the cursor."""
-        canvas = self.controller.task_canvas
-        item = canvas.find_withtag('current')
-        if not item:
-            return
 
-        link_ids = self.controller.ui.dependency_link_map.get(item[0])
-        if not link_ids:
-            return
-
-        predecessor_id, successor_id = link_ids
-        self.controller.ui.show_dependency_link_menu(event, predecessor_id, successor_id)
 
     def create_capacity_tab(self, capacity_tab, resource_dropdown):
         """Create an improved capacity tab with vertical scrollable list."""
@@ -3156,6 +3144,22 @@ class TaskOperations:
                 else:
                     # Show single task context menu
                     self.controller.ui.context_menu.post(event.x_root, event.y_root)
+                return
+
+        # If not clicking on a task, check for dependency arrows within a 5-pixel radius
+        halo = 5
+        overlapping_items = self.controller.task_canvas.find_overlapping(
+            canvas_x - halo, canvas_y - halo, canvas_x + halo, canvas_y + halo
+        )
+        for item_id in overlapping_items:
+            tags = self.controller.task_canvas.gettags(item_id)
+            if 'dependency' in tags:
+                link_ids = self.controller.ui.dependency_link_map.get(item_id)
+                if link_ids:
+                    predecessor_id, successor_id = link_ids
+                    self.controller.ui.show_dependency_link_menu(
+                        event, predecessor_id, successor_id
+                    )
                 return
 
     def find_task_at(self, x, y):
