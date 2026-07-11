@@ -52,6 +52,27 @@ def classify_fever_chart_zone(
     return 'green'
 
 
+def fever_chart_display_point(
+    entry: Dict[str, Any], buffer_baseline_duration: float
+) -> Tuple[float, float]:
+    """Turn one `fever_chart_history` entry (cpsl/ppf/forecast_lateness, as
+    logged by `capture_fever_chart_snapshot`) into (progress_pct,
+    consumption_pct) - the two values every fever chart renderer plots.
+
+    Pulled into one place because this exact math used to be hand-copied
+    identically into three call sites (the on-screen chart, the PNG export,
+    and the CSV export) with no shared test coverage.
+    """
+    cpsl = entry['cpsl']
+    progress_pct = (entry['ppf'] / cpsl * 100) if cpsl > 0 else 0.0
+    consumption_pct = (
+        (entry['forecast_lateness'] / buffer_baseline_duration * 100)
+        if buffer_baseline_duration > 0
+        else 0.0
+    )
+    return progress_pct, consumption_pct
+
+
 class TaskResourceModel:
     def __init__(self):
         # Configuration

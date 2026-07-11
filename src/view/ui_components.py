@@ -11,7 +11,10 @@ from src.model.dependency_notation import (
     BUFFER_LINK_TYPES,
     format_predecessor_notation,
 )
-from src.model.task_resource_model import classify_fever_chart_zone
+from src.model.task_resource_model import (
+    classify_fever_chart_zone,
+    fever_chart_display_point,
+)
 
 
 class UIComponents:
@@ -1675,12 +1678,8 @@ class UIComponents:
 
         points = []
         for entry in history:
-            cpsl = entry['cpsl']
-            progress_pct = (entry['ppf'] / cpsl * 100) if cpsl > 0 else 0.0
-            consumption_pct = (
-                (entry['forecast_lateness'] / buffer_baseline_duration * 100)
-                if buffer_baseline_duration > 0
-                else 0.0
+            progress_pct, consumption_pct = fever_chart_display_point(
+                entry, buffer_baseline_duration
             )
             points.append((entry['date'], progress_pct, consumption_pct))
 

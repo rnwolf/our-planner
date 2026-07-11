@@ -47,7 +47,10 @@ def _draw_fever_chart_image(
     same pattern as every other export in this module), so it can be
     exported far higher-resolution than the on-screen canvas allows.
     """
-    from src.model.task_resource_model import classify_fever_chart_zone
+    from src.model.task_resource_model import (
+        classify_fever_chart_zone,
+        fever_chart_display_point,
+    )
 
     slope = project.get("fever_chart_slope", 0.55)
     yellow_intercept = project.get("fever_chart_yellow_intercept", 10.0)
@@ -61,12 +64,8 @@ def _draw_fever_chart_image(
 
     points = []
     for entry in history:
-        cpsl = entry["cpsl"]
-        progress_pct = (entry["ppf"] / cpsl * 100) if cpsl > 0 else 0.0
-        consumption_pct = (
-            (entry["forecast_lateness"] / buffer_baseline_duration * 100)
-            if buffer_baseline_duration > 0
-            else 0.0
+        progress_pct, consumption_pct = fever_chart_display_point(
+            entry, buffer_baseline_duration
         )
         points.append((entry["date"], progress_pct, consumption_pct))
 
@@ -1532,7 +1531,10 @@ class ExportOperations:
         use for rendering, so these numbers can never disagree with the
         chart images - nothing new is stored for this.
         """
-        from src.model.task_resource_model import classify_fever_chart_zone
+        from src.model.task_resource_model import (
+            classify_fever_chart_zone,
+            fever_chart_display_point,
+        )
 
         if project is None:
             if not self.model.projects:
@@ -1636,11 +1638,8 @@ class ExportOperations:
                         cpsl = entry["cpsl"]
                         ppf = entry["ppf"]
                         forecast_lateness = entry["forecast_lateness"]
-                        progress_pct = (ppf / cpsl * 100) if cpsl > 0 else 0.0
-                        consumption_pct = (
-                            (forecast_lateness / buffer_baseline_duration * 100)
-                            if buffer_baseline_duration > 0
-                            else 0.0
+                        progress_pct, consumption_pct = fever_chart_display_point(
+                            entry, buffer_baseline_duration
                         )
                         zone = classify_fever_chart_zone(
                             progress_pct, consumption_pct, slope, yellow_intercept,

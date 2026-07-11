@@ -29,7 +29,8 @@ rule + feeding-buffer shock-absorber fix, prompted by hand-verifying the fever c
 12). **Still open**: the rest of Stage 12 (a longer day-by-day fever chart narrative test — full
 buffer consumption/overflow, cross-project isolation — the merge-pull scenario itself is now
 covered by Stage 15's regression test), Stage 13 (rolling timeline compaction, design only, not
-scheduled), and Stage 16 (export a project network for the external CCPM scheduler) — see
+scheduled), Stage 16 (export a project network for the external CCPM scheduler), and Stage 17
+(resource buffer, a third manual buffer type, design discussion only, not scheduled) — see
 "Remaining work" below. What's left after that is everything listed under "Explicitly out of scope"
 (automated critical-chain detection, resource-constrained scheduling, event sourcing, full
 plan-vs-baseline comparison UI).
@@ -1185,6 +1186,30 @@ importer already reads):
   sent as regular input tasks (the external tool computes its own buffer sizing from the safe/
   aggressive gap) - needs to only export ordinary tasks, not the buffers we may have manually
   placed for the interim manual workflow.
+
+### Stage 17 — Resource buffer (third manual buffer type, design discussion only, not scheduled)
+
+Raised while building Stage 12's cross-project walkthrough scenario: real usage will have multiple
+projects in flight at once (rolling-wave planning, already supported), and the project managers'
+actual job at that point is largely staggering the *constrained resource's* tasks across those
+projects so they don't overlap - inserting a **resource buffer** between two tasks on the same
+bottleneck resource, possibly on entirely different chains/projects with no logical dependency link
+between them at all. Non-bottleneck resources' overlapping delays are a lesser concern, since their
+slack typically gets absorbed by the existing project/feeding buffers already.
+
+This is CCPM's third buffer type (alongside Project Buffer and Feeding Buffer, Stage 3/7), currently
+**not represented at all** - `BUFFER_TASK_TYPES` is only `{'project_buffer', 'feeding_buffer'}`. Two
+things distinguish it from "automated resource leveling," which stays out of scope (see "Explicitly
+out of scope" below): a resource buffer here would be a **manually-placed** task the user creates and
+tags, exactly like project/feeding buffers already are - the tool's job is still just to react
+correctly to whatever graph exists (Stages 2-7's philosophy), not to detect resource contention or
+compute staggering automatically.
+
+Not scoped further than this - no data model changes, no glue/cascade behavior, no fever chart
+formula decided yet. Likely needs: a resource identifier on the buffer (which constrained resource
+it protects), and glue/cascade logic similar to a feeding buffer's but keyed off a resource-sharing
+relationship between two tasks instead of a chain-following one. Revisit once Stage 12's own
+narrative/isolation tests are settled.
 
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
