@@ -267,14 +267,17 @@ class TaskResourceManager:
 
     def update_filter_status(self):
         """Update the filter status display in the status bar."""
-        task_filters = self.tag_ops.task_tag_filters
-        resource_filters = self.tag_ops.resource_tag_filters
-        project_filters = self.tag_ops.task_project_filters
-
-        if not task_filters and not resource_filters and not project_filters:
+        if not self.tag_ops.has_active_filters():
             self.filter_status.config(text='No filters active')
             self.clear_filters_btn.config(state=tk.DISABLED)
         else:
+            task_filters = self.tag_ops.task_tag_filters
+            resource_filters = self.tag_ops.resource_tag_filters
+            project_filters = self.tag_ops.task_project_filters
+            state_filters = self.tag_ops.task_state_filters
+            fullkit_filter = self.tag_ops.task_fullkit_filter
+            start_window_filters = self.tag_ops.task_start_window_filters
+
             status_text = []
             if task_filters:
                 match_type = 'ALL' if self.tag_ops.task_match_all else 'ANY'
@@ -287,6 +290,15 @@ class TaskResourceManager:
                     p['name'] for p in self.model.projects if p['id'] in project_filters
                 ]
                 status_text.append(f"Project: {', '.join(names)}")
+
+            if state_filters:
+                status_text.append(f"State: {', '.join(state_filters)}")
+
+            if fullkit_filter and fullkit_filter != 'any':
+                status_text.append(f"Full-Kit: {fullkit_filter}")
+
+            if start_window_filters:
+                status_text.append(f"Start: {', '.join(start_window_filters)}")
 
             if resource_filters:
                 match_type = 'ALL' if self.tag_ops.resource_match_all else 'ANY'

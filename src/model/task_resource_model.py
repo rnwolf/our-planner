@@ -701,6 +701,70 @@ class TaskResourceModel:
 
         return matching_resources
 
+    def get_task_state(self, task: Dict[str, Any]) -> str:
+        """Derive a task's execution state from its actual date fields (Stage
+        10 Part A) - no separate stored field, so it can never drift out of
+        sync with actual_start_date/actual_end_date."""
+        if task.get('actual_end_date'):
+            return 'complete'
+        if task.get('actual_start_date'):
+            return 'in_progress'
+        return 'not_started'
+
+    def get_tasks_by_state(self, states: List[str]) -> List[Dict[str, Any]]:
+        """Get tasks whose derived state (see get_task_state) is one of
+        `states` - OR logic among the selected states, matching the Project
+        filter's checkbox pattern."""
+        if not states:
+            return self.tasks.copy()
+        return [t for t in self.tasks if self.get_task_state(t) in states]
+
+    def get_tasks_by_fullkit(self, value: str) -> List[Dict[str, Any]]:
+        """Get tasks matching a full-kit readiness value: 'ready' (fullkit_date
+        set) or 'not_ready' (fullkit_date not set)."""
+        if value == 'ready':
+            return [t for t in self.tasks if t.get('fullkit_date')]
+        if value == 'not_ready':
+            return [t for t in self.tasks if not t.get('fullkit_date')]
+        return self.tasks.copy()
+
+    def get_task_start_window(self, task: Dict[str, Any]) -> str:
+        """Bucket a task's planned start date (its `col`, converted to a
+        calendar date) relative to the current setdate ("today" in the app's
+        own simulated timeline, not wall-clock time - consistent with the rest
+        of the app's status-date-driven design). Buckets are mutually
+        exclusive so they behave like the other OR-checkbox filters:
+
+        - 'overdue': planned start already passed
+        - 'week1': within the next 7 days
+        - 'week2': 7-14 days out
+        - 'month1': 14-30 days out
+        - 'month2': 30-60 days out
+        - 'later': 60+ days out
+        """
+        planned_start = self.get_date_for_day(task['col'])
+        delta_days = (planned_start - self.setdate).days
+
+        if delta_days < 0:
+            return 'overdue'
+        if delta_days < 7:
+            return 'week1'
+        if delta_days < 14:
+            return 'week2'
+        if delta_days < 30:
+            return 'month1'
+        if delta_days < 60:
+            return 'month2'
+        return 'later'
+
+    def get_tasks_by_start_window(self, windows: List[str]) -> List[Dict[str, Any]]:
+        """Get tasks whose derived planned-start window (see
+        get_task_start_window) is one of `windows` - OR logic among the
+        selected windows."""
+        if not windows:
+            return self.tasks.copy()
+        return [t for t in self.tasks if self.get_task_start_window(t) in windows]
+
     def get_all_tags(self) -> List[str]:
         """Get all tags used in the project."""
         return sorted(list(self.all_tags))

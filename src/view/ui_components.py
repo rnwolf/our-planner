@@ -269,6 +269,18 @@ class UIComponents:
             command=self.controller.tag_ops.filter_tasks_by_project,
         )
         self.filter_menu.add_command(
+            label='Filter Tasks by State...',
+            command=self.controller.tag_ops.filter_tasks_by_state,
+        )
+        self.filter_menu.add_command(
+            label='Filter Tasks by Full-Kit Readiness...',
+            command=self.controller.tag_ops.filter_tasks_by_fullkit,
+        )
+        self.filter_menu.add_command(
+            label='Filter Tasks by Planned Start...',
+            command=self.controller.tag_ops.filter_tasks_by_start_window,
+        )
+        self.filter_menu.add_command(
             label='Filter Resources by Tags...',
             command=self.controller.tag_ops.filter_resources_by_tags,
         )

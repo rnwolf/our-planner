@@ -593,6 +593,154 @@ class ProjectFilterDialog(tk.Toplevel):
         self.destroy()
 
 
+class CheckboxListFilterDialog(tk.Toplevel):
+    """Generic OR-checkbox filter dialog (Stage 10 Part A) - shared by the
+    State and Planned Start Window filters, both of which are a fixed list of
+    mutually-exclusive-per-task values that combine with OR when several are
+    checked (same UX as ProjectFilterDialog, generalized so a third near-
+    identical dialog class isn't needed for every new derived dimension).
+    """
+
+    def __init__(self, parent, title, options, initially_selected=None, on_filter=None):
+        super().__init__(parent)
+        self.title(title)
+        self.transient(parent)
+        self.grab_set()
+
+        self.options = options  # list of (key, label) tuples
+        self.initially_selected = set(initially_selected or [])
+        self.on_filter = on_filter
+        self.option_vars = {}
+
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        self.geometry(f'320x320+{x}+{y}')
+
+        self.create_widgets()
+
+        self.wait_visibility()
+        self.focus_set()
+        self.bind('<Escape>', lambda e: self.destroy())
+
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+        x = parent.winfo_rootx() + (parent_width - width) // 2
+        y = parent.winfo_rooty() + (parent_height - height) // 2
+        self.geometry(f'+{x}+{y}')
+
+    def create_widgets(self):
+        main_frame = tk.Frame(self, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(main_frame, text='Select value(s) to filter by:', anchor='w').pack(
+            fill=tk.X, pady=(0, 10)
+        )
+
+        selection_frame = tk.Frame(main_frame)
+        selection_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        for key, label in self.options:
+            var = tk.BooleanVar(value=key in self.initially_selected)
+            self.option_vars[key] = var
+            tk.Checkbutton(
+                selection_frame, text=label, variable=var, anchor='w'
+            ).pack(fill=tk.X, padx=5, pady=1)
+
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        tk.Button(button_frame, text='Apply Filter', command=self.apply_filter).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text='Clear Filter', command=self.clear_filter).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text='Cancel', command=self.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
+
+    def apply_filter(self):
+        selected = [key for key, var in self.option_vars.items() if var.get()]
+        if self.on_filter:
+            self.on_filter(selected)
+        self.destroy()
+
+    def clear_filter(self):
+        if self.on_filter:
+            self.on_filter([])
+        self.destroy()
+
+
+class FullKitFilterDialog(tk.Toplevel):
+    """Tri-state filter dialog for full-kit readiness (Stage 10 Part A) - a
+    radio choice rather than checkboxes, since 'ready' and 'not_ready' are
+    mutually exclusive and checking both would be equivalent to neither.
+    """
+
+    def __init__(self, parent, title, initial=None, on_filter=None):
+        super().__init__(parent)
+        self.title(title)
+        self.transient(parent)
+        self.grab_set()
+
+        self.on_filter = on_filter
+        self.choice = tk.StringVar(value=initial or 'any')
+
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        self.geometry(f'320x220+{x}+{y}')
+
+        self.create_widgets()
+
+        self.wait_visibility()
+        self.focus_set()
+        self.bind('<Escape>', lambda e: self.destroy())
+
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+        x = parent.winfo_rootx() + (parent_width - width) // 2
+        y = parent.winfo_rooty() + (parent_height - height) // 2
+        self.geometry(f'+{x}+{y}')
+
+    def create_widgets(self):
+        main_frame = tk.Frame(self, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(main_frame, text='Filter by full-kit readiness:', anchor='w').pack(
+            fill=tk.X, pady=(0, 10)
+        )
+
+        for value, label in (
+            ('any', 'Any'),
+            ('ready', 'Full-Kit Ready'),
+            ('not_ready', 'Not Yet Full-Kitted'),
+        ):
+            tk.Radiobutton(
+                main_frame, text=label, variable=self.choice, value=value, anchor='w'
+            ).pack(fill=tk.X, padx=5, pady=1)
+
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        tk.Button(button_frame, text='Apply Filter', command=self.apply_filter).pack(
+            side=tk.RIGHT, padx=5
+        )
+        tk.Button(button_frame, text='Cancel', command=self.destroy).pack(
+            side=tk.RIGHT, padx=5
+        )
+
+    def apply_filter(self):
+        if self.on_filter:
+            self.on_filter(self.choice.get())
+        self.destroy()
+
+
 class TagOperations:
     """Handles operations related to tags."""
 
@@ -610,6 +758,13 @@ class TagOperations:
         # exactly one project, so this is inherently OR logic among the
         # selected ids; it ANDs against the tag filter above.
         self.task_project_filters = []
+
+        # Derived filter dimensions (Stage 10 Part A) - all computed from
+        # existing task fields, none need a new stored field. Each ANDs
+        # against every other active filter in get_filtered_tasks().
+        self.task_state_filters = []  # subset of 'not_started'/'in_progress'/'complete'
+        self.task_fullkit_filter = 'any'  # 'any' / 'ready' / 'not_ready'
+        self.task_start_window_filters = []  # subset of overdue/week1/week2/month1/month2/later
 
     def edit_task_tags(self, task=None):
         """Edit tags for a task."""
@@ -782,6 +937,76 @@ class TagOperations:
 
         self.controller.update_view()
 
+    def filter_tasks_by_state(self):
+        """Open dialog to filter tasks by derived state (Stage 10 Part A)."""
+        CheckboxListFilterDialog(
+            self.controller.root,
+            'Filter Tasks by State',
+            options=[
+                ('not_started', 'Not Started'),
+                ('in_progress', 'In Progress'),
+                ('complete', 'Complete'),
+            ],
+            initially_selected=self.task_state_filters,
+            on_filter=self.apply_task_state_filter,
+        )
+
+    def apply_task_state_filter(self, states):
+        """Apply a state filter to tasks."""
+        self.task_state_filters = states
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
+        self.controller.update_view()
+
+    def filter_tasks_by_fullkit(self):
+        """Open dialog to filter tasks by full-kit readiness (Stage 10 Part A)."""
+        FullKitFilterDialog(
+            self.controller.root,
+            'Filter Tasks by Full-Kit Readiness',
+            initial=self.task_fullkit_filter,
+            on_filter=self.apply_task_fullkit_filter,
+        )
+
+    def apply_task_fullkit_filter(self, value):
+        """Apply a full-kit readiness filter to tasks."""
+        self.task_fullkit_filter = value
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
+        self.controller.update_view()
+
+    def filter_tasks_by_start_window(self):
+        """Open dialog to filter tasks by planned start window (Stage 10 Part A)."""
+        CheckboxListFilterDialog(
+            self.controller.root,
+            'Filter Tasks by Planned Start',
+            options=[
+                ('overdue', 'Overdue'),
+                ('week1', 'Next 1 week'),
+                ('week2', 'Next 2 weeks'),
+                ('month1', 'Next 1 month'),
+                ('month2', 'Next 2 months'),
+                ('later', 'Later'),
+            ],
+            initially_selected=self.task_start_window_filters,
+            on_filter=self.apply_task_start_window_filter,
+        )
+
+    def apply_task_start_window_filter(self, windows):
+        """Apply a planned start window filter to tasks."""
+        self.task_start_window_filters = windows
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
+        self.controller.update_view()
+
     def filter_resources_by_tags(self):
         """Open dialog to filter resources by tags."""
         TagFilterDialog(
@@ -803,8 +1028,10 @@ class TagOperations:
         self.controller.update_view()
 
     def get_filtered_tasks(self):
-        """Get tasks filtered by the current tag and/or project filter (Stage
-        11 combines the two as AND - a task must match both to be shown)."""
+        """Get tasks filtered by every active filter dimension - tags,
+        project (Stage 11), and state/full-kit/planned-start-window (Stage 10
+        Part A). Each dimension ANDs against the others; within a dimension
+        that has multiple selectable values, matching any one is enough (OR)."""
         if self.task_tag_filters:
             tasks = self.model.get_tasks_by_tags(
                 self.task_tag_filters, match_all=self.task_match_all
@@ -816,6 +1043,29 @@ class TagOperations:
             tasks = [
                 t for t in tasks if t.get('project_id') in self.task_project_filters
             ]
+
+        if self.task_state_filters:
+            allowed_ids = {
+                t['task_id']
+                for t in self.model.get_tasks_by_state(self.task_state_filters)
+            }
+            tasks = [t for t in tasks if t['task_id'] in allowed_ids]
+
+        if self.task_fullkit_filter and self.task_fullkit_filter != 'any':
+            allowed_ids = {
+                t['task_id']
+                for t in self.model.get_tasks_by_fullkit(self.task_fullkit_filter)
+            }
+            tasks = [t for t in tasks if t['task_id'] in allowed_ids]
+
+        if self.task_start_window_filters:
+            allowed_ids = {
+                t['task_id']
+                for t in self.model.get_tasks_by_start_window(
+                    self.task_start_window_filters
+                )
+            }
+            tasks = [t for t in tasks if t['task_id'] in allowed_ids]
 
         return tasks
 
@@ -829,10 +1079,13 @@ class TagOperations:
         )
 
     def clear_task_filters(self):
-        """Clear all task filters (tags and project)."""
+        """Clear all task filters (tags, project, state, full-kit, planned start)."""
         self.task_tag_filters = []
         self.task_match_all = False
         self.task_project_filters = []
+        self.task_state_filters = []
+        self.task_fullkit_filter = 'any'
+        self.task_start_window_filters = []
 
         # Clear multi-selections when filter changes
         self.controller.selected_tasks = []
@@ -857,6 +1110,9 @@ class TagOperations:
             self.task_tag_filters
             or self.resource_tag_filters
             or self.task_project_filters
+            or self.task_state_filters
+            or (self.task_fullkit_filter and self.task_fullkit_filter != 'any')
+            or self.task_start_window_filters
         )
 
     def select_tasks_by_tag(self):
