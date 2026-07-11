@@ -17,21 +17,19 @@ canvas, sharing the same resource pool, each independently in "planning" or "exe
 
 ## Already implemented (this session)
 
-All of the following is built, tested (`uv run pytest`, 76 tests passing), and manually verified
-in the running app. **Stages 1-9, 11, 14, and 15 (see each "Stage N — done" heading below) are now
+All of the following is built, tested (`uv run pytest`, 81 tests passing), and manually verified
+in the running app. **Stages 1-11 and 14-15 (see each "Stage N — done" heading below) are now
 complete** — the original 7-stage build order, Stage 8 (fever chart reporting, including PNG
 export) and Stage 9 (fever chart CSV data export) added once Stages 4/7's data capture made them
-practical to build, Stage 11 (task/project filtering + marquee-select), Stage 14 (Optimal/Realistic
-terminology rename), and Stage 15 (merge-point pull rule + feeding-buffer shock-absorber fix,
-prompted by hand-verifying the fever chart math for Stage 12). **Stage 10 Part A is also done** —
-new derived filter dimensions (State, Full-Kit Readiness, Planned Start Window) on the Filter menu,
-see "Reporting framework (Stage 10)" below. **Still open**: Stage 10 Part B (the pluggable
-`Reports` menu itself, with Full-Kit Readiness as the first new report type; Fever Charts, Stage 8,
-stay as-is but become discoverable from the same menu), the rest of Stage 12 (a longer day-by-day
-fever chart narrative test — full buffer consumption/overflow, cross-project isolation — the
-merge-pull scenario itself is now covered by Stage 15's regression test), Stage 13 (rolling
-timeline compaction, design only, not scheduled), and Stage 16 (export a project network for the
-external CCPM scheduler) — see
+practical to build, Stage 10 (Reporting framework - new derived filter dimensions plus a pluggable
+`Reports` menu, with Full-Kit Readiness as the first new report type; Fever Charts, Stage 8, stay
+as-is but are now discoverable from the same menu), Stage 11 (task/project filtering +
+marquee-select), Stage 14 (Optimal/Realistic terminology rename), and Stage 15 (merge-point pull
+rule + feeding-buffer shock-absorber fix, prompted by hand-verifying the fever chart math for Stage
+12). **Still open**: the rest of Stage 12 (a longer day-by-day fever chart narrative test — full
+buffer consumption/overflow, cross-project isolation — the merge-pull scenario itself is now
+covered by Stage 15's regression test), Stage 13 (rolling timeline compaction, design only, not
+scheduled), and Stage 16 (export a project network for the external CCPM scheduler) — see
 "Remaining work" below. What's left after that is everything listed under "Explicitly out of scope"
 (automated critical-chain detection, resource-constrained scheduling, event sourcing, full
 plan-vs-baseline comparison UI).
@@ -964,7 +962,7 @@ Progress %/Consumption %/Zone at every step, a feeding buffer fully consumed wit
 critical chain, and cross-project isolation). See Stage 12 under "Remaining work" below for what's
 left.
 
-### Reporting framework — filter dimensions (Stage 10 Part A — done)
+### Reporting framework (Stage 10 — done)
 
 Stage 10 was originally scoped as a single-purpose "Backlog Full Kit readiness report," then
 generalized: "backlog" (not-started) shouldn't be baked into the report's own definition - it's one
@@ -1002,11 +1000,34 @@ from `has_active_filters()` rather than re-listing dimensions by hand, so a futu
 be added to one and forgotten in the other.
 
 18 new tests in `tests/test_report_filter_dimensions.py` (state/fullkit/window derivation, bucket
-boundaries, multi-dimension AND combination, clear/has-active-filters coverage). Full suite
-(`uv run pytest tests/ -q`): **76 passed**, 0 failures.
+boundaries, multi-dimension AND combination, clear/has-active-filters coverage).
 
-**What Stage 10 still needs**: Part B, the pluggable `Reports` menu/registry itself, with Full-Kit
-Readiness as the first new report type built against it. See Stage 10 under "Remaining work" below.
+**Part B - the reporting framework itself** (`src/operations/report_operations.py`, new file):
+
+- New **`Reports` menu** (`ui_components.py`) - `Project Fever Charts...` moved here unchanged from
+  the `Projects` menu (which now holds only `Manage Projects...`), plus a new `Full-Kit
+  Readiness...` entry. One home for every report type, old and new, as the design intended.
+- **`ReportOperations`** (wired into the controller as `self.report_ops`, alongside
+  `self.tag_ops`/`self.export_ops`) is deliberately *not* a generic plugin-discovery registry -
+  with exactly one new report type in existence, that would be abstraction ahead of need. What it
+  does establish: an extractor/renderer split per report method, so a future report type is "write
+  an extractor + a dialog," not "re-derive filtering." `_select_project()` mirrors Fever Charts'
+  existing "prompt if more than one project" flow.
+- **Full-Kit Readiness** (`compute_fullkit_readiness` = extractor, `view_fullkit_readiness_report`
+  = renderer): scopes to a chosen project, filtered through whatever's currently active on the
+  Filter menu (`tag_ops.get_filtered_tasks()`) - e.g. checking the State filter's `Not Started`
+  reproduces the original "backlog" framing, but nothing forces that scope. Excludes buffer tasks
+  (`type == 'task'` only - full-kit readiness isn't a meaningful concept for a buffer). Shows
+  ready-count/total/percentage plus a listing sorted soonest-planned-start-first. No phase guard,
+  unlike Fever Charts - full-kit readiness matters during planning too. On-screen only for now, no
+  CSV/PNG export (consistent with how Stage 8 started before export was a fast-follow ask).
+- Fever Charts' own code/dialogs untouched, as planned - only its menu location moved.
+- 5 new tests in `tests/test_report_operations.py` covering the extractor only (project scoping,
+  buffer exclusion, sort order, respecting active Filter-menu state, empty-project zero-counts) -
+  the renderer is a plain Tkinter dialog with no independent logic worth a headless test, verified
+  instead by a manual headless smoke run that opens the real dialog against a real controller.
+
+Full suite (`uv run pytest tests/ -q`): **81 passed**, 0 failures.
 
 ## Remaining work
 
@@ -1015,38 +1036,9 @@ above. Stage 11, filter menu restructure + marquee-select, is done — see "Task
 marquee-select (Stage 11 — done)" above. Stage 14, the Optimal/Realistic rename, and Stage 15, the
 merge-point pull rule + shock-absorber fever fix, are both done too — see their own "— done"
 headings above. Stage 12 below is partially done — the merge-pull scenario it surfaced is now
-Stage 15's regression test; what remains of Stage 12 is narrower than originally scoped. Stage 10
-below has been generalized from a single-purpose backlog report into a Reporting framework, and its
-Part A (new derived filter dimensions) is done - see the "Already implemented" write-up above;
-what's left of Stage 10 below is just Part B, the pluggable Reports menu itself.)
-
-### Stage 10 Part B — Reporting framework (pluggable report types)
-
-Part A (new derived filter dimensions) is done - see "Reporting framework — filter dimensions
-(Stage 10 Part A — done)" above. What's left is the framework itself and the first report type
-built against it:
-
-- **Framework**: a `Reports` menu/registry where each report type is an extractor (turn the
-  currently-filtered task set into report rows/metrics) plus a renderer (listing dialog or chart),
-  so adding a future report type is "write an extractor + renderer against the existing
-  filtered-task list," not "re-derive filtering from scratch." Reports read whatever
-  `get_filtered_tasks()` currently returns as their input set - reusing live canvas filter state
-  rather than each report inventing its own separate filter UI.
-- **Fever Charts (Stage 8) are left as-is**, not retrofitted into the new extractor/renderer shape
-  - that code is done, tested, and working; forcing it into the new abstraction for the sake of
-    architectural purity risks regressions for no user-facing benefit. It's simply made
-    discoverable from the same `Reports` menu alongside the new report types.
-- **Full-Kit Readiness becomes the first new report type** built against the framework: for a
-  chosen project, filtered by whatever combination of State/Full-Kit/Planned-Start-Window/Tags is
-  currently active, show the % with `fullkit_date` set vs not, plus a listing sorted soonest-to-
-  start first (by `col`) - imminent tasks lacking a full kit are the actual risk, not distant ones.
-  Applies regardless of `project['phase']` (unlike Fever Charts' execution-phase guard) - full-kit
-  readiness matters during planning too, to make sure near-term work is prepped ahead of execution.
-- **Format**: a simple listing dialog (mirrors `View Duration History...`/`View Buffer History...`)
-  rather than a chart - there's no second axis or trend here, just a percentage and a sorted list.
-- Not yet decided: whether this should also get a CSV/image export like the fever charts, or stay
-  on-screen only for now (leaning on-screen only until asked otherwise, consistent with how Stage 8
-  started before export was requested as a fast-follow).
+Stage 15's regression test; what remains of Stage 12 is narrower than originally scoped. Stage 10,
+generalized from a single-purpose backlog report into a Reporting framework, is done in full
+(Parts A and B) — see "Reporting framework (Stage 10 — done)" above.)
 
 ### Stage 12 — Remaining fever chart hand-verification (narrative test + cross-project isolation)
 
@@ -1523,8 +1515,11 @@ from evaluating the actual planning features. Worth picking up opportunistically
 - `src/operations/file_operations.py` — `New`/`Open`/`Save`, and `import_ccpm_schedule` (CCPM
   schedule.csv import).
 - `src/operations/export_operations.py` — PDF/PNG/CSV exports, fever chart PNG export.
-- `src/operations/tag_operations.py` — tag- and project-based task/resource filtering and selection
-  (`get_filtered_tasks`/`get_filtered_resources`, `TagFilterDialog`, `ProjectFilterDialog`).
+- `src/operations/tag_operations.py` — tag/project/state/full-kit/planned-start-window task and
+  resource filtering and selection (`get_filtered_tasks`/`get_filtered_resources`,
+  `TagFilterDialog`, `ProjectFilterDialog`, `CheckboxListFilterDialog`, `FullKitFilterDialog`).
+- `src/operations/report_operations.py` — the Reporting framework (Stage 10 Part B):
+  `ReportOperations`, `compute_fullkit_readiness`/`view_fullkit_readiness_report`.
 - `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer; `file-structure.md`
   documents the expected CSV format.
 

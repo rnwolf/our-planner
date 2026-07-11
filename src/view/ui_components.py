@@ -344,9 +344,21 @@ class UIComponents:
                 parent=self.controller.root
             ),
         )
-        self.projects_menu.add_command(
+
+        # Reports menu (Stage 10 Part B) - a single home for every report
+        # type, old and new. Fever Charts (Stage 8) moved here unchanged;
+        # Full-Kit Readiness is the first report built against the new
+        # framework, reusing whatever the Filter menu currently selects.
+        self.reports_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label='Reports', menu=self.reports_menu)
+
+        self.reports_menu.add_command(
             label='Project Fever Charts...',
             command=lambda: self.controller.task_ops.view_project_fever_charts(),
+        )
+        self.reports_menu.add_command(
+            label='Full-Kit Readiness...',
+            command=lambda: self.controller.report_ops.view_fullkit_readiness_report(),
         )
 
         # Chains menu

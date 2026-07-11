@@ -10,6 +10,7 @@ from src.operations.network_operations import NetworkOperations
 from src.operations.tag_operations import TagOperations
 from src.operations.task_operations import TaskOperations
 from src.operations.export_operations import ExportOperations
+from src.operations.report_operations import ReportOperations
 
 from src.utils import colors
 
@@ -133,6 +134,7 @@ class TaskResourceManager:
         self.ui = UIComponents(self, self.model)
         self.file_ops = FileOperations(self, self.model)
         self.export_ops = ExportOperations(self, self.model)
+        self.report_ops = ReportOperations(self, self.model)
         self.network_ops = NetworkOperations(self, self.model)
 
         # Create UI elements
