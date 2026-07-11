@@ -17,23 +17,22 @@ canvas, sharing the same resource pool, each independently in "planning" or "exe
 
 ## Already implemented (this session)
 
-All of the following is built, tested (`uv run pytest`, 81 tests passing), and manually verified
-in the running app. **Stages 1-11 and 14-15 (see each "Stage N — done" heading below) are now
+All of the following is built, tested (`uv run pytest`, 88 tests passing), and manually verified
+in the running app. **Stages 1-12 and 14-15 (see each "Stage N — done" heading below) are now
 complete** — the original 7-stage build order, Stage 8 (fever chart reporting, including PNG
 export) and Stage 9 (fever chart CSV data export) added once Stages 4/7's data capture made them
 practical to build, Stage 10 (Reporting framework - new derived filter dimensions plus a pluggable
 `Reports` menu, with Full-Kit Readiness as the first new report type; Fever Charts, Stage 8, stay
 as-is but are now discoverable from the same menu), Stage 11 (task/project filtering +
-marquee-select), Stage 14 (Optimal/Realistic terminology rename), and Stage 15 (merge-point pull
-rule + feeding-buffer shock-absorber fix, prompted by hand-verifying the fever chart math for Stage
-12). **Still open**: the rest of Stage 12 (a longer day-by-day fever chart narrative test — full
-buffer consumption/overflow, cross-project isolation — the merge-pull scenario itself is now
-covered by Stage 15's regression test), Stage 13 (rolling timeline compaction, design only, not
-scheduled), Stage 16 (export a project network for the external CCPM scheduler), and Stage 17
-(resource buffer, a third manual buffer type, design discussion only, not scheduled) — see
-"Remaining work" below. What's left after that is everything listed under "Explicitly out of scope"
-(automated critical-chain detection, resource-constrained scheduling, event sourcing, full
-plan-vs-baseline comparison UI).
+marquee-select), Stage 12 (the remaining fever chart hand-verification: a full multi-update
+narrative test, feeding-buffer full-consumption/overflow, and cross-project isolation), Stage 14
+(Optimal/Realistic terminology rename), and Stage 15 (merge-point pull rule + feeding-buffer
+shock-absorber fix, prompted by hand-verifying the fever chart math for Stage 12). **Still open**:
+Stage 13 (rolling timeline compaction, design only, not scheduled), Stage 16 (export a project
+network for the external CCPM scheduler), and Stage 17 (resource buffer, a third manual buffer
+type, design discussion only, not scheduled) — see "Remaining work" below. What's left after that
+is everything listed under "Explicitly out of scope" (automated critical-chain detection,
+resource-constrained scheduling, event sourcing, full plan-vs-baseline comparison UI).
 
 ### Dependency link types
 
@@ -960,8 +959,8 @@ Full suite (`uv run pytest tests/ -q`): **58 passed** (54 pre-existing + 4 new),
 **What Stage 12 still needs**: this covered the specific merge-pull scenario that surfaced the bug,
 not the full narrative Stage 12 originally scoped (a longer day-by-day walk asserting CPSL/PPF/
 Progress %/Consumption %/Zone at every step, a feeding buffer fully consumed with overflow onto the
-critical chain, and cross-project isolation). See Stage 12 under "Remaining work" below for what's
-left.
+critical chain, and cross-project isolation). See "Remaining fever chart hand-verification (Stage
+12 — done)" below for how that remainder was closed out.
 
 ### Reporting framework (Stage 10 — done)
 
@@ -1030,40 +1029,63 @@ boundaries, multi-dimension AND combination, clear/has-active-filters coverage).
 
 Full suite (`uv run pytest tests/ -q`): **81 passed**, 0 failures.
 
+### Remaining fever chart hand-verification (Stage 12 — done)
+
+Closed out what Stage 15 left open: a full multi-update narrative test, a feeding buffer fully
+consumed with overflow onto the critical chain, and cross-project isolation checked at every step.
+
+- **`scripts/stage12_walkthrough.py`** (new) - a headless, step-through hand-verification tool,
+  built to answer "how do I know these formulas are right?" before locking them into a permanent
+  test. Builds a small CCPM scenario (critical chain C1->C2->C3->Project Buffer baseline 8, feeding
+  chain F1->Feeding Buffer baseline 5 merging into C2, plus an untouched "Control" project for
+  isolation) and steps through 9 status updates one at a time - printing the exact manual actions
+  to reproduce each step in the real running app (`Date menu > Set Current Date...`, then
+  `Record Remaining Duration...` with the value to enter), pausing so the app can be driven by hand
+  before revealing the expected CPSL/PPF/Progress %/Consumption %/Zone, and for two of those steps
+  printing the full PPF/consumption arithmetic line-by-line (`explain_progress_frontier`/
+  `explain_consumption`) - e.g. showing exactly why a well-forecast but not-yet-`done` task doesn't
+  advance the Progress Frontier. Also saves the Day-0 scenario to `scripts/stage12_scenario.json`
+  for `File > Open...`, and colors the Project/Feeding Buffer tasks Plum/Salmon so they're easy to
+  call out by color on video. Cross-checked step-by-step against the real app by the user.
+- **The narrative surfaced two real design points worth recording**, both confirmed as correct
+  existing behavior rather than bugs:
+  - A feeding buffer's consumption isn't only driven by its own feeding chain running late - a
+    routine on-track update on the *critical* chain can pull the merge point earlier and compress
+    the buffer too (Stage 15's shock-direction-agnostic design working as intended).
+  - Recording a task's status for the first time *and* marking it done in the same update collapses
+    its footprint to zero length at that date, since the model only anchors `actual_start_date` on
+    a task's first recorded update - skipping an earlier "in progress, N remaining" update loses
+    real elapsed-progress visibility. The scenario/script route around this by recording an early
+    on-track update for every task before it's ever marked done, matching how a PM would actually
+    hear about and backdate a late status report.
+  - Separately, the scenario originally let C3 (FS-dependent on C2) get marked finished before C2
+    itself was ever recorded done - an impossible ordering in reality. Fixed by inserting a C2
+    completion step first; this also demonstrates Progress % advancing past two tasks instead of
+    one.
+- **`fever_chart_display_point`** (`task_resource_model.py`, new) - the walkthrough script needed to
+  call the *exact* Progress %/Consumption % math the app uses to be trustworthy, which surfaced that
+  this math was hand-copied identically into three places (the on-screen chart, the PNG export, and
+  the CSV export) with no shared test. Extracted into one function, all three call sites updated to
+  use it, covered directly by 5 new tests in `tests/test_fever_chart_display_point.py`.
+- **`tests/test_fever_charts_narrative.py`** (new, 2 tests) - the permanent regression test the
+  walkthrough's hand-verified numbers were turned into once agreed: the full 9-step narrative
+  (asserting CPSL/PPF/Progress %/Consumption %/Zone at every step) plus a Day-0 baseline sanity
+  check, with cross-project isolation (`Control` project's buffer must never move) asserted after
+  every single step, not just once. Verified to actually catch a regression, not just pass by
+  construction, by deliberately breaking the overflow term and confirming the test failed with the
+  expected diff before reverting.
+
+Full suite (`uv run pytest tests/ -q`): **88 passed**, 0 failures.
+
 ## Remaining work
 
 (Stage 9, fever chart CSV data export, is done — see "Fever chart reporting (Stage 8 — done)"
 above. Stage 11, filter menu restructure + marquee-select, is done — see "Task/project filtering +
-marquee-select (Stage 11 — done)" above. Stage 14, the Optimal/Realistic rename, and Stage 15, the
-merge-point pull rule + shock-absorber fever fix, are both done too — see their own "— done"
-headings above. Stage 12 below is partially done — the merge-pull scenario it surfaced is now
-Stage 15's regression test; what remains of Stage 12 is narrower than originally scoped. Stage 10,
-generalized from a single-purpose backlog report into a Reporting framework, is done in full
-(Parts A and B) — see "Reporting framework (Stage 10 — done)" above.)
-
-### Stage 12 — Remaining fever chart hand-verification (narrative test + cross-project isolation)
-
-Originally scoped as one big hand-verified day-by-day scenario; the first pass through that
-exercise (a critical chain merging with a feeding chain via a buffer) surfaced the real
-merge-point cascade bug now fixed and regression-tested as Stage 15. What's left is narrower than
-the original scope:
-
-- **A longer day-by-day narrative test**, asserting the exact expected CPSL/PPF/Progress %/
-  Consumption %/Zone at each simulated status update across a whole small execution (not just the
-  single instant Stage 15's test isolates) - likely a new `tests/test_fever_charts.py` (or an
-  addition to `tests/test_scenarios.py`, which already has this session's precedent for narrative/
-  day-by-day integration tests). The goal is confidence in the *narrative* (a buffer correctly
-  absorbing early, then correctly tipping into yellow/red as delays accumulate over several
-  updates), not just that individual formulas are internally consistent with each other at one
-  point in time.
-- **A feeding buffer fully consumed, with overflow onto the critical chain** (Stage 7's
-  push-side absorb-then-overflow) - not yet covered by a durable test; Stage 15's regression tests
-  cover the pull side (merge point pulled earlier compressing the buffer) but not a feeding chain
-  slipping far enough to exhaust its buffer and push into the critical chain.
-- **Cross-project isolation**, re-verified as a durable test rather than the one-off headless
-  script used when the bug was originally fixed (see Stage 8's "bleed" bug write-up above): a
-  second, unrelated project's buffers must show zero change from a status update in the first
-  project.
+marquee-select (Stage 11 — done)" above. Stage 12, the remaining fever chart hand-verification, and
+Stage 14/15, the Optimal/Realistic rename and merge-point pull rule + shock-absorber fever fix, are
+all done too — see their own "— done" headings above. Stage 10, generalized from a single-purpose
+backlog report into a Reporting framework, is done in full (Parts A and B) — see "Reporting
+framework (Stage 10 — done)" above.)
 
 ### Stage 13 — Rolling timeline compaction (design discussion only, not scheduled)
 
@@ -1208,8 +1230,7 @@ compute staggering automatically.
 Not scoped further than this - no data model changes, no glue/cascade behavior, no fever chart
 formula decided yet. Likely needs: a resource identifier on the buffer (which constrained resource
 it protects), and glue/cascade logic similar to a feeding buffer's but keyed off a resource-sharing
-relationship between two tasks instead of a chain-following one. Revisit once Stage 12's own
-narrative/isolation tests are settled.
+relationship between two tasks instead of a chain-following one.
 
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
