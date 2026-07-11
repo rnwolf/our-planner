@@ -23,9 +23,11 @@ complete** — the original 7-stage build order, Stage 8 (fever chart reporting,
 export) and Stage 9 (fever chart CSV data export) added once Stages 4/7's data capture made them
 practical to build, Stage 11 (task/project filtering + marquee-select), Stage 14 (Optimal/Realistic
 terminology rename), and Stage 15 (merge-point pull rule + feeding-buffer shock-absorber fix,
-prompted by hand-verifying the fever chart math for Stage 12). **Still open**: Stage 10 (backlog
-full-kit readiness report), the rest of Stage 12 (a longer day-by-day fever chart narrative test —
-full buffer consumption/overflow, cross-project isolation — the merge-pull scenario itself is now
+prompted by hand-verifying the fever chart math for Stage 12). **Still open**: Stage 10 (a general
+Reporting framework — new derived filter dimensions plus a pluggable Reports menu, with Full-Kit
+Readiness as the first new report type; Fever Charts, Stage 8, stay as-is but become discoverable
+from the same menu), the rest of Stage 12 (a longer day-by-day fever chart narrative test — full
+buffer consumption/overflow, cross-project isolation — the merge-pull scenario itself is now
 covered by Stage 15's regression test), Stage 13 (rolling timeline compaction, design only, not
 scheduled), and Stage 16 (export a project network for the external CCPM scheduler) — see
 "Remaining work" below. What's left after that is everything listed under "Explicitly out of scope"
@@ -967,27 +969,59 @@ above. Stage 11, filter menu restructure + marquee-select, is done — see "Task
 marquee-select (Stage 11 — done)" above. Stage 14, the Optimal/Realistic rename, and Stage 15, the
 merge-point pull rule + shock-absorber fever fix, are both done too — see their own "— done"
 headings above. Stage 12 below is partially done — the merge-pull scenario it surfaced is now
-Stage 15's regression test; what remains of Stage 12 is narrower than originally scoped.)
+Stage 15's regression test; what remains of Stage 12 is narrower than originally scoped. Stage 10
+below has been generalized from a single-purpose backlog report into a Reporting framework — see
+its write-up for why.)
 
-### Stage 10 — Backlog Full Kit readiness report
+### Stage 10 — Reporting framework (derived filter dimensions + pluggable report types)
 
-A different kind of report from the fever charts above, and explicitly **not** execution-only:
-full-kit readiness matters throughout a project's life - during planning, to make sure near-term
-work is being prepped ahead of execution kicking off; during execution, for whatever's still
-queued up but hasn't started. Applies regardless of `project['phase']`.
+Originally scoped as a single-purpose "Backlog Full Kit readiness report." Generalized once it
+became clear that "backlog" (not-started) shouldn't be baked into the report's own definition -
+it's one value of a filter dimension a report applies, and the readiness report is really just the
+first of several report *types* that all share the same shape: pick a project, narrow to a subset
+of its tasks via combinable filters, then extract/render a specific metric. Fever Charts (Stage 8)
+already are a second instance of that same shape, built before this framework existed.
 
-- **"Backlog"** = a project's tasks that haven't started yet (`actual_start_date is None`) - the
-  queue of upcoming work, derivable directly from data already on every task, no new field needed.
-- **Report content**: for a chosen project, the % of backlog tasks with `fullkit_date` set (ready)
-  vs not, plus a listing of individual backlog tasks - sorted soonest-to-start first (by `col`),
-  since imminent tasks lacking a full kit are the actual risk, not distant ones - each showing its
-  full-kit status and scheduled start.
-- **Access point**: proposed `Projects` menu → `Backlog Full Kit Report...`, alongside `Manage
-  Projects...` and `Project Fever Charts...` - same project-selection flow as those (prompt if more
-  than one project), but *without* the execution-phase guard the other two have.
+**Part A - new derived filter dimensions**, extending Stage 11's Filter menu (`ui_components.py`/
+`tag_operations.py`) so both the task grid *and* reports can use them - none need a new stored
+field, all are computed from data already on every task:
+
+- **State** - `Not Started` (`actual_start_date is None`), `In Progress` (`actual_start_date` set,
+  `actual_end_date is None`), `Complete` (`actual_end_date` set). Mutually exclusive, so this
+  behaves like the existing Project filter (checkbox list, OR within the dimension).
+- **Full-Kit Readiness** - `fullkit_date is not None` vs not. Orthogonal to State (a task can be
+  Not Started and kitted, Not Started and not kitted, etc.), so it's its own filter, not a value of
+  State.
+- **Planned Start Window** - derived from a task's scheduled start (`col` → date) relative to
+  today: `Overdue` (scheduled start already passed, still not started), `Next 1 week`,
+  `Next 2 weeks`, `Next 1 month`, `Next 2 months`, `Later`. Same OR-within/AND-across-dimensions
+  pattern as the rest.
+
+All three AND-combine with each other and with the existing Tags/Project filters in
+`get_filtered_tasks()`, e.g. "Project X, Not Started, not yet full-kitted, planned start within 2
+weeks" as a single query - exactly the combinability the readiness report needs, but useful on the
+plain task grid too (this is why it's built into the Filter menu, not hidden inside a report
+dialog).
+
+**Part B - the reporting framework itself**: a `Reports` menu/registry where each report type is an
+extractor (turn the currently-filtered task set into report rows/metrics) plus a renderer (listing
+dialog or chart), so adding a future report type is "write an extractor + renderer against the
+existing filtered-task list," not "re-derive filtering from scratch." Reports read whatever
+`get_filtered_tasks()` currently returns as their input set - reusing live canvas filter state
+rather than each report inventing its own separate filter UI.
+
+- **Fever Charts (Stage 8) are left as-is**, not retrofitted into the new extractor/renderer shape
+  - that code is done, tested, and working; forcing it into the new abstraction for the sake of
+    architectural purity risks regressions for no user-facing benefit. It's simply made
+    discoverable from the same `Reports` menu alongside the new report types.
+- **Full-Kit Readiness becomes the first new report type** built against the framework: for a
+  chosen project, filtered by whatever combination of State/Full-Kit/Planned-Start-Window/Tags is
+  currently active, show the % with `fullkit_date` set vs not, plus a listing sorted soonest-to-
+  start first (by `col`) - imminent tasks lacking a full kit are the actual risk, not distant ones.
+  Applies regardless of `project['phase']` (unlike Fever Charts' execution-phase guard) - full-kit
+  readiness matters during planning too, to make sure near-term work is prepped ahead of execution.
 - **Format**: a simple listing dialog (mirrors `View Duration History...`/`View Buffer History...`)
-  rather than a chart - there's no second axis or trend here, just a percentage and a sorted list,
-  so a chart would be overkill.
+  rather than a chart - there's no second axis or trend here, just a percentage and a sorted list.
 - Not yet decided: whether this should also get a CSV/image export like the fever charts, or stay
   on-screen only for now (leaning on-screen only until asked otherwise, consistent with how Stage 8
   started before export was requested as a fast-follow).
