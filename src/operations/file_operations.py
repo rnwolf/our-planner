@@ -198,14 +198,13 @@ class FileOperations:
     def _ensure_model_days(self, min_days):
         """Extend the timeline (and every resource's capacity array to
         match) if the schedule being imported needs more days than currently
-        exist."""
+        exist. Thin wrapper around model.extend_timeline (Stage 13) so import
+        and manual "Extend Timeline..." can't drift apart on how new days'
+        default capacity is generated."""
         if min_days <= self.model.days:
             return
 
-        added_days = min_days - self.model.days
-        self.model.days = min_days
-        for resource in self.model.resources:
-            resource['capacity'] = resource['capacity'] + [1.0] * added_days
+        self.model.extend_timeline(min_days - self.model.days)
 
     def _import_resources(self, resource_rows):
         """Import resources.csv rows, reusing an existing resource by name

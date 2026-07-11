@@ -449,6 +449,157 @@ class TaskResourceModel:
 
         return count
 
+    def shift_task_position(self, task: Dict[str, Any], delta_days: int) -> None:
+        """Shift a task's `col` by `delta_days`, and its `baseline['col']` by
+        the exact same amount if a baseline has been captured (Stage 1/4).
+
+        Both must move together - every buffer's forecast-lateness math
+        (`compute_fever_chart_point`) compares a task's *current* `col`
+        against its own `baseline['col']`. Shifting only the live `col` (the
+        bug this method fixes - `update_project_start_date` used to do
+        exactly that) silently corrupts every subsequent Progress %/
+        Consumption % calculation for that buffer by the shifted amount, for
+        the rest of the project's life. Used by both
+        `update_project_start_date` and Stage 13's "Delete History..."
+        compaction, so the two code paths can never drift apart on this
+        again.
+        """
+        task['col'] -= delta_days
+        baseline = task.get('baseline')
+        if baseline:
+            baseline['col'] -= delta_days
+
+    def compute_delete_history_impact(self, cutoff_col: int) -> Dict[str, Any]:
+        """Compute what a "Delete History" cutoff would affect, without
+        mutating anything - the impact preview for its bulk confirmation
+        dialog (Stage 13). Tasks with `col < cutoff_col` fall in the chopped
+        region, matching `update_project_start_date`'s existing left-edge
+        semantics.
+
+        Returns:
+            'to_delete': every task that would be deleted
+            'not_done': the subset of to_delete whose state isn't 'done' -
+                warn, but overridable (losing track of an incomplete task)
+            'blocking': a list of {'buffer', 'task', 'role'} for any buffer
+                whose terminal or merge task would be deleted, regardless of
+                that task's own done state - never overridable, since it
+                would permanently disable that buffer's fever chart
+                (`compute_fever_chart_point` has no terminal/merge task left
+                to anchor to) for the rest of the project's life.
+        """
+        to_delete = [t for t in self.tasks if t['col'] < cutoff_col]
+        to_delete_ids = {t['task_id'] for t in to_delete}
+        not_done = [t for t in to_delete if t.get('state') != 'done']
+
+        blocking = []
+        for buffer_task in self.tasks:
+            if buffer_task.get('type') not in BUFFER_TASK_TYPES:
+                continue
+            for role, getter in (
+                ('terminal', self.get_buffer_terminal_task),
+                ('merge', self.get_buffer_merge_task),
+            ):
+                role_task = getter(buffer_task['task_id'])
+                if role_task and role_task['task_id'] in to_delete_ids:
+                    blocking.append(
+                        {'buffer': buffer_task, 'task': role_task, 'role': role}
+                    )
+
+        return {'to_delete': to_delete, 'not_done': not_done, 'blocking': blocking}
+
+    def delete_history(self, cutoff_col: int) -> bool:
+        """Delete every task before `cutoff_col`, shift everything else (and
+        every resource's capacity array) left by `cutoff_col`, and shrink
+        `self.days` by `cutoff_col` (Stage 13's "Delete History...").
+
+        Unlike `update_project_start_date` (which re-anchors `start_date`
+        within a *constant-size* window), this actually reclaims space -
+        the whole point is to stop `self.days` growing indefinitely as
+        completed history piles up.
+
+        Returns False (no-op, nothing changed) if `cutoff_col <= 0` or any
+        buffer's terminal/merge task would be deleted - callers should check
+        `compute_delete_history_impact()` first to show the user why, but
+        this is re-checked here as a safety net against calling it directly.
+        """
+        if cutoff_col <= 0:
+            return False
+
+        impact = self.compute_delete_history_impact(cutoff_col)
+        if impact['blocking']:
+            return False
+
+        for task in impact['to_delete']:
+            self.delete_task(task['task_id'])
+
+        for task in self.tasks:
+            self.shift_task_position(task, cutoff_col)
+
+        for resource in self.resources:
+            resource['capacity'] = resource['capacity'][cutoff_col:]
+
+        self.start_date = self.start_date + timedelta(days=cutoff_col)
+        self.days -= cutoff_col
+
+        return True
+
+    def compute_safe_delete_cutoff(self) -> int:
+        """The largest cutoff_col for which compute_delete_history_impact()
+        would report zero not-done tasks and zero blocking buffers - exactly
+        the region the grid's "safe to delete" background shading (Stage 13)
+        highlights. 0 if nothing is safe to delete (or there's nothing to
+        protect against in the first place, e.g. an empty model).
+
+        A task only constrains the cutoff if it's either not yet done, or
+        is some buffer's terminal/merge task (see compute_delete_history_
+        impact's 'blocking') - an ordinary done task imposes no constraint
+        of its own.
+        """
+        protected_cols = [t['col'] for t in self.tasks if t.get('state') != 'done']
+
+        for buffer_task in self.tasks:
+            if buffer_task.get('type') not in BUFFER_TASK_TYPES:
+                continue
+            for getter in (self.get_buffer_terminal_task, self.get_buffer_merge_task):
+                role_task = getter(buffer_task['task_id'])
+                if role_task:
+                    protected_cols.append(role_task['col'])
+
+        return min(protected_cols) if protected_cols else 0
+
+    def extend_timeline(self, additional_days: int) -> bool:
+        """Add `additional_days` to the right end of the timeline
+        (`self.days`), extending every resource's `capacity` array to match -
+        Stage 13's "growing the right side" half, needed so rolling-wave
+        planning can keep scheduling further into the future once older
+        history has been deleted (or just because the plan is running long).
+
+        New days get the same weekend-aware default capacity a brand new
+        resource gets from `add_resource` (1.0, or 0.0 on Sat/Sun for a
+        resource with `works_weekends=False`) - not a blind 1.0 fill for
+        every resource regardless of schedule, which would make a weekend-off
+        resource look available on newly-added Saturdays.
+
+        Returns False (no-op) if `additional_days <= 0`.
+        """
+        if additional_days <= 0:
+            return False
+
+        old_days = self.days
+        self.days += additional_days
+
+        for resource in self.resources:
+            works_weekends = resource.get('works_weekends', True)
+            new_capacity = []
+            for day in range(old_days, self.days):
+                if not works_weekends and self.get_date_for_day(day).weekday() >= 5:
+                    new_capacity.append(0.0)
+                else:
+                    new_capacity.append(1.0)
+            resource['capacity'] = resource['capacity'] + new_capacity
+
+        return True
+
     def get_next_task_id(self) -> int:
         """Generate a unique task ID."""
         self.task_id_counter += 1

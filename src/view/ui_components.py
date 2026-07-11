@@ -336,6 +336,15 @@ class UIComponents:
         self.date_menu.add_command(
             label='Reset to Today', command=self.reset_setdate_to_today
         )
+        self.date_menu.add_separator()
+        self.date_menu.add_command(
+            label='Extend Timeline...',
+            command=self.controller.task_ops.extend_timeline_dialog,
+        )
+        self.date_menu.add_command(
+            label='Delete History...',
+            command=self.controller.task_ops.delete_history_dialog,
+        )
 
         # Projects menu
         self.projects_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -1300,6 +1309,21 @@ class UIComponents:
         self.controller.task_label_canvas.config(
             scrollregion=(0, 0, self.controller.label_column_width, canvas_height)
         )
+
+        # Shade the "safe to delete" region (Stage 13) - columns Delete
+        # History could remove today with zero warnings/blocks - behind
+        # everything else, so grid lines and tasks still draw on top.
+        safe_cutoff_col = self.model.compute_safe_delete_cutoff()
+        if safe_cutoff_col > 0:
+            self.controller.task_canvas.create_rectangle(
+                0,
+                0,
+                safe_cutoff_col * self.controller.cell_width,
+                canvas_height,
+                fill='#e8e8e8',
+                outline='',
+                tags=('safe_delete_region',),
+            )
 
         # Draw the grid lines with dynamic row height
         for i in range(self.model.days + 1):

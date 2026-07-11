@@ -235,6 +235,25 @@ class TestProjectStartDateUpdate:
         assert self.model.get_task(self.task3['task_id'])['col'] == 20
 
     @patch('tkinter.messagebox.askyesno')
+    def test_baseline_col_shifts_with_task_col(self, mock_askyesno):
+        """Regression test (Stage 13): update_project_start_date used to
+        shift task['col'] without shifting task['baseline']['col'], silently
+        corrupting every buffer's forecast-lateness math afterward by the
+        shifted amount. Both must move together."""
+        mock_askyesno.return_value = True
+
+        self.model.capture_project_baseline(self.model.default_project_id)
+        baseline_col_before = self.model.get_task(self.task2['task_id'])['baseline']['col']
+        assert baseline_col_before == 5
+
+        new_date = datetime(2023, 1, 6)  # forward by 5 days
+        self.task_ops.update_project_start_date(new_date)
+
+        task2 = self.model.get_task(self.task2['task_id'])
+        assert task2['col'] == 0
+        assert task2['baseline']['col'] == 0  # shifted by the same 5 days
+
+    @patch('tkinter.messagebox.askyesno')
     def test_task_truncation_choice(self, mock_askyesno):
         """Test task truncation when they would extend beyond timeline."""
         # Set up askyesno to return: Yes for shifting tasks, Yes for truncating task

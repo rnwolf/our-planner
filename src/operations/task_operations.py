@@ -1968,8 +1968,9 @@ class TaskOperations:
                         return False  # User cancelled
                     tasks_to_remove.append(task['task_id'])
                 else:
-                    # Shift the task
-                    task['col'] = new_col
+                    # Shift the task (and its baseline, if any - see
+                    # shift_task_position)
+                    self.model.shift_task_position(task, delta_days)
 
             # Remove tasks that fall outside the timeline
             for task_id in tasks_to_remove:
@@ -1995,8 +1996,9 @@ class TaskOperations:
                         self.model.delete_task(task['task_id'])
                         continue
 
-                # Shift the task
-                task['col'] = new_col
+                # Shift the task (and its baseline, if any - see
+                # shift_task_position)
+                self.model.shift_task_position(task, delta_days)
 
         # Update resource capacities - now just pass delta_days
         self._update_resource_capacities_for_date_change(delta_days)
@@ -2008,6 +2010,224 @@ class TaskOperations:
         self.controller.update_view()
 
         return True
+
+    def extend_timeline_dialog(self):
+        """Stage 13's "growing the right side" half: prompt for a number of
+        days to add to the end of the timeline, so rolling-wave planning can
+        keep scheduling further into the future (e.g. after deleting old
+        history, or just because the plan is running long)."""
+        current_end = self.model.get_date_for_day(self.model.days - 1).strftime('%Y-%m-%d')
+        additional_days = simpledialog.askinteger(
+            'Extend Timeline',
+            f'The timeline currently runs through {current_end}.\n\n'
+            'How many additional days would you like to add?',
+            initialvalue=30,
+            minvalue=1,
+            parent=self.controller.root,
+        )
+        if additional_days is None:
+            return
+
+        self.model.extend_timeline(additional_days)
+        self.controller.update_view()
+
+        new_end = self.model.get_date_for_day(self.model.days - 1).strftime('%Y-%m-%d')
+        messagebox.showinfo(
+            'Timeline Extended',
+            f'Added {additional_days} day(s) - the timeline now runs through {new_end}.',
+            parent=self.controller.root,
+        )
+
+    def delete_history_dialog(self):
+        """Stage 13: prompt for a cutoff date, then delete every task before
+        it and shift everything else (and every resource's capacity array)
+        left to reclaim the space - a manual, explicit, opt-in housekeeping
+        action, never automatic or suggested as a side effect of anything
+        else (this reindexes a shared, cross-project coordinate system).
+        """
+        try:
+            from tkcalendar import Calendar
+
+            cal_dialog = tk.Toplevel(self.controller.root)
+            cal_dialog.title('Delete History Before...')
+            cal_dialog.transient(self.controller.root)
+            cal_dialog.grab_set()
+
+            x = self.controller.root.winfo_rootx() + 50
+            y = self.controller.root.winfo_rooty() + 50
+            cal_dialog.geometry(f'+{x}+{y}')
+
+            tk.Label(
+                cal_dialog,
+                text='Delete every task before this date, and reclaim that\n'
+                'space from the timeline. This cannot be undone.',
+                justify=tk.LEFT,
+                padx=10,
+            ).pack(anchor='w', pady=(10, 0))
+
+            cal = Calendar(
+                cal_dialog,
+                selectmode='day',
+                year=self.model.start_date.year,
+                month=self.model.start_date.month,
+                day=self.model.start_date.day,
+            )
+            cal.pack(padx=10, pady=10)
+
+            def proceed():
+                selected_date = cal.selection_get()
+                cutoff_date = datetime(
+                    selected_date.year, selected_date.month, selected_date.day
+                )
+                cal_dialog.destroy()
+                self._delete_history_confirm(cutoff_date)
+
+            button_frame = tk.Frame(cal_dialog)
+            button_frame.pack(pady=(0, 10))
+            tk.Button(button_frame, text='Next...', command=proceed).pack(
+                side=tk.LEFT, padx=5
+            )
+            tk.Button(button_frame, text='Cancel', command=cal_dialog.destroy).pack(
+                side=tk.LEFT, padx=5
+            )
+        except ImportError:
+            self._delete_history_manual_date_entry()
+
+    def _delete_history_manual_date_entry(self):
+        """Fallback cutoff-date entry if tkcalendar isn't available (mirrors
+        UIComponents._manual_date_entry_dialog's fallback)."""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Delete History Before...')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f'320x160+{x}+{y}')
+
+        frame = tk.Frame(dialog, padx=20, pady=20)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(
+            frame,
+            text='Delete every task before this date (YYYY-MM-DD):',
+            wraplength=280,
+            justify=tk.LEFT,
+        ).pack(anchor='w', pady=(0, 10))
+
+        date_var = tk.StringVar(value=self.model.start_date.strftime('%Y-%m-%d'))
+        date_entry = tk.Entry(frame, textvariable=date_var, width=15)
+        date_entry.pack(fill=tk.X, pady=5)
+        date_entry.select_range(0, tk.END)
+        date_entry.focus_set()
+
+        def proceed():
+            try:
+                year, month, day = map(int, date_var.get().strip().split('-'))
+                cutoff_date = datetime(year, month, day)
+            except (ValueError, TypeError):
+                messagebox.showerror(
+                    'Invalid Date', 'Please enter a date as YYYY-MM-DD.',
+                    parent=dialog,
+                )
+                return
+            dialog.destroy()
+            self._delete_history_confirm(cutoff_date)
+
+        button_frame = tk.Frame(frame)
+        button_frame.pack(pady=(10, 0))
+        tk.Button(button_frame, text='Next...', command=proceed).pack(
+            side=tk.LEFT, padx=5
+        )
+        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
+            side=tk.LEFT, padx=5
+        )
+
+    def _delete_history_confirm(self, cutoff_date):
+        """Compute the impact of `cutoff_date`, show a hard-block error if
+        any buffer's terminal/merge task would be caught, otherwise show one
+        bulk confirmation dialog (not update_project_start_date's one-popup-
+        per-task pattern) summarizing what would be deleted."""
+        cutoff_col = self.model.get_day_for_date(cutoff_date)
+
+        if cutoff_col <= 0:
+            messagebox.showinfo(
+                'Nothing to Delete',
+                f"{cutoff_date.strftime('%Y-%m-%d')} is not after the current "
+                f"timeline start ({self.model.start_date.strftime('%Y-%m-%d')}) - "
+                'nothing falls before it.',
+                parent=self.controller.root,
+            )
+            return
+
+        impact = self.model.compute_delete_history_impact(cutoff_col)
+
+        if impact['blocking']:
+            lines = [
+                f"- {b['buffer']['description']}: its {b['role']} task "
+                f"'{b['task']['description']}' would be deleted"
+                for b in impact['blocking']
+            ]
+            messagebox.showerror(
+                'Cannot Delete History',
+                'The following buffers would permanently lose the ability to '
+                'compute a fever chart if this cutoff were used (their '
+                "terminal or merge task would be deleted) - choose an earlier "
+                'cutoff date that excludes them:\n\n' + '\n'.join(lines),
+                parent=self.controller.root,
+            )
+            return
+
+        total = len(impact['to_delete'])
+        not_done = impact['not_done']
+
+        if total == 0:
+            # No tasks fall in the chopped region - but it may still be
+            # genuinely empty leading space worth reclaiming (e.g. the
+            # project hasn't started yet, or earlier tasks were already
+            # cleared out some other way). delete_history() shifts/shrinks
+            # unconditionally, whether or not there's anything to delete, so
+            # this should still proceed rather than being treated as a no-op.
+            message = (
+                f"No tasks start before {cutoff_date.strftime('%Y-%m-%d')}, but "
+                f"proceeding will reclaim {cutoff_col} day(s) of empty timeline "
+                "and shift every remaining task/resource left. This cannot be "
+                "undone."
+            )
+        else:
+            message = (
+                f"This will delete {total} task(s) starting before "
+                f"{cutoff_date.strftime('%Y-%m-%d')}, and shift every remaining "
+                "task/resource left to reclaim that space. This cannot be undone."
+            )
+        if not_done:
+            not_done_desc = ', '.join(
+                f"'{t['description']}'" for t in not_done[:5]
+            )
+            if len(not_done) > 5:
+                not_done_desc += f', and {len(not_done) - 5} more'
+            message += (
+                f"\n\nWARNING: {len(not_done)} of these task(s) are not marked "
+                f"done: {not_done_desc}. Deleting them loses track of their "
+                'progress permanently.'
+            )
+        message += '\n\nProceed?'
+
+        if not messagebox.askyesno(
+            'Confirm Delete History', message, parent=self.controller.root
+        ):
+            return
+
+        self.model.delete_history(cutoff_col)
+        self.controller.update_view()
+        if total == 0:
+            summary = f'Reclaimed {cutoff_col} day(s) of empty timeline.'
+        else:
+            summary = (
+                f"Deleted {total} task(s) and reclaimed {cutoff_col} day(s) "
+                'from the timeline.'
+            )
+        messagebox.showinfo('History Deleted', summary, parent=self.controller.root)
 
     def edit_project_settings(self, parent=None):
         """Edit project settings like number of days and start date"""

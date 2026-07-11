@@ -17,22 +17,23 @@ canvas, sharing the same resource pool, each independently in "planning" or "exe
 
 ## Already implemented (this session)
 
-All of the following is built, tested (`uv run pytest`, 88 tests passing), and manually verified
-in the running app. **Stages 1-12 and 14-15 (see each "Stage N — done" heading below) are now
-complete** — the original 7-stage build order, Stage 8 (fever chart reporting, including PNG
-export) and Stage 9 (fever chart CSV data export) added once Stages 4/7's data capture made them
-practical to build, Stage 10 (Reporting framework - new derived filter dimensions plus a pluggable
-`Reports` menu, with Full-Kit Readiness as the first new report type; Fever Charts, Stage 8, stay
-as-is but are now discoverable from the same menu), Stage 11 (task/project filtering +
-marquee-select), Stage 12 (the remaining fever chart hand-verification: a full multi-update
-narrative test, feeding-buffer full-consumption/overflow, and cross-project isolation), Stage 14
+All of the following is built, tested (`uv run pytest`, 115 tests passing), and manually verified
+in the running app. **Stages 1-15 (see each "Stage N — done" heading below) are now complete** —
+the original 7-stage build order, Stage 8 (fever chart reporting, including PNG export) and Stage 9
+(fever chart CSV data export) added once Stages 4/7's data capture made them practical to build,
+Stage 10 (Reporting framework - new derived filter dimensions plus a pluggable `Reports` menu, with
+Full-Kit Readiness as the first new report type; Fever Charts, Stage 8, stay as-is but are now
+discoverable from the same menu), Stage 11 (task/project filtering + marquee-select), Stage 12 (the
+remaining fever chart hand-verification: a full multi-update narrative test, feeding-buffer
+full-consumption/overflow, and cross-project isolation), Stage 13 (rolling timeline compaction /
+"Delete History...", including a latent baseline-shift bug fix found while designing it), Stage 14
 (Optimal/Realistic terminology rename), and Stage 15 (merge-point pull rule + feeding-buffer
 shock-absorber fix, prompted by hand-verifying the fever chart math for Stage 12). **Still open**:
-Stage 13 (rolling timeline compaction, design only, not scheduled), Stage 16 (export a project
-network for the external CCPM scheduler), and Stage 17 (resource buffer, a third manual buffer
-type, design discussion only, not scheduled) — see "Remaining work" below. What's left after that
-is everything listed under "Explicitly out of scope" (automated critical-chain detection,
-resource-constrained scheduling, event sourcing, full plan-vs-baseline comparison UI).
+Stage 16 (export a project network for the external CCPM scheduler) and Stage 17 (resource buffer,
+a third manual buffer type, design discussion only, not scheduled) — see "Remaining work" below.
+What's left after that is everything listed under "Explicitly out of scope" (automated
+critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
+comparison UI).
 
 ### Dependency link types
 
@@ -1077,23 +1078,11 @@ consumed with overflow onto the critical chain, and cross-project isolation chec
 
 Full suite (`uv run pytest tests/ -q`): **88 passed**, 0 failures.
 
-## Remaining work
-
-(Stage 9, fever chart CSV data export, is done — see "Fever chart reporting (Stage 8 — done)"
-above. Stage 11, filter menu restructure + marquee-select, is done — see "Task/project filtering +
-marquee-select (Stage 11 — done)" above. Stage 12, the remaining fever chart hand-verification, and
-Stage 14/15, the Optimal/Realistic rename and merge-point pull rule + shock-absorber fever fix, are
-all done too — see their own "— done" headings above. Stage 10, generalized from a single-purpose
-backlog report into a Reporting framework, is done in full (Parts A and B) — see "Reporting
-framework (Stage 10 — done)" above.)
-
-### Stage 13 — Rolling timeline compaction (design discussion only, not scheduled)
+### Stage 13 — Rolling timeline compaction ("Delete History...", done)
 
 A rolling-wave planning tool will eventually accumulate a grid where the earliest columns are all
 long-completed history with nothing actionable left in them, while there's no room left to plan
-further into the future (`model.days` is a fixed-width window). This stage is **not** queued for
-implementation - it's a design discussion, captured here so the groundwork is understood before
-anyone picks it up.
+further into the future (`model.days` is a fixed-width window).
 
 **Assumed usage pattern** (confirmed with the user, shapes several decisions below): the project
 manager is expected to leave many weeks of completed history sitting in the timeline and only chop
@@ -1121,12 +1110,24 @@ already shifts every task's `col` by a date delta and shifts every resource's `c
 globally, not scoped to one project. All projects share a single day-axis (there's no per-project
 timeline), so there's no "whose chop point wins" ambiguity across concurrent projects to design
 around - it's inherently one shared operation. This existing function is **not** safe to reuse
-as-is for a compaction feature, though, for two reasons:
+as-is for a compaction feature, though, for three reasons - the third found while designing this
+stage, and serious enough that it's being fixed in the existing function too, not just avoided in
+the new one:
 1. It confirms every deleted task with an individual `messagebox.askyesno` popup - fine for
    correcting one project's start date by a few days, unworkable for "compact 6 months of
    completed history across 3 projects" (dozens of dialogs to click through one at a time).
 2. It deletes any task that falls off the edge, completed or not, with no distinction - a
    delayed-but-not-yet-started task sitting in the chopped region would be silently lost.
+3. **It shifts `task['col']` but never `task['baseline']['col']`.** Every buffer's forecast-lateness
+   math (`compute_fever_chart_point`) compares a task's *current* `col` against its `baseline`
+   `col` (`terminal_baseline['col']`, `merge_baseline['col']`) - if only the live `col` shifts, every
+   subsequent Progress %/Consumption % calculation for that buffer is silently wrong by exactly the
+   shifted number of days, for the rest of the project's life. Not a UI gap like the other two - a
+   real data-correctness bug, latent in `update_project_start_date` today (nothing currently guards
+   against calling it on an executing project with captured baselines). Fix: extract one shared
+   helper that shifts a task's `col` and its `baseline`'s `col` together, atomically, used by both
+   `update_project_start_date` and the new Delete History feature - never shift one without the
+   other again.
 
 **Decisions made in discussion so far:**
 - **Chopped tasks are deleted outright, not archived** - matches how `update_project_start_date`
@@ -1137,30 +1138,101 @@ as-is for a compaction feature, though, for two reasons:
   chopped region, rather than hard-refusing - flexible, consistent with the "warn, don't block"
   precedent `update_project_start_date` already sets, but does mean the user can still choose to
   lose track of an incomplete task if they override the warning.
+- **Hard block, not warn-and-override, if the chopped region contains a buffer's terminal task or
+  merge task** (`get_buffer_terminal_task`/`get_buffer_merge_task`), regardless of whether that task
+  is itself `done`. Deleting either doesn't just lose track of one task's progress - it permanently
+  breaks `compute_fever_chart_point` for that buffer (`None`, no terminal/merge task to anchor to)
+  for the rest of the project's life, a strictly worse and unrecoverable-by-override consequence
+  than the not-done warning above. There's no legitimate reason to delete it while its buffer is
+  still in use, so this one refuses outright rather than merely flagging it.
+- **Bulk confirmation UX**: one summary dialog (total tasks to delete, date range, how many are not
+  `done` - flagged, overridable) with a single confirm/cancel, not `update_project_start_date`'s
+  one-popup-per-task pattern, which doesn't scale to a bulk housekeeping operation. If any buffer's
+  terminal/merge task falls in the chosen range, the dialog reports it and blocks confirmation
+  entirely until the cutoff is moved earlier to exclude it.
+- **Trigger mechanism**: a manual, explicit, user-triggered action - `Date` menu → `Delete
+  History...` (alongside `Set Current Date...`/`Reset to Today`, since this is fundamentally a
+  date-axis operation), not `Compact Timeline...` as originally drafted, since "compact" undersells
+  that this is a destructive, delete-outright operation and "Delete History" says so plainly,
+  matching how directly this codebase already names other destructive actions rather than softening
+  them. Purely opt-in, never automatic or proactively suggested - this reindexes a shared,
+  cross-project coordinate system and should never happen as a side effect of something else.
+- **Grid background coloring**: shade exactly the "safe-to-delete" region - columns strictly before
+  the earliest start of any not-yet-`done` task *and* before any buffer's terminal/merge task -
+  i.e. precisely what Delete History would remove with zero warnings and zero blocks if that cutoff
+  were chosen. Gives an at-a-glance "this much is genuinely free to reclaim" signal on the grid
+  itself, distinct from just shading everything before today's setdate (which wouldn't distinguish
+  truly-safe history from history that still matters).
 
-**Still open:**
-- **Bulk confirmation UX.** Given the decisions above, a compaction feature needs one summary
-  dialog (total tasks to delete, date range, and specifically call out how many are *not* `done` -
-  the risky ones) with a single confirm/cancel, not `update_project_start_date`'s one-popup-per-task
-  pattern, which doesn't scale to a bulk housekeeping operation.
-- **Trigger mechanism.** Leaning toward a manual, explicit, user-triggered action - named
-  `Delete History...`, not `Compact Timeline...` as originally drafted, since "compact" undersells
-  that this is a destructive, delete-outright operation (per the decision above) and "Delete
-  History" says so plainly, matching how directly this codebase already names other destructive
-  actions rather than softening them - rather than anything automatic, since this reindexes a
-  shared, cross-project coordinate system and should never happen as a side effect of something
-  else. Not decided whether it should also be proactively *suggested* (e.g. "N days of
-  fully-completed history exist before the earliest active task - delete now?") or purely opt-in.
-- **Growing the right side is comparatively low-risk and likely already solved.** Extending
-  `model.days` and every resource's `capacity` array is exactly what `_ensure_model_days` already
-  does for the CCPM import feature (`file_operations.py`) - the compaction feature's "add columns"
-  half should reuse that rather than building new growth logic. The genuinely new part is
-  specifically the "chop the left" half.
-- **Performance motivation, not yet quantified.** Part of the reason to ever trim rather than just
-  let `model.days` grow indefinitely: `calculate_resource_loading` and related functions iterate
-  every resource's `capacity` array per day (`task_resource_model.py`), so an ever-growing window
-  has a real, if unquantified, per-redraw cost as a plan accumulates years of history. Worth
-  measuring before committing to a design that assumes this is a real problem in practice.
+**Implementation:**
+- **`TaskResourceModel.shift_task_position(task, delta_days)`** (new) - shifts `task['col']` and
+  `task['baseline']['col']` (if a baseline exists) together, atomically. `update_project_start_date`
+  refactored to call it instead of mutating `col` directly, fixing its latent bug as planned.
+- **`compute_delete_history_impact(cutoff_col)`** (new, pure/no side effects) - returns `to_delete`
+  (every task with `col < cutoff_col`), `not_done` (the subset not `state == 'done'`, warn-only),
+  and `blocking` (`{'buffer', 'task', 'role'}` for any buffer whose terminal/merge task is caught,
+  regardless of its own done state - hard block, checked against both `get_buffer_terminal_task` and
+  `get_buffer_merge_task` for every buffer in the model).
+- **`delete_history(cutoff_col)`** (new) - deletes every task in `to_delete`, shifts everything else
+  (via `shift_task_position`) and every resource's `capacity` array left by `cutoff_col`, and shrinks
+  `self.days` by `cutoff_col` - unlike `update_project_start_date`, this actually reclaims space
+  rather than re-anchoring within a constant-size window. Returns `False` (no-op) if blocking or
+  `cutoff_col <= 0`, re-checking `compute_delete_history_impact` itself as a safety net.
+- **`compute_safe_delete_cutoff()`** (new) - the largest cutoff with zero warnings/blocks (`min` over
+  every not-done task's `col` and every buffer terminal/merge task's `col`, model-wide); drives the
+  grid's background shading.
+- **UI**: `Date` menu → `Delete History...` (`task_operations.py`) - a calendar-picker cutoff date
+  (tkcalendar, with the same manual-entry fallback pattern as `edit_setdate`), then
+  `_delete_history_confirm`: hard-blocks with an explanatory `messagebox.showerror` listing every
+  blocking buffer/task/role if any exist (no override), otherwise one bulk confirmation dialog
+  (total to delete, date range, not-done tasks named and counted if any) before calling
+  `model.delete_history` and `controller.update_view()`.
+- **Grid shading** (`ui_components.py:draw_task_grid`) - a plain `#e8e8e8` rectangle behind the grid
+  lines/tasks, spanning columns `0` to `compute_safe_delete_cutoff()`.
+- **A genuinely non-obvious finding, confirmed by test rather than assumed**: shifting preserves a
+  buffer's math *only* when the deleted tasks aren't part of that buffer's own chain. Deleting
+  history that includes chain members legitimately changes Progress % (PPF/CPSL) going forward -
+  the chain's own `chain_start` naturally moves to whatever task now remains earliest, since some of
+  the "already confirmed done" certainty being counted was just discarded on purpose. Forecast
+  lateness (Consumption %) is unaffected either way, since it's anchored to the terminal task's own
+  baseline, not to how many earlier siblings still exist. Not a bug - an honest consequence of
+  choosing to delete history - but worth knowing before assuming Progress % is untouched by a cut.
+- **`TaskResourceModel.extend_timeline(additional_days)`** (new) - "growing the right side," added
+  right after the rest of this stage once it became clear a manual, user-triggered version was
+  actually wanted (not just the CCPM import's internal auto-growth). Extends `self.days` and every
+  resource's `capacity` array, generating weekend-aware default capacity for the new days (1.0, or
+  0.0 on Sat/Sun for a `works_weekends=False` resource) - a real improvement over the blind `1.0`
+  fill `file_operations.py`'s pre-existing `_ensure_model_days` used, which is now a thin wrapper
+  around this same method so CCPM import and manual extension can't drift apart on the logic, the
+  same reasoning as `shift_task_position` above. Returns `False` (no-op) if `additional_days <= 0`.
+- **UI**: `Date` menu → `Extend Timeline...` (`task_operations.py`) - a plain integer prompt ("how
+  many additional days"), showing the current/new timeline end date, no confirmation dialog needed
+  since this is purely additive and non-destructive (unlike `Delete History...`, nothing to warn
+  about or block).
+- 26 new tests in `tests/test_delete_history.py` (was 19: shift mechanics, impact computation,
+  blocking on both terminal and merge roles even when done, the fever-chart-invariant-across-
+  compaction case above, safe-cutoff computation, the delete dialog's confirm/decline/block/no-op
+  paths, `extend_timeline`'s capacity generation/weekend-awareness/non-positive-input handling, and
+  the extend dialog's confirm/cancel paths) plus one in `tests/test_project_start_date.py`
+  regression-testing the baseline-col-shift fix directly. Full suite (`uv run pytest tests/ -q`):
+  **115 passed**, 0 failures.
+
+**Still not done:**
+- **Performance motivation, still not quantified.** The per-day iteration cost in
+  `calculate_resource_loading` and related functions as `model.days` grows was the reason to ever
+  trim rather than let the window grow indefinitely - still unmeasured. Worth doing before assuming
+  it's a real problem in practice for any given plan's actual size.
+
+## Remaining work
+
+(Stage 9, fever chart CSV data export, is done — see "Fever chart reporting (Stage 8 — done)"
+above. Stage 11, filter menu restructure + marquee-select, is done — see "Task/project filtering +
+marquee-select (Stage 11 — done)" above. Stage 12, the remaining fever chart hand-verification, and
+Stage 14/15, the Optimal/Realistic rename and merge-point pull rule + shock-absorber fever fix, are
+all done too — see their own "— done" headings above. Stage 10, generalized from a single-purpose
+backlog report into a Reporting framework, is done in full (Parts A and B) — see "Reporting
+framework (Stage 10 — done)" above. Stage 13, rolling timeline compaction / "Delete History...", is
+also done — see its own "— done" heading above.)
 
 ### Stage 16 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import)
 
@@ -1548,11 +1620,15 @@ from evaluating the actual planning features. Worth picking up opportunistically
 ## Relevant files
 
 - `src/model/task_resource_model.py` — core model: tasks, projects, predecessors, resources.
+  `shift_task_position`/`compute_delete_history_impact`/`delete_history`/
+  `compute_safe_delete_cutoff`/`extend_timeline` (Stage 13 - "Delete History..."/"Extend
+  Timeline...").
 - `src/model/dependency_notation.py` — link notation parse/format, `LINK_TYPES_ORDERED`,
   `BUFFER_LINK_TYPES`.
 - `src/operations/task_operations.py` — task mutation logic, right-click dialogs,
   `on_task_press`/`on_task_drag`/`on_task_release` (where Stage 2's trigger points live),
-  `handle_task_collisions` (the pre-existing, unrelated same-row collision mechanism).
+  `handle_task_collisions` (the pre-existing, unrelated same-row collision mechanism),
+  `update_project_start_date`/`delete_history_dialog` (Stage 13 - share `shift_task_position`).
 - `src/view/ui_components.py` — menus, canvas drawing, `draw_dependencies`/`draw_arrow`
   (dashed buffer links), context menu construction.
 - `src/controller/task_manager.py` — `TaskResourceManager` (main controller), status bar,
