@@ -1368,6 +1368,14 @@ class TaskResourceModel:
                     task.get('predecessors')
                 )
                 task.pop('successors', None)
+
+                # JSON object keys are always strings, but everywhere else the
+                # allocation dict is keyed by the integer resource id - convert
+                # back so loaded and freshly-created tasks behave identically
+                task['resources'] = {
+                    int(rid) if isinstance(rid, str) and rid.isdigit() else rid: alloc
+                    for rid, alloc in (task.get('resources') or {}).items()
+                }
             # Load start_date if available
             if 'start_date' in data:
                 try:

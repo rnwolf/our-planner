@@ -58,8 +58,8 @@ wheels = [
 
 [[package]]
 name = "ccpm-scheduler"
-version = "0.3.0"
-source = { git = "https://github.com/rnwolf/ccpm-scheduler#0285fefd130eeb6d8f2c58b3186358dd7dca614b" }
+version = "0.3.1"
+source = { git = "https://github.com/rnwolf/ccpm-scheduler#513c2c75308c146211549ce9c630a8cce2f20a9c" }
 dependencies = [
     { name = "matplotlib" },
 ]

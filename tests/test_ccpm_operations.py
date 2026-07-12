@@ -261,3 +261,30 @@ class TestMetadataCarryOver:
         new_rows = sorted(t['row'] for t in model.tasks
                           if t['project_id'] == result['project']['id'])
         assert new_rows[0] == 8  # max source row 6 + 2
+
+
+class TestSaveLoadRoundTrip:
+    def test_schedule_works_on_a_loaded_plan(self, tmp_path):
+        """Regression: JSON stringifies the allocation dict's keys, and
+        load_from_file must convert them back to integer resource ids -
+        otherwise loaded plans fail scheduling with unknown-resource errors
+        (or a TypeError when mixed with freshly created tasks)."""
+        model, project_id, ids, _ = make_worked_example()
+        path = tmp_path / 'plan.json'
+        assert model.save_to_file(str(path))
+
+        loaded = TaskResourceModel()
+        assert loaded.load_from_file(str(path))
+        assert all(isinstance(k, int)
+                   for t in loaded.tasks for k in t['resources'])
+
+        # a task created after loading must mix cleanly with loaded ones
+        loaded.add_task(row=8, col=0, duration=5, description='New task',
+                        resources={3: 1.0}, project_id=project_id)
+
+        controller = MagicMock()
+        controller.model = loaded
+        ops = CcpmOperations(controller, loaded)
+        result = ops.schedule_project_core(project_id)
+        assert result['ok'], result
+        assert result['stats'].project_buffer >= 15

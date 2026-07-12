@@ -2,7 +2,7 @@
 #    uv pip compile pyproject.toml -o requirements.txt
 babel==2.17.0
     # via tkcalendar
-ccpm-scheduler @ git+https://github.com/rnwolf/ccpm-scheduler@0285fefd130eeb6d8f2c58b3186358dd7dca614b
+ccpm-scheduler @ git+https://github.com/rnwolf/ccpm-scheduler@513c2c75308c146211549ce9c630a8cce2f20a9c
     # via our-planner (pyproject.toml)
 certifi==2025.1.31
     # via requests
