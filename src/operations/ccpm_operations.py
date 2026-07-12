@@ -22,9 +22,13 @@ Export mapping decisions (Stage 16's open questions, resolved):
   scheduler computes its own buffers from the realistic/optimal gap.
 - optimal_duration is exported only when the user captured one; otherwise
   the scheduler applies its classic 50% cut to realistic_duration.
-- day axis: the scheduler plans from day 0 on the shared timeline (its ALAP
-  pass packs the project against day 0); calendar windows are exported in
-  absolute timeline days so resource outages line up.
+- day axis: the schedule is ANCHORED at the first day of the project's
+  earliest task. The scheduler itself always plans from its own day 0 (the
+  ALAP pass packs the project against 0), so calendar windows are exported
+  shifted to anchor-relative days — the scheduler sees future availability
+  exactly as it falls relative to the project — and the in-process flow
+  shifts the imported schedule back to the timeline (+anchor). The CSV
+  export uses the same anchor-relative days; its day 0 = the anchor day.
 - fractional resource allocations cannot be represented (the engine
   schedules whole resources in v1): the in-process flow surfaces the
   engine's E_FRACTIONAL_ALLOCATION error; the CSV export warns and exports
@@ -54,9 +58,13 @@ class CcpmOperations:
     def build_network_data(self, project_id):
         """Map one project onto the ccpm-scheduler JSON exchange format.
 
-        Returns (data, warnings): `data` is the dict `ccpm_scheduler.
+        Returns (data, warnings, anchor): `data` is the dict `ccpm_scheduler.
         network_from_json` accepts; `warnings` are human-readable notes about
-        anything the mapping had to drop or approximate.
+        anything the mapping had to drop or approximate; `anchor` is the
+        timeline day the export is anchored on (the earliest exported task's
+        start) — calendar windows in `data` are anchor-relative, and a
+        schedule built from `data` must be shifted by +anchor to land back
+        on the timeline.
         """
         warnings = []
         exported = {}  # task_id -> task
@@ -108,6 +116,8 @@ class CcpmOperations:
                 'url': task.get('url', '') or '',
             })
 
+        anchor = min((t['col'] for t in exported.values()), default=0)
+
         resources_out, calendar_out = [], []
         for rid in sorted(resource_ids):
             resource = self.model.get_resource_by_id(rid)
@@ -117,13 +127,18 @@ class CcpmOperations:
             resources_out.append({'id': str(rid), 'name': resource['name'],
                                   'capacity': base})
             for start, end, value in windows:
-                calendar_out.append({'resource_id': str(rid), 'from': start,
-                                     'to': end, 'capacity': value})
+                # shift to anchor-relative days; windows entirely before the
+                # anchor are in the past for this project and don't apply
+                if end - anchor <= 0:
+                    continue
+                calendar_out.append({'resource_id': str(rid),
+                                     'from': max(start - anchor, 0),
+                                     'to': end - anchor, 'capacity': value})
 
         data = {'tasks': tasks_out, 'resources': resources_out}
         if calendar_out:
             data['calendar'] = calendar_out
-        return data, warnings
+        return data, warnings, anchor
 
     @staticmethod
     def _encode_capacity(vector):
@@ -159,7 +174,7 @@ class CcpmOperations:
         from ccpm_scheduler import (CcpmError, build_schedule, check_schedule,
                                     network_from_json, validate_network)
 
-        data, warnings = self.build_network_data(project_id)
+        data, warnings, anchor = self.build_network_data(project_id)
         if not data['tasks']:
             return {'ok': False, 'warnings': warnings, 'issues': [{
                 'code': 'E_EMPTY_PROJECT',
@@ -193,7 +208,7 @@ class CcpmOperations:
         project = self.model.add_project(name)
 
         max_finish = max(r.finish for r in result.schedule.rows)
-        self._file_ops._ensure_model_days(max_finish + 5)
+        self._file_ops._ensure_model_days(anchor + max_finish + 5)
         resource_rows = [{'id': r['id'], 'name': r['name'],
                           'capacity': r['capacity']}
                          for r in data['resources']]
@@ -204,13 +219,63 @@ class CcpmOperations:
         task_count = self._file_ops._import_schedule_tasks(
             schedule_rows, resource_id_map, project['id'])
 
+        new_tasks = [t for t in self.model.tasks
+                     if t['project_id'] == project['id']]
+        self._place_beside_source(new_tasks, project_id)
+        source_by_id = {t['task_id']: t for t in self.model.tasks
+                        if t['project_id'] == project_id}
+        for row_dict, task in zip(schedule_rows, new_tasks):
+            # back onto the timeline: the schedule was built anchor-relative
+            task['col'] += anchor
+            # the schedule's task ids ARE the source task ids - carry the
+            # descriptive metadata across so the CCPM copy can replace the
+            # hand-drawn network without losing color/tags/notes
+            source = None
+            if row_dict['id'].isdigit():
+                source = source_by_id.get(int(row_dict['id']))
+            tags = ['ccpm']
+            if source is not None:
+                task['color'] = source['color']
+                task['notes'] = [dict(n) for n in source.get('notes') or []]
+                tags += [t for t in source.get('tags') or [] if t != 'ccpm']
+            # 'ccpm' on every created row (buffers too) so the whole
+            # generated network is selectable via the tag filter
+            self.model.set_task_tags(task['task_id'], tags)
+
         return {'ok': True, 'project': project, 'task_count': task_count,
-                'stats': result.stats, 'warnings': warnings}
+                'anchor': anchor, 'stats': result.stats, 'warnings': warnings}
+
+    def _place_beside_source(self, new_tasks, source_project_id):
+        """Move the freshly imported rows to start two rows below the source
+        project (so the two networks compare at a glance) - but only when no
+        other task occupies that space; otherwise leave them where the
+        importer put them (below everything)."""
+        if not new_tasks:
+            return
+        new_ids = {t['task_id'] for t in new_tasks}
+        source_rows = [t['row'] for t in self.model.tasks
+                       if t['project_id'] == source_project_id
+                       and t['task_id'] not in new_ids]
+        if not source_rows:
+            return
+        desired = max(source_rows) + 2
+        current = min(t['row'] for t in new_tasks)
+        if desired >= current:
+            return
+        occupied = any(t['row'] >= desired for t in self.model.tasks
+                       if t['task_id'] not in new_ids
+                       and t['project_id'] != source_project_id)
+        if occupied:
+            return
+        shift = current - desired
+        for t in new_tasks:
+            t['row'] -= shift
 
     def export_network_core(self, project_id, folder):
         """Write tasks.csv / resources.csv / calendar.csv for one project in
-        the external scheduler's input format. Returns (files, warnings)."""
-        data, warnings = self.build_network_data(project_id)
+        the external scheduler's input format. Returns (files, warnings,
+        anchor) — the CSVs' day 0 is timeline day `anchor`."""
+        data, warnings, anchor = self.build_network_data(project_id)
         for task in data['tasks']:
             for rid, alloc in task['resources'].items():
                 if alloc != 1:
@@ -257,7 +322,7 @@ class CcpmOperations:
                                 c['capacity']])
             files.append(path)
 
-        return files, warnings
+        return files, warnings, anchor
 
     @staticmethod
     def _link_token(entry):
@@ -282,7 +347,8 @@ class CcpmOperations:
         if not folder:
             return
         try:
-            files, warnings = self.export_network_core(project['id'], folder)
+            files, warnings, anchor = self.export_network_core(
+                project['id'], folder)
         except Exception as e:
             messagebox.showerror('Export Error', f'Export failed: {e}')
             return
@@ -292,7 +358,8 @@ class CcpmOperations:
         messagebox.showinfo(
             'Export Complete',
             f"Wrote {', '.join(os.path.basename(p) for p in files)} to "
-            f'{folder}.\n\nSchedule it with:\n'
+            f'{folder}.\n\nDay 0 in these files = timeline day {anchor} '
+            f"(the project's earliest task).\n\nSchedule it with:\n"
             f'  ccpm-scheduler build tasks.csv resources.csv'
             + (' --calendar calendar.csv' if len(files) > 2 else '')
             + ' --out-dir plan\n\nthen bring the result back via '
@@ -328,11 +395,13 @@ class CcpmOperations:
         messagebox.showinfo(
             'CCPM Schedule Created',
             f"Created project '{result['project']['name']}' with "
-            f"{result['task_count']} rows.\n\n"
+            f"{result['task_count']} rows (tagged 'ccpm'), anchored at "
+            f"timeline day {result['anchor']}.\n\n"
             f"Critical chain: {' → '.join(stats.critical_chain)} "
             f'({stats.critical_chain_length} days)\n'
             f'Project buffer: {stats.project_buffer} days\n'
-            f'Promised completion: day {stats.promise_day}' + note)
+            f"Promised completion: timeline day "
+            f"{result['anchor'] + stats.promise_day}" + note)
 
     def _pick_project(self, title):
         """Choose a project: the only one silently, else a list dialog."""

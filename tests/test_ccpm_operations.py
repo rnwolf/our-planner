@@ -46,8 +46,9 @@ def make_worked_example():
 class TestBuildNetworkData:
     def test_maps_worked_example(self):
         model, project_id, ids, ops = make_worked_example()
-        data, warnings = ops.build_network_data(project_id)
+        data, warnings, anchor = ops.build_network_data(project_id)
         assert warnings == []
+        assert anchor == 0
         assert len(data['tasks']) == 6
         by_name = {t['name']: t for t in data['tasks']}
         assert by_name['Spec']['realistic_duration'] == 10
@@ -65,7 +66,7 @@ class TestBuildNetworkData:
         model.set_task_type(ids['E'], 'feeding_buffer')
         done = next(t for t in model.tasks if t['task_id'] == ids['C'])
         done['actual_start_date'] = done['actual_end_date'] = datetime(2026, 7, 1)
-        data, warnings = ops.build_network_data(project_id)
+        data, warnings, anchor = ops.build_network_data(project_id)
         names = {t['name'] for t in data['tasks']}
         assert 'Test rig' not in names and 'Design' not in names
         # links into the excluded tasks were dropped with warnings
@@ -85,7 +86,7 @@ class TestBuildNetworkData:
     def test_calendar_windows_exported(self):
         model, project_id, ids, ops = make_worked_example()
         model.get_resource_by_id(2)['capacity'][2:4] = [0.0, 0.0]
-        data, _ = ops.build_network_data(project_id)
+        data, _, _ = ops.build_network_data(project_id)
         assert data['calendar'] == [
             {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}]
 
@@ -168,7 +169,7 @@ class TestExportNetworkCore:
 
         model, project_id, ids, ops = make_worked_example()
         model.get_resource_by_id(2)['capacity'][2:4] = [0.0, 0.0]
-        files, warnings = ops.export_network_core(project_id, tmp_path)
+        files, warnings, anchor = ops.export_network_core(project_id, tmp_path)
         assert [f.split('/')[-1] for f in files] == \
             ['tasks.csv', 'resources.csv', 'calendar.csv']
 
@@ -183,5 +184,80 @@ class TestExportNetworkCore:
         model, project_id, ids, ops = make_worked_example()
         task = next(t for t in model.tasks if t['task_id'] == ids['B'])
         task['resources'] = {2: 0.5}
-        _, warnings = ops.export_network_core(project_id, tmp_path)
+        _, warnings, _ = ops.export_network_core(project_id, tmp_path)
         assert any('allocation 0.5' in w for w in warnings)
+
+
+class TestAnchoring:
+    def make_anchored(self):
+        """Worked example drawn from timeline day 20, with an r2 outage at
+        absolute days 22-24 (i.e. days 2-4 relative to the anchor - the same
+        outage the scheduler's own example calendar has)."""
+        model, project_id, ids, ops = make_worked_example()
+        for t in model.tasks:
+            t['col'] = 20
+        model.get_resource_by_id(2)['capacity'][22:24] = [0.0, 0.0]
+        return model, project_id, ids, ops
+
+    def test_calendar_exported_anchor_relative(self):
+        model, project_id, ids, ops = self.make_anchored()
+        data, _, anchor = ops.build_network_data(project_id)
+        assert anchor == 20
+        assert data['calendar'] == [
+            {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}]
+
+    def test_windows_before_anchor_dropped(self):
+        model, project_id, ids, ops = self.make_anchored()
+        model.get_resource_by_id(3)['capacity'][0:10] = [0.0] * 10  # past
+        data, _, _ = ops.build_network_data(project_id)
+        assert all(c['resource_id'] != '3' for c in data['calendar'])
+
+    def test_schedule_lands_at_anchor(self):
+        model, project_id, ids, ops = self.make_anchored()
+        result = ops.schedule_project_core(project_id)
+        assert result['ok'], result
+        assert result['anchor'] == 20
+        new_tasks = {t['description']: t for t in model.tasks
+                     if t['project_id'] == result['project']['id']}
+        # worked example positions, shifted by the anchor
+        assert new_tasks['Spec']['col'] == 20 + 0
+        assert new_tasks['Project buffer']['col'] == 20 + 30
+        assert result['stats'].promise_day == 45  # anchor-relative
+
+
+class TestMetadataCarryOver:
+    def test_color_tags_notes_and_ccpm_tag(self):
+        model, project_id, ids, ops = make_worked_example()
+        src = next(t for t in model.tasks if t['task_id'] == ids['B'])
+        src['color'] = 'Tomato'
+        model.set_task_tags(ids['B'], ['phase1', 'important'])
+        model.add_note_to_task(ids['B'], 'watch the vendor lead time')
+
+        result = ops.schedule_project_core(project_id)
+        assert result['ok'], result
+        new_tasks = {t['description']: t for t in model.tasks
+                     if t['project_id'] == result['project']['id']}
+
+        build = new_tasks['Build']
+        assert build['color'] == 'Tomato'
+        assert set(build['tags']) == {'ccpm', 'phase1', 'important'}
+        assert [n['text'] for n in build['notes']] == \
+            ['watch the vendor lead time']
+        # notes are copies, not shared references
+        assert build['notes'] is not src['notes']
+        assert build['notes'][0] is not src['notes'][0]
+
+        # every generated row carries the ccpm tag, buffers included
+        assert all('ccpm' in t['tags'] for t in new_tasks.values())
+        assert 'ccpm' in new_tasks['Project buffer']['tags']
+        # source tasks untouched
+        assert 'ccpm' not in src['tags']
+
+    def test_rows_placed_below_source_project(self):
+        model, project_id, ids, ops = make_worked_example()
+        for i, t in enumerate(model.tasks):
+            t['row'] = 1 + i  # source occupies rows 1..6
+        result = ops.schedule_project_core(project_id)
+        new_rows = sorted(t['row'] for t in model.tasks
+                          if t['project_id'] == result['project']['id'])
+        assert new_rows[0] == 8  # max source row 6 + 2

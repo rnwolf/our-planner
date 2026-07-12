@@ -1260,8 +1260,19 @@ The open design questions resolved: scope = the whole selected project, with `co
 excluded (links into them dropped with a warning); existing `project_buffer`/`feeding_buffer`
 tasks are never exported (the scheduler computes its own buffers); `optimal_duration` is exported
 only when the user captured one (otherwise the tool's classic 50% cut applies); the day axis is
-the shared timeline with the scheduler planning from day 0 (calendar windows exported in absolute
-timeline days — an explicit anchor/time-frame picker remains future work).
+**anchored at the first day of the project's earliest task** — the scheduler always plans from its
+own day 0, so calendar windows are exported anchor-relative (future availability falls exactly
+where it does relative to the project; windows entirely before the anchor are past and dropped)
+and the in-process flow shifts the imported schedule back by +anchor. Refined after first real
+use, matching the intended practice (plan the next project overlapping the tail of the executing
+one, schedule it against the future calendar, compare, adjust, delete the hand-drawn tasks):
+
+- the imported CCPM project's rows start two rows below the source project's rows (when free),
+  so the two networks compare at a glance;
+- the schedule's task ids are the source `task_id`s, so color, tags, and notes are carried across
+  to the CCPM copy — deleting the hand-drawn network no longer loses them;
+- every generated row (buffers included) gets a `ccpm` tag, so the whole generated network is
+  selectable via the tag filter alongside/against the original.
 
 The original design sketch for this stage follows.
 
