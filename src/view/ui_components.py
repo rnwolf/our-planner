@@ -212,6 +212,14 @@ class UIComponents:
             label='Import CCPM Schedule...',
             command=self.controller.file_ops.import_ccpm_schedule,
         )
+        self.file_menu.add_command(
+            label='Export CCPM Network...',
+            command=self.controller.ccpm_ops.export_ccpm_network,
+        )
+        self.file_menu.add_command(
+            label='Schedule with CCPM...',
+            command=self.controller.ccpm_ops.schedule_with_ccpm,
+        )
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Exit', command=self.controller.root.quit)
 

@@ -28,8 +28,9 @@ remaining fever chart hand-verification: a full multi-update narrative test, fee
 full-consumption/overflow, and cross-project isolation), Stage 13 (rolling timeline compaction /
 "Delete History...", including a latent baseline-shift bug fix found while designing it), Stage 14
 (Optimal/Realistic terminology rename), and Stage 15 (merge-point pull rule + feeding-buffer
-shock-absorber fix, prompted by hand-verifying the fever chart math for Stage 12). **Still open**:
-Stage 16 (export a project network for the external CCPM scheduler) and Stage 17 (resource buffer,
+shock-absorber fix, prompted by hand-verifying the fever chart math for Stage 12). **Stage 16
+(CCPM round trip with the external scheduler) is also done — see its section.** **Still open**:
+Stage 17 (resource buffer,
 a third manual buffer type, design discussion only, not scheduled) — see "Remaining work" below.
 What's left after that is everything listed under "Explicitly out of scope" (automated
 critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
@@ -1234,7 +1235,35 @@ backlog report into a Reporting framework, is done in full (Parts A and B) — s
 framework (Stage 10 — done)" above. Stage 13, rolling timeline compaction / "Delete History...", is
 also done — see its own "— done" heading above.)
 
-### Stage 16 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import)
+### Stage 16 — Export a project network for the external CCPM scheduler (round-trip with Stage 14/import) — done
+
+**Done.** Implemented as `CcpmOperations` (`src/operations/ccpm_operations.py`), two new File-menu
+items, 11 tests (`tests/test_ccpm_operations.py`). The external tool is now the
+[ccpm-scheduler](https://github.com/rnwolf/ccpm-scheduler) Python package (extracted from the
+Claude-skill scripts; a git dependency of this app until its first PyPI release), which resolved
+the column-name question below: the exported columns are `realistic_duration`/`optimal_duration`,
+confirmed against that repo. Two flows share one mapping (`build_network_data`, producing the
+package's JSON exchange shape):
+
+- **File → Export CCPM Network...** — writes `tasks.csv`/`resources.csv`/`calendar.csv` for a
+  chosen project (capacity arrays run-length-encoded into half-open `[from, to)` windows against
+  the most-common value as the base capacity); the success dialog shows the exact
+  `ccpm-scheduler build ...` command and points back to `File → Import CCPM Schedule...`.
+- **File → Schedule with CCPM...** — the full trip in-process via the `ccpm_scheduler` library:
+  validate (errors surface as the engine's coded issues, e.g. `E_CYCLE`, `E_NO_RESOURCE`,
+  `E_FRACTIONAL_ALLOCATION` — the engine schedules whole resources only in its v1), build, verify,
+  then import the result as a NEW project named `<source> (CCPM)` by reusing
+  `import_ccpm_schedule`'s private helpers — so manual and automated plans sit side by side, and
+  the shared resource pool is reused by name, never duplicated.
+
+The open design questions resolved: scope = the whole selected project, with `complete` tasks
+excluded (links into them dropped with a warning); existing `project_buffer`/`feeding_buffer`
+tasks are never exported (the scheduler computes its own buffers); `optimal_duration` is exported
+only when the user captured one (otherwise the tool's classic 50% cut applies); the day axis is
+the shared timeline with the scheduler planning from day 0 (calendar windows exported in absolute
+timeline days — an explicit anchor/time-frame picker remains future work).
+
+The original design sketch for this stage follows.
 
 The other half of the round trip described in Stage 14: export a chosen project's network,
 resources, and calendars for a given time frame, in the format the external CCPM scheduling tool
