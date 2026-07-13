@@ -283,6 +283,16 @@ class FileOperations:
                 project_id=project_id,
             )
 
+            # schedule.csv carries the task's realistic estimate since
+            # ccpm-scheduler 0.7 - without it, add_task's default (a copy of
+            # `duration`, i.e. the optimal value) would misrecord the
+            # original estimate on imported CCPM tasks
+            raw_realistic = row.get('realistic_duration')
+            if isinstance(raw_realistic, str):
+                raw_realistic = raw_realistic.strip()
+            if raw_realistic not in (None, ''):
+                new_task['realistic_duration'] = int(raw_realistic)
+
             if task_type != 'task':
                 self.model.set_task_type(new_task['task_id'], task_type)
 

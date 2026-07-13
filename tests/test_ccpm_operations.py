@@ -288,3 +288,21 @@ class TestSaveLoadRoundTrip:
         result = ops.schedule_project_core(project_id)
         assert result['ok'], result
         assert result['stats'].project_buffer >= 15
+
+
+class TestRealisticDurationRoundTrip:
+    def test_ccpm_copy_keeps_realistic_estimates(self):
+        """Since ccpm-scheduler 0.7 schedule.csv carries realistic_duration;
+        the imported CCPM tasks must record it rather than defaulting the
+        field to a copy of the (optimal) scheduled duration."""
+        model, project_id, ids, ops = make_worked_example()
+        result = ops.schedule_project_core(project_id)
+        assert result['ok'], result
+        new_tasks = {t['description']: t for t in model.tasks
+                     if t['project_id'] == result['project']['id']}
+        build = new_tasks['Build']
+        assert build['duration'] == 10           # scheduled (optimal)
+        assert build['realistic_duration'] == 20  # original estimate
+        # buffers have no estimate: default (copy of duration) applies
+        pb = new_tasks['Project buffer']
+        assert pb['realistic_duration'] == pb['duration']
