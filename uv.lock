@@ -58,10 +58,14 @@ wheels = [
 
 [[package]]
 name = "ccpm-scheduler"
-version = "0.3.1"
-source = { git = "https://github.com/rnwolf/ccpm-scheduler#513c2c75308c146211549ce9c630a8cce2f20a9c" }
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/79/d3/5605f6e51c4cb8dd321a53db06e4734986986d234d04b7425a8b69fdc8b3/ccpm_scheduler-0.4.0.tar.gz", hash = "sha256:2e779b4fb1c6ebd2e1ca5fa6584f235739548302b4d1f7ed3df63c1264393472", size = 122095, upload-time = "2026-07-13T10:11:28.846Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/53/5b/d7fcacf11d7b1728dc7adf739d42aad94857f89c7916ecc5843ac1a578bd/ccpm_scheduler-0.4.0-py3-none-any.whl", hash = "sha256:ebc13283b4913a7f59c8a2d5ef768ceaefec4ae1fa1abcd04daeb0c1de7f6043", size = 42938, upload-time = "2026-07-13T10:11:27.855Z" },
 ]
 
 [[package]]
@@ -986,7 +990,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ccpm-scheduler", git = "https://github.com/rnwolf/ccpm-scheduler" },
+    { name = "ccpm-scheduler", specifier = ">=0.4.0" },
     { name = "networkx", specifier = ">=3.0" },
     { name = "reportlab", specifier = ">=4.0.0" },
     { name = "requests", specifier = ">=2.32.3" },

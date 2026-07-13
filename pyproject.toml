@@ -31,7 +31,7 @@ dependencies = [
     "reportlab>=4.0.0",
     "networkx>=3.0",
     "requests>=2.32.3",
-    "ccpm-scheduler",
+    "ccpm-scheduler>=0.4.0",
 ]
 
 [dependency-groups]
@@ -80,5 +80,3 @@ unfixable = ["B"]
 # 5. Use single quotes in `ruff format`.
 quote-style = "single"
 
-[tool.uv.sources]
-ccpm-scheduler = { git = "https://github.com/rnwolf/ccpm-scheduler" }
