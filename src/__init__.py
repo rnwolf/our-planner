@@ -3,7 +3,11 @@ Task Resource Manager
 
 A Tkinter application for managing tasks and resources with timeline visualization.
 """
+from importlib.metadata import version, PackageNotFoundError
 
-__version__ = "0.1.17"
+try:
+    __version__ = version("our-planner")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 __author__ = 'R.N. Wolf'
-__release_date__ = "2025-04-08"
