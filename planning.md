@@ -32,6 +32,7 @@ shock-absorber fix, prompted by hand-verifying the fever chart math for Stage 12
 (CCPM round trip with the external scheduler) is also done — see its section.** **Still open**:
 Stage 17 (resource buffer,
 a third manual buffer type, design discussion only, not scheduled) — see "Remaining work" below.
+**Stage 18 (network graph report) is done — see its section.**
 What's left after that is everything listed under "Explicitly out of scope" (automated
 critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
 comparison UI).
@@ -1343,6 +1344,33 @@ Not scoped further than this - no data model changes, no glue/cascade behavior, 
 formula decided yet. Likely needs: a resource identifier on the buffer (which constrained resource
 it protects), and glue/cascade logic similar to a feeding buffer's but keyed off a resource-sharing
 relationship between two tasks instead of a chain-following one.
+
+### Stage 18 — Network Graph report (any set of tasks) — done
+
+**Done.** `Reports → Network Graph → {Selected Tasks, Project...}`
+(`ReportOperations.view_network_graph_selected/_project`, mapping helper
+`build_network_report_rows`, 7 tests in `tests/test_network_graph_report.py`).
+Renders any set of tasks through the external scheduler's
+`render_network_html` (ccpm-scheduler >= 0.8) — the same standalone
+interactive vis-network HTML its `graph` subcommand produces (zoom/pan/drag,
+resource filter, task inspector) — as a pure *view* of the tasks as they sit
+on the timeline: no scheduling, `start = col`. Written to a temp file,
+auto-opened in the browser, path noted in the transient `filter_status`
+message.
+
+Mapping decisions: resource **names** (not ids) go into the graph so the
+resource filter reads "Resource A" — enabled by two v0.8 engine
+generalizations built for this stage (resource lists split on `;` only so
+names with spaces survive; any chain label gets a palette color with the
+verbatim name in the legend, so our-planner chain names like "Feeding-01"
+or renamed chains render correctly, `critical` maps from the is_critical
+chain). `realistic_duration` is passed only when it differs from the task's
+current duration — on hand-drawn (uncut) tasks duration IS the realistic
+value and an "optimal 10d / realistic 10d" inspector row would mislead.
+Links to tasks outside the rendered set need no filtering: the renderer
+drops edges whose predecessor is not among the nodes. Empty selection shows
+"Turn on Multi-Select and select tasks first"; titles are
+"{project name}" / "{n} selected tasks — {plan file name}".
 
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 

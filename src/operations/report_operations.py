@@ -1,6 +1,10 @@
+import os
+import tempfile
 import tkinter as tk
+import webbrowser
 from tkinter import ttk, messagebox
 
+from src.model.dependency_notation import format_predecessor_notation
 from src.operations.task_operations import OptionSelectDialog
 
 
@@ -141,3 +145,109 @@ class ReportOperations:
                 )
 
         tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
+
+    # ---- Network Graph report (Stage 18) --------------------------------
+    # Renders any set of tasks as the interactive project-network HTML the
+    # external ccpm-scheduler produces for its schedules (vis-network via
+    # CDN, data embedded, resource filter, task inspector) - no scheduling
+    # involved, it is a pure view of the tasks as they sit on the timeline.
+
+    def _chain_label(self, chain_id):
+        """Map a task's chain onto the graph's chain labels: 'critical' for
+        the critical chain, the chain's own name otherwise ('none' when
+        unassigned) - the renderer colors any distinct label and shows it
+        verbatim in the legend (ccpm-scheduler >= 0.8)."""
+        if chain_id is None:
+            return 'none'
+        chain = self.model.get_chain_by_id(chain_id)
+        if chain is None:
+            return 'none'
+        return 'critical' if chain.get('is_critical') else chain['name']
+
+    def build_network_report_rows(self, tasks):
+        """Map task dicts onto ccpm_scheduler ScheduleRows for the graph.
+
+        Links to tasks outside the set need no filtering - the renderer
+        skips edges whose predecessor is not among the nodes. The realistic
+        estimate is only passed when it differs from the task's current
+        duration: on hand-drawn (uncut) tasks the duration IS the realistic
+        value, and an 'optimal 10d / realistic 10d' row would mislead.
+        """
+        from ccpm_scheduler import ScheduleRow
+
+        rows = []
+        for task in sorted(tasks, key=lambda t: (t['col'],
+                                                 t['col'] + t['duration'],
+                                                 t['task_id'])):
+            names = []
+            for rid in task.get('resources') or {}:
+                resource = self.model.get_resource_by_id(rid)
+                if resource:
+                    names.append(resource['name'])
+            realistic = task.get('realistic_duration')
+            if realistic in (None, '') or realistic == task['duration']:
+                realistic = None
+            rows.append(ScheduleRow(
+                id=str(task['task_id']),
+                name=task['description'],
+                type=task.get('type') or 'task',
+                chain=self._chain_label(task.get('chain_id')),
+                start=task['col'],
+                finish=task['col'] + task['duration'],
+                duration=task['duration'],
+                realistic_duration=realistic,
+                resource_ids=';'.join(names),
+                predecessor_ids=format_predecessor_notation(
+                    task.get('predecessors') or []),
+                url=task.get('url', '') or '',
+            ))
+        return rows
+
+    def view_network_graph_selected(self):
+        """Reports > Network Graph > Selected Tasks."""
+        tasks = list(self.controller.selected_tasks or [])
+        if not tasks:
+            messagebox.showinfo(
+                'Network Graph',
+                'Turn on Multi-Select and select tasks first.',
+                parent=self.controller.root,
+            )
+            return
+        plan = (os.path.basename(self.model.current_file_path)
+                if self.model.current_file_path else 'Untitled plan')
+        plural = 's' if len(tasks) != 1 else ''
+        self._open_network_graph(
+            tasks, f'{len(tasks)} selected task{plural} — {plan}')
+
+    def view_network_graph_project(self):
+        """Reports > Network Graph > Project..."""
+        project = self._select_project('Network Graph')
+        if not project:
+            return
+        tasks = [t for t in self.model.tasks
+                 if t.get('project_id') == project['id']]
+        if not tasks:
+            messagebox.showinfo(
+                'Network Graph',
+                f"Project '{project['name']}' has no tasks.",
+                parent=self.controller.root,
+            )
+            return
+        self._open_network_graph(tasks, project['name'])
+
+    def _open_network_graph(self, tasks, title):
+        """Render to a temp file, open it in the browser, and note the path
+        in the (transient) status message."""
+        from ccpm_scheduler import Schedule, render_network_html
+
+        html = render_network_html(
+            Schedule(rows=self.build_network_report_rows(tasks)), title=title)
+        fd, path = tempfile.mkstemp(prefix='our-planner-network-',
+                                    suffix='.html')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(html)
+        webbrowser.open('file://' + path)
+        status = getattr(self.controller, 'filter_status', None)
+        if status is not None and hasattr(status, 'config'):
+            status.config(text=f'Network graph opened in browser: {path}')
+        return path

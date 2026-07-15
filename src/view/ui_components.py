@@ -381,6 +381,21 @@ class UIComponents:
             command=lambda: self.controller.report_ops.view_fullkit_readiness_report(),
         )
 
+        # Network Graph (Stage 18) - the interactive dependency-graph view
+        # from the external ccpm-scheduler, for any set of tasks
+        self.network_graph_menu = tk.Menu(self.reports_menu, tearoff=0)
+        self.reports_menu.add_cascade(
+            label='Network Graph', menu=self.network_graph_menu
+        )
+        self.network_graph_menu.add_command(
+            label='Selected Tasks',
+            command=lambda: self.controller.report_ops.view_network_graph_selected(),
+        )
+        self.network_graph_menu.add_command(
+            label='Project...',
+            command=lambda: self.controller.report_ops.view_network_graph_project(),
+        )
+
         # Chains menu
         self.chains_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label='Chains', menu=self.chains_menu)
