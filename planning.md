@@ -33,6 +33,9 @@ shock-absorber fix, prompted by hand-verifying the fever chart math for Stage 12
 Stage 17 (resource buffer,
 a third manual buffer type, design discussion only, not scheduled) — see "Remaining work" below.
 **Stage 18 (network graph report) is done — see its section.**
+**Stage 19 (import/export consistency — tags/colour round trip, notes.txt instead of unbounded
+dialogs, slimmer resources CSV, `id:allocation` resource tokens, snake_case column alignment with
+ccpm-scheduler) is planned, not started — see its section.**
 What's left after that is everything listed under "Explicitly out of scope" (automated
 critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
 comparison UI).
@@ -1371,6 +1374,104 @@ Links to tasks outside the rendered set need no filtering: the renderer
 drops edges whose predecessor is not among the nodes. Empty selection shows
 "Turn on Multi-Select and select tasks first"; titles are
 "{project name}" / "{n} selected tasks — {plan file name}".
+
+### Stage 19 — Import/Export consistency (planned, not started)
+
+Iron out the inconsistencies between our-planner's three CSV surfaces and the external
+ccpm-scheduler's file contract, so the same concepts use the same column names and token
+notations everywhere. Once this is aligned, a follow-up plan will improve ccpm-scheduler itself
+(the two scheduler-side items below are inputs to that plan, not part of this stage).
+
+**Current state, verified in code (our-planner @ Stage 18, ccpm-scheduler 0.8.0 installed):**
+
+| Surface | Files | Columns |
+|---|---|---|
+| `File → Export CCPM Network...` (`ccpm_operations.export_network_core`) | `tasks.csv` | `id, name, realistic_duration, optimal_duration, predecessor_ids, resource_ids, url` |
+| | `resources.csv` | `id, name, capacity` |
+| | `calendar.csv` | `resource_id, from, to, capacity` (half-open `[from, to)`) |
+| `File → Import CCPM Schedule...` (`file_operations._import_schedule_tasks`) | `schedule.csv` | reads `id, start, duration` (required); `name, type, chain, resource_ids, predecessor_ids, url, realistic_duration, finish` (optional) |
+| ccpm-scheduler output (`SCHEDULE_COLUMNS` in its `model.py`) | `schedule.csv` | `id, name, type, chain, start, finish, duration, realistic_duration, resource_ids, predecessor_ids, url` |
+| `File → Export → CSV` (`export_operations.export_to_csv`) | `..._tasks.csv` | `ID, Row, Column, Description, Project, Chain, Start Date, End Date, Duration, Resources, Resource Allocations, Predecessors, Successors, Tags, URL` |
+| | `..._resources.csv` | `ID, Name, Tags, Total Capacity, Total Loading, Average Utilization, Peak Utilization` |
+| | `..._resource_loading.csv` | `Resource ID, Resource Name` + per-day `Loading_/Capacity_/Utilization_<date>` triples |
+
+So the CCPM export/import pair is already exactly aligned with the scheduler's contract
+(import's optional-column reading matches `SCHEDULE_COLUMNS` one for one; `finish` is used only
+to size the timeline). The misalignment is concentrated in the general `File → Export → CSV`
+family, plus two round-trip gaps (tags/colour, allocations) that today only the in-process
+`Schedule with CCPM` path papers over by copying color/tags/notes across by task id.
+
+**Work items (our-planner side, this stage):**
+
+1. **Tags + colour columns on CCPM export** — add `tags` (comma-joined) and `colour` (the task's
+   `color` field) columns to the exported `tasks.csv`. Safe today: the scheduler's CSV loader
+   reads known columns by name and ignores extras (verified in its `io.py`). Until the scheduler
+   passes them through to `schedule.csv` (see scheduler items below), they document the network;
+   after that, they complete the external round trip.
+2. **Tags + colour on CCPM import** — `_import_schedule_tasks` reads optional `tags` and
+   `colour` columns from `schedule.csv` when present (accept `color` as an alias on read; we
+   write `colour`). Tags merge with the `ccpm` tag the same way `schedule_project_core` does.
+3. **`Export Complete` dialog must not grow with the notes** — with many warnings the messagebox
+   can outgrow a laptop screen, hiding the OK button. Write the notes to a `notes.txt` alongside
+   `tasks.csv`/`resources.csv` in the export folder instead, and have the dialog say
+   "N notes written to notes.txt". Check `Schedule with CCPM`'s completion dialog for the same
+   unbounded-notes hazard (it has no export folder — cap/truncate there, e.g. first 10 + count).
+4. **Slim `..._resources.csv`** — remove the derived-stats columns `Total Capacity`,
+   `Total Loading`, `Average Utilization`, `Peak Utilization` (the per-day
+   `..._resource_loading.csv` in the same export already carries the underlying data). Add
+   `capacity` (the base capacity, as in the CCPM `resources.csv`) so the file aligns with the
+   scheduler's resource shape: `id, name, capacity, tags`.
+5. **Consolidate `Resources` + `Resource Allocations` in `..._tasks.csv`** — one `resource_ids`
+   column using an `id:allocation` token notation mirroring the predecessor tokens:
+   `5:2;7` = 2 units of resource 5 plus 1 (default, `:1` omitted) of resource 7. Referencing
+   resource *ids* (resolvable via the `..._resources.csv` written in the same export) instead of
+   names matches the CCPM files and survives resource renames — this was the conclusion in
+   `export_import_inconsistencies.ods` too ("Should we not reference resource ID?").
+6. **Align the rest of `..._tasks.csv` with the scheduler vocabulary** — snake_case names, same
+   spellings: `id, name, project, chain, row, start_day, start_date, end_date, duration,
+   realistic_duration, optimal_duration, predecessor_ids, resource_ids, tags, colour, url`.
+   `Description → name`, `Column → start_day` (canvas `col`), predecessors keep the shared token
+   notation but semicolon-joined like the scheduler (the import regex already splits on `[;\s]+`,
+   and `format_predecessor_notation` currently joins with spaces — add a separator argument or
+   join its tokens with `;` here). Drop `Successors` (derived from predecessors; the model never
+   stores it for exactly this drift reason). This export has no matching import today, so no
+   compatibility constraint — but aligned columns mean a filtered general export could one day
+   feed the scheduler directly.
+7. **Tests** — extend `tests/test_ccpm_operations.py` (tags/colour columns out, notes.txt,
+   tags/colour in via `schedule.csv`) and add coverage for the reshaped general CSV export
+   (column set, `id:alloc` tokens, no derived stats).
+8. **Docs** — update `sample-ccpm-projects/file-structure.md` (new optional columns) and the
+   user guide's export section.
+
+**Needs ccpm-scheduler changes (record here, plan there):** the scheduler's source lives at
+`/home/rnwolf/workspace/ccpm-scheduler` (published to PyPI; the Claude-skill wrapper is in
+`~/workspace/ccpm-single-project-skill`). Its own `PLAN.md` already reserves "Phase 5 — Close
+the model gaps" for fractional capacity/allocation in the leveler, which is where the
+`id:allocation` semantics below belong; tags/colour passthrough would be a new phase there.
+
+- **Column passthrough** — carry `tags`/`colour` (or arbitrary unknown columns) from `tasks.csv`
+  through to the matching `schedule.csv` rows, so the external round trip preserves them the way
+  `Schedule with CCPM` already does in-process. Buffer rows it generates have no source row —
+  they'd get empty tags/colour (our-planner import then applies its own buffer styling anyway).
+- **`id:allocation` tokens in `resource_ids`** — the JSON exchange already accepts
+  `{"id": alloc}` dicts, but the engine rejects fractional allocations
+  (`E_FRACTIONAL_ALLOCATION`, whole-resources v1) and the CSV notation doesn't exist, which is
+  why `export_network_core` currently flattens allocations to whole resources with a warning.
+  Scheduler work: parse/emit the token form, define semantics at least for integer units > 1
+  (consume N capacity units of that resource). Until that lands, our-planner keeps the
+  flatten-and-warn behavior in the CCPM export (emitting `5:2` today would read as an unknown
+  resource id); the general export (item 5) can adopt the notation immediately since nothing
+  external parses it yet.
+
+**Decisions (resolved 2026-07-16):**
+
+- `colour` vs `color`: *write* `colour`, *accept* both spellings on import. If the scheduler
+  ends up echoing the column, its docs should use the same spelling.
+- No `resource_names` convenience column in the general tasks export — resource *ids* plus the
+  `..._resources.csv` written in the same export are enough.
+- Keep the two start-axis column names distinct on purpose: the general export's `start_day` is
+  absolute (day 0 = timeline start), while the CCPM files' `start` is anchor-relative (day 0 =
+  the project's earliest task). The different names make the different axes visible.
 
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
