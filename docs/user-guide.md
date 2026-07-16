@@ -14,6 +14,16 @@ It currently follows what I consider normal practice for desktop GUI application
 1. **Zoom in and out**: See details and overview with Ctrl+Scroll-wheel to zoom in and out
 1. **Export your data**: Use the File menu to export your data in various formats
 
+## Export files
+
+**File → Export... → CSV** writes three files (columns aligned with the ccpm-scheduler vocabulary):
+
+- `..._tasks.csv` — `id, name, project, chain, row, start_day, start_date, end_date, duration, realistic_duration, optimal_duration, predecessor_ids, resource_ids, tags, colour, url`. `start_day` is the absolute timeline day (day 0 = timeline start). `resource_ids` uses `id:allocation` tokens: `5:2;7` means 2 units of resource 5 and 1 unit (the default) of resource 7. `predecessor_ids` uses the same link notation as the app's dialogs (`3;5:SS+2`).
+- `..._resources.csv` — `id, name, capacity, tags` (capacity = the resource's usual per-day value).
+- `..._resource_loading.csv` — per-day loading, capacity, and utilization for each resource.
+
+**File → Export CCPM Network...** writes the ccpm-scheduler input files (`tasks.csv`, `resources.csv`, `calendar.csv`) plus optional `tags`/`colour` columns; any export notes go to a `notes.txt` alongside them. **File → Import CCPM Schedule...** reads those tags/colours back if the `schedule.csv` carries them, and tags every imported row `ccpm`.
+
 ## Keyboard shortcuts
 
 - **Ctrl+A**: Select all visible tasks

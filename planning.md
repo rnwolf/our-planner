@@ -35,7 +35,8 @@ a third manual buffer type, design discussion only, not scheduled) — see "Rema
 **Stage 18 (network graph report) is done — see its section.**
 **Stage 19 (import/export consistency — tags/colour round trip, notes.txt instead of unbounded
 dialogs, slimmer resources CSV, `id:allocation` resource tokens, snake_case column alignment with
-ccpm-scheduler) is planned, not started — see its section.**
+ccpm-scheduler) is done on the our-planner side — see its section; two scheduler-side items
+(column passthrough, allocation tokens) carry over to the ccpm-scheduler repo's plan.**
 What's left after that is everything listed under "Explicitly out of scope" (automated
 critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
 comparison UI).
@@ -1375,7 +1376,29 @@ drops edges whose predecessor is not among the nodes. Empty selection shows
 "Turn on Multi-Select and select tasks first"; titles are
 "{project name}" / "{n} selected tasks — {plan file name}".
 
-### Stage 19 — Import/Export consistency (planned, not started)
+### Stage 19 — Import/Export consistency — done (our-planner side)
+
+**Done (2026-07-16).** All eight our-planner work items below are implemented and tested
+(12 new tests: `TestStage19ExportColumns` / `TestStage19ImportTagsColour` in
+`tests/test_ccpm_operations.py`, plus `tests/test_export_csv.py` for the reworked general CSV
+export; 154 total passing). Implementation notes that refined the plan:
+
+- `export_to_csv` was split into a UI wrapper + testable `_write_csv_export(directory)` core,
+  mirroring the `export_network_core` pattern.
+- The `id:allocation` token helper is `_resource_token` in `export_operations.py`; the base
+  capacity in the general resources CSV reuses `CcpmOperations._encode_capacity` so the two
+  exports can't drift on what "capacity" means.
+- `format_predecessor_notation` gained a `sep` parameter (default `' '` for dialogs, `';'` for
+  CSVs — parsers accept both).
+- The Export Complete dialog's `len(files) > 2` heuristic for "calendar.csv present" would have
+  broken when notes.txt joined the list — replaced with an explicit basename check.
+- Import tags every `schedule.csv` row `ccpm` (not only rows with a `tags` column), matching the
+  in-process flow's rationale: the whole imported network is tag-selectable.
+- The two **scheduler-side items remain open** (tags/colour passthrough to `schedule.csv`;
+  `id:allocation` tokens in its CSV contract) — they are inputs to the ccpm-scheduler plan, and
+  until they land the CCPM tasks.csv keeps flatten-and-warn for allocations ≠ 1.
+
+The original plan follows.
 
 Iron out the inconsistencies between our-planner's three CSV surfaces and the external
 ccpm-scheduler's file contract, so the same concepts use the same column names and token

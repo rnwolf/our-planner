@@ -72,9 +72,15 @@ def format_predecessor_token(entry: Dict[str, Any]) -> str:
     return token
 
 
-def format_predecessor_notation(entries: List[Dict[str, Any]]) -> str:
-    """Serialize link entries back into the compact predecessor_ids notation."""
-    return ' '.join(format_predecessor_token(entry) for entry in entries or [])
+def format_predecessor_notation(
+    entries: List[Dict[str, Any]], sep: str = ' '
+) -> str:
+    """Serialize link entries back into the compact predecessor_ids notation.
+
+    `sep` defaults to a space (the app's dialogs); CSV exports pass ';' to
+    match the ccpm-scheduler file contract (parsers accept both).
+    """
+    return sep.join(format_predecessor_token(entry) for entry in entries or [])
 
 
 def normalize_predecessor_entries(entries: Any) -> List[Dict[str, Any]]:

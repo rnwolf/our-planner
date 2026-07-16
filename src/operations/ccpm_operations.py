@@ -114,6 +114,11 @@ class CcpmOperations:
                 'predecessors': links,
                 'resources': allocations,
                 'url': task.get('url', '') or '',
+                # Stage 19: carried for the CSV export / round trip; the
+                # scheduler's network_from_json reads known keys only, so
+                # these are ignored on the in-process JSON path
+                'tags': list(task.get('tags') or []),
+                'colour': task.get('color', '') or '',
             })
 
         anchor = min((t['col'] for t in exported.values()), default=0)
@@ -293,7 +298,8 @@ class CcpmOperations:
         with open(path, 'w', newline='', encoding='utf-8') as f:
             w = csv.writer(f)
             w.writerow(['id', 'name', 'realistic_duration', 'optimal_duration',
-                        'predecessor_ids', 'resource_ids', 'url'])
+                        'predecessor_ids', 'resource_ids', 'url', 'tags',
+                        'colour'])
             for t in data['tasks']:
                 w.writerow([
                     t['id'], t['name'], t['realistic_duration'],
@@ -301,6 +307,8 @@ class CcpmOperations:
                     ';'.join(self._link_token(e) for e in t['predecessors']),
                     ';'.join(t['resources']),
                     t['url'],
+                    ','.join(t['tags']),
+                    t['colour'],
                 ])
         files.append(path)
 
@@ -320,6 +328,14 @@ class CcpmOperations:
                 for c in data['calendar']:
                     w.writerow([c['resource_id'], c['from'], c['to'],
                                 c['capacity']])
+            files.append(path)
+
+        # Notes go to a file, not the completion dialog: with many warnings
+        # a messagebox can outgrow a laptop screen and hide its OK button.
+        if warnings:
+            path = os.path.join(folder, 'notes.txt')
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(f'- {w}' for w in warnings) + '\n')
             files.append(path)
 
         return files, warnings, anchor
@@ -354,14 +370,17 @@ class CcpmOperations:
             return
         note = ''
         if warnings:
-            note = '\n\nNotes:\n' + '\n'.join(f'- {w}' for w in warnings)
+            note = (f'\n\n{len(warnings)} note(s) about the export written '
+                    f'to notes.txt.')
+        has_calendar = any(os.path.basename(p) == 'calendar.csv'
+                           for p in files)
         messagebox.showinfo(
             'Export Complete',
             f"Wrote {', '.join(os.path.basename(p) for p in files)} to "
             f'{folder}.\n\nDay 0 in these files = timeline day {anchor} '
             f"(the project's earliest task).\n\nSchedule it with:\n"
             f'  ccpm-scheduler build tasks.csv resources.csv'
-            + (' --calendar calendar.csv' if len(files) > 2 else '')
+            + (' --calendar calendar.csv' if has_calendar else '')
             + ' --out-dir plan\n\nthen bring the result back via '
             "'File → Import CCPM Schedule...'." + note)
 
@@ -390,8 +409,14 @@ class CcpmOperations:
         stats = result['stats']
         note = ''
         if result['warnings']:
-            note = '\n\nNotes:\n' + '\n'.join(
-                f'- {w}' for w in result['warnings'])
+            # Cap the notes so the messagebox can't outgrow the screen and
+            # hide its OK button (the export flow writes notes.txt instead,
+            # but this in-process flow has no output folder).
+            shown = result['warnings'][:10]
+            note = '\n\nNotes:\n' + '\n'.join(f'- {w}' for w in shown)
+            remaining = len(result['warnings']) - len(shown)
+            if remaining:
+                note += f'\n... and {remaining} more'
         messagebox.showinfo(
             'CCPM Schedule Created',
             f"Created project '{result['project']['name']}' with "

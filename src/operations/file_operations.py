@@ -300,6 +300,22 @@ class FileOperations:
                 chain_id = self._get_or_create_chain_for_label(chain_label)
                 self.model.set_task_chain(new_task['task_id'], chain_id)
 
+            # Stage 19: optional tags / colour columns (we write 'colour';
+            # 'color' accepted as an alias on read). Every imported row gets
+            # the 'ccpm' tag, matching the in-process Schedule-with-CCPM
+            # flow, so the whole imported network is tag-selectable.
+            raw_tags = (row.get('tags') or '').strip()
+            tags = ['ccpm'] + [
+                t.strip()
+                for t in re.split(r'[;,]', raw_tags)
+                if t.strip() and t.strip() != 'ccpm'
+            ]
+            self.model.set_task_tags(new_task['task_id'], tags)
+
+            colour = (row.get('colour') or row.get('color') or '').strip()
+            if colour:
+                new_task['color'] = colour
+
             task_id_map[csv_id] = new_task['task_id']
 
         for row in schedule_rows:

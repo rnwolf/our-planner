@@ -12,6 +12,18 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from src.utils.colors import DEFAULT_TASK_COLOR
 from src.model.dependency_notation import format_predecessor_notation, BUFFER_LINK_TYPES
+from src.operations.ccpm_operations import CcpmOperations
+
+
+def _resource_token(resource_id, allocation):
+    """`id:allocation` resource token (Stage 19): ':1' is omitted, whole
+    floats print as ints - `5:2;7` = 2 units of resource 5, 1 of resource 7."""
+    allocation = float(allocation)
+    if allocation == 1.0:
+        return str(resource_id)
+    if allocation.is_integer():
+        return f"{resource_id}:{int(allocation)}"
+    return f"{resource_id}:{allocation}"
 
 
 def _draw_dashed_line(draw, x1, y1, x2, y2, fill, width, dash_length=6, gap_length=4):
@@ -1706,224 +1718,204 @@ class ExportOperations:
             return False
 
         try:
-            import csv
-            from datetime import datetime, timedelta
-
-            # Get filtered data if filters are active
-            tasks = self.controller.tag_ops.get_filtered_tasks()
-            resources = self.controller.tag_ops.get_filtered_resources()
-            resource_loading = self.model.calculate_resource_loading()
-
-            # Create unique base filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            base_filename = f"task_resource_export_{timestamp}"
-
-            # 1. Export tasks
-            tasks_file = os.path.join(directory_path, f"{base_filename}_tasks.csv")
-            with open(tasks_file, "w", newline="", encoding="utf-8") as csvfile:
-                # Define the CSV columns
-                fieldnames = [
-                    "ID",
-                    "Row",
-                    "Column",
-                    "Description",
-                    "Project",
-                    "Chain",
-                    "Start Date",
-                    "End Date",
-                    "Duration",
-                    "Resources",
-                    "Resource Allocations",
-                    "Predecessors",
-                    "Successors",
-                    "Tags",
-                    "URL",
-                ]
-
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-
-                # Write task data
-                for task in tasks:
-                    # Calculate dates
-                    start_date = self.model.get_date_for_day(task["col"]).strftime(
-                        "%Y-%m-%d"
-                    )
-                    end_date = self.model.get_date_for_day(
-                        task["col"] + task["duration"] - 1
-                    ).strftime("%Y-%m-%d")
-
-                    # Format resources
-                    resource_names = []
-                    resource_allocations = []
-
-                    for resource_id_str, allocation in task["resources"].items():
-                        resource_id = (
-                            int(resource_id_str)
-                            if isinstance(resource_id_str, str)
-                            else resource_id_str
-                        )
-                        resource = self.model.get_resource_by_id(resource_id)
-                        if resource:
-                            resource_names.append(resource["name"])
-                            resource_allocations.append(
-                                f"{resource['name']}:{allocation}"
-                            )
-
-                    # Project and chain (rolling-wave / CCPM classification)
-                    project = self.model.get_project_by_id(task.get("project_id"))
-                    chain = self.model.get_chain_by_id(task.get("chain_id"))
-
-                    # Row to write
-                    row = {
-                        "ID": task["task_id"],
-                        "Row": task["row"],
-                        "Column": task["col"],
-                        "Description": task["description"],
-                        "Project": project["name"] if project else "",
-                        "Chain": chain["name"] if chain else "",
-                        "Start Date": start_date,
-                        "End Date": end_date,
-                        "Duration": task["duration"],
-                        "Resources": ",".join(resource_names),
-                        "Resource Allocations": ",".join(resource_allocations),
-                        "Predecessors": format_predecessor_notation(
-                            task.get("predecessors", [])
-                        ),
-                        "Successors": ",".join(
-                            map(str, self.model.get_successor_ids(task["task_id"]))
-                        ),
-                        "Tags": ",".join(task.get("tags", [])),
-                        "URL": task.get("url", ""),
-                    }
-
-                    writer.writerow(row)
-
-            # 2. Export resources
-            resources_file = os.path.join(
-                directory_path, f"{base_filename}_resources.csv"
-            )
-            with open(resources_file, "w", newline="", encoding="utf-8") as csvfile:
-                # Define the CSV columns
-                fieldnames = [
-                    "ID",
-                    "Name",
-                    "Tags",
-                    "Total Capacity",
-                    "Total Loading",
-                    "Average Utilization",
-                    "Peak Utilization",
-                ]
-
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-
-                # Write resource data
-                for resource in resources:
-                    resource_id = resource["id"]
-
-                    # Calculate total capacity and loading
-                    total_capacity = sum(resource["capacity"])
-                    total_loading = sum(resource_loading[resource_id])
-
-                    # Calculate utilization
-                    average_utilization = (
-                        (total_loading / total_capacity * 100)
-                        if total_capacity > 0
-                        else 0
-                    )
-
-                    # Calculate peak utilization
-                    peak_utilization = 0
-                    for day in range(self.model.days):
-                        capacity = resource["capacity"][day]
-                        loading = resource_loading[resource_id][day]
-
-                        if capacity > 0:
-                            utilization = (loading / capacity) * 100
-                            peak_utilization = max(peak_utilization, utilization)
-
-                    # Row to write
-                    row = {
-                        "ID": resource_id,
-                        "Name": resource["name"],
-                        "Tags": ",".join(resource.get("tags", [])),
-                        "Total Capacity": total_capacity,
-                        "Total Loading": total_loading,
-                        "Average Utilization": f"{average_utilization:.2f}%",
-                        "Peak Utilization": f"{peak_utilization:.2f}%",
-                    }
-
-                    writer.writerow(row)
-
-            # 3. Export daily resource loading
-            loading_file = os.path.join(
-                directory_path, f"{base_filename}_resource_loading.csv"
-            )
-            with open(loading_file, "w", newline="", encoding="utf-8") as csvfile:
-                # Create header with date columns
-                fieldnames = ["Resource ID", "Resource Name"]
-
-                # Add all days as columns
-                for day in range(self.model.days):
-                    date = self.model.get_date_for_day(day).strftime("%Y-%m-%d")
-                    fieldnames.append(f"Loading_{date}")
-                    fieldnames.append(f"Capacity_{date}")
-                    fieldnames.append(f"Utilization_{date}")
-
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
-
-                # Write resource loading data
-                for resource in resources:
-                    resource_id = resource["id"]
-
-                    # Start with resource info
-                    row = {
-                        "Resource ID": resource_id,
-                        "Resource Name": resource["name"],
-                    }
-
-                    # Add loading for each day
-                    for day in range(self.model.days):
-                        date = self.model.get_date_for_day(day).strftime("%Y-%m-%d")
-                        capacity = resource["capacity"][day]
-                        loading = resource_loading[resource_id][day]
-
-                        # Calculate utilization
-                        utilization = (loading / capacity * 100) if capacity > 0 else 0
-
-                        row[f"Loading_{date}"] = loading
-                        row[f"Capacity_{date}"] = capacity
-                        row[f"Utilization_{date}"] = f"{utilization:.2f}%"
-
-                    writer.writerow(row)
-
-            # Show success message
-            messagebox.showinfo(
-                "Export Successful",
-                f"Data exported to:\n{tasks_file}\n{resources_file}\n{loading_file}",
-            )
-
-            # Ask if user wants to open the directory
-            if messagebox.askyesno(
-                "Open Directory", "Would you like to open the export directory?"
-            ):
-                try:
-                    if os.name == "nt":  # Windows
-                        os.startfile(directory_path)
-                    elif os.name == "posix":  # macOS or Linux
-                        subprocess.call(("xdg-open", directory_path))
-                except Exception as e:
-                    messagebox.showwarning(
-                        "Could not open directory", f"Error opening directory: {e}"
-                    )
-
-            return True
-
+            files = self._write_csv_export(directory_path)
         except Exception as e:
             messagebox.showerror("Export Error", f"Error exporting to CSV: {e}")
             return False
+
+        # Show success message
+        messagebox.showinfo(
+            "Export Successful", "Data exported to:\n" + "\n".join(files)
+        )
+
+        # Ask if user wants to open the directory
+        if messagebox.askyesno(
+            "Open Directory", "Would you like to open the export directory?"
+        ):
+            try:
+                if os.name == "nt":  # Windows
+                    os.startfile(directory_path)
+                elif os.name == "posix":  # macOS or Linux
+                    subprocess.call(("xdg-open", directory_path))
+            except Exception as e:
+                messagebox.showwarning(
+                    "Could not open directory", f"Error opening directory: {e}"
+                )
+
+        return True
+
+    def _write_csv_export(self, directory_path):
+        """Write the three CSV export files into `directory_path` and return
+        their paths. No UI - export_to_csv() owns the dialogs.
+
+        Stage 19: columns are snake_case and aligned with the ccpm-scheduler
+        vocabulary. Tasks reference resources by id (`id:allocation` tokens,
+        ':1' omitted), resolvable via the resources CSV written alongside;
+        `start_day` is the absolute timeline day (unlike the CCPM files'
+        anchor-relative `start`).
+        """
+        import csv
+        from datetime import datetime
+
+        # Get filtered data if filters are active
+        tasks = self.controller.tag_ops.get_filtered_tasks()
+        resources = self.controller.tag_ops.get_filtered_resources()
+        resource_loading = self.model.calculate_resource_loading()
+
+        # Create unique base filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_filename = f"task_resource_export_{timestamp}"
+
+        # 1. Export tasks
+        tasks_file = os.path.join(directory_path, f"{base_filename}_tasks.csv")
+        with open(tasks_file, "w", newline="", encoding="utf-8") as csvfile:
+            fieldnames = [
+                "id",
+                "name",
+                "project",
+                "chain",
+                "row",
+                "start_day",
+                "start_date",
+                "end_date",
+                "duration",
+                "realistic_duration",
+                "optimal_duration",
+                "predecessor_ids",
+                "resource_ids",
+                "tags",
+                "colour",
+                "url",
+            ]
+
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for task in tasks:
+                # Calculate dates
+                start_date = self.model.get_date_for_day(task["col"]).strftime(
+                    "%Y-%m-%d"
+                )
+                end_date = self.model.get_date_for_day(
+                    task["col"] + task["duration"] - 1
+                ).strftime("%Y-%m-%d")
+
+                # id:allocation tokens (':1' omitted), resource ids as in
+                # the resources CSV written below
+                resource_tokens = []
+                for resource_id_str, allocation in task["resources"].items():
+                    resource_id = (
+                        int(resource_id_str)
+                        if isinstance(resource_id_str, str)
+                        else resource_id_str
+                    )
+                    resource = self.model.get_resource_by_id(resource_id)
+                    if resource:
+                        resource_tokens.append(
+                            _resource_token(resource["id"], allocation)
+                        )
+
+                # Project and chain (rolling-wave / CCPM classification)
+                project = self.model.get_project_by_id(task.get("project_id"))
+                chain = self.model.get_chain_by_id(task.get("chain_id"))
+
+                optimal = task.get("optimal_duration")
+                row = {
+                    "id": task["task_id"],
+                    "name": task["description"],
+                    "project": project["name"] if project else "",
+                    "chain": chain["name"] if chain else "",
+                    "row": task["row"],
+                    "start_day": task["col"],
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "duration": task["duration"],
+                    "realistic_duration": task.get("realistic_duration", ""),
+                    "optimal_duration": optimal
+                    if optimal not in (None, "")
+                    else "",
+                    "predecessor_ids": format_predecessor_notation(
+                        task.get("predecessors", []), sep=";"
+                    ),
+                    "resource_ids": ";".join(resource_tokens),
+                    "tags": ",".join(task.get("tags", [])),
+                    "colour": task.get("color", ""),
+                    "url": task.get("url", ""),
+                }
+
+                writer.writerow(row)
+
+        # 2. Export resources - identity only, aligned with the CCPM
+        # resources.csv shape. Derived stats (total loading, utilization)
+        # live in the per-day resource_loading CSV below.
+        resources_file = os.path.join(
+            directory_path, f"{base_filename}_resources.csv"
+        )
+        with open(resources_file, "w", newline="", encoding="utf-8") as csvfile:
+            fieldnames = ["id", "name", "capacity", "tags"]
+
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for resource in resources:
+                # Base capacity = the most common per-day value, same
+                # encoding the CCPM export uses
+                base_capacity, _ = CcpmOperations._encode_capacity(
+                    resource["capacity"]
+                )
+                writer.writerow(
+                    {
+                        "id": resource["id"],
+                        "name": resource["name"],
+                        "capacity": base_capacity,
+                        "tags": ",".join(resource.get("tags", [])),
+                    }
+                )
+
+        # 3. Export daily resource loading
+        loading_file = os.path.join(
+            directory_path, f"{base_filename}_resource_loading.csv"
+        )
+        with open(loading_file, "w", newline="", encoding="utf-8") as csvfile:
+            # Create header with date columns
+            fieldnames = ["Resource ID", "Resource Name"]
+
+            # Add all days as columns
+            for day in range(self.model.days):
+                date = self.model.get_date_for_day(day).strftime("%Y-%m-%d")
+                fieldnames.append(f"Loading_{date}")
+                fieldnames.append(f"Capacity_{date}")
+                fieldnames.append(f"Utilization_{date}")
+
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            # Write resource loading data
+            for resource in resources:
+                resource_id = resource["id"]
+
+                # Start with resource info
+                row = {
+                    "Resource ID": resource_id,
+                    "Resource Name": resource["name"],
+                }
+
+                # Add loading for each day
+                for day in range(self.model.days):
+                    date = self.model.get_date_for_day(day).strftime("%Y-%m-%d")
+                    capacity = resource["capacity"][day]
+                    loading = resource_loading[resource_id][day]
+
+                    # Calculate utilization
+                    utilization = (loading / capacity * 100) if capacity > 0 else 0
+
+                    row[f"Loading_{date}"] = loading
+                    row[f"Capacity_{date}"] = capacity
+                    row[f"Utilization_{date}"] = f"{utilization:.2f}%"
+
+                writer.writerow(row)
+
+        return [tasks_file, resources_file, loading_file]
 
     # def export_to_html(self):
     #     """Export to an interactive HTML report."""

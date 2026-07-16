@@ -306,3 +306,124 @@ class TestRealisticDurationRoundTrip:
         # buffers have no estimate: default (copy of duration) applies
         pb = new_tasks['Project buffer']
         assert pb['realistic_duration'] == pb['duration']
+
+
+class TestStage19ExportColumns:
+    """Stage 19: tags/colour columns on the exported tasks.csv, and warnings
+    going to notes.txt instead of the completion dialog."""
+
+    def test_tasks_csv_carries_tags_and_colour(self, tmp_path):
+        import csv
+
+        model, project_id, ids, ops = make_worked_example()
+        model.set_task_tags(ids['A'], ['alpha', 'beta'])
+        model.get_task(ids['A'])['color'] = 'salmon'
+        ops.export_network_core(project_id, tmp_path)
+
+        with open(tmp_path / 'tasks.csv', newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            assert reader.fieldnames == [
+                'id', 'name', 'realistic_duration', 'optimal_duration',
+                'predecessor_ids', 'resource_ids', 'url', 'tags', 'colour']
+            by_name = {r['name']: r for r in reader}
+        assert by_name['Spec']['tags'] == 'alpha,beta'
+        assert by_name['Spec']['colour'] == 'salmon'
+        assert by_name['Build']['tags'] == ''
+
+    def test_export_with_tags_still_accepted_by_scheduler(self, tmp_path):
+        """The scheduler reads known columns by name and must ignore the
+        extra tags/colour columns."""
+        from ccpm_scheduler import load_network, validate_network
+
+        model, project_id, ids, ops = make_worked_example()
+        model.set_task_tags(ids['A'], ['alpha'])
+        ops.export_network_core(project_id, tmp_path)
+        net = load_network(tmp_path / 'tasks.csv', tmp_path / 'resources.csv')
+        report = validate_network(net)
+        assert report.ok, [i.message for i in report.errors]
+
+    def test_warnings_written_to_notes_txt(self, tmp_path):
+        model, project_id, ids, ops = make_worked_example()
+        task = next(t for t in model.tasks if t['task_id'] == ids['B'])
+        task['resources'] = {2: 0.5}  # flatten-and-warn path
+        files, warnings, _ = ops.export_network_core(project_id, tmp_path)
+        assert warnings
+        notes = tmp_path / 'notes.txt'
+        assert str(notes) in [str(f) for f in files]
+        content = notes.read_text(encoding='utf-8')
+        assert 'allocation 0.5' in content
+
+    def test_no_notes_txt_without_warnings(self, tmp_path):
+        import os
+
+        model, project_id, ids, ops = make_worked_example()
+        files, warnings, _ = ops.export_network_core(project_id, tmp_path)
+        assert warnings == []
+        assert not os.path.exists(tmp_path / 'notes.txt')
+
+
+class TestStage19ImportTagsColour:
+    """Stage 19: optional tags / colour columns on schedule.csv import
+    ('color' accepted as an alias; every imported row gets the 'ccpm' tag,
+    matching the in-process Schedule-with-CCPM flow)."""
+
+    def make_file_ops(self):
+        from src.operations.file_operations import FileOperations
+
+        model = TaskResourceModel()
+        controller = MagicMock()
+        controller.model = model
+        return model, FileOperations(controller, model)
+
+    def test_tags_and_colour_imported(self):
+        model, file_ops = self.make_file_ops()
+        project = model.add_project('Imported')
+        rows = [
+            {'id': 'A', 'start': '0', 'duration': '5', 'name': 'Spec',
+             'tags': 'alpha, beta', 'colour': 'salmon'},
+            {'id': 'B', 'start': '5', 'duration': '5', 'name': 'Build',
+             'color': '#ff0000'},  # alias spelling
+            {'id': 'C', 'start': '10', 'duration': '5', 'name': 'Test'},
+        ]
+        file_ops._import_schedule_tasks(rows, {}, project['id'])
+        tasks = {t['description']: t for t in model.tasks
+                 if t['project_id'] == project['id']}
+        assert tasks['Spec']['tags'] == ['ccpm', 'alpha', 'beta']
+        assert tasks['Spec']['color'] == 'salmon'
+        assert tasks['Build']['color'] == '#ff0000'
+        assert tasks['Build']['tags'] == ['ccpm']
+        assert tasks['Test']['tags'] == ['ccpm']
+
+    def test_ccpm_tag_not_duplicated(self):
+        model, file_ops = self.make_file_ops()
+        project = model.add_project('Imported')
+        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Spec',
+                 'tags': 'ccpm,alpha'}]
+        file_ops._import_schedule_tasks(rows, {}, project['id'])
+        task = next(t for t in model.tasks if t['project_id'] == project['id'])
+        assert task['tags'] == ['ccpm', 'alpha']
+
+    def test_export_import_round_trip_preserves_tags_and_colour(self, tmp_path):
+        """tasks.csv column names match what the import reads, so a network
+        exported and re-imported (as schedule-like rows) keeps tags/colour.
+        The external scheduler's passthrough is planned separately - this
+        pins our-planner's two ends of the contract to each other."""
+        import csv
+
+        model, project_id, ids, ops = make_worked_example()
+        model.set_task_tags(ids['A'], ['alpha'])
+        model.get_task(ids['A'])['color'] = 'salmon'
+        ops.export_network_core(project_id, tmp_path)
+
+        with open(tmp_path / 'tasks.csv', newline='', encoding='utf-8') as f:
+            rows = list(csv.DictReader(f))
+        for row in rows:  # tasks.csv lacks schedule.csv's start/duration
+            row['start'] = '0'
+            row['duration'] = row['realistic_duration']
+
+        model2, file_ops = self.make_file_ops()
+        project = model2.add_project('Round trip')
+        file_ops._import_schedule_tasks(rows, {}, project['id'])
+        spec = next(t for t in model2.tasks if t['description'] == 'Spec')
+        assert spec['tags'] == ['ccpm', 'alpha']
+        assert spec['color'] == 'salmon'
