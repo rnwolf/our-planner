@@ -1029,25 +1029,28 @@ class TaskOperations:
             )
             dialog.geometry(f'+{x}+{y}')
 
+    def _delete_task_and_ui(self, task_id):
+        """Remove a task from the model and clean up its canvas elements."""
+        if not self.model.delete_task(task_id):
+            return False
+
+        if task_id in self.controller.ui.task_ui_elements:
+            ui_elements = self.controller.ui.task_ui_elements[task_id]
+            for element_id in ui_elements.values():
+                if isinstance(element_id, int):  # Check if it's a canvas item ID
+                    self.controller.task_canvas.delete(element_id)
+
+            # Remove from UI elements tracking
+            del self.controller.ui.task_ui_elements[task_id]
+
+        return True
+
     def delete_task(self):
         """Delete the selected task"""
         if self.controller.selected_task:
             task_id = self.controller.selected_task['task_id']
 
-            # Remove the task from the model
-            if self.model.delete_task(task_id):
-                # Clean up UI elements
-                if task_id in self.controller.ui.task_ui_elements:
-                    ui_elements = self.controller.ui.task_ui_elements[task_id]
-                    for element_id in ui_elements.values():
-                        if isinstance(
-                            element_id, int
-                        ):  # Check if it's a canvas item ID
-                            self.controller.task_canvas.delete(element_id)
-
-                    # Remove from UI elements tracking
-                    del self.controller.ui.task_ui_elements[task_id]
-
+            if self._delete_task_and_ui(task_id):
                 # Reset selected task
                 self.controller.selected_task = None
 
@@ -1056,6 +1059,34 @@ class TaskOperations:
 
                 # Update resource loading
                 self.controller.update_resource_loading()
+
+    def delete_selected_tasks(self):
+        """Delete every task in the current multi-selection (falling back to
+        the single selected task), after confirmation."""
+        tasks = list(self.controller.selected_tasks)
+        if not tasks and self.controller.selected_task:
+            tasks = [self.controller.selected_task]
+
+        if not tasks:
+            messagebox.showinfo(
+                'Delete Selected', 'No tasks are selected.', parent=self.controller.root
+            )
+            return
+
+        if not messagebox.askyesno(
+            'Delete Selected',
+            f'Delete {len(tasks)} selected task(s)? This cannot be undone.',
+            parent=self.controller.root,
+        ):
+            return
+
+        for task in tasks:
+            self._delete_task_and_ui(task['task_id'])
+
+        self.controller.selected_task = None
+        self.controller.ui.clear_selections()
+        self.controller.ui.draw_dependencies()
+        self.controller.update_resource_loading()
 
     def add_resource(self, parent=None):
         """Add a new resource to the project"""
@@ -3362,7 +3393,9 @@ class TaskOperations:
                     # Show the multi-task context menu
                     self.controller.ui.multi_task_menu.post(event.x_root, event.y_root)
                 else:
-                    # Show single task context menu
+                    # Show single task context menu, adapted to this task
+                    # (buffer-only entries hidden on ordinary tasks)
+                    self.controller.ui.update_context_menu_for_task(task)
                     self.controller.ui.context_menu.post(event.x_root, event.y_root)
                 return
 

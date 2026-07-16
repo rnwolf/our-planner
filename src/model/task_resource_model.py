@@ -958,10 +958,17 @@ class TaskResourceModel:
                     self.all_tags.add(tag)
 
     def delete_task(self, task_id: int) -> bool:
-        """Delete a task by its ID."""
+        """Delete a task by its ID, removing any dependency links that
+        pointed at it from other tasks' predecessor lists."""
         for i, task in enumerate(self.tasks):
             if task['task_id'] == task_id:
                 del self.tasks[i]
+                for other in self.tasks:
+                    other['predecessors'] = [
+                        entry
+                        for entry in other.get('predecessors', [])
+                        if entry['id'] != task_id
+                    ]
                 return True
         return False
 

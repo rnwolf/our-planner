@@ -190,9 +190,9 @@ class UIComponents:
         self.menu_bar = tk.Menu(self.controller.root)
         self.controller.root.config(menu=self.menu_bar)
 
-        # File menu
+        # File menu (Alt+F)
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='File', menu=self.file_menu)
+        self.menu_bar.add_cascade(label='File', menu=self.file_menu, underline=0)
 
         # File operations
         self.file_menu.add_command(
@@ -229,9 +229,9 @@ class UIComponents:
             label='Export...', command=self.controller.export_ops.open_export_dialog
         )
 
-        # Edit menu
+        # Edit menu (Alt+E)
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu)
+        self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu, underline=0)
 
         # Edit operations
         self.edit_menu.add_command(
@@ -254,9 +254,9 @@ class UIComponents:
             ),
         )
 
-        # Tasks menu (new)
+        # Tasks menu (Alt+T)
         self.tasks_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Tasks', menu=self.tasks_menu)
+        self.menu_bar.add_cascade(label='Tasks', menu=self.tasks_menu, underline=0)
 
         self.auto_scheduling_var = tk.BooleanVar(value=False)
         self.tasks_menu.add_checkbutton(
@@ -264,12 +264,20 @@ class UIComponents:
             variable=self.auto_scheduling_var,
             command=self.controller.toggle_auto_scheduling,
         )
+        self.tasks_menu.add_separator()
+        self.tasks_menu.add_command(
+            label='Delete Selected',
+            underline=0,
+            accelerator='Del',
+            command=self.controller.task_ops.delete_selected_tasks,
+        )
 
         # Filter menu (Stage 11 - renamed from 'Tags' now that project-based
         # filtering sits alongside tag-based filtering; 'Tags' no longer
         # described what this menu does)
+        # (Alt+I - 'F' is taken by the File menu, so the mnemonic is the 'i')
         self.filter_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Filter', menu=self.filter_menu)
+        self.menu_bar.add_cascade(label='Filter', menu=self.filter_menu, underline=1)
 
         self.filter_menu.add_command(
             label='Filter Tasks by Tags...',
@@ -617,6 +625,13 @@ class UIComponents:
         # Bind Escape to clear selections
         self.controller.root.bind('<Escape>', lambda e: self.clear_selections())
 
+        # Delete key deletes the selected tasks. Safe as a root-level
+        # binding for the same reason as the arrow keys above: every
+        # text-entry widget lives in a grab_set()'d dialog.
+        self.controller.root.bind(
+            '<Delete>', lambda e: self.controller.task_ops.delete_selected_tasks()
+        )
+
         # Bind events for resizing
         self.grid_resizer_frame.bind('<ButtonPress-1>', self.on_resizer_press)
         self.grid_resizer_frame.bind('<B1-Motion>', self.on_resizer_drag)
@@ -937,14 +952,9 @@ class UIComponents:
             label='View Duration History...',
             command=lambda: self.controller.task_ops.view_duration_history(),
         )
-        self.context_menu.add_command(
-            label='View Buffer History...',
-            command=lambda: self.controller.task_ops.view_buffer_history(),
-        )
-        self.context_menu.add_command(
-            label='View Fever Chart...',
-            command=lambda: self.controller.task_ops.view_fever_chart(),
-        )
+        # 'View Buffer History...' and 'View Fever Chart...' are inserted
+        # here dynamically by update_context_menu_for_task() - they only
+        # apply to buffer tasks, so they stay hidden for ordinary tasks.
 
         # Add state submenu
         self.state_menu = tk.Menu(self.context_menu, tearoff=0)
@@ -1005,19 +1015,6 @@ class UIComponents:
         self.context_menu.add_command(
             label='Delete Task', command=self.controller.task_ops.delete_task
         )
-        self.context_menu.add_separator()
-        self.context_menu.add_command(
-            label='Edit Resources',
-            command=lambda: self.controller.task_ops.edit_resources(
-                parent=self.controller.root
-            ),
-        )
-        self.context_menu.add_command(
-            label='Edit Project Settings',
-            command=lambda: self.controller.task_ops.edit_project_settings(
-                parent=self.controller.root
-            ),
-        )
 
         # Create resource context menu (new)
         self.resource_context_menu = tk.Menu(self.controller.root, tearoff=0)
@@ -1064,6 +1061,38 @@ class UIComponents:
             label='Add Note to Selected Tasks',
             command=self.controller.task_ops.add_note_to_selected_tasks,
         )
+
+    def update_context_menu_for_task(self, task):
+        """Adapt the task context menu to the task being right-clicked.
+
+        Buffer-report entries ('View Buffer History...', 'View Fever
+        Chart...') only make sense on project/feeding buffer tasks, so they
+        are removed and re-inserted per click rather than shown always.
+        """
+        buffer_only_entries = (
+            (
+                'View Buffer History...',
+                lambda: self.controller.task_ops.view_buffer_history(),
+            ),
+            (
+                'View Fever Chart...',
+                lambda: self.controller.task_ops.view_fever_chart(),
+            ),
+        )
+
+        for label, _ in buffer_only_entries:
+            try:
+                self.context_menu.delete(self.context_menu.index(label))
+            except tk.TclError:
+                pass  # Entry not currently present
+
+        is_buffer = (task or {}).get('type') in ('project_buffer', 'feeding_buffer')
+        if is_buffer:
+            anchor = self.context_menu.index('View Duration History...')
+            for offset, (label, command) in enumerate(buffer_only_entries, start=1):
+                self.context_menu.insert_command(
+                    anchor + offset, label=label, command=command
+                )
 
     def update_menu_commands(self):
         """Update the commands in the menus after initialization"""

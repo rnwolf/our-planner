@@ -13,3 +13,13 @@ It currently follows what I consider normal practice for desktop GUI application
 1. **Edit task details**: Right-click on a task and select from the context menu
 1. **Zoom in and out**: See details and overview with Ctrl+Scroll-wheel to zoom in and out
 1. **Export your data**: Use the File menu to export your data in various formats
+
+## Keyboard shortcuts
+
+- **Ctrl+A**: Select all visible tasks
+- **Escape**: Clear the current selection
+- **Delete**: Delete the selected task(s), after confirmation — also available as Tasks → Delete Selected
+- **Alt+F / Alt+E / Alt+I / Alt+T**: Open the File, Edit, Filter and Tasks menus
+- **Arrow keys**: Scroll the task grid
+- **Ctrl+Plus / Ctrl+Minus / Ctrl+0**: Zoom in, zoom out, reset zoom
+- **Ctrl+E**: Open the export dialog

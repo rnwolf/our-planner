@@ -80,3 +80,23 @@ class TestTaskResourceModel:
         # Try to delete a non-existent task
         result = self.model.delete_task(999)
         assert result is False
+
+    def test_delete_task_removes_dangling_predecessor_links(self):
+        """Deleting a task must strip it from other tasks' predecessor lists."""
+        a = self.model.add_task(row=1, col=1, duration=3, description='A')
+        b = self.model.add_task(row=2, col=5, duration=3, description='B')
+        c = self.model.add_task(row=3, col=9, duration=3, description='C')
+
+        # B depends on A (plain FS) and C depends on both A (SS+2) and B
+        self.model.add_predecessor(b['task_id'], a['task_id'])
+        self.model.add_predecessor(c['task_id'], a['task_id'], link_type='SS', lag=2)
+        self.model.add_predecessor(c['task_id'], b['task_id'])
+
+        assert self.model.delete_task(a['task_id']) is True
+
+        # No remaining task may still reference A
+        assert self.model.get_predecessor_ids(b['task_id']) == []
+        assert self.model.get_predecessor_ids(c['task_id']) == [b['task_id']]
+
+        # Successor derivation stays consistent too
+        assert self.model.get_successor_ids(b['task_id']) == [c['task_id']]
