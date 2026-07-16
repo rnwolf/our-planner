@@ -4,7 +4,7 @@ Two flows over one export mapping:
 
 - **Export CCPM Network...** writes a chosen project's tasks/resources/
   calendar as the CSV input files the external `ccpm-scheduler` CLI consumes
-  (see `sample-ccpm-projects/file-structure.md`), for the manual round trip:
+  (see `docs/file-structure.md`), for the manual round trip:
   export, schedule outside, bring the result back with the already-built
   `File → Import CCPM Schedule...`.
 

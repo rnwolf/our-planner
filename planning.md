@@ -110,7 +110,7 @@ comparison UI).
 `File → Import CCPM Schedule...` (`FileOperations.import_ccpm_schedule`, `file_operations.py`) —
 imports a `schedule.csv` (+ `resources.csv`, optionally `calendar.csv`) produced by an external
 CCPM scheduling tool as a new project, rather than requiring the whole plan to be recreated by
-hand in the UI. Format documented in `sample-ccpm-projects/file-structure.md`, which also holds
+hand in the UI. Format documented in `docs/file-structure.md`, which also holds
 four real sample projects (`equipment-retrofit`, `kitchen-renovation`, `lab-trials`,
 `website-launch`) used to verify this.
 
@@ -1288,9 +1288,9 @@ the result back into our-planner via the already-built `import_ccpm_schedule`
 (`file_operations.py`). Manual and automated schedules can then be compared side by side, per the
 strategy in Stage 14/the "out of scope" note above.
 
-**Grounded in the tool's real input format**, not guessed - re-checked `sample-ccpm-projects/
-file-structure.md`, which documents the *input* side (not just the `schedule.csv` output the
-importer already reads):
+**Grounded in the tool's real input format**, not guessed - re-checked `file-structure.md`
+(now at `docs/file-structure.md`), which documents the *input* side (not just the
+`schedule.csv` output the importer already reads):
 - **`tasks.csv`** (column names below reflect the *current* documented format -
   `duration_safe`/`duration_aggressive`; the user owns the external CCPM utility too and intends to
   rename these columns there to match our-planner's new `realistic`/`optimal` convention, so the
@@ -1463,7 +1463,7 @@ family, plus two round-trip gaps (tags/colour, allocations) that today only the 
 7. **Tests** — extend `tests/test_ccpm_operations.py` (tags/colour columns out, notes.txt,
    tags/colour in via `schedule.csv`) and add coverage for the reshaped general CSV export
    (column set, `id:alloc` tokens, no derived stats).
-8. **Docs** — update `sample-ccpm-projects/file-structure.md` (new optional columns) and the
+8. **Docs** — update `docs/file-structure.md` (new optional columns) and the
    user guide's export section.
 
 **Needs ccpm-scheduler changes (record here, plan there):** the scheduler's source lives at
@@ -1834,8 +1834,9 @@ from evaluating the actual planning features. Worth picking up opportunistically
   `TagFilterDialog`, `ProjectFilterDialog`, `CheckboxListFilterDialog`, `FullKitFilterDialog`).
 - `src/operations/report_operations.py` — the Reporting framework (Stage 10 Part B):
   `ReportOperations`, `compute_fullkit_readiness`/`view_fullkit_readiness_report`.
-- `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer; `file-structure.md`
-  documents the expected CSV format.
+- `docs/file-structure.md` — documents the expected CCPM CSV formats.
+- `sample-ccpm-projects/` — real sample CCPM schedules used to test the importer (untracked;
+  to be reworked when ccpm-scheduler — the source of some of those files — is updated).
 
 ## Open questions for whoever picks this up next
 

@@ -108,7 +108,7 @@ class FileOperations:
         """Import a CCPM schedule (a `schedule.csv` alongside a
         `resources.csv`, and optionally a `calendar.csv`) as a new project on
         the canvas - the output format produced by an external CCPM
-        scheduling tool. See `sample-ccpm-projects/file-structure.md` for the
+        scheduling tool. See `docs/file-structure.md` for the
         format this expects.
         """
         schedule_path = filedialog.askopenfilename(

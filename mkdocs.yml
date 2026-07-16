@@ -5,6 +5,7 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - User Guide: user-guide.md
+  - CCPM File Formats: file-structure.md
   - Improvements: improvements.md
   - Troubleshooting: troubleshooting.md
   - Contributing: contributing.md
