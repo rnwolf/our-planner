@@ -1500,11 +1500,11 @@ class TaskOperations:
         dialog.title('Manage Projects')
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        # Height must cover the whole details grid + buttons: pack clips the
-        # last-packed widgets (the buttons) when the content outgrows the
-        # window, so bump this when adding rows to details_frame.
-        dialog.geometry(f'500x520+{x}+{y}')
-        dialog.minsize(500, 520)
+        # Position only - the dialog sizes itself to its content. A
+        # hard-coded WxH risks clipping the bottom-packed buttons, because
+        # widget heights vary with platform fonts/themes; the content-fitted
+        # minsize is set at the end, once every widget exists.
+        dialog.geometry(f'+{x}+{y}')
         dialog.transient(parent)
         dialog.grab_set()
         dialog.focus_set()
@@ -1799,6 +1799,12 @@ class TaskOperations:
         tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(
             side=tk.RIGHT, padx=10, pady=10
         )
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
+        dialog.update_idletasks()
+        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
 
     def manage_chains_dialog(self, parent=None):
         """Open a dialog to add, edit, remove, and set the critical chain."""
