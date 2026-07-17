@@ -1161,8 +1161,12 @@ class TaskOperations:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Create a listbox to display resources
+        # exportselection=False - see project_listbox in
+        # manage_projects_dialog: editing a field must not silently
+        # deselect the resource
         resource_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10)
+            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10),
+            exportselection=False,
         )
         resource_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=resource_listbox.yview)
@@ -1524,8 +1528,13 @@ class TaskOperations:
         scrollbar = tk.Scrollbar(listbox_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # exportselection=False: by default a Listbox ties its selection to
+        # the X primary selection, so clicking into any entry/combobox that
+        # highlights text silently deselects the project - making it
+        # impossible to select a project and then edit its fields
         project_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10)
+            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10),
+            exportselection=False,
         )
         project_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=project_listbox.yview)
@@ -1834,8 +1843,11 @@ class TaskOperations:
         scrollbar = tk.Scrollbar(listbox_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # exportselection=False - see project_listbox: editing a field must
+        # not silently deselect the chain
         chain_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10)
+            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10),
+            exportselection=False,
         )
         chain_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=chain_listbox.yview)
