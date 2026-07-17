@@ -146,6 +146,12 @@ class ReportOperations:
 
         tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
 
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
+        dialog.update_idletasks()
+        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+
     # ---- Network Graph report (Stage 18) --------------------------------
     # Renders any set of tasks as the interactive project-network HTML the
     # external ccpm-scheduler produces for its schedules (vis-network via

@@ -5,7 +5,7 @@ This module contains the UI components for the Help menu.
 """
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext, ttk
 import webbrowser
 from src.utils.version import get_version
 from src.model.dependency_notation import format_predecessor_notation
@@ -154,6 +154,14 @@ class HelpMenu:
         # Bind Escape key to close dialog
         doc_dialog.bind('<Escape>', lambda e: doc_dialog.destroy())
 
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(doc_dialog).place(relx=1.0, rely=1.0, anchor='se')
+        doc_dialog.update_idletasks()
+        doc_dialog.minsize(
+            doc_dialog.winfo_reqwidth(), doc_dialog.winfo_reqheight()
+        )
+
     def open_website(self):
         """Open the project website in the default browser."""
         webbrowser.open('https://github.com/rnwolf/py_sequencer')
@@ -168,16 +176,9 @@ class HelpMenu:
         # Make dialog modal
         about_dialog.focus_set()
 
-        # Position the dialog
-        about_dialog.geometry('400x300')
-
-        # Center dialog on parent window
-        about_dialog.update_idletasks()
-        width = about_dialog.winfo_width()
-        height = about_dialog.winfo_height()
-        x = self.root.winfo_rootx() + (self.root.winfo_width() - width) // 2
-        y = self.root.winfo_rooty() + (self.root.winfo_height() - height) // 2
-        about_dialog.geometry(f'+{x}+{y}')
+        # The dialog sizes itself to its content - a hard-coded WxH risks
+        # clipping the bottom-packed Close button; it is centered on the
+        # parent once every widget exists (see the end of this method)
 
         # Add content
         frame = tk.Frame(about_dialog, padx=20, pady=20)
@@ -247,6 +248,20 @@ class HelpMenu:
 
         # Bind Escape key to close dialog
         about_dialog.bind('<Escape>', lambda e: about_dialog.destroy())
+
+        # Center on the parent using the measured (requested) size - the
+        # window isn't mapped yet, so winfo_width would still report 1
+        about_dialog.update_idletasks()
+        width = about_dialog.winfo_reqwidth()
+        height = about_dialog.winfo_reqheight()
+        x = self.root.winfo_rootx() + (self.root.winfo_width() - width) // 2
+        y = self.root.winfo_rooty() + (self.root.winfo_height() - height) // 2
+        about_dialog.geometry(f'+{x}+{y}')
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(about_dialog).place(relx=1.0, rely=1.0, anchor='se')
+        about_dialog.minsize(width, height)
 
     def show_debug(self):
         """Show the Debug dialog with information about selected tasks."""
@@ -396,6 +411,14 @@ class HelpMenu:
 
         # Bind Escape key to close dialog
         debug_dialog.bind('<Escape>', lambda e: debug_dialog.destroy())
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(debug_dialog).place(relx=1.0, rely=1.0, anchor='se')
+        debug_dialog.update_idletasks()
+        debug_dialog.minsize(
+            debug_dialog.winfo_reqwidth(), debug_dialog.winfo_reqheight()
+        )
 
     def refresh_debug_info(self, text_area):
         """Refresh the debug information in the text area."""

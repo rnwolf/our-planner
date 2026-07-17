@@ -30,10 +30,17 @@ class TagsDialog(tk.Toplevel):
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
 
-        # Increase the default size of the dialog to make buttons visible
+        # Starting size only - the measured minsize below stops the
+        # bottom-packed buttons from ever being clipped
         self.geometry(f'500x600+{x}+{y}')
 
         self.create_widgets()
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
+        self.update_idletasks()
+        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
 
         # Make dialog modal
         self.wait_visibility()
@@ -316,9 +323,17 @@ class TagFilterDialog(tk.Toplevel):
         # Position the dialog relative to the parent window
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
+        # Starting size only - the measured minsize below stops the
+        # bottom-packed buttons from ever being clipped
         self.geometry(f'350x600+{x}+{y}')
 
         self.create_widgets()
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
+        self.update_idletasks()
+        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
 
         # Make dialog modal
         self.wait_visibility()
@@ -356,11 +371,15 @@ class TagFilterDialog(tk.Toplevel):
         scrollbar = ttk.Scrollbar(tag_scroll_frame, orient='vertical')
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # Explicit size: a default canvas requests ~380px width, which would
+        # drive the measured minsize past this dialog's width
         self.tag_canvas = tk.Canvas(
             tag_scroll_frame,
             yscrollcommand=scrollbar.set,
             highlightthickness=1,
             highlightbackground='gray',
+            width=280,
+            height=200,
         )
         self.tag_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
@@ -500,9 +519,17 @@ class ProjectFilterDialog(tk.Toplevel):
 
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
+        # Starting size only - the measured minsize below stops the
+        # bottom-packed buttons from ever being clipped
         self.geometry(f'320x400+{x}+{y}')
 
         self.create_widgets()
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
+        self.update_idletasks()
+        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
 
         self.wait_visibility()
         self.focus_set()
@@ -531,11 +558,15 @@ class ProjectFilterDialog(tk.Toplevel):
         scrollbar = ttk.Scrollbar(selection_frame, orient='vertical')
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
+        # Explicit size: a default canvas requests ~380px width, which would
+        # drive the measured minsize past this dialog's width
         project_canvas = tk.Canvas(
             selection_frame,
             yscrollcommand=scrollbar.set,
             highlightthickness=1,
             highlightbackground='gray',
+            width=260,
+            height=150,
         )
         project_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=project_canvas.yview)
@@ -614,9 +645,19 @@ class CheckboxListFilterDialog(tk.Toplevel):
 
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        self.geometry(f'320x320+{x}+{y}')
+        # Position only - the dialog sizes itself to its content. A
+        # hard-coded WxH risks clipping the bottom-packed buttons, because
+        # widget heights vary with platform fonts/themes; the content-fitted
+        # minsize is set once every widget exists.
+        self.geometry(f'+{x}+{y}')
 
         self.create_widgets()
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
+        self.update_idletasks()
+        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
 
         self.wait_visibility()
         self.focus_set()
@@ -691,9 +732,19 @@ class FullKitFilterDialog(tk.Toplevel):
 
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        self.geometry(f'320x220+{x}+{y}')
+        # Position only - the dialog sizes itself to its content. A
+        # hard-coded WxH risks clipping the bottom-packed buttons, because
+        # widget heights vary with platform fonts/themes; the content-fitted
+        # minsize is set once every widget exists.
+        self.geometry(f'+{x}+{y}')
 
         self.create_widgets()
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
+        self.update_idletasks()
+        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
 
         self.wait_visibility()
         self.focus_set()

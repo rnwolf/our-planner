@@ -193,10 +193,10 @@ class ExportOperations:
         dialog.transient(self.controller.root)
         dialog.grab_set()
 
-        # Position the dialog
+        # Position only - sized to content, with a measured minsize below
         x = self.controller.root.winfo_rootx() + 50
         y = self.controller.root.winfo_rooty() + 50
-        dialog.geometry(f"500x500+{x}+{y}")
+        dialog.geometry(f"+{x}+{y}")
 
         # Main frame with padding
         main_frame = tk.Frame(dialog, padx=20, pady=20)
@@ -379,10 +379,11 @@ class ExportOperations:
             side=tk.RIGHT, padx=5
         )
 
-        # Make sure dialog is centered
+        # Make sure dialog is centered - use the measured (requested) size,
+        # since the window isn't mapped yet and winfo_width would report 1
         dialog.update_idletasks()
-        width = dialog.winfo_width()
-        height = dialog.winfo_height()
+        width = dialog.winfo_reqwidth()
+        height = dialog.winfo_reqheight()
         x = (
             self.controller.root.winfo_rootx()
             + (self.controller.root.winfo_width() - width) // 2
@@ -392,6 +393,11 @@ class ExportOperations:
             + (self.controller.root.winfo_height() - height) // 2
         )
         dialog.geometry(f"+{x}+{y}")
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
+        dialog.minsize(width, height)
 
     def export_to_pdf(
         self,

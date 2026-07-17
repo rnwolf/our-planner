@@ -125,7 +125,8 @@ class UIComponents:
         # Center dialog on parent window
         x = self.controller.root.winfo_rootx() + 50
         y = self.controller.root.winfo_rooty() + 50
-        dialog.geometry(f'300x150+{x}+{y}')
+        # Position only - sized to content, with a measured minsize below
+        dialog.geometry(f'+{x}+{y}')
 
         # Create form fields
         frame = tk.Frame(dialog, padx=20, pady=20)
@@ -175,6 +176,12 @@ class UIComponents:
 
         # Bind Enter key
         dialog.bind('<Return>', lambda e: set_date())
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
+        dialog.update_idletasks()
+        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
 
     def reset_setdate_to_today(self):
         """Reset the setdate to today's date"""
@@ -2620,6 +2627,12 @@ class UIComponents:
         )
         dialog.geometry(f'+{x}+{y}')
 
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
+        dialog.update_idletasks()
+        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+
     def remove_tag_from_selected_tasks(self):
         """Remove a tag from all selected tasks"""
         if not self.controller.selected_tasks:
@@ -2679,6 +2692,12 @@ class UIComponents:
         tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
             side=tk.RIGHT
         )
+
+        # Visible resize handle, and never allow shrinking below the size
+        # the content actually needs (measured, so font/theme-proof)
+        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
+        dialog.update_idletasks()
+        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
 
     def delete_selected_tasks(self):
         """Delete all selected tasks"""

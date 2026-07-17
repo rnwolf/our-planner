@@ -5,7 +5,7 @@ This module contains the UI components for the Network menu.
 """
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext, ttk
 import webbrowser
 
 
@@ -240,6 +240,14 @@ class NetworkMenu:
 
             # Bind Escape key to close dialog
             cp_dialog.bind('<Escape>', lambda e: cp_dialog.destroy())
+
+            # Visible resize handle, and never allow shrinking below the size
+            # the content actually needs (measured, so font/theme-proof)
+            ttk.Sizegrip(cp_dialog).place(relx=1.0, rely=1.0, anchor='se')
+            cp_dialog.update_idletasks()
+            cp_dialog.minsize(
+                cp_dialog.winfo_reqwidth(), cp_dialog.winfo_reqheight()
+            )
 
         except Exception as e:
             messagebox.showerror(
