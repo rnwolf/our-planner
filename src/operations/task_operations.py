@@ -1500,7 +1500,11 @@ class TaskOperations:
         dialog.title('Manage Projects')
         x = parent.winfo_x() + 50
         y = parent.winfo_y() + 50
-        dialog.geometry(f'500x450+{x}+{y}')
+        # Height must cover the whole details grid + buttons: pack clips the
+        # last-packed widgets (the buttons) when the content outgrows the
+        # window, so bump this when adding rows to details_frame.
+        dialog.geometry(f'500x520+{x}+{y}')
+        dialog.minsize(500, 520)
         dialog.transient(parent)
         dialog.grab_set()
         dialog.focus_set()
