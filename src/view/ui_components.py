@@ -5,7 +5,11 @@ import webbrowser
 from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
-from src.utils.colors import COLOR_NAMES, DEFAULT_TASK_COLOR
+from src.utils.colors import (
+    COLOR_NAMES,
+    DEFAULT_TASK_COLOR,
+    get_resource_load_color,
+)
 from src.model.dependency_notation import (
     LINK_TYPES_ORDERED,
     BUFFER_LINK_TYPES,
@@ -2024,22 +2028,12 @@ class UIComponents:
                 capacity = resource['capacity'][day]
                 load = resource_loading[resource_id][day]  # Use resource_id as the key
 
-                # Calculate usage percentage
-                usage_pct = (load / capacity) if capacity > 0 else float('inf')
-
                 x = day * self.controller.cell_width
                 y = i * self.controller.task_height
 
-                # Choose color based on load vs capacity
-                if usage_pct == 0:  # No usage
-                    color = 'white'
-                elif usage_pct < 0.8:  # Normal usage (< 80%)
-                    intensity = min(int(usage_pct * 200), 200)
-                    color = f'#{255-intensity:02x}{255-intensity:02x}ff'  # Bluish color
-                elif usage_pct < 1.0:  # High usage (80-99%)
-                    color = '#ffffcc'  # Light yellow
-                else:  # Overloaded (>= 100%)
-                    color = '#ffcccc'  # Light red
+                # Choose color based on load vs capacity (tolerant: a
+                # load that equals capacity is full, not overloaded)
+                color = get_resource_load_color(load, capacity)
 
                 # Create cell
                 self.controller.resource_canvas.create_rectangle(

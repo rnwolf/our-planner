@@ -54,3 +54,29 @@ DEFAULT_TASK_COLOR = "Cyan"
 
 # List of color names for menus
 COLOR_NAMES = sorted(WEB_COLORS.keys())
+
+# A day's load is the running float sum of per-task allocations (see
+# calculate_resource_loading), so a fully-booked day can land a hair above
+# its capacity (0.1 added ten times is not 1.0). Anything within this
+# relative tolerance of 100% counts as at capacity, not over it.
+LOAD_TOLERANCE = 1e-9
+
+
+def get_resource_load_color(load, capacity):
+    """Background color for a resource-loading cell.
+
+    White when idle, blue shades below 80%, yellow from 80% up to and
+    including full capacity, light red only when genuinely over capacity.
+    Shared by the on-screen resource grid and the PDF export so the two
+    can't drift apart.
+    """
+    usage_pct = (load / capacity) if capacity > 0 else float('inf')
+
+    if usage_pct == 0:  # No usage
+        return 'white'
+    if usage_pct < 0.8:  # Normal usage (< 80%)
+        intensity = min(int(usage_pct * 200), 200)
+        return f'#{255-intensity:02x}{255-intensity:02x}ff'  # Bluish color
+    if usage_pct <= 1.0 + LOAD_TOLERANCE:  # High usage (80-100%)
+        return '#ffffcc'  # Light yellow
+    return '#ffcccc'  # Light red - overloaded (> 100%)

@@ -10,7 +10,7 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from src.utils.colors import DEFAULT_TASK_COLOR
+from src.utils.colors import DEFAULT_TASK_COLOR, get_resource_load_color
 from src.model.dependency_notation import format_predecessor_notation, BUFFER_LINK_TYPES
 from src.operations.ccpm_operations import CcpmOperations
 
@@ -1262,26 +1262,14 @@ class ExportOperations:
                         capacity = resource["capacity"][day]
                         load = resource_loading[resource_id][day]
 
-                        # Calculate usage percentage
-                        usage_pct = (load / capacity) if capacity > 0 else float("inf")
-
                         # Cell coordinates
                         cell_x = grid_x + (day * self.controller.cell_width)
                         cell_y = grid_y + (i * self.controller.task_height)
 
-                        # Choose color based on load vs capacity
-                        if usage_pct == 0:  # No usage
-                            color = "white"
-                        elif usage_pct < 0.8:  # Normal usage (< 80%)
-                            # Create a blue shade
-                            intensity = min(int(usage_pct * 200), 200)
-                            blue_value = 255
-                            other_value = 255 - intensity
-                            color = f"rgb({other_value},{other_value},{blue_value})"
-                        elif usage_pct < 1.0:  # High usage (80-99%)
-                            color = "#ffffcc"  # Light yellow
-                        else:  # Overloaded (>= 100%)
-                            color = "#ffcccc"  # Light red
+                        # Choose color based on load vs capacity (tolerant:
+                        # a load that equals capacity is full, not
+                        # overloaded) - same helper as the on-screen grid
+                        color = get_resource_load_color(load, capacity)
 
                         # Draw cell
                         draw.rectangle(
