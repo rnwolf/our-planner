@@ -31,7 +31,7 @@ dependencies = [
     "reportlab>=4.0.0",
     "networkx>=3.0",
     "requests>=2.32.3",
-    "ccpm-scheduler>=0.9.0",
+    "ccpm-scheduler>=0.10.0",
 ]
 
 [dependency-groups]

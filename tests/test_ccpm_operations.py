@@ -134,6 +134,29 @@ class TestScheduleProjectCore:
         assert all(t['col'] == 0 for t in model.tasks
                    if t['project_id'] == project_id)
 
+    def test_warns_when_schedule_extends_past_grid(self):
+        # Capacity data only exists for the grid; the scheduler assumes
+        # base capacity beyond it, so reaching past the edge deserves a
+        # warning (and the grid is auto-extended to hold the import).
+        model, project_id, ids, ops = make_worked_example()
+        model.days = 40  # promise day is 60 - schedule must overshoot
+        for resource in model.resources:
+            resource['capacity'] = resource['capacity'][:40]
+        result = ops.schedule_project_core(project_id)
+        assert result['ok'], result
+        overshoot = [w for w in result['warnings']
+                     if 'past the planning grid' in w]
+        assert len(overshoot) == 1
+        assert '20 day(s)' in overshoot[0]  # 60 promised vs 40-day grid
+        assert model.days >= 60  # grid extended to hold the import
+
+    def test_no_grid_warning_when_schedule_fits(self):
+        model, project_id, ids, ops = make_worked_example()
+        result = ops.schedule_project_core(project_id)  # 60 <= 100-day grid
+        assert result['ok'], result
+        assert not any('past the planning grid' in w
+                       for w in result['warnings'])
+
     def test_validation_failure_reports_coded_issues(self):
         model, project_id, ids, ops = make_worked_example()
         task = next(t for t in model.tasks if t['task_id'] == ids['B'])

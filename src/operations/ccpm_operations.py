@@ -221,6 +221,17 @@ class CcpmOperations:
         project['ccpm_method'] = source.get('ccpm_method', 'cap')
 
         max_finish = max(r.finish for r in result.schedule.rows)
+        # Capacity data only exists for the current grid; the scheduler
+        # assumes base capacity beyond it, so a schedule reaching past the
+        # grid edge is built on availability nobody has confirmed.
+        grid_days = self.model.days
+        if anchor + max_finish > grid_days:
+            warnings.append(
+                f'schedule extends {anchor + max_finish - grid_days} day(s) '
+                f'past the planning grid (day {grid_days}): resource '
+                f'availability beyond the grid was assumed at base capacity '
+                f'- record any known leave on the extended timeline and '
+                f'reschedule to be sure')
         self._file_ops._ensure_model_days(anchor + max_finish + 5)
         resource_rows = [{'id': r['id'], 'name': r['name'],
                           'capacity': r['capacity']}

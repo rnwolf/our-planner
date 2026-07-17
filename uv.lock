@@ -58,14 +58,14 @@ wheels = [
 
 [[package]]
 name = "ccpm-scheduler"
-version = "0.9.0"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/3d/3ad6d7985bc88f90b3a21622fc496c89267927c8c9f0b05dad80e0c36f92/ccpm_scheduler-0.9.0.tar.gz", hash = "sha256:8a36f1a49947ad3a3efba9392bfafd96138aa890052617c380b52d86609ccd65", size = 139504, upload-time = "2026-07-17T09:53:38.287Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/04/4df7f5d324dbf913a0c18206a56839391659c5a118b7b6b119166f3fbfe7/ccpm_scheduler-0.10.0.tar.gz", hash = "sha256:4db7b36019f8a1ff8ccf56777fae62f27a835aef23a69b2abc0c4caac0323129", size = 141275, upload-time = "2026-07-17T20:36:48.276Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/cb/22b3e1582e7660027312cc935ec5ebb0666f08fff10633c1cee81a5f7961/ccpm_scheduler-0.9.0-py3-none-any.whl", hash = "sha256:435e20adf82bc0360f39ccd9a5117e75549fef9fd41afe3759ae2ca7e8de3a00", size = 53031, upload-time = "2026-07-17T09:53:37.168Z" },
+    { url = "https://files.pythonhosted.org/packages/99/33/013efc8f1de114bd44257d1bfc10401affa3d708bd38f4a7741992cc811c/ccpm_scheduler-0.10.0-py3-none-any.whl", hash = "sha256:dede5452413623d84069ed30b58e1a2e86f55f1c8a326550809fd276262b308d", size = 54045, upload-time = "2026-07-17T20:36:47.081Z" },
 ]
 
 [[package]]
@@ -990,7 +990,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ccpm-scheduler", specifier = ">=0.9.0" },
+    { name = "ccpm-scheduler", specifier = ">=0.10.0" },
     { name = "networkx", specifier = ">=3.0" },
     { name = "reportlab", specifier = ">=4.0.0" },
     { name = "requests", specifier = ">=2.32.3" },
