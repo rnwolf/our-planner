@@ -143,6 +143,11 @@ class CcpmOperations:
         data = {'tasks': tasks_out, 'resources': resources_out}
         if calendar_out:
             data['calendar'] = calendar_out
+        # Stage 20: the project's buffer-sizing method rides along in the
+        # JSON exchange; ccpm-scheduler >= 0.9 reads it in network_from_json
+        project = self.model.get_project_by_id(project_id)
+        if project:
+            data['buffer_method'] = project.get('ccpm_method', 'cap')
         return data, warnings, anchor
 
     @staticmethod
@@ -211,6 +216,9 @@ class CcpmOperations:
             name = f'{title} ({n})'
             n += 1
         project = self.model.add_project(name)
+        # the CCPM copy keeps the source project's buffer-sizing method, so
+        # rescheduling the copy reproduces the same buffer arithmetic
+        project['ccpm_method'] = source.get('ccpm_method', 'cap')
 
         max_finish = max(r.finish for r in result.schedule.rows)
         self._file_ops._ensure_model_days(anchor + max_finish + 5)
@@ -374,6 +382,7 @@ class CcpmOperations:
                     f'to notes.txt.')
         has_calendar = any(os.path.basename(p) == 'calendar.csv'
                            for p in files)
+        method = project.get('ccpm_method', 'cap')
         messagebox.showinfo(
             'Export Complete',
             f"Wrote {', '.join(os.path.basename(p) for p in files)} to "
@@ -381,6 +390,7 @@ class CcpmOperations:
             f"(the project's earliest task).\n\nSchedule it with:\n"
             f'  ccpm-scheduler build tasks.csv resources.csv'
             + (' --calendar calendar.csv' if has_calendar else '')
+            + f' --buffer-method {method}'
             + ' --out-dir plan\n\nthen bring the result back via '
             "'File → Import CCPM Schedule...'." + note)
 

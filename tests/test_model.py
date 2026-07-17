@@ -81,6 +81,46 @@ class TestTaskResourceModel:
         result = self.model.delete_task(999)
         assert result is False
 
+    def test_project_ccpm_method(self):
+        """Stage 20: buffer-sizing method stored per project, default cap,
+        validated on update, and defaulted on legacy saves."""
+        project = self.model.add_project('P1')
+        assert project['ccpm_method'] == 'cap'
+
+        assert self.model.update_project(project['id'], ccpm_method='rsem')
+        assert project['ccpm_method'] == 'rsem'
+        # invalid values rejected, value unchanged
+        assert not self.model.update_project(project['id'], ccpm_method='bogus')
+        assert project['ccpm_method'] == 'rsem'
+
+    def test_project_ccpm_method_save_load_roundtrip(self, tmp_path=None):
+        import tempfile, os
+
+        project = self.model.add_project('P1')
+        self.model.update_project(project['id'], ccpm_method='hchain')
+        fd, path = tempfile.mkstemp(suffix='.json')
+        os.close(fd)
+        try:
+            assert self.model.save_to_file(path)
+            loaded = TaskResourceModel()
+            assert loaded.load_from_file(path)
+            assert loaded.get_project_by_name('P1')['ccpm_method'] == 'hchain'
+
+            # legacy save without the key -> defaulted to cap on load
+            import json
+
+            with open(path) as f:
+                data = json.load(f)
+            for p in data['projects']:
+                p.pop('ccpm_method', None)
+            with open(path, 'w') as f:
+                json.dump(data, f)
+            legacy = TaskResourceModel()
+            assert legacy.load_from_file(path)
+            assert legacy.get_project_by_name('P1')['ccpm_method'] == 'cap'
+        finally:
+            os.unlink(path)
+
     def test_delete_task_removes_dangling_predecessor_links(self):
         """Deleting a task must strip it from other tasks' predecessor lists."""
         a = self.model.add_task(row=1, col=1, duration=3, description='A')

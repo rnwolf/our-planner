@@ -4,9 +4,10 @@ CCPM' flow that validates, schedules, and imports the result as a new
 project.
 
 The scenario mirrors the scheduler's own worked example (6 tasks, one
-resource conflict), so the expected numbers — critical chain length 30,
-project buffer 15, promised completion day 45 — are independently documented
-in that repo's references/worked-example.md.
+resource conflict), so the expected numbers — critical chain length 30;
+project buffer 30 (cap, the default), 15 (hchain), or 16 (rsem) — are
+independently documented in that repo's references/worked-example.md and
+docs/buffer-sizing.md.
 """
 
 from datetime import datetime
@@ -100,11 +101,15 @@ class TestScheduleProjectCore:
         stats = result['stats']
         assert stats.critical_chain == [str(ids[k]) for k in 'ABDF']
         assert stats.critical_chain_length == 30
-        assert stats.project_buffer == 15
-        assert stats.promise_day == 45
+        # default method is cap (Stage 20): on this single-point network
+        # PB = Σ safety removed = 30, promise day 60
+        assert stats.buffer_method == 'cap'
+        assert stats.project_buffer == 30
+        assert stats.promise_day == 60
 
         project = result['project']
         assert project['name'] == 'Sample Project (CCPM)'
+        assert project['ccpm_method'] == 'cap'  # inherited from the source
         new_tasks = [t for t in model.tasks
                      if t['project_id'] == project['id']]
         assert len(new_tasks) == result['task_count'] == 8  # 6 tasks + FB + PB
@@ -114,7 +119,7 @@ class TestScheduleProjectCore:
         assert len(by_type['project_buffer']) == 1
         assert len(by_type['feeding_buffer']) == 1
         pb = by_type['project_buffer'][0]
-        assert (pb['col'], pb['duration']) == (30, 15)
+        assert (pb['col'], pb['duration']) == (30, 30)
 
         # critical chain tasks got the critical chain assigned
         critical = model.get_critical_chain()
@@ -222,7 +227,7 @@ class TestAnchoring:
         # worked example positions, shifted by the anchor
         assert new_tasks['Spec']['col'] == 20 + 0
         assert new_tasks['Project buffer']['col'] == 20 + 30
-        assert result['stats'].promise_day == 45  # anchor-relative
+        assert result['stats'].promise_day == 60  # anchor-relative (cap PB)
 
 
 class TestMetadataCarryOver:
@@ -427,3 +432,78 @@ class TestStage19ImportTagsColour:
         spec = next(t for t in model2.tasks if t['description'] == 'Spec')
         assert spec['tags'] == ['ccpm', 'alpha']
         assert spec['color'] == 'salmon'
+
+
+class TestStage20BufferMethod:
+    """Stage 20: the project's ccpm_method rides the JSON exchange into the
+    scheduler (>= 0.9) and selects the buffer-sizing method."""
+
+    def test_build_network_data_carries_method(self):
+        model, project_id, ids, ops = make_worked_example()
+        data, _, _ = ops.build_network_data(project_id)
+        assert data['buffer_method'] == 'cap'  # project default
+
+        model.update_project(project_id, ccpm_method='rsem')
+        data, _, _ = ops.build_network_data(project_id)
+        assert data['buffer_method'] == 'rsem'
+
+    def test_schedule_respects_project_method(self):
+        """Worked example (single-point estimates, CC optimal 30d):
+        cap -> PB 30, hchain -> PB 15, rsem -> ceil(sqrt(250)) = 16."""
+        for method, pb in {'cap': 30, 'hchain': 15, 'rsem': 16}.items():
+            model, project_id, ids, ops = make_worked_example()
+            model.update_project(project_id, ccpm_method=method)
+            result = ops.schedule_project_core(project_id)
+            assert result['ok'], result
+            assert result['stats'].buffer_method == method
+            assert result['stats'].project_buffer == pb, method
+            # the CCPM copy inherits the method
+            assert result['project']['ccpm_method'] == method
+
+    def test_mixed_estimates_documented_sizes(self):
+        """The mixed 4-task chain from the scheduler's docs/buffer-sizing.md
+        (two-point A/B, single-point C/D): cap 29, hchain 16, rsem 16."""
+        for method, pb in {'cap': 29, 'hchain': 16, 'rsem': 16}.items():
+            model = TaskResourceModel()
+            project_id = model.projects[0]['id']
+            model.update_project(project_id, ccpm_method=method)
+
+            def add(desc, realistic, optimal, preds):
+                task = model.add_task(
+                    row=1, col=0, duration=optimal or realistic,
+                    description=desc, resources={1: 1.0},
+                    predecessors=[{'id': p, 'type': 'FS', 'lag': 0}
+                                  for p in preds],
+                    project_id=project_id)
+                task['realistic_duration'] = realistic
+                if optimal:
+                    task['optimal_duration'] = optimal
+                return task['task_id']
+
+            a = add('A', 10, 6, [])
+            b = add('B', 20, 10, [a])
+            c = add('C', 10, None, [b])
+            d = add('D', 20, None, [c])
+
+            controller = MagicMock()
+            controller.model = model
+            ops = CcpmOperations(controller, model)
+            result = ops.schedule_project_core(project_id)
+            assert result['ok'], result
+            assert result['stats'].critical_chain_length == 31
+            assert result['stats'].project_buffer == pb, method
+
+    def test_export_dialog_hint_uses_project_method(self, tmp_path):
+        """The Export Complete dialog's CLI hint includes --buffer-method."""
+        from unittest.mock import patch
+
+        model, project_id, ids, ops = make_worked_example()
+        model.update_project(project_id, ccpm_method='hchain')
+        with patch('src.operations.ccpm_operations.filedialog.askdirectory',
+                   return_value=str(tmp_path)), \
+             patch.object(ops, '_pick_project',
+                          return_value=model.get_project_by_id(project_id)), \
+             patch('src.operations.ccpm_operations.messagebox.showinfo') as info:
+            ops.export_ccpm_network()
+        assert info.called
+        assert '--buffer-method hchain' in info.call_args[0][1]

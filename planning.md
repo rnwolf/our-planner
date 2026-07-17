@@ -37,8 +37,8 @@ a third manual buffer type, design discussion only, not scheduled) — see "Rema
 dialogs, slimmer resources CSV, `id:allocation` resource tokens, snake_case column alignment with
 ccpm-scheduler) is done on the our-planner side — see its section; two scheduler-side items
 (column passthrough, allocation tokens) carry over to the ccpm-scheduler repo's plan.**
-**Stage 20 (CCPM Method per project — selectable buffer sizing: cap/hchain/rsem) is planned and
-blocked on ccpm-scheduler's Phase 6 — see its section.**
+**Stage 20 (CCPM Method per project — selectable buffer sizing: cap/hchain/rsem, riding
+ccpm-scheduler 0.9.0's buffer_method knob) is done — see its section.**
 What's left after that is everything listed under "Explicitly out of scope" (automated
 critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
 comparison UI).
@@ -1498,7 +1498,25 @@ the model gaps" for fractional capacity/allocation in the leveler, which is wher
   absolute (day 0 = timeline start), while the CCPM files' `start` is anchor-relative (day 0 =
   the project's earliest task). The different names make the different axes visible.
 
-### Stage 20 — CCPM Method per project (planned, blocked on ccpm-scheduler Phase 6)
+### Stage 20 — CCPM Method per project — done
+
+**Done (2026-07-17, against ccpm-scheduler 0.9.0 from PyPI; pin bumped to >=0.9.0).**
+Implemented as planned below: `project['ccpm_method']` (default `'cap'`, validated in
+`update_project`, defaulted on legacy saves), a read-only "CCPM Method" combobox in
+`Manage Projects...`, `build_network_data` adds the top-level `buffer_method` JSON key, and the
+`Export CCPM Network...` dialog's command hint includes `--buffer-method <method>`. One addition
+beyond the plan: the imported `<source> (CCPM)` project inherits the source's method, so
+rescheduling the copy reproduces the same buffer arithmetic. 8 new tests (model persistence /
+legacy-load default; JSON key; per-method scheduling pinned to the documented sizes — worked
+example 30/15/16, mixed 4-task chain 29/16/16; dialog hint), existing worked-example assertions
+re-baselined to the cap default. Verified end-to-end in the running app: cap → PB 30/day 60,
+hchain → 15/45, rsem → 16/46, copy inherits method. Note: the app's *startup sample tasks* use
+fractional allocations, which the scheduler still rejects (`E_FRACTIONAL_ALLOCATION`) — its
+PLAN.md Phase 5, unchanged by this stage.
+
+The original plan follows.
+
+### Stage 20 — original plan (was: blocked on ccpm-scheduler Phase 6)
 
 Buffer sizing is becoming selectable in ccpm-scheduler (its PLAN.md Phase 6, agreed
 2026-07-16): `cap` (Cut & Paste, Σ of removed safety — the new default), `hchain` (50% of

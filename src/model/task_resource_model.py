@@ -13,6 +13,12 @@ BUFFER_TASK_TYPES = {'project_buffer', 'feeding_buffer'}
 
 PROJECT_PHASES = ['planning', 'execution']
 
+# Buffer-sizing methods offered by the external ccpm-scheduler (>= 0.9);
+# stored per project and passed through both CCPM round-trip flows. See
+# the scheduler's docs/buffer-sizing.md for formulas and trade-offs.
+CCPM_METHODS = ['cap', 'hchain', 'rsem']
+DEFAULT_CCPM_METHOD = 'cap'
+
 CRITICAL_CHAIN_COLOR = '#E53935'  # red
 # Default colors for the seeded Feeding-01..04 chains - mutually distinguishable
 # at a glance; all freely editable afterward via Manage Chains, and more chains
@@ -212,6 +218,7 @@ class TaskResourceModel:
             'name': name,
             'url': url,
             'phase': 'planning',  # 'planning' or 'execution'
+            'ccpm_method': DEFAULT_CCPM_METHOD,  # buffer sizing (Stage 20)
             # Fever chart (Stage 8) zone boundary settings: two sloped lines
             # y = slope*x + yellow_intercept (green/yellow boundary) and
             # y = slope*x + red_intercept (yellow/red boundary), x/y in percent.
@@ -232,11 +239,13 @@ class TaskResourceModel:
         project_id: int,
         name: str = None,
         url: str = None,
+        ccpm_method: str = None,
         fever_chart_slope: float = None,
         fever_chart_yellow_intercept: float = None,
         fever_chart_red_intercept: float = None,
     ) -> bool:
-        """Update a project's name, url, and/or fever chart zone settings."""
+        """Update a project's name, url, CCPM buffer-sizing method, and/or
+        fever chart zone settings."""
         project = self.get_project_by_id(project_id)
         if not project:
             return False
@@ -248,6 +257,11 @@ class TaskResourceModel:
 
         if url is not None:
             project['url'] = url
+
+        if ccpm_method is not None:
+            if ccpm_method not in CCPM_METHODS:
+                return False
+            project['ccpm_method'] = ccpm_method
 
         if fever_chart_slope is not None:
             project['fever_chart_slope'] = fever_chart_slope
@@ -1447,6 +1461,8 @@ class TaskResourceModel:
                     project['phase'] = 'planning'
                 if 'url' not in project:
                     project['url'] = ''
+                if 'ccpm_method' not in project:
+                    project['ccpm_method'] = DEFAULT_CCPM_METHOD
                 if 'fever_chart_slope' not in project:
                     project['fever_chart_slope'] = DEFAULT_FEVER_CHART_SLOPE
                 if 'fever_chart_yellow_intercept' not in project:

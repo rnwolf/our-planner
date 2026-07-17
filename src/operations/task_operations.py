@@ -6,7 +6,11 @@ from src.model.dependency_notation import (
     parse_predecessor_token,
     format_predecessor_notation,
 )
-from src.model.task_resource_model import BUFFER_TASK_TYPES
+from src.model.task_resource_model import (
+    BUFFER_TASK_TYPES,
+    CCPM_METHODS,
+    DEFAULT_CCPM_METHOD,
+)
 
 
 class FloatEntryDialog(simpledialog.Dialog):
@@ -1541,28 +1545,43 @@ class TaskOperations:
             row=1, column=1, sticky='w', padx=5, pady=5
         )
 
-        tk.Label(details_frame, text='Fever Chart Slope:').grid(
+        # Stage 20: buffer-sizing method used when this project is scheduled
+        # with the external ccpm-scheduler (cap = Cut & Paste, hchain = 50%
+        # of chain, rsem = root-squared error)
+        tk.Label(details_frame, text='CCPM Method:').grid(
             row=2, column=0, sticky='w', padx=5, pady=5
+        )
+        ccpm_method_var = tk.StringVar(value=DEFAULT_CCPM_METHOD)
+        ttk.Combobox(
+            details_frame,
+            textvariable=ccpm_method_var,
+            values=CCPM_METHODS,
+            state='readonly',
+            width=10,
+        ).grid(row=2, column=1, sticky='w', padx=5, pady=5)
+
+        tk.Label(details_frame, text='Fever Chart Slope:').grid(
+            row=3, column=0, sticky='w', padx=5, pady=5
         )
         fever_slope_var = tk.StringVar()
         tk.Entry(details_frame, textvariable=fever_slope_var, width=10).grid(
-            row=2, column=1, sticky='w', padx=5, pady=5
-        )
-
-        tk.Label(details_frame, text='Fever Chart Yellow Intercept:').grid(
-            row=3, column=0, sticky='w', padx=5, pady=5
-        )
-        fever_yellow_var = tk.StringVar()
-        tk.Entry(details_frame, textvariable=fever_yellow_var, width=10).grid(
             row=3, column=1, sticky='w', padx=5, pady=5
         )
 
-        tk.Label(details_frame, text='Fever Chart Red Intercept:').grid(
+        tk.Label(details_frame, text='Fever Chart Yellow Intercept:').grid(
             row=4, column=0, sticky='w', padx=5, pady=5
+        )
+        fever_yellow_var = tk.StringVar()
+        tk.Entry(details_frame, textvariable=fever_yellow_var, width=10).grid(
+            row=4, column=1, sticky='w', padx=5, pady=5
+        )
+
+        tk.Label(details_frame, text='Fever Chart Red Intercept:').grid(
+            row=5, column=0, sticky='w', padx=5, pady=5
         )
         fever_red_var = tk.StringVar()
         tk.Entry(details_frame, textvariable=fever_red_var, width=10).grid(
-            row=4, column=1, sticky='w', padx=5, pady=5
+            row=5, column=1, sticky='w', padx=5, pady=5
         )
 
         def format_project_label(project):
@@ -1589,6 +1608,9 @@ class TaskOperations:
             if project:
                 project_name_var.set(project['name'])
                 project_url_var.set(project['url'])
+                ccpm_method_var.set(
+                    project.get('ccpm_method', DEFAULT_CCPM_METHOD)
+                )
                 fever_slope_var.set(str(project.get('fever_chart_slope', 0.55)))
                 fever_yellow_var.set(
                     str(project.get('fever_chart_yellow_intercept', 10.0))
@@ -1652,6 +1674,7 @@ class TaskOperations:
                 project['id'],
                 name=new_name,
                 url=project_url_var.get().strip(),
+                ccpm_method=ccpm_method_var.get(),
                 fever_chart_slope=slope,
                 fever_chart_yellow_intercept=yellow_intercept,
                 fever_chart_red_intercept=red_intercept,
