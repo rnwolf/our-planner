@@ -37,6 +37,8 @@ a third manual buffer type, design discussion only, not scheduled) — see "Rema
 dialogs, slimmer resources CSV, `id:allocation` resource tokens, snake_case column alignment with
 ccpm-scheduler) is done on the our-planner side — see its section; two scheduler-side items
 (column passthrough, allocation tokens) carry over to the ccpm-scheduler repo's plan.**
+**Stage 20 (CCPM Method per project — selectable buffer sizing: cap/hchain/rsem) is planned and
+blocked on ccpm-scheduler's Phase 6 — see its section.**
 What's left after that is everything listed under "Explicitly out of scope" (automated
 critical-chain detection, resource-constrained scheduling, event sourcing, full plan-vs-baseline
 comparison UI).
@@ -1495,6 +1497,29 @@ the model gaps" for fractional capacity/allocation in the leveler, which is wher
 - Keep the two start-axis column names distinct on purpose: the general export's `start_day` is
   absolute (day 0 = timeline start), while the CCPM files' `start` is anchor-relative (day 0 =
   the project's earliest task). The different names make the different axes visible.
+
+### Stage 20 — CCPM Method per project (planned, blocked on ccpm-scheduler Phase 6)
+
+Buffer sizing is becoming selectable in ccpm-scheduler (its PLAN.md Phase 6, agreed
+2026-07-16): `cap` (Cut & Paste, Σ of removed safety — the new default), `hchain` (50% of
+chain — today's only behavior), `rsem` (root-squared error). Formulas, pros/cons, and how
+mixed single-/two-point estimates normalize are documented canonically in that repo's
+`docs/buffer-sizing.md` — don't duplicate the math here. our-planner's side:
+
+- `project['ccpm_method']` ∈ `{'cap', 'hchain', 'rsem'}`, default `'cap'`; new "CCPM Method"
+  dropdown in `Manage Projects...` next to the phase field; persisted in save/load with
+  backward compatibility (missing key → `'cap'`).
+- Both round-trip flows pass it through: `build_network_data` adds a top-level
+  `buffer_method` key to the JSON exchange dict (`Schedule with CCPM`), and the
+  `Export CCPM Network...` completion dialog's command hint gains
+  `--buffer-method <method>`. Requires the ccpm-scheduler release that ships Phase 6 —
+  bump the pin then; until that lands this stage must not start (passing the key today
+  would be silently ignored, which is worse than not offering the choice).
+- The imported schedule's buffers stay manually resizable before the project enters
+  execution mode (existing behavior — the formula is a starting point, not a contract).
+- Tests: method persisted/defaulted correctly; JSON dict carries `buffer_method`; per-method
+  scheduling produces the documented buffer sizes for the worked example
+  (CAP 29 / HCHAIN 16 / RSEM 16 on the mixed 4-task chain in `docs/buffer-sizing.md`).
 
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
