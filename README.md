@@ -204,6 +204,42 @@ or
 python run_test.py
 ```
 
+### Releasing a new version
+
+Publishing to PyPI is handled by the `Publish to PyPI` GitHub workflow
+(`.github/workflows/main.yml`), which runs **only when a GitHub release is published** —
+pushes to `main` never publish on their own. The steps:
+
+```bash
+# 1. Commit (and push) your changes as normal
+git commit -am "Describe the change"
+
+# 2. Bump the version (updates pyproject.toml and uv.lock)
+uv version --bump patch        # or: minor / major
+
+# 3. Update CHANGELOG.md with a section for the new version, and keep
+#    requirements.txt in sync for non-uv users
+uv pip compile pyproject.toml -o requirements.txt
+
+# 4. Commit and push the release bump
+git commit -am "Release version X.Y.Z"
+git push origin main
+
+# 5. Tag with the version number and push the tag
+git tag vX.Y.Z
+git push origin vX.Y.Z
+
+# 6. Create the GitHub release from the tag - THIS triggers the workflow
+#    (tests -> build -> uv publish to PyPI)
+gh release create vX.Y.Z --title "vX.Y.Z" --notes-from-tag
+```
+
+Step 6 can also be done from the GitHub web UI (*Releases → Draft a new release*, choose the
+tag, paste the changelog section as the notes). If the workflow fails at the publish step with
+a "file already exists" error, the version was not bumped — PyPI never accepts the same version
+twice. See [Contributing](https://rnwolf.github.io/our-planner/contributing/) for the full
+guide.
+
 ## Licence
 
 Our-planner is distributed under the terms of the [GPLv3 or later Licence](https://spdx.org/licenses/GPL-3.0-or-later.html).
