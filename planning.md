@@ -1539,6 +1539,96 @@ mixed single-/two-point estimates normalize are documented canonically in that r
   scheduling produces the documented buffer sizes for the worked example
   (CAP 29 / HCHAIN 16 / RSEM 16 on the mixed 4-task chain in `docs/buffer-sizing.md`).
 
+### Stage 21 — Resource grid at scale: ID display, sorting, filtering, and a resource control bar
+
+Designed in discussion 2026-07-18, no code yet. Motivation: with realistic team sizes (~60
+resources) the resource grid needs to surface *the resources that matter* — in CCPM that means the
+maximally loaded resource (the drum). The driving workflow is multi-project alignment: filter tasks
+to the two projects being overlaid, slide the later project along the timeline, watch which
+resources rise to the top of the grid, and use that to place feeding/capacity buffer between the
+projects. Sorting by load makes the top of the visible grid *be* the drum report.
+
+**Grounding facts** (verified against the code, don't re-derive):
+
+- `draw_resource_grid` (`ui_components.py`) draws resources in raw `model.resources` order; the
+  only existing filter is by tag (`get_filtered_resources`, `tag_operations.py`). Tasks already
+  have a project filter (`ProjectFilterDialog`, Stage 11) — the pattern to reuse.
+- `calculate_resource_loading()` (`task_resource_model.py`) already runs on **every**
+  `update_view()` (`task_manager.py`), i.e. after essentially every edit/drag. It's one pass over
+  task-days (~tens of thousands of float adds at 60 resources / 300 days) — the sort metric is a
+  free by-product of a computation already happening; no caching regime needed. The actual cost
+  center at scale is `display_resource_loading` creating one rectangle+text per resource-day cell
+  (≈18k canvas items at 60×300, recreated per redraw) — pre-existing, out of scope here; if it ever
+  hurts, the levers are drawing only rows in the visible scroll window and skipping zero-load
+  cells.
+- `update_view()` currently draws the resource grid *before* computing loading. Sorting by load
+  requires computing loading first, then drawing — a small, safe reorder (compute in
+  `update_resource_loading`, pass the per-resource summary into `draw_resource_grid` /
+  `display_resource_loading`; the two must share one ordering).
+- The label cell already splits into name-upper/tag-lower zones with font-fitting
+  (`resource_tag_zone_fits`) — don't add a third zone; put the ID inline in the name line.
+
+**Part A — resource ID in the label cell.** Render `#<id> <name>` in the existing name zone
+(the ID is already in hand at draw time for the canvas tags). When load-sort is active, append the
+utilisation: `#12 Alice · 87%` — a sort by an invisible number looks arbitrary; showing it makes
+the order legible and doubles as a mini drum report. IDs also match the CSV exports, which key by
+resource id.
+
+**Part B — resource control bar.** A slim (~26px) `tk.Frame` packed at the bottom of
+`resource_frame`, above `h_scrollbar` (the grey strip currently visible there is the ttk
+scrollbar plus leftover lightgray label-canvas below the last row — the bar replaces/abuts that
+space). Contents, left to right:
+
+```
+Sort: [Load % ▾][↓]  Project: [All ▾]  [Tags]  Load scope: [All tasks ▾]   14/60 shown  [Clear]
+```
+
+- Sort combobox (`ttk.Combobox`, readonly): Default order / ID / Name / Load %, plus an ↑↓
+  direction toggle button. Visible state — you can see at a glance the grid is load-sorted.
+- Project combobox: "All projects" + one entry per project; single-select covers the one-click
+  CCPM case. (A multi-select via `ProjectFilterDialog` can stay reachable from the Filter menu;
+  combobox shows "Multiple…" then.) Semantics: a resource matches if assigned to ≥1 task of the
+  project — resources don't *belong* to projects, they're linked through task assignments.
+- Tags button showing active count ("Tags (2)"), opening the existing `TagFilterDialog` — don't
+  rebuild tag multi-select inline.
+- Load scope (see Part D), shown-count label, and a Clear button scoped to *resource* filters only
+  (the status bar's global "Clear All Filters" already exists; don't duplicate it).
+- Existing Filter-menu entries stay; menu and bar drive the same `tag_operations` state.
+- **The known risk lives here:** `_fit_resource_pane` / `resource_grid_height` negotiate the
+  task/resource split down to the pixel (see the hard-won comments around them). The bar must be
+  explicitly inside or outside that height budget — decide once, adjust `total_available` math
+  accordingly, and expect the bugs of this stage to be in this seam, not in the sorting/filtering.
+
+**Part C — sorting.** Metric for "Load %": **whole-horizon total utilisation**, Σload ÷ Σcapacity
+per resource over all days (chosen over peak-day and absolute person-days: it's the classic
+capacity-constrained-resource measure, and history informs where future overload lands; capacity
+normalisation matters because capacities differ). Derived in one extra pass over the
+`resource_loading` dict. Sort is a pure reorder of `resources_to_draw`; applied identically in
+`draw_resource_grid` and `display_resource_loading`. Re-sort is live (every redraw): rows
+reshuffling as tasks move is the feature — the hottest resource floats up while you drag — accept
+the mid-drag reshuffle unless it proves disorienting in practice.
+
+**Part D — load scope (the CCPM-critical piece).** `calculate_resource_loading()` gains an
+optional task-subset parameter (currently hardwired to `self.tasks`). Scope toggle: **All tasks**
+vs **Filtered tasks** (= `get_filtered_tasks()`, so it composes with the project/state/tag/window
+task filters for free). Scope drives cells, the label-cell %, and the sort *together* — one
+consistent view, never a scoped sort over unscoped cells. The two scopes answer different
+questions: *Filtered* = "for these two projects being overlaid, who is the drum and how does
+contention shift as I slide Project B?" (the alignment exercise); *All* = "given everything else
+on this person's plate, does the alignment survive?" (the reality check). Note this makes the
+task-filter-driven mechanism the general one — the Project combobox in the bar is a convenience,
+"filter tasks to the projects + Filtered scope" is the full workflow.
+
+**Tests:** utilisation summary math (incl. zero-capacity guard); sort orders for each key + both
+directions; project-membership resource filter; scoped loading equals loading of the filtered
+task subset; filter composition (project AND tags) with shown-count; `update_view` ordering
+(loading computed before grid draw); ID/% rendering in the label text.
+
+**Deferred (this stage's backlog):** overload-only filter toggle ("show resources with any
+overloaded day" — cheap once the summary exists); "follow task filter" resource-visibility toggle;
+visible-rows-only canvas drawing if 60-resource redraw hurts; persisting sort/filter choices in
+the save file (existing filters are session-only — stay consistent until asked otherwise).
+
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
 Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
