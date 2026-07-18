@@ -61,6 +61,47 @@ We're thrilled to have you here and excited about the possibility of you contrib
 - **Documentation**: Ensure your code is well-documented. If you add new features, update the documentation accordingly.
 - **Testing**: Run existing tests and add new ones to cover your changes.
 
+### Releasing (maintainers)
+
+Publishing to PyPI is driven entirely by the `Publish to PyPI` GitHub workflow
+(`.github/workflows/main.yml`), which runs **only when a GitHub release is published** —
+creating the release is the deliberate act that ships. There is no release script. The manual
+steps are:
+
+1. **Bump the version** with uv (updates `pyproject.toml` and `uv.lock`):
+    ```bash
+    uv version --bump patch   # or minor / major
+    ```
+
+2. **Update `CHANGELOG.md`** — add a `## [X.Y.Z] - YYYY-MM-DD` section for the new version.
+   Keep `requirements.txt` in sync for non-uv users:
+    ```bash
+    uv pip compile pyproject.toml -o requirements.txt
+    ```
+
+3. **Commit and push** to `main` (pushes alone never publish):
+    ```bash
+    git commit -am "Release version X.Y.Z"
+    git push origin main
+    ```
+
+4. **Tag with the version number and push the tag**:
+    ```bash
+    git tag vX.Y.Z
+    git push origin vX.Y.Z
+    ```
+
+5. **Create the GitHub release** from that tag — this is what triggers the workflow
+   (tests → build → `uv publish`):
+    ```bash
+    gh release create vX.Y.Z --title "vX.Y.Z" --notes-from-tag
+    ```
+    (or use the GitHub web UI's *Releases → Draft a new release*, pasting the changelog
+    section as the notes.)
+
+If the workflow fails at the publish step with a "file already exists" error, the version in
+`pyproject.toml` was not bumped — PyPI never accepts the same version twice.
+
 ### Need Help?
 
 If you have any questions or need assistance, feel free to open an issue or join our community chat. We're here to help and support you every step of the way.
