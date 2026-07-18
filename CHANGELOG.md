@@ -1,5 +1,36 @@
 
-    ## [Unreleased]
+    ## [0.1.19] - 2026-07-18
+    ### Added
+    - Resource grid at scale (Stage 21): resource IDs shown in the row labels; sort resources
+      by ID, name, or whole-horizon load (utilization % shown in the label when load-sorted,
+      most-loaded-first by default - the CCPM drum floats to the top); filter resources by
+      project (a resource matches if assigned to a task of that project); load scope toggle
+      to compute the loading numbers over all tasks or only the currently filtered ones, for
+      multi-project alignment work; all driven from a new control bar under the resource grid
+      (equivalent entries also in the Filter menu).
+    - CCPM Method per project (Stage 20): selectable buffer sizing - cap (Cut & Paste,
+      the default), hchain (50% of chain), rsem (root-squared error) - persisted per project,
+      passed through both CCPM scheduling flows, inherited by the imported schedule copy.
+      Requires ccpm-scheduler >= 0.9.0 (now >= 0.10.0).
+    - Network Graph report (Stage 18): dependency network diagram for any set of tasks.
+    - Import/export consistency pass (Stage 19), and imports now carry realistic_duration
+      from CCPM schedules (engine >= 0.7.0).
+    - Warn when an imported CCPM schedule reaches past the planning grid instead of drawing
+      tasks off the edge.
+    ### Fixed
+    - Permanent grey dead band between the resource panel and the horizontal scrollbar:
+      pane overhead is now measured from live geometry on every resize instead of a one-shot
+      startup measurement that baked in ~40px of phantom overhead.
+    - Shrinking the window no longer compresses the status bar to nothing (it now keeps its
+      height and the grids give up the space instead); added a resize grip in the status
+      bar's bottom-right corner and a sensible minimum window size (800x500).
+    - At-capacity resource cells are no longer colored as overloaded.
+    - Manage dialogs size themselves to their content so buttons can't be clipped, and keep
+      the listbox selection while editing fields.
+
+    
+
+    ## [0.1.18] - 2026-07-13
     ### Fixed
     - Merge-task cascade bug: Stage 6's bidirectional pull now takes the max across ALL of a
       successor's predecessor links instead of whichever single link cascaded last - a routine
