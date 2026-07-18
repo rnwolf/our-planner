@@ -1111,7 +1111,6 @@ class TaskOperations:
         )
         if resource_name:
             if self.model.add_resource(resource_name):
-                self.controller.ui.draw_resource_grid()
                 self.controller.update_resource_loading()
             else:
                 messagebox.showinfo('Information', 'Resource already exists.')
@@ -1297,7 +1296,6 @@ class TaskOperations:
                         )
 
                         # Update the resource grid in the main UI
-                        self.controller.ui.draw_resource_grid()
                         self.controller.update_resource_loading()
                     else:
                         messagebox.showwarning(
@@ -1337,7 +1335,6 @@ class TaskOperations:
             resource_name_var.set('')  # Clear the entry field
 
             # Update the resource grid in the main UI
-            self.controller.ui.draw_resource_grid()
             self.controller.update_resource_loading()
 
         # For the remove_selected_resource function:
@@ -1387,7 +1384,6 @@ class TaskOperations:
                             )
 
                             # Update the resource grid in the main UI
-                            self.controller.ui.draw_resource_grid()
                             self.controller.update_resource_loading()
                         else:
                             # Cancel deletion
@@ -1403,12 +1399,10 @@ class TaskOperations:
                         )
 
                         # Update the resource grid in the main UI
-                        self.controller.ui.draw_resource_grid()
                         self.controller.update_resource_loading()
 
         def on_dialog_close():
             # Update the main UI when dialog closes
-            self.controller.ui.draw_resource_grid()
             self.controller.update_resource_loading()
             dialog.destroy()
 

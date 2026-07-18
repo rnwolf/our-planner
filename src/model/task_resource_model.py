@@ -1010,8 +1010,15 @@ class TaskResourceModel:
         """Resize a task (change duration)."""
         return self.update_task(task_id, duration=duration)
 
-    def calculate_resource_loading(self) -> Dict[int, List[float]]:
-        """Calculate resource loading based on task positions."""
+    def calculate_resource_loading(
+        self, tasks: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[int, List[float]]:
+        """Calculate resource loading based on task positions.
+
+        `tasks` limits the calculation to a subset (e.g. the currently
+        filtered tasks, for the resource grid's 'Filtered tasks' load
+        scope); default is every task in the model.
+        """
         resource_loading = {}
 
         # Initialize dictionary with resource IDs as keys
@@ -1020,7 +1027,7 @@ class TaskResourceModel:
             resource_loading[resource_id] = [0.0] * self.days
 
         # Calculate loading for each resource on each day
-        for task in self.tasks:
+        for task in self.tasks if tasks is None else tasks:
             col = task['col']
             duration = task['duration']
 
@@ -1034,6 +1041,41 @@ class TaskResourceModel:
                         resource_loading[resource_id][col + day] += allocation
 
         return resource_loading
+
+    def calculate_resource_utilization(
+        self, resource_loading: Dict[int, List[float]]
+    ) -> Dict[int, float]:
+        """Whole-horizon utilization per resource: total load / total
+        capacity over all days. This is the CCPM capacity-constrained-
+        resource measure the resource grid's load sort uses (Stage 21).
+        A zero-capacity resource reports inf when loaded (overloaded by
+        definition) and 0.0 when idle, so the ordering stays total.
+        """
+        utilization = {}
+        for resource in self.resources:
+            resource_id = resource['id']
+            total_capacity = sum(resource['capacity'][: self.days])
+            total_load = sum(resource_loading.get(resource_id, ()))
+            if total_capacity > 0:
+                utilization[resource_id] = total_load / total_capacity
+            else:
+                utilization[resource_id] = float('inf') if total_load > 0 else 0.0
+        return utilization
+
+    def get_assigned_resource_ids(self, project_ids) -> set:
+        """Resource ids assigned to at least one task of the given projects.
+
+        Resources don't belong to projects - they're linked only through
+        task assignments - so this is the membership test behind the
+        resource grid's project filter.
+        """
+        wanted = set(project_ids)
+        assigned = set()
+        for task in self.tasks:
+            if task.get('project_id') in wanted:
+                for resource_id_str in task.get('resources', {}):
+                    assigned.add(int(resource_id_str))
+        return assigned
 
     def get_resource_by_id(self, resource_id: int) -> Optional[Dict[str, Any]]:
         """Find a resource by its ID."""

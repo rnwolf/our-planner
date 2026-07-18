@@ -38,6 +38,13 @@ class TaskResourceManager:
         # applied to the widgets) - see UIComponents._fit_resource_pane.
         self.resource_grid_ideal_height = 150
 
+        # Latest resource loading + per-resource utilization summary
+        # (Stage 21) - recomputed by update_resource_loading before the
+        # resource grid draws, so the load sort and the label-cell % read
+        # from the same numbers the cells display.
+        self.resource_loading = {}
+        self.resource_utilization = {}
+
         # Zoom and scaling properties
         self.zoom_level = 1.0  # Default zoom level (no zoom)
         self.min_zoom = 0.5  # Minimum zoom level (zoomed out)
@@ -310,6 +317,15 @@ class TaskResourceManager:
                     f"Resources: {match_type} of [{', '.join(resource_filters)}]"
                 )
 
+            resource_project_filters = self.tag_ops.resource_project_filters
+            if resource_project_filters:
+                names = [
+                    p['name']
+                    for p in self.model.projects
+                    if p['id'] in resource_project_filters
+                ]
+                status_text.append(f"Resource Project: {', '.join(names)}")
+
             self.filter_status.config(text=' | '.join(status_text))
             self.clear_filters_btn.config(state=tk.NORMAL)
 
@@ -340,7 +356,9 @@ class TaskResourceManager:
         """Update all view components to reflect current model state."""
         self.ui.draw_timeline()
         self.ui.draw_task_grid()
-        self.ui.draw_resource_grid()
+        # Draws the resource grid too - loading must be computed before the
+        # grid draws, because row order (load sort) and the label-cell %
+        # depend on it (Stage 21)
         self.update_resource_loading()
         self.update_filter_status()
         self.update_multi_select_status()
@@ -348,11 +366,23 @@ class TaskResourceManager:
         self.ui.update_setdate_display()
 
     def update_resource_loading(self):
-        """Calculate resource loading and update display."""
-        # Get loading data from model
-        resource_loading = self.model.calculate_resource_loading()
-        # Pass to UI to display
-        self.ui.display_resource_loading(resource_loading)
+        """Recompute resource loading (honoring the load scope) and redraw
+        the whole resource panel - labels, grid, and loading cells share
+        one display order, so they're always redrawn together."""
+        tasks = None
+        if self.tag_ops.resource_load_scope == 'filtered':
+            tasks = self.tag_ops.get_filtered_tasks()
+        self.resource_loading = self.model.calculate_resource_loading(tasks=tasks)
+        self.resource_utilization = self.model.calculate_resource_utilization(
+            self.resource_loading
+        )
+        self.ui.draw_resource_grid()
+        self.ui.display_resource_loading(self.resource_loading)
+        self.ui.update_resource_control_bar()
+
+    def get_display_resources(self):
+        """Filtered resources in the resource grid's display order."""
+        return self.tag_ops.get_display_resources(self.resource_utilization)
 
     def update_window_title(self, file_path=None, show_zoom=False):
         """Update the window title based on current file path and zoom level."""

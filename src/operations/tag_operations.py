@@ -810,6 +810,20 @@ class TagOperations:
         # selected ids; it ANDs against the tag filter above.
         self.task_project_filters = []
 
+        # Resource-side project filter (Stage 21) - a resource matches if
+        # it's assigned to >=1 task of a selected project (resources don't
+        # belong to projects). ANDs against the resource tag filter.
+        self.resource_project_filters = []
+
+        # Resource grid display state (Stage 21). Sort/scope live here with
+        # the rest of the grid's filter state (and stay testable without
+        # Tk). Load scope: whether the loading numbers cover every task
+        # ('all') or only the currently filtered ones ('filtered') - the
+        # scoped view is the multi-project alignment tool.
+        self.resource_sort_key = 'default'  # 'default' | 'id' | 'name' | 'load'
+        self.resource_sort_desc = False
+        self.resource_load_scope = 'all'  # 'all' | 'filtered'
+
         # Derived filter dimensions (Stage 10 Part A) - all computed from
         # existing task fields, none need a new stored field. Each ANDs
         # against every other active filter in get_filtered_tasks().
@@ -912,41 +926,13 @@ class TagOperations:
         # Update the model
         self.model.set_resource_tags(resource_id, tags)
 
-        # Get the resource's position in the filtered resources list
-        resources = self.controller.tag_ops.get_filtered_resources()
-        resource_index = None
-
-        for i, resource in enumerate(resources):
-            if resource['id'] == resource_id:
-                resource_index = i
-                break
-
-        if resource_index is not None:
-            # Calculate y position
-            y = resource_index * self.controller.task_height
-            tag_y = y + self.controller.task_height / 2
-
-            # Remove existing tag text if it exists
-            self.controller.resource_label_canvas.delete(f'resource_tags_{resource_id}')
-
-            # Only add tag text if there are tags and show_tags is enabled
-            if tags and self.controller.ui.show_tags_var.get():
-                tag_text = ', '.join(tags)
-                tag_id = self.controller.resource_label_canvas.create_text(
-                    50,
-                    tag_y + 10,
-                    text=f'[{tag_text}]',
-                    anchor='center',
-                    font=('Arial', 7),
-                    tags=(f'resource_tags_{resource_id}',),
-                )
-
-        # Refresh the view if we're using resource tag filters
-        if self.resource_tag_filters:
-            self.controller.update_view()
-        else:
-            # If not using filters, just update resource loading which might be affected by tags
-            self.controller.update_resource_loading()
+        # Redraw the whole resource panel rather than hand-patching the tag
+        # text onto the canvas at a computed row position - the old manual
+        # patch assumed filter order, which no longer holds once the grid
+        # can be sorted (Stage 21), and update_resource_loading redraws
+        # labels and loading cells in display order anyway (including
+        # dropping/admitting this resource if a tag filter is active).
+        self.controller.update_resource_loading()
 
     def filter_tasks_by_tags(self):
         """Open dialog to filter tasks by tags."""
@@ -1078,6 +1064,28 @@ class TagOperations:
 
         self.controller.update_view()
 
+    def filter_resources_by_project(self):
+        """Open dialog to filter resources by project (Stage 21,
+        multi-select; the resource control bar's combobox covers the
+        one-click single-project case)."""
+        ProjectFilterDialog(
+            self.controller.root,
+            'Filter Resources by Project',
+            projects=self.model.projects,
+            initially_selected=self.resource_project_filters,
+            on_filter=self.apply_resource_project_filter,
+        )
+
+    def apply_resource_project_filter(self, project_ids):
+        """Apply a project filter to resources."""
+        self.resource_project_filters = list(project_ids)
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
+        self.controller.update_view()
+
     def get_filtered_tasks(self):
         """Get tasks filtered by every active filter dimension - tags,
         project (Stage 11), and state/full-kit/planned-start-window (Stage 10
@@ -1121,13 +1129,49 @@ class TagOperations:
         return tasks
 
     def get_filtered_resources(self):
-        """Get resources filtered by the current tag filter."""
-        if not self.resource_tag_filters:
-            return self.model.resources
+        """Get resources filtered by the current tag and project filters
+        (each dimension ANDs against the other, like task filters)."""
+        if self.resource_tag_filters:
+            resources = self.model.get_resources_by_tags(
+                self.resource_tag_filters, match_all=self.resource_match_all
+            )
+        else:
+            resources = self.model.resources
 
-        return self.model.get_resources_by_tags(
-            self.resource_tag_filters, match_all=self.resource_match_all
-        )
+        if self.resource_project_filters:
+            assigned = self.model.get_assigned_resource_ids(
+                self.resource_project_filters
+            )
+            resources = [r for r in resources if r['id'] in assigned]
+
+        return resources
+
+    def get_display_resources(self, utilization=None):
+        """Filtered resources in display order - the single source of row
+        ordering for the resource grid; `draw_resource_grid` and
+        `display_resource_loading` must both use this so labels and
+        loading cells stay aligned. `utilization` is the per-resource-id
+        summary from `calculate_resource_utilization` (only needed for the
+        load sort; missing ids sort as 0.0)."""
+        resources = list(self.get_filtered_resources())
+
+        key = self.resource_sort_key
+        if key == 'id':
+            resources.sort(key=lambda r: r['id'], reverse=self.resource_sort_desc)
+        elif key == 'name':
+            resources.sort(
+                key=lambda r: r['name'].lower(), reverse=self.resource_sort_desc
+            )
+        elif key == 'load':
+            utilization = utilization or {}
+            resources.sort(
+                key=lambda r: utilization.get(r['id'], 0.0),
+                reverse=self.resource_sort_desc,
+            )
+        elif self.resource_sort_desc:
+            resources.reverse()
+
+        return resources
 
     def clear_task_filters(self):
         """Clear all task filters (tags, project, state, full-kit, planned start)."""
@@ -1145,9 +1189,11 @@ class TagOperations:
         self.controller.update_view()
 
     def clear_resource_filters(self):
-        """Clear all resource filters."""
+        """Clear all resource filters (tags and project - sort order and
+        load scope are display choices, not filters, and survive)."""
         self.resource_tag_filters = []
         self.resource_match_all = False
+        self.resource_project_filters = []
 
         # Clear multi-selections when filter changes
         self.controller.selected_tasks = []
@@ -1160,6 +1206,7 @@ class TagOperations:
         return bool(
             self.task_tag_filters
             or self.resource_tag_filters
+            or self.resource_project_filters
             or self.task_project_filters
             or self.task_state_filters
             or (self.task_fullkit_filter and self.task_fullkit_filter != 'any')

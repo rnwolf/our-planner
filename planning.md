@@ -1539,7 +1539,25 @@ mixed single-/two-point estimates normalize are documented canonically in that r
   scheduling produces the documented buffer sizes for the worked example
   (CAP 29 / HCHAIN 16 / RSEM 16 on the mixed 4-task chain in `docs/buffer-sizing.md`).
 
-### Stage 21 — Resource grid at scale: ID display, sorting, filtering, and a resource control bar
+### Stage 21 — Resource grid at scale: ID display, sorting, filtering, and a resource control bar — done
+
+**Done (2026-07-18).** Implemented as planned below, with two deliberate deviations: the sort/
+scope state (`resource_sort_key`/`resource_sort_desc`/`resource_load_scope`) lives in
+`TagOperations` alongside the rest of the grid's filter state rather than on the controller —
+one home for all of it, and testable without Tk (`get_display_resources(utilization)` takes the
+summary as an argument for the same reason); and `save_resource_tags`'s hand-patching of tag text
+onto the label canvas was replaced by a full `update_resource_loading()` redraw, since its
+computed row positions assumed filter order, which sorting breaks. `update_resource_loading` is
+now the single redraw path for the whole resource panel (compute loading → utilization summary →
+`draw_resource_grid` → `display_resource_loading` → `update_resource_control_bar`), and the six
+`draw_resource_grid(); update_resource_loading()` pairs in `task_operations.py` collapsed to the
+single call. Selecting the Load % sort defaults to descending (the drum is what you're looking
+for); ID/Name default ascending; the ↑↓ button toggles from there. 25 new tests
+(`tests/test_resource_grid_controls.py`), 194 total passing. Verified end-to-end in the running
+app (label IDs/%, load sort both directions, bar project filter → 4/10 shown + status bar text +
+pane shrink-to-content, scope toggle, clear restoring 10/10 with sort/scope surviving).
+
+The original plan follows.
 
 Designed in discussion 2026-07-18, no code yet. Motivation: with realistic team sizes (~60
 resources) the resource grid needs to surface *the resources that matter* — in CCPM that means the

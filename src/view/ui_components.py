@@ -314,6 +314,10 @@ class UIComponents:
             label='Filter Resources by Tags...',
             command=self.controller.tag_ops.filter_resources_by_tags,
         )
+        self.filter_menu.add_command(
+            label='Filter Resources by Project...',
+            command=self.controller.tag_ops.filter_resources_by_project,
+        )
         self.filter_menu.add_separator()
         self.filter_menu.add_command(
             label='Select Tasks by Tags...',
@@ -709,6 +713,13 @@ class UIComponents:
         self.resource_frame.pack(fill=tk.BOTH, pady=(0, 5))
         self.resource_frame.pack_propagate(False)
 
+        # Resource control bar (Stage 21) - packed BOTTOM before the
+        # label/canvas frames claim the LEFT sides, so it spans the full
+        # panel width. Lives inside resource_frame's height budget;
+        # _fit_resource_pane accounts for its height when fitting the pane
+        # to content.
+        self.create_resource_control_bar()
+
         # Create a fixed label column on the left with wider width
         self.controller.resource_label_frame = tk.Frame(
             self.resource_frame, width=self.controller.label_column_width
@@ -798,6 +809,179 @@ class UIComponents:
             ),
         )
 
+    # Combobox label <-> internal sort key (order matters: it's the
+    # combobox's value order)
+    RESOURCE_SORT_CHOICES = (
+        ('Default order', 'default'),
+        ('ID', 'id'),
+        ('Name', 'name'),
+        ('Load %', 'load'),
+    )
+
+    def create_resource_control_bar(self):
+        """Create the resource grid's control bar (Stage 21): sort key and
+        direction, project filter, tag filter, load scope, shown-count,
+        and a clear button scoped to resource filters only (the status
+        bar's global 'Clear All Filters' already exists)."""
+        bar_font = ('Arial', 9)
+        bar = tk.Frame(self.resource_frame, bd=1, relief=tk.GROOVE)
+        bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.resource_control_bar = bar
+
+        tk.Label(bar, text='Sort:', font=bar_font).pack(side=tk.LEFT, padx=(4, 2))
+        self.resource_sort_combo = ttk.Combobox(
+            bar,
+            state='readonly',
+            width=11,
+            font=bar_font,
+            values=[label for label, _ in self.RESOURCE_SORT_CHOICES],
+        )
+        self.resource_sort_combo.current(0)
+        self.resource_sort_combo.pack(side=tk.LEFT)
+        self.resource_sort_combo.bind(
+            '<<ComboboxSelected>>', self.on_resource_sort_selected
+        )
+
+        self.resource_sort_dir_btn = tk.Button(
+            bar,
+            text='↑',
+            width=1,
+            font=bar_font,
+            command=self.toggle_resource_sort_direction,
+        )
+        self.resource_sort_dir_btn.pack(side=tk.LEFT, padx=(2, 8))
+
+        tk.Label(bar, text='Project:', font=bar_font).pack(side=tk.LEFT, padx=(0, 2))
+        self.resource_project_combo = ttk.Combobox(
+            bar, state='readonly', width=14, font=bar_font
+        )
+        self.resource_project_combo.pack(side=tk.LEFT, padx=(0, 8))
+        self.resource_project_combo.bind(
+            '<<ComboboxSelected>>', self.on_resource_project_selected
+        )
+
+        self.resource_tags_btn = tk.Button(
+            bar,
+            text='Tags...',
+            font=bar_font,
+            command=self.controller.tag_ops.filter_resources_by_tags,
+        )
+        self.resource_tags_btn.pack(side=tk.LEFT, padx=(0, 8))
+
+        tk.Label(bar, text='Load scope:', font=bar_font).pack(
+            side=tk.LEFT, padx=(0, 2)
+        )
+        self.resource_scope_combo = ttk.Combobox(
+            bar,
+            state='readonly',
+            width=11,
+            font=bar_font,
+            values=('All tasks', 'Filtered tasks'),
+        )
+        self.resource_scope_combo.current(0)
+        self.resource_scope_combo.pack(side=tk.LEFT)
+        self.resource_scope_combo.bind(
+            '<<ComboboxSelected>>', self.on_resource_scope_selected
+        )
+
+        self.resource_clear_btn = tk.Button(
+            bar,
+            text='Clear',
+            font=bar_font,
+            state=tk.DISABLED,
+            command=self.controller.tag_ops.clear_resource_filters,
+        )
+        self.resource_clear_btn.pack(side=tk.RIGHT, padx=4)
+        self.resource_count_label = tk.Label(bar, text='', font=bar_font)
+        self.resource_count_label.pack(side=tk.RIGHT, padx=4)
+
+    def on_resource_sort_selected(self, event=None):
+        label = self.resource_sort_combo.get()
+        key = dict(self.RESOURCE_SORT_CHOICES)[label]
+        tag_ops = self.controller.tag_ops
+        tag_ops.resource_sort_key = key
+        # Load sort defaults to most-loaded-first (that's the drum you're
+        # looking for); the others to ascending. The arrow button toggles
+        # from there.
+        tag_ops.resource_sort_desc = key == 'load'
+        self.resource_sort_combo.selection_clear()
+        self.controller.update_resource_loading()
+
+    def toggle_resource_sort_direction(self):
+        tag_ops = self.controller.tag_ops
+        tag_ops.resource_sort_desc = not tag_ops.resource_sort_desc
+        self.controller.update_resource_loading()
+
+    def on_resource_project_selected(self, event=None):
+        index = self.resource_project_combo.current()
+        # index 0 is 'All projects'; -1 means the transient 'Multiple...'
+        # text is showing (set via .set(), not a real value) - ignore that
+        if index < 0:
+            return
+        project_ids = [] if index == 0 else [self._resource_project_bar_ids[index - 1]]
+        self.resource_project_combo.selection_clear()
+        self.controller.tag_ops.apply_resource_project_filter(project_ids)
+
+    def on_resource_scope_selected(self, event=None):
+        scope = (
+            'filtered'
+            if self.resource_scope_combo.get() == 'Filtered tasks'
+            else 'all'
+        )
+        self.controller.tag_ops.resource_load_scope = scope
+        self.resource_scope_combo.selection_clear()
+        self.controller.update_resource_loading()
+
+    def update_resource_control_bar(self):
+        """Sync the control bar's widgets with the current filter/sort
+        state - filters can also change via the Filter menu dialogs, so
+        the bar can't assume it's the only writer."""
+        if not hasattr(self, 'resource_control_bar'):
+            return
+        tag_ops = self.controller.tag_ops
+
+        for index, (_, key) in enumerate(self.RESOURCE_SORT_CHOICES):
+            if key == tag_ops.resource_sort_key:
+                self.resource_sort_combo.current(index)
+                break
+        self.resource_sort_dir_btn.config(
+            text='↓' if tag_ops.resource_sort_desc else '↑'
+        )
+
+        projects = self.model.projects
+        self._resource_project_bar_ids = [p['id'] for p in projects]
+        self.resource_project_combo.config(
+            values=['All projects'] + [p['name'] for p in projects]
+        )
+        selected = tag_ops.resource_project_filters
+        if not selected:
+            self.resource_project_combo.current(0)
+        elif len(selected) == 1 and selected[0] in self._resource_project_bar_ids:
+            self.resource_project_combo.current(
+                1 + self._resource_project_bar_ids.index(selected[0])
+            )
+        else:
+            # Multi-select via the Filter menu dialog - not a combobox value
+            self.resource_project_combo.set('Multiple...')
+
+        tag_count = len(tag_ops.resource_tag_filters)
+        self.resource_tags_btn.config(
+            text=f'Tags ({tag_count})...' if tag_count else 'Tags...'
+        )
+
+        self.resource_scope_combo.current(
+            1 if tag_ops.resource_load_scope == 'filtered' else 0
+        )
+
+        shown = len(tag_ops.get_filtered_resources())
+        total = len(self.model.resources)
+        self.resource_count_label.config(text=f'{shown}/{total} shown')
+        self.resource_clear_btn.config(
+            state=tk.NORMAL
+            if (tag_ops.resource_tag_filters or tag_ops.resource_project_filters)
+            else tk.DISABLED
+        )
+
     def on_main_frame_configure(self, event):
         """Split main_frame's actual available height between task_frame and
         resource_frame whenever it changes (window resize/maximize) -
@@ -852,13 +1036,17 @@ class UIComponents:
         grows - is tracked separately as `resource_grid_ideal_height` so
         repeated calls (e.g. every redraw) don't compound the shrinkage.
         """
-        content_height = (
+        rows_height = (
             len(self.controller.tag_ops.get_filtered_resources())
             * self.controller.task_height
         )
+        # The control bar lives inside resource_frame's height budget, so
+        # "the height this content needs" is rows plus the bar - without
+        # this the bar would eat the last visible row
+        bar_height = self.resource_control_bar.winfo_reqheight()
         resource_height = (
-            min(ideal_resource_height, content_height)
-            if content_height > 0
+            min(ideal_resource_height, rows_height + bar_height)
+            if rows_height > 0
             else ideal_resource_height
         )
         resource_height = max(100, resource_height)
@@ -1871,8 +2059,10 @@ class UIComponents:
         self.controller.resource_canvas.delete('all')
         self.controller.resource_label_canvas.delete('all')
 
-        # Get filtered resources if filters are active
-        resources_to_draw = self.controller.tag_ops.get_filtered_resources()
+        # Filtered resources in display order (sorting applied) - must
+        # match display_resource_loading's ordering, hence the shared
+        # controller method
+        resources_to_draw = self.controller.get_display_resources()
 
         # Calculate width and height
         canvas_width = self.controller.cell_width * self.model.days
@@ -1920,9 +2110,16 @@ class UIComponents:
                 0, y, self.controller.label_column_width, y, fill='gray'
             )
 
-            # Create resource name with tag indicators
-            resource_text = resource['name']
             resource_id = resource['id']
+
+            # ID always visible (it's what the CSV exports key by); the
+            # utilization % is appended when load-sorted so the row order
+            # is legible rather than driven by an invisible number
+            resource_text = f'#{resource_id} {resource["name"]}'
+            if self.controller.tag_ops.resource_sort_key == 'load':
+                util = self.controller.resource_utilization.get(resource_id, 0.0)
+                pct = '∞' if util == float('inf') else f'{util * 100:.0f}%'
+                resource_text = f'{resource_text} · {pct}'
 
             # Split the row into two independent, non-overlapping zones
             # when a tag will also be shown - name in the upper half, tag
@@ -1942,11 +2139,18 @@ class UIComponents:
             else:
                 name_y = y + self.controller.task_height / 2
 
-            # Draw resource name centered in wider column
+            # Draw resource name centered in wider column, truncated with a
+            # tooltip if the id/name/% combination outgrows the column
+            name_font = tkfont.Font(
+                family='Arial', size=self.controller.resource_font_size
+            )
+            display_name, name_truncated = self._truncate_text_to_width(
+                resource_text, name_font, self.controller.label_column_width - 10
+            )
             name_id = self.controller.resource_label_canvas.create_text(
                 self.controller.label_column_width / 2,  # Center in wider column
                 name_y,
-                text=resource_text,
+                text=display_name,
                 anchor='center',
                 font=(
                     'Arial',
@@ -1954,6 +2158,10 @@ class UIComponents:
                 ),  # Use dynamic font size
                 tags=(f'resource_{resource_id}',),
             )
+            if name_truncated:
+                self.add_tag_tooltip(
+                    self.controller.resource_label_canvas, name_id, resource_text
+                )
 
             # Bind event to the resource name
             self.controller.resource_label_canvas.tag_bind(
@@ -2014,8 +2222,9 @@ class UIComponents:
         # Clear previous loading display
         self.controller.resource_canvas.delete('loading')
 
-        # Get filtered resources
-        filtered_resources = self.controller.tag_ops.get_filtered_resources()
+        # Filtered resources in display order - same ordering as
+        # draw_resource_grid, so cells line up with their labels
+        filtered_resources = self.controller.get_display_resources()
 
         # Display resource loading for filtered resources
         for i, resource in enumerate(filtered_resources):
