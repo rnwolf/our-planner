@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter import font as tkfont
 
 from src.model import TaskResourceModel
@@ -23,6 +24,12 @@ class TaskResourceManager:
         self.root = root
         self.root.title('Task Resource Manager')
         self.root.geometry('1000x600')
+        # Floor: enough vertical room for timeline + both panes at their
+        # 100px minimums + the fixed bars (resource control bar,
+        # h_scrollbar, status bar), and enough width for the resource
+        # control bar's widgets - shrinking below this would clip whole
+        # bars off rather than degrade gracefully
+        self.root.minsize(800, 500)
 
         # Initialize the model
         self.model = TaskResourceModel()
@@ -200,7 +207,16 @@ class TaskResourceManager:
     def create_status_bar(self):
         """Create a status bar at the bottom of the window."""
         self.status_bar = tk.Frame(self.root, height=25, relief=tk.SUNKEN, bd=1)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        # `before=` moves the status bar ahead of the main content in the
+        # packing order. Tk squeezes the LAST-packed widget first when the
+        # window shrinks - without this, dragging the window edge up
+        # compressed the status bar to nothing while the grids kept their
+        # full height; with it, the grids give up the space instead
+        # (on_main_frame_configure re-fits the panes as main_frame shrinks)
+        # and the status bar keeps its height like any fixed bar should.
+        self.status_bar.pack(
+            side=tk.BOTTOM, fill=tk.X, before=self.horizontal_layout_frame
+        )
         # Remember the platform's actual default background (e.g. "SystemButtonFace"
         # on Windows isn't a valid color name on Linux/macOS) so it can be restored later.
         self.status_bar_default_bg = self.status_bar.cget('bg')
@@ -242,6 +258,13 @@ class TaskResourceManager:
         # screen corner rather than navigating the Filter menu each time.
         # Packed before clear_filters_btn so it ends up as the rightmost/
         # corner-most widget - the easiest target to reach with the mouse.
+        # Window resize grip in the bottom-right corner - several window
+        # managers don't draw their own edge handles, leaving no visible
+        # way to resize the window (the same reason the fixed-geometry
+        # dialogs grew Sizegrips). Packed RIGHT first so it claims the
+        # actual corner, with the buttons to its left.
+        ttk.Sizegrip(self.status_bar).pack(side=tk.RIGHT, anchor=tk.SE)
+
         self.multi_select_status = tk.Button(
             self.status_bar, text='', command=self.toggle_multi_select_mode
         )

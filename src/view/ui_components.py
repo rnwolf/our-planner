@@ -773,23 +773,6 @@ class UIComponents:
             height=self.controller.resource_grid_height
         )
 
-        # Measure (rather than guess) how much of main_frame's height is
-        # consumed by everything other than task_frame/resource_frame -
-        # timeline_frame, h_scrollbar, the resizer bar, and every pady
-        # between them. Nothing here has settled its real geometry yet at
-        # window resize time, and a guessed constant was consistently a bit
-        # short, which was enough for main_frame's real requirement to
-        # exceed its actual size and starve the status bar packed below it
-        # on root. This is measured once, right after creation with the
-        # frames still at their startup default heights, and stays valid
-        # since none of these other pieces change size afterwards.
-        self.controller.root.update_idletasks()
-        self._pane_overhead = (
-            self.controller.main_frame.winfo_height()
-            - self.task_frame.winfo_height()
-            - self.resource_frame.winfo_height()
-        )
-
         # Keep both panes' heights in sync with the window's actual size -
         # see on_main_frame_configure for why this can't just rely on Tk's
         # own pack fill/expand.
@@ -982,6 +965,45 @@ class UIComponents:
             else tk.DISABLED
         )
 
+    def _pane_overhead(self):
+        """How much of main_frame's height is consumed by everything other
+        than the task/resource panes - timeline_frame, the resizer bar,
+        h_scrollbar, and every pack pady among the five stacked widgets.
+
+        Computed from live widget geometry on every call rather than
+        measured once at startup: the old one-shot measurement
+        (main_frame minus the two panes, taken right after creation) ran
+        before the window had settled at its real geometry, and whatever
+        mismatch existed at that instant - ~40px in practice - was baked
+        in forever as phantom overhead. Every later resize then handed
+        out that much less height than main_frame actually had, and the
+        undistributed remainder sat as a permanent grey band between the
+        resource panel and h_scrollbar.
+        """
+
+        def pady_total(widget):
+            pady = widget.pack_info().get('pady', 0)
+            if isinstance(pady, (tuple, list)):
+                return sum(int(str(v)) for v in pady)
+            return 2 * int(str(pady))
+
+        fixed_height = (
+            self.timeline_frame.winfo_reqheight()
+            + self.grid_resizer_frame.winfo_reqheight()
+            + self.controller.h_scrollbar.winfo_reqheight()
+        )
+        padding = sum(
+            pady_total(widget)
+            for widget in (
+                self.timeline_frame,
+                self.task_frame,
+                self.grid_resizer_frame,
+                self.resource_frame,
+                self.controller.h_scrollbar,
+            )
+        )
+        return fixed_height + padding
+
     def on_main_frame_configure(self, event):
         """Split main_frame's actual available height between task_frame and
         resource_frame whenever it changes (window resize/maximize) -
@@ -1009,7 +1031,7 @@ class UIComponents:
         if self.controller.resizing_pane:
             return
 
-        total_available = event.height - self._pane_overhead
+        total_available = event.height - self._pane_overhead()
         if total_available <= 0:
             return
 
@@ -1347,7 +1369,9 @@ class UIComponents:
 
         # Get current dimensions
         task_height = self.task_frame.winfo_height()
-        total_available = self.controller.main_frame.winfo_height() - self._pane_overhead
+        total_available = (
+            self.controller.main_frame.winfo_height() - self._pane_overhead()
+        )
 
         # Calculate new heights ensuring minimum sizes - task_frame is also
         # capped so it can never grow into resource_frame's 100px floor

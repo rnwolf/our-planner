@@ -1653,6 +1653,31 @@ Small, unrelated-to-CCPM items flagged during this session's testing — not urg
 and fix immediately, but real annoyances likely to be hit by other testers too, and distracting
 from evaluating the actual planning features. Worth picking up opportunistically.
 
+- **Permanent grey band above h_scrollbar (fixed, 2026-07-18).** A ~41px dead strip sat between
+  the resource panel and the horizontal scrollbar, unclaimed by any widget. Root cause: the
+  one-shot `_pane_overhead` startup measurement (main_frame height minus the two panes, taken
+  right after widget creation) ran before the window had settled at its real geometry, and the
+  mismatch at that instant (140 measured vs 99 real) was baked in forever as phantom overhead -
+  every later resize handed out that much less height than main_frame actually had, and since
+  h_scrollbar packs BOTTOM, the undistributed remainder surfaced exactly between the resource
+  panel and the scrollbar. Fix: `_pane_overhead()` is now a method computed from live geometry on
+  every call - the requested heights of the three fixed widgets (timeline_frame,
+  grid_resizer_frame, h_scrollbar) plus every pack pady among the five stacked main_frame
+  children, read from `pack_info()`. No one-time measurement to go stale; the reclaimed height
+  went back to the task/resource grids.
+
+- **Status bar squeezed to nothing when shrinking the window; no resize grip (fixed,
+  2026-07-18).** Tk's packer takes space from the LAST-packed widget first when a window shrinks,
+  and the status bar was packed on root after the main content - so dragging the window edge up
+  compressed the status bar to nothing while the grids kept their full height. Fixed by packing
+  the status bar with `before=horizontal_layout_frame`, moving it ahead in the packing order:
+  visually identical, but now the grids give up the space (on_main_frame_configure re-fits the
+  panes as main_frame shrinks) and the status bar keeps its height like the resource control bar
+  does. Also added a `ttk.Sizegrip` in the status bar's bottom-right corner (several WMs draw no
+  edge handles of their own - same reason the fixed-geometry dialogs grew Sizegrips) and
+  `root.minsize(800, 500)`, the floor below which whole bars would get clipped rather than
+  degrade gracefully.
+
 - **Arrow-key grid navigation (fixed, one iteration).** Requested after repeatedly finding the
   scrollbars too thin and fiddly to grab precisely, especially once zoomed in.
   `scroll_task_grid(dx_cells, dy_rows)` (`task_manager.py`) scrolls the task grid by exactly one
