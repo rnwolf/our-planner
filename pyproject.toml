@@ -30,7 +30,6 @@ dependencies = [
     "tkcalendar>=1.6.1",
     "reportlab>=4.0.0",
     "networkx>=3.0",
-    "requests>=2.32.3",
     "ccpm-scheduler>=0.10.0",
 ]
 
@@ -40,7 +39,6 @@ dev = [
     "pytest-cov>=4.0.0",
     "black>=23.0.0",
     "isort>=5.0.0",
-    "semver>=3.0.4",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.11",
     "mkdocstrings[python]>=0.29.1",

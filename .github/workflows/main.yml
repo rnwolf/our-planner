@@ -1,9 +1,9 @@
 name: Publish to PyPI
 
+# Publishes ONLY when a GitHub release is published - creating the release
+# is the deliberate act that ships to PyPI. (A push trigger on main used to
+# run this on every push, failing whenever the version was unchanged.)
 on:
-  push:
-    branches:
-       - main
   release:
     types: [published]
 
