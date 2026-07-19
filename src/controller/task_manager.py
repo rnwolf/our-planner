@@ -756,6 +756,23 @@ class TaskResourceManager:
         # Update window title
         self.update_window_title(self.model.current_file_path)
 
+    def scroll_to_task(self, task):
+        """Scroll the task grid so the given task sits centered in the
+        visible viewport (or as close as the scrollregion edges allow) -
+        the reposition half of Tasks > Select Task by ID."""
+        total_width = self.cell_width * self.model.days
+        total_height = self.task_height * self.model.max_rows
+        visible_width = max(1, self.task_canvas.winfo_width())
+        visible_height = max(1, self.task_canvas.winfo_height())
+
+        task_center_x = (task['col'] + task['duration'] / 2) * self.cell_width
+        task_center_y = (task['row'] + 0.5) * self.task_height
+
+        left = max(0.0, min(1.0, (task_center_x - visible_width / 2) / total_width))
+        top = max(0.0, min(1.0, (task_center_y - visible_height / 2) / total_height))
+        self.ui.sync_horizontal_scroll('moveto', left)
+        self.ui.sync_vertical_scroll('moveto', top)
+
     def scroll_task_grid(self, dx_cells=0, dy_rows=0):
         """Scroll the main task grid by whole cells/rows via arrow keys -
         the scrollbars are thin and fiddly to grab precisely, especially

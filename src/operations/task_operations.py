@@ -3971,11 +3971,25 @@ class TaskOperations:
         return moved_any
 
     def add_note_to_task(self, task=None):
-        """Add a note to the selected task."""
+        """Add a note to the selected task. Called without an explicit
+        task (the Tasks menu / Alt+T,N path - the context menus always
+        pass one), a multi-selection routes to the Add Note to Multiple
+        Tasks dialog instead, so the menu command means "note whatever is
+        selected" whether that's one task or several."""
         if task is None:
+            if len(self.controller.selected_tasks) > 1:
+                self.add_note_to_selected_tasks()
+                return
             task = self.controller.selected_task
 
         if not task:
+            # Reachable from the Tasks menu with nothing selected (the
+            # context-menu path always has a task)
+            messagebox.showinfo(
+                'No Task Selected',
+                'Select a task first - e.g. Tasks > Select Task by ID...',
+                parent=self.controller.root,
+            )
             return
 
         # Create a dialog for note entry
@@ -4028,7 +4042,7 @@ class TaskOperations:
         button_frame = tk.Frame(frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
-        def save_note():
+        def save_note(event=None):
             # Get the text from the text area
             text = note_text.get('1.0', tk.END).strip()
 
@@ -4048,17 +4062,27 @@ class TaskOperations:
             if hasattr(self.controller.ui, 'update_notes_panel'):
                 self.controller.ui.update_notes_panel()
 
-        # Add buttons
-        cancel_button = tk.Button(button_frame, text='Cancel', command=dialog.destroy)
+        # Add buttons - underlined mnemonics; the Alt bindings below make
+        # them work even while typing in the note text area, so the whole
+        # dialog is keyboard-only: type, Alt+S saves, Alt+C cancels
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=0, command=dialog.destroy
+        )
         cancel_button.pack(side=tk.RIGHT, padx=5)
 
-        save_button = tk.Button(button_frame, text='Save', command=save_note)
+        save_button = tk.Button(
+            button_frame, text='Save', underline=0, command=save_note
+        )
         save_button.pack(side=tk.RIGHT, padx=5)
 
         # Make dialog modal
         dialog.wait_visibility()
         dialog.focus_set()
         dialog.bind('<Escape>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-s>', save_note)
+        dialog.bind('<Alt-S>', save_note)
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-C>', lambda e: dialog.destroy())
 
         # Visible resize handle, and never allow shrinking below the size
         # the content actually needs (measured, so font/theme-proof)
@@ -4139,7 +4163,7 @@ class TaskOperations:
         button_frame = tk.Frame(frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
-        def save_note():
+        def save_note(event=None):
             # Get the text from the text area
             text = note_text.get('1.0', tk.END).strip()
 
@@ -4160,11 +4184,12 @@ class TaskOperations:
             if hasattr(self.controller.ui, 'update_notes_panel'):
                 self.controller.ui.update_notes_panel()
 
-        # Add buttons
-        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
-            side=tk.RIGHT, padx=5
-        )
-        tk.Button(button_frame, text='Save', command=save_note).pack(
+        # Add buttons - same keyboard mnemonics as the single-task note
+        # dialog: Alt+S saves, Alt+C cancels, even from the text area
+        tk.Button(
+            button_frame, text='Cancel', underline=0, command=dialog.destroy
+        ).pack(side=tk.RIGHT, padx=5)
+        tk.Button(button_frame, text='Save', underline=0, command=save_note).pack(
             side=tk.RIGHT, padx=5
         )
 
@@ -4172,6 +4197,10 @@ class TaskOperations:
         dialog.wait_visibility()
         dialog.focus_set()
         dialog.bind('<Escape>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-s>', save_note)
+        dialog.bind('<Alt-S>', save_note)
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-C>', lambda e: dialog.destroy())
 
         # Visible resize handle, and never allow shrinking below the size
         # the content actually needs (measured, so font/theme-proof)
@@ -4225,6 +4254,89 @@ class TaskOperations:
 
                 # Update the UI if needed
                 self.controller.update_view()
+
+    def find_and_select_task(self, task_id):
+        """Select task `task_id` and scroll the grid so it's visible.
+        Returns None on success, or a short user-facing problem message
+        (task missing / hidden by the current filter) - the Select Task
+        by ID dialog shows the message inline and stays open."""
+        task = self.model.get_task(task_id)
+        if not task:
+            return f'Task {task_id} does not exist.'
+
+        # A filtered-out task isn't drawn, so it can't be shown or
+        # highlighted - scrolling to empty grid would just look broken
+        if task not in self.controller.tag_ops.get_filtered_tasks():
+            return (
+                f'Task {task_id} is hidden by the current filter '
+                f'(Clear All Filters to show it).'
+            )
+
+        self.controller.selected_task = task
+        self.controller.selected_tasks = [task]
+        self.controller.ui.highlight_selected_tasks()
+        self.controller.scroll_to_task(task)
+        return None
+
+    def select_task_by_id(self, parent=None):
+        """Keyboard-first task lookup (Tasks > Select Task by ID...): type
+        an id, press Enter (or Tab to Find, Enter) - the grid scrolls to
+        the task and selects it, ready for e.g. Record Remaining
+        Duration without touching the mouse."""
+        if parent is None:
+            parent = self.controller.root
+
+        dialog = tk.Toplevel(parent)
+        dialog.title('Select Task by ID')
+        dialog.transient(parent)
+        dialog.grab_set()
+
+        frame = tk.Frame(dialog, padx=10, pady=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(frame, text='Task ID:', anchor='w').grid(
+            row=0, column=0, sticky='w', padx=(0, 5)
+        )
+        id_var = tk.StringVar()
+        id_entry = tk.Entry(frame, textvariable=id_var, width=10)
+        id_entry.grid(row=0, column=1, sticky='we')
+
+        error_label = tk.Label(frame, text='', fg='red', anchor='w', wraplength=260)
+        error_label.grid(row=1, column=0, columnspan=2, sticky='we', pady=(5, 0))
+
+        def do_find(event=None):
+            raw = id_var.get().strip()
+            if not raw.lstrip('-').isdigit():
+                error_label.config(text='Enter a numeric task id.')
+                id_entry.select_range(0, tk.END)
+                id_entry.focus_set()
+                return
+            problem = self.find_and_select_task(int(raw))
+            if problem:
+                error_label.config(text=problem)
+                id_entry.select_range(0, tk.END)
+                id_entry.focus_set()
+            else:
+                dialog.destroy()
+
+        button_frame = tk.Frame(frame)
+        button_frame.grid(row=2, column=0, columnspan=2, sticky='e', pady=(10, 0))
+        find_btn = tk.Button(button_frame, text='Find', command=do_find, default=tk.ACTIVE)
+        find_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(side=tk.RIGHT)
+
+        # Enter anywhere in the dialog finds (works from the entry AND
+        # after tabbing onto the Find button); Escape cancels
+        dialog.bind('<Return>', do_find)
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+        dialog.update_idletasks()
+        x = parent.winfo_rootx() + (parent.winfo_width() - dialog.winfo_reqwidth()) // 2
+        y = parent.winfo_rooty() + (parent.winfo_height() - dialog.winfo_reqheight()) // 2
+        dialog.geometry(f'+{x}+{y}')
+
+        dialog.wait_visibility()
+        id_entry.focus_set()
 
     def record_remaining_duration(self, task=None):
         """Record the remaining duration for a task."""
@@ -4308,6 +4420,15 @@ class TaskOperations:
 
                 # Update the UI
                 self.controller.update_view()
+        else:
+            # Reachable from the Tasks menu with nothing selected (the
+            # context-menu path always has a task) - point at the
+            # keyboard-only selection route rather than failing silently
+            messagebox.showinfo(
+                'No Task Selected',
+                'Select a task first - e.g. Tasks > Select Task by ID...',
+                parent=self.controller.root,
+            )
 
     def set_fullkit_done(self, task=None):
         """Mark the task as having full kit completed."""

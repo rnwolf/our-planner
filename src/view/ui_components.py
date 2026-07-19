@@ -271,6 +271,28 @@ class UIComponents:
         self.tasks_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label='Tasks', menu=self.tasks_menu, underline=0)
 
+        # Keyboard-only status-update flow: Alt+T, S -> type id, Enter
+        # (grid scrolls to the task and selects it), then Alt+T, R ->
+        # enter the remaining days. No mouse required.
+        self.tasks_menu.add_command(
+            label='Select Task by ID...',
+            underline=0,
+            command=lambda: self.controller.task_ops.select_task_by_id(
+                parent=self.controller.root
+            ),
+        )
+        self.tasks_menu.add_command(
+            label='Record Remaining Duration...',
+            underline=0,
+            command=lambda: self.controller.task_ops.record_remaining_duration(),
+        )
+        self.tasks_menu.add_command(
+            label='Add Note...',
+            underline=4,  # the N - Alt+T, N
+            command=lambda: self.controller.task_ops.add_note_to_task(),
+        )
+        self.tasks_menu.add_separator()
+
         self.auto_scheduling_var = tk.BooleanVar(value=False)
         self.tasks_menu.add_checkbutton(
             label='Auto Scheduling',
