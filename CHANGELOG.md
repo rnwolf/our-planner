@@ -1,4 +1,29 @@
 
+    ## [0.1.20] - 2026-07-19
+    ### Changed
+    - **Licence changed from GPL-3.0-or-later to MIT** (sole-author relicense) so the code
+      can be used more freely by others. Note: the bundled date-picker dependency tkcalendar
+      remains GPLv3-licensed; our-planner's own code is MIT.
+    - Publishing to PyPI now happens only when a GitHub release is published (the old
+      release.py script and the publish-on-every-push trigger are gone); the release steps
+      are documented in the README and the Contributing page.
+    ### Added
+    - Keyboard-only status-update workflow: Alt+key mnemonics for every menu (View, Date,
+      Projects, Reports, Chains, Network, Help - joining the existing File/Edit/Tasks/Filter);
+      new Tasks-menu commands "Select Task by ID..." (scrolls to and selects the task,
+      keyboard-first dialog), "Record Remaining Duration..." and "Add Note..." (routes to the
+      Add Note to Multiple Tasks dialog when several tasks are selected); Alt+S / Alt+C save
+      and cancel in both note dialogs, working while typing in the note text area.
+    - The notes panel now follows the current selection: notes for the selected task(s) when
+      there is a selection, every note when nothing is selected - so all / one / several
+      lookups come from the same panel.
+    ### Fixed
+    - Right-click context menus near the bottom of the screen no longer run off-screen:
+      menus are clamped to the physical monitor under the cursor (multi-monitor aware via
+      xrandr on X11), not just the virtual screen.
+
+    
+
     ## [0.1.19] - 2026-07-18
     ### Added
     - Resource grid at scale (Stage 21): resource IDs shown in the row labels; sort resources
