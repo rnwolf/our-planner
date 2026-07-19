@@ -242,7 +242,10 @@ guide.
 
 ## Licence
 
-Our-planner is distributed under the terms of the [GPLv3 or later Licence](https://spdx.org/licenses/GPL-3.0-or-later.html).
+Our-planner is distributed under the terms of the [MIT Licence](https://spdx.org/licenses/MIT.html).
+
+(Note: the bundled date-picker dependency [tkcalendar](https://pypi.org/project/tkcalendar/)
+is GPLv3-licensed; our-planner's own code is MIT.)
 
 ## Changelog
 

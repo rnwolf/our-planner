@@ -6,7 +6,7 @@ description = "An application for collaboratively working on plans with our team
 readme = "README.md"
 keywords = ["planning", "resource management", "task management", "collaboration", "visualization", "buffer management", "teamwork", "desktop", "cross-platform"]
 requires-python = ">=3.11"
-license = "GPL-3.0-or-later"
+license = "MIT"
 license-files = ["LICENSE.txt"]
 authors = [
     {name = "R.N. Wolf", email = "rudi@rnwolf.net"},
