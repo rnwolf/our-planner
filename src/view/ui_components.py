@@ -2762,6 +2762,7 @@ class UIComponents:
                 self.controller.task_canvas.tag_lower(highlight_id)
 
         self.controller.update_multi_select_status()
+        self._sync_notes_panel_to_selection()
 
     def remove_task_selections(self):
         """Remove highlighting from all tasks"""
@@ -2772,6 +2773,23 @@ class UIComponents:
         for task_id, ui_elements in self.task_ui_elements.items():
             if 'highlight' in ui_elements:
                 del ui_elements['highlight']
+
+        self._sync_notes_panel_to_selection()
+
+    def _sync_notes_panel_to_selection(self):
+        """Refresh the notes panel to follow the current selection, if the
+        panel is open. Called from the two selection-visual updaters
+        (highlight/remove), which every selection change funnels through -
+        selected_tasks is always updated before they run. No-ops when the
+        shown selection hasn't changed, so the highlight path's
+        remove-then-highlight sequence rebuilds the panel once, not twice.
+        """
+        if not getattr(self, 'notes_panel_visible', False):
+            return
+        ids = [t['task_id'] for t in self.controller.selected_tasks]
+        if ids == getattr(self, '_notes_panel_selection', None):
+            return
+        self.update_notes_panel()
 
     def select_all_tasks(self):
         """Select all visible tasks"""
@@ -3190,9 +3208,20 @@ class UIComponents:
         self.update_notes_panel(task_ids)
 
     def update_notes_panel(self, task_ids=None):
-        """Update the notes panel content."""
+        """Update the notes panel content. Without explicit `task_ids`,
+        the panel follows the current selection: notes for the selected
+        task(s) when there is one, every note when nothing is selected -
+        so all three lookups (all / one / several) come from the same
+        panel, driven by what's selected on the grid."""
         if not hasattr(self, 'notes_container'):
             return
+
+        if task_ids is None and self.controller.selected_tasks:
+            task_ids = [t['task_id'] for t in self.controller.selected_tasks]
+
+        # Remember what's shown so selection-driven refreshes can no-op
+        # when the selection hasn't actually changed
+        self._notes_panel_selection = list(task_ids) if task_ids else []
 
         # Clear existing notes
         for widget in self.notes_container.winfo_children():
