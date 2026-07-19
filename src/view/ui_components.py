@@ -1,3 +1,5 @@
+import re
+import subprocess
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkfont
@@ -1916,7 +1918,7 @@ class UIComponents:
             ),
         )
 
-        menu.tk_popup(event.x_root, event.y_root)
+        self.popup_menu(menu, event.x_root, event.y_root)
 
     def draw_arrow(self, x1, y1, x2, y2, task, successor, link_type='FS'):
         """Draw an arrow between tasks, coloring based on dependency direction.
@@ -2298,10 +2300,59 @@ class UIComponents:
                         ),  # Use dynamic font size
                     )
 
+    def _monitor_bounds(self, x, y):
+        """Bounds (x, y, width, height) of the physical monitor containing
+        the point, falling back to the whole virtual screen. Tk only knows
+        the virtual screen, which is the bounding box of all monitors - on
+        a mixed-height setup (e.g. a 1080-tall laptop panel beside a
+        1440-tall external), clamping to the virtual bottom still leaves a
+        menu 360px off the bottom of the shorter panel. Per-monitor
+        geometry comes from xrandr on X11; on Windows/macOS the native
+        menu code clamps per-monitor by itself, so the fallback is fine
+        there. Parsed once and cached - monitor layout rarely changes
+        mid-session, and a stale read only degrades to the virtual-screen
+        clamp."""
+        if not hasattr(self, '_monitor_geometries'):
+            self._monitor_geometries = []
+            try:
+                out = subprocess.run(
+                    ['xrandr', '--listmonitors'],
+                    capture_output=True, text=True, timeout=2,
+                ).stdout
+                # " 0: +*eDP-1 1920/310x1080/170+0+0  eDP-1"
+                for w, h, mx, my in re.findall(
+                    r'(\d+)/\d+x(\d+)/\d+\+(\d+)\+(\d+)', out
+                ):
+                    self._monitor_geometries.append(
+                        (int(mx), int(my), int(w), int(h))
+                    )
+            except (OSError, subprocess.SubprocessError):
+                pass
+        for mx, my, mw, mh in self._monitor_geometries:
+            if mx <= x < mx + mw and my <= y < my + mh:
+                return mx, my, mw, mh
+        root = self.controller.root
+        return 0, 0, root.winfo_screenwidth(), root.winfo_screenheight()
+
+    def popup_menu(self, menu, x_root, y_root):
+        """Post a context menu fully visible on the monitor under the
+        cursor. A menu posted at the raw position runs off the bottom (or
+        right) edge when invoked near it - the tall task context menu was
+        the worst case, with its lower entries unreachable - and Tk's own
+        clamping only respects the virtual screen, not the physical
+        monitor (see _monitor_bounds). If the menu is somehow taller than
+        the monitor, it pins to the top edge so the first entries show.
+        """
+        menu.update_idletasks()
+        mx, my, mw, mh = self._monitor_bounds(x_root, y_root)
+        x = min(x_root, mx + mw - menu.winfo_reqwidth())
+        y = min(y_root, my + mh - menu.winfo_reqheight())
+        menu.tk_popup(max(mx, x), max(my, y))
+
     def show_resource_context_menu(self, event, resource_id):
         """Show the context menu for a resource."""
         self.selected_resource_id = resource_id
-        self.resource_context_menu.post(event.x_root, event.y_root)
+        self.popup_menu(self.resource_context_menu, event.x_root, event.y_root)
 
     def open_url(self, url):
         """Open a URL in the default web browser"""

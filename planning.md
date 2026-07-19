@@ -1666,6 +1666,19 @@ from evaluating the actual planning features. Worth picking up opportunistically
   children, read from `pack_info()`. No one-time measurement to go stale; the reclaimed height
   went back to the task/resource grids.
 
+- **Tall context menus ran off the bottom of the laptop monitor (fixed, 2026-07-19).** The task
+  context menu (~530px tall) posted at the raw cursor position was unreadable when invoked near
+  the bottom of the screen. Two layers to the bug: Tk does clamp menus, but only to the
+  *virtual* screen — the bounding box of all monitors — so on this mixed-height setup (1920x1080
+  laptop beside 2560x1440 external, virtual 4480x1440) a menu on the laptop panel could legally
+  sit 360px below its physical bottom edge. Fix: all four context menus (task, multi-task,
+  resource, dependency-link) now post through `UIComponents.popup_menu`, which clamps to the
+  bounds of the *monitor containing the cursor* — geometry parsed once from
+  `xrandr --listmonitors` (X11 only; harmless fallback to the virtual screen elsewhere, and
+  Windows/macOS native menus already clamp per-monitor). Verified empirically on the real
+  dual-monitor layout: menu bottom lands exactly at 1080 on the laptop panel and 1440 on the
+  external, all four screen corners exercised.
+
 - **Status bar squeezed to nothing when shrinking the window; no resize grip (fixed,
   2026-07-18).** Tk's packer takes space from the LAST-packed widget first when a window shrinks,
   and the status bar was packed on root after the main content - so dragging the window edge up

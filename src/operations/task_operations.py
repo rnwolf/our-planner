@@ -3470,12 +3470,16 @@ class TaskOperations:
                     and task in self.controller.selected_tasks
                 ):
                     # Show the multi-task context menu
-                    self.controller.ui.multi_task_menu.post(event.x_root, event.y_root)
+                    self.controller.ui.popup_menu(
+                        self.controller.ui.multi_task_menu, event.x_root, event.y_root
+                    )
                 else:
                     # Show single task context menu, adapted to this task
                     # (buffer-only entries hidden on ordinary tasks)
                     self.controller.ui.update_context_menu_for_task(task)
-                    self.controller.ui.context_menu.post(event.x_root, event.y_root)
+                    self.controller.ui.popup_menu(
+                        self.controller.ui.context_menu, event.x_root, event.y_root
+                    )
                 return
 
         # If not clicking on a task, check for dependency arrows within a 5-pixel radius
