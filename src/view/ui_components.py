@@ -336,7 +336,7 @@ class UIComponents:
 
         # View menu (new)
         self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='View', menu=self.view_menu)
+        self.menu_bar.add_cascade(label='View', menu=self.view_menu, underline=0)
 
         # View options for tags
         self.show_tags_var = tk.BooleanVar(value=True)
@@ -360,7 +360,7 @@ class UIComponents:
 
         # Date menu
         self.date_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Date', menu=self.date_menu)
+        self.menu_bar.add_cascade(label='Date', menu=self.date_menu, underline=0)
 
         # Date operations
         self.date_menu.add_command(
@@ -381,7 +381,7 @@ class UIComponents:
 
         # Projects menu
         self.projects_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Projects', menu=self.projects_menu)
+        self.menu_bar.add_cascade(label='Projects', menu=self.projects_menu, underline=0)
 
         self.projects_menu.add_command(
             label='Manage Projects...',
@@ -395,7 +395,7 @@ class UIComponents:
         # Full-Kit Readiness is the first report built against the new
         # framework, reusing whatever the Filter menu currently selects.
         self.reports_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Reports', menu=self.reports_menu)
+        self.menu_bar.add_cascade(label='Reports', menu=self.reports_menu, underline=0)
 
         self.reports_menu.add_command(
             label='Project Fever Charts...',
@@ -423,7 +423,7 @@ class UIComponents:
 
         # Chains menu
         self.chains_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Chains', menu=self.chains_menu)
+        self.menu_bar.add_cascade(label='Chains', menu=self.chains_menu, underline=0)
 
         self.chains_menu.add_command(
             label='Manage Chains...',

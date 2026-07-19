@@ -27,7 +27,7 @@ class HelpMenu:
 
         # Create Help menu
         self.help_menu = tk.Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label='Help', menu=self.help_menu)
+        menu_bar.add_cascade(label='Help', menu=self.help_menu, underline=0)
 
         # Add menu items
         self.help_menu.add_command(

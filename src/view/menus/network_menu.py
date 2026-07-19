@@ -25,7 +25,7 @@ class NetworkMenu:
 
         # Create Network menu
         self.network_menu = tk.Menu(menu_bar, tearoff=0)
-        menu_bar.add_cascade(label='Network', menu=self.network_menu)
+        menu_bar.add_cascade(label='Network', menu=self.network_menu, underline=0)
 
         # Add menu items
         self.network_menu.add_command(
