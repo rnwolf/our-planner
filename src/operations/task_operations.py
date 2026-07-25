@@ -4274,6 +4274,65 @@ class TaskOperations:
             return True
         return False
 
+    def edit_task_duration(self, tasks=None):
+        """Set duration (days) for one or more tasks by typing a number,
+        keeping each task's start day (col) fixed. Dragging a task's edge
+        on the grid is precise for short tasks, but once a task is long
+        (or the timeline is zoomed out to fit one), it's hard to tell
+        exactly how many days an edge-drag is extending it by - this is
+        the same capability, typed instead of dragged.
+
+        `tasks` is the explicit list to act on (one task, or several via
+        the multi-select context menu) - resolved by the caller rather
+        than read from ambient selection state here, since a stale
+        multi-selection can still be sitting around when a single task's
+        context menu is what's actually showing.
+        """
+        tasks = [t for t in (tasks or []) if t]
+        if not tasks:
+            messagebox.showinfo(
+                'No Task Selected', 'Select a task first.', parent=self.controller.root
+            )
+            return
+
+        if len(tasks) == 1:
+            prompt = 'Enter new duration (days):'
+        else:
+            prompt = f'Enter new duration (days) for all {len(tasks)} selected tasks:'
+
+        new_duration = simpledialog.askinteger(
+            'Edit Task Duration',
+            prompt,
+            initialvalue=tasks[0]['duration'],
+            minvalue=1,
+            parent=self.controller.root,
+        )
+        if new_duration is None:
+            return
+
+        # Left-to-right per row, so a task's own resize has already
+        # pushed the next one out of its way by the time that next task
+        # is itself resized - selection order (click order, or marquee
+        # order) has no relation to layout order otherwise.
+        for task in sorted(tasks, key=lambda t: (t['row'], t['col'])):
+            task['duration'] = new_duration
+
+            # Shove any other same-row task the new, longer box now
+            # physically overlaps - a plain edge-drag does this too via
+            # handle_task_collisions(), regardless of whether the tasks
+            # are joined by a formal dependency link. Skipping this left
+            # merely-adjacent tasks resized-and-overlaid until something
+            # else (e.g. clicking a task) happened to trigger a shove.
+            x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
+            self.handle_task_collisions(task, x1, y1, x2, y2)
+
+            # Same cascade a drag-resize triggers, so plain FS successors
+            # move out of the way (or, once executing, always) instead of
+            # silently overlapping the now-longer/shorter task.
+            self.apply_dependency_cascade(task)
+
+        self.controller.update_view()
+
     def set_optimal_duration(self, task=None):
         """Set the optimal duration for a task."""
         if task is None:

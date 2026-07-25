@@ -1179,6 +1179,14 @@ class UIComponents:
         )
 
         self.context_menu.add_separator()
+        self.context_menu.add_command(
+            label='Edit Task Duration...',
+            command=lambda: self.controller.task_ops.edit_task_duration(
+                [self.controller.selected_task]
+            ),
+        )
+
+        self.context_menu.add_separator()
 
         # CCPM-related menu items
         self.context_menu.add_command(
@@ -1305,6 +1313,14 @@ class UIComponents:
         self.multi_task_menu.add_command(
             label='Add Note to Selected Tasks',
             command=self.controller.task_ops.add_note_to_selected_tasks,
+        )
+
+        self.multi_task_menu.add_separator()
+        self.multi_task_menu.add_command(
+            label='Edit Task Duration...',
+            command=lambda: self.controller.task_ops.edit_task_duration(
+                self.controller.selected_tasks
+            ),
         )
 
     def update_context_menu_for_task(self, task):
