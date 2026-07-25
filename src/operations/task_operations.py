@@ -616,13 +616,53 @@ class TaskOperations:
         )
         date_frame.pack(fill=tk.X, pady=(0, 15))
 
-        # Try to import tkcalendar
-        try:
-            from tkcalendar import DateEntry
+        def pick_date_into(date_var):
+            """Show a calendar popup that writes the picked date into
+            date_var. tkcalendar.DateEntry (previously used here for both
+            fields) does expensive style setup in its __init__ - profiling
+            showed ~3.6s per widget in this environment, ~7s total, paid
+            unconditionally every time this dialog opened regardless of
+            whether "Set Capacity by Date" was ever used. Building a plain
+            Entry up front and only importing/creating tkcalendar's
+            (cheaper) Calendar widget when the user actually clicks "Pick.."
+            avoids that cost entirely for the common case - same lazy-popup
+            pattern as the Project Settings start-date picker."""
+            try:
+                from tkcalendar import Calendar
+            except ImportError:
+                messagebox.showwarning(
+                    'Calendar Not Available',
+                    'The tkcalendar package is not installed. Please enter '
+                    'the date manually.',
+                    parent=capacity_tab.winfo_toplevel(),
+                )
+                return
 
-            has_calendar = True
-        except ImportError:
-            has_calendar = False
+            try:
+                initial = datetime.strptime(date_var.get(), '%Y-%m-%d')
+            except ValueError:
+                initial = datetime.now()
+
+            cal_dialog = tk.Toplevel(capacity_tab)
+            cal_dialog.title('Select Date')
+            cal_dialog.transient(capacity_tab.winfo_toplevel())
+            cal_dialog.grab_set()
+
+            cal = Calendar(
+                cal_dialog,
+                selectmode='day',
+                year=initial.year,
+                month=initial.month,
+                day=initial.day,
+            )
+            cal.pack(padx=10, pady=10)
+
+            def set_date():
+                selected = cal.selection_get()
+                date_var.set(selected.strftime('%Y-%m-%d'))
+                cal_dialog.destroy()
+
+            tk.Button(cal_dialog, text='Select', command=set_date).pack(pady=10)
 
         # Start date
         start_date_frame = tk.Frame(date_frame)
@@ -630,25 +670,16 @@ class TaskOperations:
 
         tk.Label(start_date_frame, text='Start Date:').pack(side=tk.LEFT, padx=5)
 
-        if has_calendar:
-            start_date_var = tk.StringVar()
-            start_date_picker = DateEntry(
-                start_date_frame,
-                width=12,
-                background='darkblue',
-                foreground='white',
-                borderwidth=2,
-                date_pattern='yyyy-mm-dd',  # Specify YYYY-MM-DD format
-                textvariable=start_date_var,
-            )
-            start_date_picker.pack(side=tk.LEFT, padx=5)
-        else:
-            start_date_var = tk.StringVar()
-            start_date_entry = tk.Entry(
-                start_date_frame, textvariable=start_date_var, width=10
-            )
-            start_date_entry.pack(side=tk.LEFT, padx=5)
-            tk.Label(start_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT)
+        start_date_var = tk.StringVar()
+        start_date_entry = tk.Entry(
+            start_date_frame, textvariable=start_date_var, width=10
+        )
+        start_date_entry.pack(side=tk.LEFT, padx=5)
+        tk.Label(start_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT, padx=(0, 5))
+        tk.Button(
+            start_date_frame, text='Pick...',
+            command=lambda: pick_date_into(start_date_var),
+        ).pack(side=tk.LEFT)
 
         # End date
         end_date_frame = tk.Frame(date_frame)
@@ -656,25 +687,16 @@ class TaskOperations:
 
         tk.Label(end_date_frame, text='End Date:').pack(side=tk.LEFT, padx=5)
 
-        if has_calendar:
-            end_date_var = tk.StringVar()
-            end_date_picker = DateEntry(
-                end_date_frame,
-                width=12,
-                background='darkblue',
-                foreground='white',
-                borderwidth=2,
-                date_pattern='yyyy-mm-dd',  # Specify YYYY-MM-DD format
-                textvariable=end_date_var,
-            )
-            end_date_picker.pack(side=tk.LEFT, padx=5)
-        else:
-            end_date_var = tk.StringVar()
-            end_date_entry = tk.Entry(
-                end_date_frame, textvariable=end_date_var, width=10
-            )
-            end_date_entry.pack(side=tk.LEFT, padx=5)
-            tk.Label(end_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT)
+        end_date_var = tk.StringVar()
+        end_date_entry = tk.Entry(
+            end_date_frame, textvariable=end_date_var, width=10
+        )
+        end_date_entry.pack(side=tk.LEFT, padx=5)
+        tk.Label(end_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT, padx=(0, 5))
+        tk.Button(
+            end_date_frame, text='Pick...',
+            command=lambda: pick_date_into(end_date_var),
+        ).pack(side=tk.LEFT)
 
         # Capacity for date range
         date_capacity_frame = tk.Frame(date_frame)
