@@ -366,7 +366,7 @@ class ExportOperations:
             elif selected_format == "png":
                 self.export_to_image()
             elif selected_format == "csv":
-                self.export_to_csv()
+                self.export_to_csv(parent=dialog)
             elif selected_format == "html":
                 self.export_to_html()
 
@@ -1701,11 +1701,29 @@ class ExportOperations:
     #         "Not Implemented", "CSV export will be available in a future update."
     #     )
 
-    def export_to_csv(self):
+    def export_to_csv(self, parent=None):
         """Export task and resource data to CSV."""
-        # Ask for directory location
+        # Explicit parent - the "Export Project" dialog is still open (and
+        # modal via grab_set) when this runs, so without a parent tied to
+        # it these popups aren't part of its window stack and can render
+        # behind it, making the app look frozen until the hidden popup is
+        # found and dismissed.
+        parent = parent or self.controller.root
+
+        # Ask for directory location. Explicit initialdir - left unset, Tk
+        # falls back to the process's working directory, which is how a
+        # hidden-behind-the-modal picker got clicked through unnoticed and
+        # silently wrote the export next to the app's source instead of a
+        # deliberately chosen folder.
+        initial_dir = (
+            os.path.dirname(self.model.current_file_path)
+            if self.model.current_file_path
+            else os.path.expanduser('~')
+        )
         directory_path = filedialog.askdirectory(
-            title="Choose Directory for CSV Export"
+            title="Choose Directory for CSV Export",
+            parent=parent,
+            initialdir=initial_dir,
         )
 
         if not directory_path:
@@ -1714,17 +1732,23 @@ class ExportOperations:
         try:
             files = self._write_csv_export(directory_path)
         except Exception as e:
-            messagebox.showerror("Export Error", f"Error exporting to CSV: {e}")
+            messagebox.showerror(
+                "Export Error", f"Error exporting to CSV: {e}", parent=parent
+            )
             return False
 
         # Show success message
         messagebox.showinfo(
-            "Export Successful", "Data exported to:\n" + "\n".join(files)
+            "Export Successful",
+            "Data exported to:\n" + "\n".join(files),
+            parent=parent,
         )
 
         # Ask if user wants to open the directory
         if messagebox.askyesno(
-            "Open Directory", "Would you like to open the export directory?"
+            "Open Directory",
+            "Would you like to open the export directory?",
+            parent=parent,
         ):
             try:
                 if os.name == "nt":  # Windows
@@ -1733,7 +1757,9 @@ class ExportOperations:
                     subprocess.call(("xdg-open", directory_path))
             except Exception as e:
                 messagebox.showwarning(
-                    "Could not open directory", f"Error opening directory: {e}"
+                    "Could not open directory",
+                    f"Error opening directory: {e}",
+                    parent=parent,
                 )
 
         return True
