@@ -532,7 +532,7 @@ class TaskOperations:
             headers_frame, text='Index', width=8, anchor='w', font=('Arial', 10, 'bold')
         ).pack(side=tk.LEFT)
         tk.Label(
-            headers_frame, text='Date', width=15, anchor='w', font=('Arial', 10, 'bold')
+            headers_frame, text='Date', width=22, anchor='w', font=('Arial', 10, 'bold')
         ).pack(side=tk.LEFT)
         tk.Label(
             headers_frame,
@@ -705,48 +705,71 @@ class TaskOperations:
             if not resource:
                 return
 
-            # Create capacity list entries
-            for i, capacity in enumerate(resource['capacity']):
-                if i >= self.model.days:
-                    break
+            capacity = resource['capacity'][: self.model.days]
 
-                date = self.model.get_date_for_day(i)
-                date_str = date.strftime('%Y-%m-%d')
+            # Collapse consecutive equal-capacity days into a single row -
+            # most resources have one uniform value (or a simple
+            # weekday/weekend pattern), so this keeps the row count (and
+            # the number of widgets built) small regardless of how many
+            # days are in the project, instead of one row per day.
+            runs = []
+            start = 0
+            for i in range(1, len(capacity) + 1):
+                if i == len(capacity) or capacity[i] != capacity[start]:
+                    runs.append((start, i - 1, capacity[start]))
+                    start = i
+
+            for row_index, (start_day, end_day, value) in enumerate(runs):
+                start_date = self.model.get_date_for_day(start_day).strftime(
+                    '%Y-%m-%d'
+                )
+                if end_day == start_day:
+                    day_text = str(start_day)
+                    date_text = start_date
+                else:
+                    day_text = f'{start_day}-{end_day}'
+                    end_date = self.model.get_date_for_day(end_day).strftime(
+                        '%Y-%m-%d'
+                    )
+                    date_text = f'{start_date} to {end_date}'
 
                 row_frame = tk.Frame(capacity_list_frame)
                 row_frame.pack(fill=tk.X, pady=1)
 
                 # Set alternating row color
-                if i % 2 == 0:
-                    row_frame.configure(bg='#f0f0f0')
-                    bg_color = '#f0f0f0'
-                else:
-                    row_frame.configure(bg='#ffffff')
-                    bg_color = '#ffffff'
+                bg_color = '#f0f0f0' if row_index % 2 == 0 else '#ffffff'
+                row_frame.configure(bg=bg_color)
 
-                # Day index
+                # Day index (or range)
                 day_label = tk.Label(
-                    row_frame, text=str(i), width=8, anchor='w', bg=bg_color
+                    row_frame, text=day_text, width=8, anchor='w', bg=bg_color
                 )
                 day_label.pack(side=tk.LEFT)
 
-                # Date
+                # Date (or range)
                 date_label = tk.Label(
-                    row_frame, text=date_str, width=15, anchor='w', bg=bg_color
+                    row_frame, text=date_text, width=22, anchor='w', bg=bg_color
                 )
                 date_label.pack(side=tk.LEFT)
 
                 # Capacity
                 capacity_label = tk.Label(
-                    row_frame, text=str(capacity), width=10, anchor='w', bg=bg_color
+                    row_frame, text=str(value), width=10, anchor='w', bg=bg_color
                 )
                 capacity_label.pack(side=tk.LEFT)
 
         # Function to update capacity by index
         def update_capacity():
+            # Explicit parent - without it, these popups aren't tied to
+            # the "Edit Resources" Toplevel and can render behind its
+            # modal grab, making the whole dialog look frozen until it's
+            # dragged aside to reveal the hidden popup.
+            dialog_window = capacity_tab.winfo_toplevel()
             selected = resource_dropdown.get()
             if not selected:
-                tk.messagebox.showwarning('Warning', 'Please select a resource.')
+                tk.messagebox.showwarning(
+                    'Warning', 'Please select a resource.', parent=dialog_window
+                )
                 return
 
             resource_id = int(selected.split(' - ')[0])
@@ -760,6 +783,7 @@ class TaskOperations:
                     tk.messagebox.showwarning(
                         'Warning',
                         f'Day index must be between 0 and {self.model.days - 1}.',
+                        parent=dialog_window,
                     )
                     return
 
@@ -772,6 +796,7 @@ class TaskOperations:
                         tk.messagebox.showwarning(
                             'Warning',
                             f'End day index must be between {day} and {self.model.days - 1}.',
+                            parent=dialog_window,
                         )
                         return
 
@@ -779,7 +804,9 @@ class TaskOperations:
                     capacity = float(capacity_var.get())
                     if capacity < 0:
                         tk.messagebox.showwarning(
-                            'Warning', 'Capacity cannot be negative.'
+                            'Warning',
+                            'Capacity cannot be negative.',
+                            parent=dialog_window,
                         )
                         return
 
@@ -788,7 +815,9 @@ class TaskOperations:
                         self.model.update_resource_capacity(resource_id, i, capacity)
 
                     tk.messagebox.showinfo(
-                        'Success', f'Capacity updated for days {day} to {end_day}.'
+                        'Success',
+                        f'Capacity updated for days {day} to {end_day}.',
+                        parent=dialog_window,
                     )
 
                 else:
@@ -796,28 +825,37 @@ class TaskOperations:
                     capacity = float(capacity_var.get())
                     if capacity < 0:
                         tk.messagebox.showwarning(
-                            'Warning', 'Capacity cannot be negative.'
+                            'Warning',
+                            'Capacity cannot be negative.',
+                            parent=dialog_window,
                         )
                         return
 
                     # Update capacity
                     self.model.update_resource_capacity(resource_id, day, capacity)
                     tk.messagebox.showinfo(
-                        'Success', f'Capacity updated for day {day}.'
+                        'Success',
+                        f'Capacity updated for day {day}.',
+                        parent=dialog_window,
                     )
 
                 # Redraw capacity list
                 draw_capacity_list(resource_id)
 
             except ValueError:
-                tk.messagebox.showwarning('Warning', 'Please enter valid numbers.')
+                tk.messagebox.showwarning(
+                    'Warning', 'Please enter valid numbers.', parent=dialog_window
+                )
                 return
 
         # Function to update capacity by date
         def update_capacity_by_date():
+            dialog_window = capacity_tab.winfo_toplevel()
             selected = resource_dropdown.get()
             if not selected:
-                tk.messagebox.showwarning('Warning', 'Please select a resource.')
+                tk.messagebox.showwarning(
+                    'Warning', 'Please select a resource.', parent=dialog_window
+                )
                 return
 
             resource_id = int(selected.split(' - ')[0])
@@ -833,7 +871,9 @@ class TaskOperations:
                     start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
                 except ValueError:
                     tk.messagebox.showwarning(
-                        'Warning', 'Start date must be in YYYY-MM-DD format.'
+                        'Warning',
+                        'Start date must be in YYYY-MM-DD format.',
+                        parent=dialog_window,
                     )
                     return
 
@@ -845,14 +885,18 @@ class TaskOperations:
                         end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
                     except ValueError:
                         tk.messagebox.showwarning(
-                            'Warning', 'End date must be in YYYY-MM-DD format.'
+                            'Warning',
+                            'End date must be in YYYY-MM-DD format.',
+                            parent=dialog_window,
                         )
                         return
 
                 # Validate date range
                 if end_date < start_date:
                     tk.messagebox.showwarning(
-                        'Warning', 'End date must be after start date.'
+                        'Warning',
+                        'End date must be after start date.',
+                        parent=dialog_window,
                     )
                     return
 
@@ -863,20 +907,28 @@ class TaskOperations:
                 # Validate indices are within project range
                 if start_day < 0 or start_day >= self.model.days:
                     tk.messagebox.showwarning(
-                        'Warning', 'Start date is outside the project timeline.'
+                        'Warning',
+                        'Start date is outside the project timeline.',
+                        parent=dialog_window,
                     )
                     return
 
                 if end_day < 0 or end_day >= self.model.days:
                     tk.messagebox.showwarning(
-                        'Warning', 'End date is outside the project timeline.'
+                        'Warning',
+                        'End date is outside the project timeline.',
+                        parent=dialog_window,
                     )
                     return
 
                 # Get capacity
                 capacity = float(date_capacity_var.get())
                 if capacity < 0:
-                    tk.messagebox.showwarning('Warning', 'Capacity cannot be negative.')
+                    tk.messagebox.showwarning(
+                        'Warning',
+                        'Capacity cannot be negative.',
+                        parent=dialog_window,
+                    )
                     return
 
                 # Update capacity for date range
@@ -886,13 +938,16 @@ class TaskOperations:
                 tk.messagebox.showinfo(
                     'Success',
                     f'Capacity updated for dates from {start_date_str} to {end_date_str}.',
+                    parent=dialog_window,
                 )
 
                 # Redraw capacity list
                 draw_capacity_list(resource_id)
 
             except ValueError as e:
-                tk.messagebox.showwarning('Warning', f'Error: {str(e)}')
+                tk.messagebox.showwarning(
+                    'Warning', f'Error: {str(e)}', parent=dialog_window
+                )
                 return
 
         # Connect events
@@ -905,12 +960,27 @@ class TaskOperations:
 
         resource_dropdown.bind('<<ComboboxSelected>>', on_resource_select)
 
-        # Initialize with the first resource if available
-        if self.model.resources:
-            resource_id = self.model.resources[0]['id']
-            draw_capacity_list(resource_id)
+        def refresh_capacity_list():
+            """(Re)build the capacity list for whichever resource is
+            selected. Building it costs widgets proportional to the number
+            of capacity runs, not the number of days, but there's still no
+            reason to pay it before the Capacity tab is ever looked at -
+            the caller (edit_resources's tab-change handler) triggers this
+            lazily instead of doing it unconditionally at dialog-open time.
+            """
+            selected = resource_dropdown.get()
+            if selected:
+                resource_id = int(selected.split(' - ')[0])
+                draw_capacity_list(resource_id)
 
-        return capacity_frame, day_var, end_day_var, capacity_var, update_capacity
+        return (
+            capacity_frame,
+            day_var,
+            end_day_var,
+            capacity_var,
+            update_capacity,
+            refresh_capacity_list,
+        )
 
     def edit_task_resources(self, task=None):
         """Edit resources for the selected task with fractional allocations"""
@@ -1194,18 +1264,6 @@ class TaskOperations:
         )
         works_weekends_cb.pack(side=tk.LEFT)
 
-        # Update the function to set the checkbox when a resource is selected
-        def on_resource_select(event):
-            selected_indices = resource_listbox.curselection()
-            if selected_indices:
-                index = selected_indices[0]
-                resource_text = resource_listbox.get(index)
-                resource_id = int(resource_text.split(' - ')[0])
-                resource = self.model.get_resource_by_id(resource_id)
-                if resource:
-                    resource_name_var.set(resource['name'])
-                    works_weekends_var.set(resource.get('works_weekends', True))
-
         # Update the function to add a new resource with the checkbox value
         def add_resource_from_dialog():
             resource_name = resource_name_var.get().strip()
@@ -1407,7 +1465,12 @@ class TaskOperations:
             dialog.destroy()
 
         def on_resource_select(event):
-            """When a resource is selected, populate the name entry field"""
+            """When a resource is selected, populate the name entry field
+            and keep the Capacity tab's resource dropdown in sync - it's a
+            separate selection widget from this listbox, so without this
+            the Capacity tab silently kept showing whichever resource it
+            last had selected (e.g. Resource A) regardless of what was
+            picked here."""
             selected_indices = resource_listbox.curselection()
             if selected_indices:
                 index = selected_indices[0]
@@ -1417,6 +1480,8 @@ class TaskOperations:
                 if resource:
                     resource_name_var.set(resource['name'])
                     works_weekends_var.set(resource.get('works_weekends', True))
+                    resource_dropdown.set(resource_text)
+                    refresh_capacity_list()
 
         # Bind selection event
         resource_listbox.bind('<<ListboxSelect>>', on_resource_select)
@@ -1439,15 +1504,29 @@ class TaskOperations:
         )
 
         # Create the capacity tab with our new implementation
-        capacity_frame, day_var, end_day_var, capacity_var, update_capacity = (
-            self.create_capacity_tab(capacity_tab, resource_dropdown)
-        )
+        (
+            capacity_frame,
+            day_var,
+            end_day_var,
+            capacity_var,
+            update_capacity,
+            refresh_capacity_list,
+        ) = self.create_capacity_tab(capacity_tab, resource_dropdown)
 
         # Update dropdown values
         def update_resource_dropdown():
             resources = [f"{r['id']} - {r['name']}" for r in self.model.resources]
+            current = resource_dropdown.get()
             resource_dropdown['values'] = resources
-            if resources:
+            # Preserve whatever resource was already selected (e.g. when
+            # re-entering the Capacity tab) instead of always snapping back
+            # to the first resource - that used to just look wrong in the
+            # dropdown text, but now that refresh_capacity_list() redraws
+            # from this value on every tab switch, resetting it here would
+            # silently redraw the wrong resource's capacity.
+            if current in resources:
+                resource_dropdown.set(current)
+            elif resources:
                 resource_dropdown.current(0)
 
         # Initialize the dropdown
@@ -1481,10 +1560,6 @@ class TaskOperations:
         # Also update the protocol handler for window close (X button)
         dialog.protocol('WM_DELETE_WINDOW', on_dialog_close)
 
-        # # Draw the initial capacity chart if a resource is selected
-        # if self.model.resources:
-        #     draw_capacity_chart()
-
         # Connect the notebook tabs to update functions
         def on_tab_changed(event):
             tab = event.widget.select()
@@ -1493,10 +1568,12 @@ class TaskOperations:
                 # Refresh resource list when switching to resources tab
                 populate_resource_listbox()
             elif tab_text == 'Capacity':
-                # Refresh capacity dropdown when switching to capacity tab
+                # Refresh capacity dropdown and (re)build the capacity list
+                # only now that the tab is actually visible - not at
+                # dialog-open time, and not on every keystroke elsewhere in
+                # the dialog.
                 update_resource_dropdown()
-                # Redraw capacity chart
-                # draw_capacity_chart()
+                refresh_capacity_list()
 
         notebook.bind('<<NotebookTabChanged>>', on_tab_changed)
 
