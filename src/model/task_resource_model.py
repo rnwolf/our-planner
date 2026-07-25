@@ -19,15 +19,23 @@ PROJECT_PHASES = ['planning', 'execution']
 CCPM_METHODS = ['cap', 'hchain', 'rsem']
 DEFAULT_CCPM_METHOD = 'cap'
 
-CRITICAL_CHAIN_COLOR = '#E53935'  # red
-# Default colors for the seeded Feeding-01..04 chains - mutually distinguishable
-# at a glance; all freely editable afterward via Manage Chains, and more chains
-# can be added there if a plan needs more than 4 feeding chains.
+CRITICAL_CHAIN_COLOR = '#E34948'  # red
+# Default colors for the seeded Feeding-01..07 chains - an 8-hue categorical
+# set (this + CRITICAL_CHAIN_COLOR) validated for mutual distinguishability,
+# including under common color-vision deficiencies, rather than picked by
+# eye. The two previous feeding colors (magenta/deep-orange) sat too close
+# to the critical chain's red at a glance - this set's magenta and orange
+# are shifted further from red specifically to fix that. All freely
+# editable afterward via Manage Chains, and more chains can be added there
+# if a plan needs more than 7 feeding chains.
 FEEDING_CHAIN_COLORS = [
-    '#1E88E5',  # blue
-    '#D81B60',  # magenta
-    '#8E24AA',  # purple
-    '#F4511E',  # deep orange
+    '#2A78D6',  # blue
+    '#008300',  # green
+    '#E87BA4',  # magenta
+    '#EDA100',  # yellow
+    '#1BAF7A',  # aqua
+    '#EB6834',  # orange
+    '#4A3AA7',  # violet
 ]
 
 # Fever chart (Stage 8) zone boundary defaults, approximated from a reference
@@ -177,7 +185,7 @@ class TaskResourceModel:
         # the whole plan - a task's chain_id references one of these
         self.chain_id_counter = 0
         self.chains: List[Dict[str, Any]] = []
-        # Seed the critical chain plus 10 feeding chains with distinguishable
+        # Seed the critical chain plus 7 feeding chains with distinguishable
         # default colors - hand-picking that many good colors is hard, so the
         # tool supplies a reasonable starting palette, fully editable afterward
         self.add_chain('Critical', CRITICAL_CHAIN_COLOR, is_critical=True)

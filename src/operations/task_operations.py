@@ -2537,6 +2537,18 @@ class TaskOperations:
             settings_frame, text='Pick Date...', command=open_calendar_dialog
         ).grid(row=2, column=2, padx=5, pady=5, sticky='w')
 
+        # Chains (critical chain + feeding chains) - lives here rather than
+        # its own top-level menu since it's project-level configuration, the
+        # same category as days/rows/start date above.
+        tk.Label(settings_frame, text='Chains:').grid(
+            row=4, column=0, sticky='w', pady=5
+        )
+        tk.Button(
+            settings_frame,
+            text='Manage Chains...',
+            command=lambda: self.manage_chains_dialog(parent=dialog),
+        ).grid(row=4, column=1, sticky='w', pady=5)
+
         # Button frame
         button_frame = tk.Frame(dialog)
         button_frame.pack(fill=tk.X, pady=10)

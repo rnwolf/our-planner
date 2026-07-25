@@ -515,17 +515,6 @@ class UIComponents:
             command=lambda: self.controller.report_ops.view_network_graph_project(),
         )
 
-        # Chains menu
-        self.chains_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Chains', menu=self.chains_menu, underline=0)
-
-        self.chains_menu.add_command(
-            label='Manage Chains...',
-            command=lambda: self.controller.task_ops.manage_chains_dialog(
-                parent=self.controller.root
-            ),
-        )
-
         # Add Network menu
         self.network_menu = NetworkMenu(
             self.controller, self.controller.root, self.menu_bar
