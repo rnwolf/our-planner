@@ -2442,89 +2442,6 @@ class TaskOperations:
         button_frame = tk.Frame(dialog)
         button_frame.pack(fill=tk.X, pady=10)
 
-        def save_settings():
-            try:
-                new_days = int(days_var.get())
-                new_max_rows = int(max_rows_var.get())
-
-                # Validate days and rows
-                if new_days < 1:
-                    messagebox.showerror(
-                        'Invalid Value',
-                        'Number of days must be at least 1.',
-                        parent=dialog,
-                    )
-                    return
-
-                if new_max_rows < 1:
-                    messagebox.showerror(
-                        'Invalid Value',
-                        'Maximum rows must be at least 1.',
-                        parent=dialog,
-                    )
-                    return
-
-                # Validate date
-                try:
-                    year = int(year_var.get())
-                    month = int(month_var.get())
-                    day = int(day_var.get())
-
-                    from datetime import datetime
-
-                    new_start_date = datetime(year, month, day)
-                except ValueError:
-                    messagebox.showerror(
-                        'Invalid Date',
-                        'Please enter a valid date in format YYYY-MM-DD.',
-                        parent=dialog,
-                    )
-                    return
-
-                # Check if any tasks would be outside the new bounds
-                tasks_out_of_bounds = False
-                for task in self.model.tasks:
-                    if (
-                        task['col'] + task['duration'] > new_days
-                        or task['row'] >= new_max_rows
-                    ):
-                        tasks_out_of_bounds = True
-                        break
-
-                if tasks_out_of_bounds:
-                    if not messagebox.askyesno(
-                        'Warning',
-                        'Some tasks will be outside the new boundaries. These tasks may be lost or truncated. Continue?',
-                        parent=dialog,
-                    ):
-                        return
-
-                # Apply the settings
-                self.model.days = new_days
-                self.model.max_rows = new_max_rows
-                self.model.start_date = new_start_date
-
-                # Update resource capacities to match new days if needed
-                for resource in self.model.resources:
-                    if len(resource['capacity']) < new_days:
-                        # Extend capacities with default values
-                        resource['capacity'].extend(
-                            [1.0] * (new_days - len(resource['capacity']))
-                        )
-                    elif len(resource['capacity']) > new_days:
-                        # Truncate capacities
-                        resource['capacity'] = resource['capacity'][:new_days]
-
-                # Update the UI
-                self.controller.update_view()
-
-                dialog.destroy()
-
-            except ValueError:
-                messagebox.showerror(
-                    'Invalid Input', 'Please enter valid numbers.', parent=dialog
-                )
-
         # Add a function to handle the date change effects
         def apply_date_change():
             try:
@@ -2552,6 +2469,24 @@ class TaskOperations:
                     )
                     return
 
+                # Check if any tasks would be outside the new bounds
+                tasks_out_of_bounds = False
+                for task in self.model.tasks:
+                    if (
+                        task['col'] + task['duration'] > new_days
+                        or task['row'] >= new_max_rows
+                    ):
+                        tasks_out_of_bounds = True
+                        break
+
+                if tasks_out_of_bounds:
+                    if not messagebox.askyesno(
+                        'Warning',
+                        'Some tasks will be outside the new boundaries. These tasks may be lost or truncated. Continue?',
+                        parent=dialog,
+                    ):
+                        return
+
                 # Check if the start date has changed
                 if new_start_date != self.controller.model.start_date:
                     if not self.update_project_start_date(new_start_date):
@@ -2560,6 +2495,17 @@ class TaskOperations:
                 # Update other settings
                 self.model.days = new_days
                 self.model.max_rows = new_max_rows
+
+                # Update resource capacities to match new days if needed
+                for resource in self.model.resources:
+                    if len(resource['capacity']) < new_days:
+                        # Extend capacities with default values
+                        resource['capacity'].extend(
+                            [1.0] * (new_days - len(resource['capacity']))
+                        )
+                    elif len(resource['capacity']) > new_days:
+                        # Truncate capacities
+                        resource['capacity'] = resource['capacity'][:new_days]
 
                 # Update view
                 self.controller.update_view()
