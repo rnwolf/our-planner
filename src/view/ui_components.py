@@ -246,6 +246,78 @@ class UIComponents:
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu, underline=0)
 
+        # Task submenu (Alt+E, T) - keyboard access to the same "Edit Task
+        # ..." commands the right-click context menu offers, for editing
+        # whatever task is currently selected without needing the mouse.
+        self.edit_task_menu = tk.Menu(self.edit_menu, tearoff=0)
+        self.edit_menu.add_cascade(
+            label='Task', menu=self.edit_task_menu, underline=0
+        )
+
+        self.edit_task_menu.add_command(
+            label='Edit Task Name',
+            underline=10,  # the N
+            command=lambda: self.controller.task_ops.edit_task_name(
+                parent=self.controller.root
+            ),
+        )
+        self.edit_task_menu.add_command(
+            label='Edit Task URL',
+            underline=10,  # the U
+            command=self.controller.task_ops.edit_task_url,
+        )
+        self.edit_task_menu.add_command(
+            label='Edit Task Project...',
+            underline=10,  # the P
+            command=lambda: self.controller.task_ops.edit_task_project(
+                self.controller.selected_task
+            ),
+        )
+        self.edit_task_menu.add_command(
+            label='Edit Task Chain...',
+            underline=10,  # the C
+            command=lambda: self.controller.task_ops.edit_task_chain(
+                self.controller.selected_task
+            ),
+        )
+        self.edit_task_menu.add_command(
+            label='Edit Task Resources',
+            underline=10,  # the R
+            command=lambda: self.controller.task_ops.edit_task_resources(
+                self.controller.selected_task
+            ),
+        )
+        self.edit_task_menu.add_command(
+            label='Edit Task Tags',
+            underline=10,  # the T
+            command=lambda: self.controller.tag_ops.edit_task_tags(
+                self.controller.selected_task
+            ),
+        )
+        self.edit_task_menu.add_command(
+            label='Edit Task Duration...',
+            underline=10,  # the D
+            command=lambda: self.controller.task_ops.edit_task_duration(
+                [self.controller.selected_task]
+            ),
+        )
+
+        # Color submenu, same web-color list as the context menu's
+        self.edit_task_color_menu = tk.Menu(self.edit_task_menu, tearoff=0)
+        self.edit_task_menu.add_cascade(
+            label='Edit Task Color',
+            menu=self.edit_task_color_menu,
+            underline=11,  # the O - the C is already Chain's mnemonic above
+        )
+        for color_name in COLOR_NAMES:
+            self.edit_task_color_menu.add_command(
+                label=color_name,
+                command=lambda c=color_name: self.set_selected_task_color(c),
+                background=color_name,
+            )
+
+        self.edit_menu.add_separator()
+
         # Edit operations
         self.edit_menu.add_command(
             label='Add Resource...',
@@ -1150,10 +1222,16 @@ class UIComponents:
                 self.controller.selected_task
             ),
         )
+        self.context_menu.add_command(
+            label='Edit Task Duration...',
+            command=lambda: self.controller.task_ops.edit_task_duration(
+                [self.controller.selected_task]
+            ),
+        )
 
         # Add color selection submenu
         self.color_menu = tk.Menu(self.context_menu, tearoff=0)
-        self.context_menu.add_cascade(label='Set Task Color', menu=self.color_menu)
+        self.context_menu.add_cascade(label='Edit Task Color', menu=self.color_menu)
 
         # Populate color menu with all web colors
         for color_name in COLOR_NAMES:
@@ -1175,14 +1253,6 @@ class UIComponents:
             label='View Notes',
             command=lambda: self.controller.task_ops.view_task_notes(
                 self.controller.selected_task
-            ),
-        )
-
-        self.context_menu.add_separator()
-        self.context_menu.add_command(
-            label='Edit Task Duration...',
-            command=lambda: self.controller.task_ops.edit_task_duration(
-                [self.controller.selected_task]
             ),
         )
 
