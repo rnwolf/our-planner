@@ -9,6 +9,7 @@ every buffer's forecast-lateness math compares a task's *current* col
 against its own baseline col, so both must shift together or the numbers
 silently drift.
 """
+from datetime import timedelta
 from unittest.mock import MagicMock
 
 from src.model.task_resource_model import TaskResourceModel
@@ -175,9 +176,7 @@ class TestDeleteHistory:
         assert self.pb['baseline']['col'] == 5
         assert self.model.days == original_days - 5
         assert len(self.resource['capacity']) == original_cap_len - 5
-        assert self.model.start_date == original_start.replace(
-            day=original_start.day + 5
-        )
+        assert self.model.start_date == original_start + timedelta(days=5)
 
     def test_fever_chart_math_unaffected_by_compaction(self):
         """The whole point of shift_task_position: if a compaction's cutoff
@@ -326,9 +325,7 @@ class TestDeleteHistoryDialogConfirmation:
         mock_confirm.assert_called_once()
         mock_info.assert_called_once()
         assert empty_model.days == days_before - 5
-        assert empty_model.start_date == start_before.replace(
-            day=start_before.day + 5
-        )
+        assert empty_model.start_date == start_before + timedelta(days=5)
         controller.update_view.assert_called_once()
 
     def test_blocking_cutoff_shows_error_and_does_not_delete(self):
