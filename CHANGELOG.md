@@ -1,4 +1,46 @@
 
+    ## [0.1.21] - 2026-07-27
+    ### Fixed
+    - Project Settings no longer corrupts resource capacity arrays when changing the
+      number of days - this was causing an IndexError the next time resource loading
+      redrew (e.g. closing the Edit Resources dialog).
+    - Edit Resources dialog was slow to open (multiple seconds, worse the more days in
+      the project): its Capacity tab built one row of widgets per project day and
+      eagerly constructed two tkcalendar.DateEntry pickers regardless of which tab was
+      visible. The tab now builds lazily (only when selected) and collapses consecutive
+      equal-capacity days into a single row; the date pickers are now plain fields with
+      a "Pick..." button that only builds the calendar popup if clicked. Also fixed the
+      Capacity tab's resource dropdown silently desyncing from the Resources tab's
+      listbox, and a capacity-update success popup that could render behind the modal
+      dialog.
+    - CSV export's "Choose Directory" picker could render behind the modal Export
+      dialog, and - with no default folder - could silently write next to our-planner's
+      own install location instead of the folder you actually chose.
+    - A month-end-flaky date assertion in the delete-history tests (broke whenever the
+      suite ran within 5 days of month-end).
+    ### Added
+    - "Edit Task Duration..." on the task right-click menu (single task or every
+      selected task at once) - type an exact number of days instead of dragging a
+      task's edge, and a new Edit > Task keyboard menu mirroring the same "Edit Task
+      ..." commands for editing without a mouse.
+    - File > Import Network: three sequential actions - Import Resources..., Import
+      Resource Calendars..., Import Tasks... - for bringing in a plain, unscheduled
+      reference network (tasks/resources matched by id), as the counterpart to
+      Export CCPM Network.... New tasks get an automatic ASAP placement computed from
+      predecessor links (FS/SS/FF/SF); an id that already exists only has its
+      description/duration/resources/predecessors updated in place - state, notes,
+      actual dates, and history are never touched. Every action validates up front and
+      makes no changes at all if anything doesn't resolve. See Help > Documentation for
+      the full column reference and the resource_ids id:allocation notation.
+    ### Changed
+    - Chain colors (critical + feeding chains) now use a validated, mutually
+      distinguishable 8-hue palette - the previous feeding-chain colors sat too close in
+      hue to the critical chain's red.
+    - "Manage Chains..." moved from its own top-level Chains menu into a button on the
+      Project Settings dialog.
+    - "Set Task Color" renamed to "Edit Task Color" for consistency with the rest of
+      that menu's "Edit Task ..." commands.
+
     ## [0.1.20] - 2026-07-19
     ### Changed
     - **Licence changed from GPL-3.0-or-later to MIT** (sole-author relicense) so the code
