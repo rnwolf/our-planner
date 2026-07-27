@@ -3,7 +3,7 @@ import csv
 import os
 import re
 from datetime import datetime
-from src.model.dependency_notation import VALID_LINK_TYPES
+from src.model.dependency_notation import VALID_LINK_TYPES, parse_predecessor_notation
 from src.model.task_resource_model import CRITICAL_CHAIN_COLOR, FEEDING_CHAIN_COLORS
 
 # Matches a single predecessor token from a CCPM schedule.csv, e.g. 'K2',
@@ -13,6 +13,40 @@ _CSV_PREDECESSOR_TOKEN_RE = re.compile(r'^([A-Za-z0-9_]+)(?::([A-Za-z]{2})([+-]\
 
 # Matches a 'feeding-N' chain label from a CCPM schedule.csv.
 _FEEDING_CHAIN_LABEL_RE = re.compile(r'^feeding-(\d+)$')
+
+
+def _read_csv_rows(path):
+    """csv.DictReader rows with whitespace-stripped header names - a header
+    like 'resource_ids ' (trailing space, e.g. from a spreadsheet export)
+    would otherwise silently make every `row.get('resource_ids')` return
+    None instead of the real column, since dict lookup is exact-match. Used
+    by the Import Network actions (import_resources/
+    import_resource_calendars/import_tasks) - not import_ccpm_schedule's
+    reader above, which is a separate, older code path."""
+    with open(path, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        return [
+            {(k.strip() if k else k): v for k, v in row.items()} for row in reader
+        ]
+
+
+def _parse_resource_tokens(value):
+    """Parse a semicolon-separated resource_ids cell (Import Tasks...) into
+    {resource_id: allocation}. A bare id defaults to allocation 1.0
+    (ccpm-scheduler's own convention); 'id:allocation' is this app's own
+    extension - export_operations.py's `_resource_token` is the writer
+    counterpart. Raises ValueError on a malformed token."""
+    result = {}
+    for token in (value or '').split(';'):
+        token = token.strip()
+        if not token:
+            continue
+        if ':' in token:
+            id_part, _, alloc_part = token.partition(':')
+            result[int(id_part.strip())] = float(alloc_part.strip())
+        else:
+            result[int(token)] = 1.0
+    return result
 
 
 class FileOperations:
@@ -396,3 +430,532 @@ class FileOperations:
         if chain:
             return chain['id']
         return self.model.add_chain(label, '#888888')['id']
+
+    # -------------------------------------------------- Import Network Data
+    #
+    # Three separate, deliberately sequential actions (File > Import Network)
+    # for round-tripping a *reference* network - one that may not be
+    # CCPM-scheduled yet, so import_ccpm_schedule() above (which requires an
+    # already-scheduled schedule.csv) doesn't fit. Unlike that importer,
+    # which treats CSV ids as foreign/arbitrary strings and always creates
+    # new tasks/resources via an id-remap table, these match an incoming row
+    # to an existing task/resource BY ID directly - the assumption is that
+    # the file's ids already correspond to this model's real ids (e.g. from
+    # a previous CSV export, or a deliberately hand-numbered reference
+    # file). A matched row only updates the fields the CSV format actually
+    # carries; everything else (task state/notes/history, resource
+    # capacity/tags) is left exactly as it is.
+
+    def import_resources(self):
+        """File > Import Network > Import Resources...: create or update
+        resources from a resources.csv, matched by id. A brand-new id gets
+        the imported capacity (default 1.0) as its starting per-day array.
+        An id that already exists has name/url updated (only for non-empty
+        cells), and its capacity RESET to a flat per-day array of the CSV's
+        value if the `capacity` cell is non-empty - a blank cell leaves
+        whatever capacity configuration (including any per-day pattern) the
+        resource already has untouched. tags/works_weekends are never
+        touched by import either way."""
+        path = filedialog.askopenfilename(
+            defaultextension='.csv',
+            filetypes=[
+                ('resources.csv', 'resources.csv'),
+                ('CSV files', '*.csv'),
+                ('All files', '*.*'),
+            ],
+            title='Import Resources (select resources.csv)',
+            parent=self.controller.root,
+        )
+        if not path:
+            return
+
+        try:
+            rows = _read_csv_rows(path)
+        except Exception as e:
+            messagebox.showerror(
+                'Import Error',
+                f'Error reading resources.csv: {e}',
+                parent=self.controller.root,
+            )
+            return
+
+        # Validate everything up front - no partial imports on a bad row.
+        problems = []
+        parsed = []
+        for row in rows:
+            raw_id = (row.get('id') or '').strip()
+            try:
+                resource_id = int(raw_id)
+            except ValueError:
+                problems.append(f"row with id '{raw_id or '(blank)'}': not a whole number")
+                continue
+
+            raw_capacity = (row.get('capacity') or '').strip()
+            if raw_capacity:
+                try:
+                    float(raw_capacity)
+                except ValueError:
+                    problems.append(
+                        f"resource {resource_id}: capacity '{raw_capacity}' is not a number"
+                    )
+                    continue
+
+            parsed.append((resource_id, row))
+
+        if problems:
+            messagebox.showerror(
+                'Import Error',
+                'resources.csv has problem row(s) - fix these and try again '
+                '(no changes made):\n\n' + '\n'.join(problems[:10])
+                + (f'\n...and {len(problems) - 10} more' if len(problems) > 10 else ''),
+                parent=self.controller.root,
+            )
+            return
+
+        new_ids = [rid for rid, _ in parsed if not self.model.get_resource_by_id(rid)]
+        existing_ids = [rid for rid, _ in parsed if self.model.get_resource_by_id(rid)]
+        existing_with_capacity = [
+            rid for rid, row in parsed
+            if self.model.get_resource_by_id(rid) and (row.get('capacity') or '').strip()
+        ]
+
+        message = (
+            f'{len(new_ids)} new resource(s) will be created.\n'
+            f'{len(existing_ids)} existing resource(s) will have name/url '
+            f'updated where the CSV provides a value.\n'
+            f'{len(existing_with_capacity)} of those will also have their '
+            f'capacity RESET to the CSV value (replacing any existing '
+            f'per-day pattern) - existing resources with a blank capacity '
+            f'cell keep their current capacity unchanged. tags/weekend '
+            f'settings are never changed by import.\n\nProceed?'
+        )
+        if not messagebox.askyesno(
+            'Import Resources', message, parent=self.controller.root
+        ):
+            return
+
+        created = 0
+        updated = 0
+        for resource_id, row in parsed:
+            name = (row.get('name') or '').strip()
+            url = (row.get('url') or '').strip()
+            raw_capacity = (row.get('capacity') or '').strip()
+            existing = self.model.get_resource_by_id(resource_id)
+            if existing:
+                if name:
+                    existing['name'] = name
+                if url:
+                    existing['url'] = url
+                if raw_capacity:
+                    existing['capacity'] = [float(raw_capacity)] * self.model.days
+                updated += 1
+            else:
+                capacity_value = float(raw_capacity) if raw_capacity else 1.0
+                new_resource = self.model.add_resource(
+                    name or f'Resource {resource_id}',
+                    resource_id=resource_id,
+                    url=url,
+                )
+                if capacity_value != 1.0:
+                    new_resource['capacity'] = [capacity_value] * self.model.days
+                created += 1
+
+        self.controller.update_view()
+        messagebox.showinfo(
+            'Import Complete',
+            f'Created {created} new resource(s), updated {updated} existing '
+            f'resource(s).',
+            parent=self.controller.root,
+        )
+
+    def import_resource_calendars(self):
+        """File > Import Network > Import Resource Calendars...: apply
+        per-day capacity overrides from a calendar.csv (half-open
+        `[from, to)` ranges, same shape import_ccpm_schedule's own
+        calendar.csv uses) to resources that already exist. Resources must
+        be imported first - aborts with no changes if any referenced
+        resource_id doesn't exist yet, naming which ones."""
+        path = filedialog.askopenfilename(
+            defaultextension='.csv',
+            filetypes=[
+                ('calendar.csv', 'calendar.csv'),
+                ('CSV files', '*.csv'),
+                ('All files', '*.*'),
+            ],
+            title='Import Resource Calendars (select calendar.csv)',
+            parent=self.controller.root,
+        )
+        if not path:
+            return
+
+        try:
+            rows = _read_csv_rows(path)
+        except Exception as e:
+            messagebox.showerror(
+                'Import Error',
+                f'Error reading calendar.csv: {e}',
+                parent=self.controller.root,
+            )
+            return
+
+        problems = []
+        parsed = []
+        for row in rows:
+            raw_id = (row.get('resource_id') or '').strip()
+            try:
+                resource_id = int(raw_id)
+            except ValueError:
+                problems.append(
+                    f"row with resource_id '{raw_id or '(blank)'}': not a whole number"
+                )
+                continue
+
+            if not self.model.get_resource_by_id(resource_id):
+                problems.append(
+                    f'resource_id {resource_id}: no such resource - import '
+                    f'resources first'
+                )
+                continue
+
+            try:
+                from_day = int(row['from'])
+                to_day = int(row['to'])
+                capacity_value = float(row['capacity'])
+            except (KeyError, ValueError):
+                problems.append(
+                    f"resource_id {resource_id}: 'from'/'to'/'capacity' must be numbers"
+                )
+                continue
+
+            parsed.append((resource_id, from_day, to_day, capacity_value))
+
+        if problems:
+            messagebox.showerror(
+                'Import Error',
+                'calendar.csv has problem row(s) - fix these and try again '
+                '(no changes made):\n\n' + '\n'.join(problems[:10])
+                + (f'\n...and {len(problems) - 10} more' if len(problems) > 10 else ''),
+                parent=self.controller.root,
+            )
+            return
+
+        resource_count = len({rid for rid, *_ in parsed})
+        message = (
+            f'{len(parsed)} capacity override range(s) across '
+            f'{resource_count} resource(s) will be applied.\n\nProceed?'
+        )
+        if not messagebox.askyesno(
+            'Import Resource Calendars', message, parent=self.controller.root
+        ):
+            return
+
+        for resource_id, from_day, to_day, capacity_value in parsed:
+            resource = self.model.get_resource_by_id(resource_id)
+            for day in range(from_day, min(to_day, len(resource['capacity']))):
+                resource['capacity'][day] = capacity_value
+
+        self.controller.update_view()
+        messagebox.showinfo(
+            'Import Complete',
+            f'Applied {len(parsed)} capacity override range(s) across '
+            f'{resource_count} resource(s).',
+            parent=self.controller.root,
+        )
+
+    def import_tasks(self):
+        """File > Import Network > Import Tasks...: create or update tasks
+        from a tasks.csv, matched by id. A brand-new id is placed via a
+        plain ASAP layout computed from predecessor links (no resource
+        leveling, no CCPM buffers - this is a reference network, not a
+        scheduled one); an id that already exists only has its
+        description/duration/resources/predecessors updated in place, at
+        its current row/col - state, notes, actual dates, baseline, and
+        buffer/fever history are left untouched, since this minimal format
+        doesn't carry them.
+
+        Every referenced resource must already exist (Import Resources...
+        first) and every predecessor must resolve to either another row in
+        this file or an existing task - the whole import aborts with no
+        changes if anything doesn't resolve, so a bad row can't leave a
+        half-imported network.
+        """
+        path = filedialog.askopenfilename(
+            defaultextension='.csv',
+            filetypes=[
+                ('tasks.csv', 'tasks.csv'),
+                ('CSV files', '*.csv'),
+                ('All files', '*.*'),
+            ],
+            title='Import Tasks (select tasks.csv)',
+            parent=self.controller.root,
+        )
+        if not path:
+            return
+
+        try:
+            rows = _read_csv_rows(path)
+        except Exception as e:
+            messagebox.showerror(
+                'Import Error',
+                f'Error reading tasks.csv: {e}',
+                parent=self.controller.root,
+            )
+            return
+
+        problems = []
+        parsed = {}
+        order = []
+
+        for row in rows:
+            raw_id = (row.get('id') or '').strip()
+            try:
+                task_id = int(raw_id)
+            except ValueError:
+                problems.append(f"row with id '{raw_id or '(blank)'}': not a whole number")
+                continue
+
+            name = (row.get('name') or '').strip() or f'Task {task_id}'
+
+            raw_duration = (row.get('realistic_duration') or '').strip()
+            try:
+                duration = int(raw_duration)
+            except ValueError:
+                problems.append(
+                    f"task {task_id} ('{name}'): realistic_duration "
+                    f"'{raw_duration}' is not a whole number"
+                )
+                continue
+
+            raw_optimal = (row.get('optimal_duration') or '').strip()
+            optimal_duration = None
+            if raw_optimal:
+                try:
+                    optimal_duration = int(raw_optimal)
+                except ValueError:
+                    problems.append(
+                        f"task {task_id} ('{name}'): optimal_duration "
+                        f"'{raw_optimal}' is not a whole number"
+                    )
+                    continue
+
+            try:
+                resources = _parse_resource_tokens(row.get('resource_ids'))
+            except ValueError:
+                problems.append(
+                    f"task {task_id} ('{name}'): couldn't parse resource_ids "
+                    f"'{row.get('resource_ids')}'"
+                )
+                continue
+
+            missing_resources = [
+                rid for rid in resources if not self.model.get_resource_by_id(rid)
+            ]
+            if missing_resources:
+                problems.append(
+                    f"task {task_id} ('{name}'): references resource id(s) "
+                    + ', '.join(str(r) for r in missing_resources)
+                    + ' which do not exist - import resources first'
+                )
+                continue
+
+            try:
+                predecessors = parse_predecessor_notation(row.get('predecessor_ids') or '')
+            except ValueError as e:
+                problems.append(f"task {task_id} ('{name}'): {e}")
+                continue
+
+            parsed[task_id] = {
+                'name': name,
+                'duration': duration,
+                'optimal_duration': optimal_duration,
+                'resources': resources,
+                'predecessors': predecessors,
+                'url': (row.get('url') or '').strip(),
+                'tags': [
+                    t.strip()
+                    for t in re.split(r'[;,]', row.get('tags') or '')
+                    if t.strip()
+                ],
+                'colour': (row.get('colour') or row.get('color') or '').strip(),
+            }
+            order.append(task_id)
+
+        if problems:
+            messagebox.showerror(
+                'Import Error',
+                'tasks.csv has problem row(s) - fix these and try again '
+                '(no changes made):\n\n' + '\n'.join(problems[:10])
+                + (f'\n...and {len(problems) - 10} more' if len(problems) > 10 else ''),
+                parent=self.controller.root,
+            )
+            return
+
+        # Predecessors must resolve to either another row in this file or
+        # an existing task.
+        unresolved = []
+        for task_id, info in parsed.items():
+            for entry in info['predecessors']:
+                pred_id = entry['id']
+                if pred_id not in parsed and not self.model.get_task(pred_id):
+                    unresolved.append(
+                        f"task {task_id} ('{info['name']}'): predecessor "
+                        f"{pred_id} does not exist"
+                    )
+        if unresolved:
+            messagebox.showerror(
+                'Import Error',
+                "tasks.csv references predecessor(s) that don't exist - fix "
+                'these and try again (no changes made):\n\n'
+                + '\n'.join(unresolved[:10])
+                + (f'\n...and {len(unresolved) - 10} more' if len(unresolved) > 10 else ''),
+                parent=self.controller.root,
+            )
+            return
+
+        new_ids = {tid for tid in parsed if not self.model.get_task(tid)}
+        existing_ids = set(parsed) - new_ids
+
+        # ASAP layout for new tasks only - existing (matched) tasks are
+        # never repositioned, only their data fields update below.
+        anchor_day = self.model.get_day_for_date(self.model.setdate)
+        computed_col = {}
+        visiting = set()
+
+        def duration_of(tid):
+            if tid in parsed:
+                return parsed[tid]['duration']
+            return self.model.get_task(tid)['duration']
+
+        def start_of(tid):
+            if tid not in new_ids:
+                return self.model.get_task(tid)['col']
+            if tid in computed_col:
+                return computed_col[tid]
+            if tid in visiting:
+                raise ValueError(f'task {tid}: cyclic predecessor reference')
+            visiting.add(tid)
+
+            preds = parsed[tid]['predecessors']
+            if not preds:
+                start = anchor_day
+            else:
+                start = 0
+                for entry in preds:
+                    pred_id = entry['id']
+                    pred_start = start_of(pred_id)
+                    pred_duration = duration_of(pred_id)
+                    link_type = entry['type']
+                    lag = entry['lag']
+                    this_duration = parsed[tid]['duration']
+                    if link_type == 'SS':
+                        candidate = pred_start + lag
+                    elif link_type == 'FF':
+                        candidate = pred_start + pred_duration - this_duration + lag
+                    elif link_type == 'SF':
+                        candidate = pred_start - this_duration + lag
+                    else:  # FS (default), and PB/FB (not used pre-schedule)
+                        candidate = pred_start + pred_duration + lag
+                    start = max(start, candidate)
+
+            visiting.discard(tid)
+            computed_col[tid] = start
+            return start
+
+        try:
+            for task_id in new_ids:
+                start_of(task_id)
+        except ValueError as e:
+            messagebox.showerror(
+                'Import Error',
+                f'{e} - fix the network and try again (no changes made).',
+                parent=self.controller.root,
+            )
+            return
+
+        # Row assignment for new tasks: sequential fresh rows, file order -
+        # same shape _import_schedule_tasks uses for its schedule.csv import.
+        start_row = max((t['row'] for t in self.model.tasks), default=-1) + 2
+        new_rows = {}
+        i = 0
+        for task_id in order:
+            if task_id in new_ids:
+                new_rows[task_id] = start_row + i
+                i += 1
+        end_row = start_row + i
+
+        new_count = len(new_ids)
+        updated_count = len(existing_ids)
+        link_count = sum(len(info['predecessors']) for info in parsed.values())
+
+        message_parts = [
+            f'{new_count} new task(s) will be created.',
+            f'{updated_count} existing task(s) will have name/duration/'
+            f'resources/predecessors updated (state, notes, actual dates, '
+            f'and history are never changed by import).',
+            f'{link_count} predecessor link(s) will be set.',
+        ]
+        if new_count:
+            start_date = self.model.get_date_for_day(
+                min(computed_col[t] for t in new_ids)
+            ).strftime('%Y-%m-%d')
+            message_parts.append(
+                f'New tasks will occupy rows {start_row}-{end_row - 1}, '
+                f'starting around {start_date}.'
+            )
+        message_parts.append('Proceed?')
+
+        if not messagebox.askyesno(
+            'Import Tasks', '\n'.join(message_parts), parent=self.controller.root
+        ):
+            return
+
+        if new_ids:
+            max_finish = max(computed_col[t] + parsed[t]['duration'] for t in new_ids)
+            self._ensure_model_days(max_finish + 5)
+            if end_row > self.model.max_rows:
+                self.model.max_rows = end_row + 5
+
+        # Pass 1: create/update every task
+        for task_id in order:
+            info = parsed[task_id]
+            if task_id in new_ids:
+                task = self.model.add_task(
+                    task_id=task_id,
+                    row=new_rows[task_id],
+                    col=computed_col[task_id],
+                    duration=info['duration'],
+                    description=info['name'],
+                    resources=info['resources'],
+                    url=info['url'],
+                    project_id=self.model.default_project_id,
+                )
+                if info['optimal_duration'] is not None:
+                    task['optimal_duration'] = info['optimal_duration']
+                if info['tags']:
+                    self.model.set_task_tags(task_id, info['tags'])
+                if info['colour']:
+                    task['color'] = info['colour']
+            else:
+                task = self.model.get_task(task_id)
+                task['description'] = info['name']
+                task['duration'] = info['duration']
+                task['realistic_duration'] = info['duration']
+                if info['optimal_duration'] is not None:
+                    task['optimal_duration'] = info['optimal_duration']
+                task['resources'] = info['resources']
+                if info['url']:
+                    task['url'] = info['url']
+                if info['colour']:
+                    task['color'] = info['colour']
+
+        # Pass 2: wire predecessor links now that every id resolves
+        for task_id, info in parsed.items():
+            self.model.set_predecessors(task_id, info['predecessors'])
+
+        self.controller.update_view()
+        messagebox.showinfo(
+            'Import Complete',
+            f'Created {new_count} new task(s), updated {updated_count} '
+            f'existing task(s), set {link_count} predecessor link(s).',
+            parent=self.controller.root,
+        )

@@ -225,6 +225,30 @@ class UIComponents:
             label='Import CCPM Schedule...',
             command=self.controller.file_ops.import_ccpm_schedule,
         )
+
+        # Import Network: a plain, unscheduled reference network (tasks with
+        # predecessor_ids/resource_ids, no start/finish yet) - Import CCPM
+        # Schedule above needs an already-scheduled schedule.csv, which this
+        # doesn't have. Three deliberately separate steps, in the order they
+        # must run: resources, then their calendars, then tasks (each task's
+        # resource_ids must already exist).
+        self.import_network_menu = tk.Menu(self.file_menu, tearoff=0)
+        self.file_menu.add_cascade(
+            label='Import Network', menu=self.import_network_menu
+        )
+        self.import_network_menu.add_command(
+            label='Import Resources...',
+            command=self.controller.file_ops.import_resources,
+        )
+        self.import_network_menu.add_command(
+            label='Import Resource Calendars...',
+            command=self.controller.file_ops.import_resource_calendars,
+        )
+        self.import_network_menu.add_command(
+            label='Import Tasks...',
+            command=self.controller.file_ops.import_tasks,
+        )
+
         self.file_menu.add_command(
             label='Export CCPM Network...',
             command=self.controller.ccpm_ops.export_ccpm_network,

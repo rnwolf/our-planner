@@ -106,60 +106,70 @@ class TaskResourceModel:
                 'name': 'Resource A',
                 'capacity': [1.0] * 100,
                 'tags': [],  # Add tags list to resources
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource B',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource C',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource D',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource E',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource F',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource G',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource H',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource I',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource J',
                 'capacity': [1.0] * 100,
                 'tags': [],
+                'url': '',
             },
         ]
 
@@ -689,6 +699,9 @@ class TaskResourceModel:
         color: str = None,  # Add color parameter with None default
         project_id: int = None,  # Defaults to the current default project
         chain_id: int = None,  # Which chain (critical/feeding-NN) this task belongs to
+        task_id: int = None,  # Explicit id (CSV import, matching an id from a
+        # previous export) - bumps task_id_counter instead of drawing from it,
+        # so later auto-assigned ids never collide with it.
     ) -> Dict[str, Any]:
         """Add a new task to the model."""
         tags = tags or []  # Default to empty list if None
@@ -700,8 +713,13 @@ class TaskResourceModel:
         for tag in tags:
             self.all_tags.add(tag)
 
+        if task_id is None:
+            task_id = self.get_next_task_id()
+        else:
+            self.task_id_counter = max(self.task_id_counter, task_id)
+
         task = {
-            'task_id': self.get_next_task_id(),
+            'task_id': task_id,
             'row': row,
             'col': col,
             'duration': duration,
@@ -1099,10 +1117,21 @@ class TaskResourceModel:
                 return resource
         return None
 
-    def add_resource(self, resource_name, works_weekends=True):
-        """Add a new resource with default capacity."""
-        if self.get_resource_by_name(resource_name):
-            return False
+    def add_resource(self, resource_name, works_weekends=True, resource_id=None, url=''):
+        """Add a new resource with default capacity. Returns the new
+        resource dict (truthy) on success, or None/False if `resource_name`
+        is already taken - callers that only ever used this in a boolean
+        context (`if self.model.add_resource(...)`) keep working unchanged.
+
+        `resource_id` is for CSV import (see file_operations.py's
+        import_resources): an explicit id from a previous export, matched
+        against directly rather than by name, so the name-uniqueness check
+        below is skipped - two different ids may legitimately share a
+        display name. Bumps resource_id_counter instead of drawing from it,
+        so later auto-assigned ids never collide with it.
+        """
+        if resource_id is None and self.get_resource_by_name(resource_name):
+            return None
 
         # Create new resource with default capacity
         default_capacity = [1.0] * self.days
@@ -1114,16 +1143,22 @@ class TaskResourceModel:
                 if date.weekday() >= 5:  # 5=Saturday, 6=Sunday
                     default_capacity[day] = 0.0
 
+        if resource_id is None:
+            resource_id = self._get_next_resource_id()
+        else:
+            self.resource_id_counter = max(self.resource_id_counter, resource_id)
+
         new_resource = {
-            'id': self._get_next_resource_id(),
+            'id': resource_id,
             'name': resource_name,
             'capacity': default_capacity,
             'tags': [],
             'works_weekends': works_weekends,
+            'url': url,
         }
 
         self.resources.append(new_resource)
-        return True
+        return new_resource
 
     def remove_resource(self, resource_id: int) -> bool:
         """Remove a resource and update tasks."""
@@ -1484,6 +1519,10 @@ class TaskResourceModel:
                 # Ensure resources have tags field
                 if 'tags' not in resource:
                     resource['tags'] = []
+
+                # Ensure resources have a url field (added for CSV import)
+                if 'url' not in resource:
+                    resource['url'] = ''
 
             # Ensure resources have IDs
             for resource in self.resources:

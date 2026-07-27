@@ -101,9 +101,13 @@ class HelpMenu:
   - Edit Task URL
   - Edit Task Resources
   - Edit Task Tags
-  - Set Task Color
+  - Edit Task Duration... (type an exact number of days instead of
+    dragging the task's edge - handy for long tasks or a zoomed-out view)
+  - Edit Task Color
   - Add Predecessor/Successor
   - Delete Task
+- The same commands (plus a version that applies to every selected task
+  at once) are also on the Edit > Task menu, for editing without the mouse
 
 ## Working with Resources
 
@@ -124,12 +128,87 @@ class HelpMenu:
 - Use the Network menu to run Critical Path Analysis
 - The critical path shows the shortest possible project duration
 
+## Importing Your Project
+
+### Import CCPM Schedule...
+Use this when you already have a SCHEDULED CCPM network - a
+`schedule.csv` (with start/finish days already computed) produced by
+the external ccpm-scheduler tool, alongside its `resources.csv` and
+optional `calendar.csv`. It's brought in as a new project.
+
+### Import Network (a reference network with no schedule yet)
+Use File > Import Network for a plain task/resource network that
+hasn't been scheduled yet (no start/finish days) - e.g. bringing in a
+reference network to look at, or to schedule from within our-planner.
+This is THREE separate steps, and they must be run IN THIS ORDER:
+
+1. **Import Resources...** (`resources.csv`)
+   - Required column: `id`
+   - Optional columns: `name`, `capacity` (defaults to 1), `url`
+   - An `id` that doesn't exist yet is created with the given
+     name/capacity/url.
+   - An `id` that already exists has its name/url updated (only where
+     the cell isn't blank), and its capacity RESET to a single flat
+     value equal to the CSV's `capacity` cell (replacing any per-day
+     pattern - weekends-off, one-off overrides, etc. - it already had)
+     if that cell is non-empty. Leave the `capacity` cell blank to keep
+     an existing resource's current capacity configuration untouched.
+     tags and weekend settings are never changed by this import either
+     way. For per-day overrides instead of a flat reset, use Import
+     Resource Calendars... below (or edit the resource directly via
+     Edit Resources...).
+
+2. **Import Resource Calendars...** (`calendar.csv`) - optional
+   - Required columns: `resource_id`, `from`, `to`, `capacity`
+   - Applies a per-day capacity override for the half-open day range
+     `[from, to)` (`from` included, `to` excluded) to a resource that
+     already exists. Every `resource_id` must already have been
+     imported - if any doesn't exist, the whole import is cancelled and
+     nothing is changed.
+
+3. **Import Tasks...** (`tasks.csv`)
+   - Required columns: `id`, `realistic_duration`, `resource_ids`
+   - Optional columns: `name`, `predecessor_ids`, `optimal_duration`,
+     `url`, `tags`, `colour`
+   - `resource_ids` and `predecessor_ids` are both semicolon-separated
+     lists of tokens - one token per resource/predecessor a task needs.
+   - A `resource_ids` token is `resource_id:allocation` - `allocation`
+     is how many concurrent units of that resource this task uses per
+     day (whole or fractional). A bare id with no `:` means 1 whole
+     unit. For example `1:1;2:2` assigns 1 unit of resource 1 AND 2
+     units of resource 2 to the same task; `1` alone means the same as
+     `1:1`.
+   - A `predecessor_ids` token can include a link type and lag, e.g.
+     `3:SS+2` (Start-to-Start, 2 days' lag); a bare id means
+     Finish-to-Start.
+   - An `id` that doesn't exist yet is created and placed
+     automatically: a task with no predecessors starts on the
+     project's current date; everything else is placed
+     as-soon-as-possible after its predecessors, in a fresh empty row.
+     This is a plain placement, not a full CCPM schedule - no resource
+     leveling or buffers are added; use Schedule with CCPM... afterward
+     if you want that.
+   - An `id` that already exists only has its
+     name/duration/resources/predecessors updated, at its CURRENT
+     position on the grid - its state, notes, actual dates, and history
+     are never touched by import.
+   - Every `resource_ids` reference must already exist (Import
+     Resources... first) and every `predecessor_ids` reference must
+     resolve to either another row in the same file or an existing
+     task. If anything doesn't resolve, the whole import is cancelled
+     and nothing is changed - the error names exactly which task and
+     which missing id caused it, so a bad row can't leave you with a
+     half-imported network.
+   - Every import shows a summary of what will be created/updated and
+     asks you to confirm before making any changes.
+
 ## Exporting Your Project
 
 - Use the File > Export menu to save your project in various formats:
   - PDF: Complete report with tasks, resources, and loading
   - PNG: Image of the current view
-  - CSV: Spreadsheet-compatible data tables
+  - CSV: Spreadsheet-compatible data tables (the counterpart to Import
+    Network above)
   - HTML: Interactive web report
 
 ## Keyboard Shortcuts
