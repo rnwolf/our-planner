@@ -204,6 +204,33 @@ or
 python run_test.py
 ```
 
+### Pre-commit checks
+
+The repository uses [`ruff`](https://github.com/astral-sh/ruff) for linting and
+formatting, wired up via `.pre-commit-config.yaml`. Either the pip
+[`pre-commit`](https://pre-commit.com/) package (already a dev dependency) or
+[`prek`](https://github.com/jseris/prek) (a faster, Rust-based drop-in
+replacement) can run it:
+
+```bash
+# Using pre-commit (installed via `uv sync`)
+pre-commit run --all-files
+
+# Or using prek, if installed
+prek run --all-files
+```
+
+### Documentation
+
+The docs site (`docs/`) is built with [`zensical`](https://zensical.org/) and
+published to [GitHub Pages](https://rnwolf.github.io/our-planner/) by the
+`Publish Documentation` workflow (`.github/workflows/docs.yml`) on every push
+to `main`. To preview changes locally:
+
+```bash
+uv run zensical serve
+```
+
 ### Releasing a new version
 
 Publishing to PyPI is handled by the `Publish to PyPI` GitHub workflow

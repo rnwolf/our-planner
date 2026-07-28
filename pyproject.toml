@@ -39,11 +39,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "black>=23.0.0",
     "isort>=5.0.0",
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.6.11",
-    "mkdocstrings[python]>=0.29.1",
-    "mkdocs-git-revision-date-localized-plugin>=1.4.5",
-    "mkdocs-material>=9.6.11",
+    "zensical>=0.0.51",
     "ruff>=0.15.22",
     "pre-commit>=4.0.0",
 ]

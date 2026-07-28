@@ -1,4 +1,129 @@
 
+    ## [0.1.21] - 2026-07-27
+    ### Fixed
+    - Project Settings no longer corrupts resource capacity arrays when changing the
+      number of days - this was causing an IndexError the next time resource loading
+      redrew (e.g. closing the Edit Resources dialog).
+    - Edit Resources dialog was slow to open (multiple seconds, worse the more days in
+      the project): its Capacity tab built one row of widgets per project day and
+      eagerly constructed two tkcalendar.DateEntry pickers regardless of which tab was
+      visible. The tab now builds lazily (only when selected) and collapses consecutive
+      equal-capacity days into a single row; the date pickers are now plain fields with
+      a "Pick..." button that only builds the calendar popup if clicked. Also fixed the
+      Capacity tab's resource dropdown silently desyncing from the Resources tab's
+      listbox, and a capacity-update success popup that could render behind the modal
+      dialog.
+    - CSV export's "Choose Directory" picker could render behind the modal Export
+      dialog, and - with no default folder - could silently write next to our-planner's
+      own install location instead of the folder you actually chose.
+    - A month-end-flaky date assertion in the delete-history tests (broke whenever the
+      suite ran within 5 days of month-end).
+    ### Added
+    - "Edit Task Duration..." on the task right-click menu (single task or every
+      selected task at once) - type an exact number of days instead of dragging a
+      task's edge, and a new Edit > Task keyboard menu mirroring the same "Edit Task
+      ..." commands for editing without a mouse.
+    - File > Import Network: three sequential actions - Import Resources..., Import
+      Resource Calendars..., Import Tasks... - for bringing in a plain, unscheduled
+      reference network (tasks/resources matched by id), as the counterpart to
+      Export CCPM Network.... New tasks get an automatic ASAP placement computed from
+      predecessor links (FS/SS/FF/SF); an id that already exists only has its
+      description/duration/resources/predecessors updated in place - state, notes,
+      actual dates, and history are never touched. Every action validates up front and
+      makes no changes at all if anything doesn't resolve. See Help > Documentation for
+      the full column reference and the resource_ids id:allocation notation.
+    ### Changed
+    - Chain colors (critical + feeding chains) now use a validated, mutually
+      distinguishable 8-hue palette - the previous feeding-chain colors sat too close in
+      hue to the critical chain's red.
+    - "Manage Chains..." moved from its own top-level Chains menu into a button on the
+      Project Settings dialog.
+    - "Set Task Color" renamed to "Edit Task Color" for consistency with the rest of
+      that menu's "Edit Task ..." commands.
+
+    ## [0.1.20] - 2026-07-19
+    ### Changed
+    - **Licence changed from GPL-3.0-or-later to MIT** (sole-author relicense) so the code
+      can be used more freely by others. Note: the bundled date-picker dependency tkcalendar
+      remains GPLv3-licensed; our-planner's own code is MIT.
+    - Publishing to PyPI now happens only when a GitHub release is published (the old
+      release.py script and the publish-on-every-push trigger are gone); the release steps
+      are documented in the README and the Contributing page.
+    ### Added
+    - Keyboard-only status-update workflow: Alt+key mnemonics for every menu (View, Date,
+      Projects, Reports, Chains, Network, Help - joining the existing File/Edit/Tasks/Filter);
+      new Tasks-menu commands "Select Task by ID..." (scrolls to and selects the task,
+      keyboard-first dialog), "Record Remaining Duration..." and "Add Note..." (routes to the
+      Add Note to Multiple Tasks dialog when several tasks are selected); Alt+S / Alt+C save
+      and cancel in both note dialogs, working while typing in the note text area.
+    - The notes panel now follows the current selection: notes for the selected task(s) when
+      there is a selection, every note when nothing is selected - so all / one / several
+      lookups come from the same panel.
+    ### Fixed
+    - Right-click context menus near the bottom of the screen no longer run off-screen:
+      menus are clamped to the physical monitor under the cursor (multi-monitor aware via
+      xrandr on X11), not just the virtual screen.
+
+    
+
+    ## [0.1.19] - 2026-07-18
+    ### Added
+    - Resource grid at scale (Stage 21): resource IDs shown in the row labels; sort resources
+      by ID, name, or whole-horizon load (utilization % shown in the label when load-sorted,
+      most-loaded-first by default - the CCPM drum floats to the top); filter resources by
+      project (a resource matches if assigned to a task of that project); load scope toggle
+      to compute the loading numbers over all tasks or only the currently filtered ones, for
+      multi-project alignment work; all driven from a new control bar under the resource grid
+      (equivalent entries also in the Filter menu).
+    - CCPM Method per project (Stage 20): selectable buffer sizing - cap (Cut & Paste,
+      the default), hchain (50% of chain), rsem (root-squared error) - persisted per project,
+      passed through both CCPM scheduling flows, inherited by the imported schedule copy.
+      Requires ccpm-scheduler >= 0.9.0 (now >= 0.10.0).
+    - Network Graph report (Stage 18): dependency network diagram for any set of tasks.
+    - Import/export consistency pass (Stage 19), and imports now carry realistic_duration
+      from CCPM schedules (engine >= 0.7.0).
+    - Warn when an imported CCPM schedule reaches past the planning grid instead of drawing
+      tasks off the edge.
+    ### Fixed
+    - Permanent grey dead band between the resource panel and the horizontal scrollbar:
+      pane overhead is now measured from live geometry on every resize instead of a one-shot
+      startup measurement that baked in ~40px of phantom overhead.
+    - Shrinking the window no longer compresses the status bar to nothing (it now keeps its
+      height and the grids give up the space instead); added a resize grip in the status
+      bar's bottom-right corner and a sensible minimum window size (800x500).
+    - At-capacity resource cells are no longer colored as overloaded.
+    - Manage dialogs size themselves to their content so buttons can't be clipped, and keep
+      the listbox selection while editing fields.
+
+    
+
+    ## [0.1.18] - 2026-07-13
+    ### Fixed
+    - Merge-task cascade bug: Stage 6's bidirectional pull now takes the max across ALL of a
+      successor's predecessor links instead of whichever single link cascaded last - a routine
+      status update on one branch can no longer drag a merge task in front of the other branch's
+      unfinished work, and never corrupts the feeding buffer silently.
+    ### Changed
+    - Feeding buffers now behave as two-sided shock absorbers during execution: the buffer
+      compresses (logged, reason "merge_pulled_earlier") when the relay-runner cascade pulls its
+      merge point earlier, and regrows toward its baseline (logged, "merge_moved_later") when the
+      merge point moves later. The fever chart's feeding-buffer consumption reflects both shock
+      directions: effective lateness = baseline size - live size + overflow past the merge
+      baseline, divided by the baseline size as before (push-only numbers are unchanged; >100%
+      still means forecast breach).
+    ### Added
+    - Regression tests for the merge scenario (tests/test_fever_chart_merge_signal.py):
+      pull-side alarm at 60%, idempotent status updates, pull never jumps unfinished feeding
+      work, push-side signal unchanged.
+
+    
+
+    ## [0.1.17] - 2025-04-08
+    ### Added
+    - New Feature: Added MKDoc and documentation to publish to gh-pages.
+
+    
+
     ## [0.1.16] - 2025-04-08
     ### Added
     - New Feature: Update the date for the task grid with optional ability to shift tasks based on the new start date.
