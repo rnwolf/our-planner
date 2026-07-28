@@ -42,21 +42,37 @@ class TestFeverChartMergeSignal:
         feeding = self.model.add_chain('feeding chain', '#33aa55')
 
         self.c1 = self.model.add_task(
-            row=0, col=0, duration=5, description='C1',
-            project_id=self.pid, chain_id=critical['id'],
+            row=0,
+            col=0,
+            duration=5,
+            description='C1',
+            project_id=self.pid,
+            chain_id=critical['id'],
         )
         self.f1 = self.model.add_task(
-            row=1, col=0, duration=3, description='F1',
-            project_id=self.pid, chain_id=feeding['id'],
+            row=1,
+            col=0,
+            duration=3,
+            description='F1',
+            project_id=self.pid,
+            chain_id=feeding['id'],
         )
         self.fb = self.model.add_task(
-            row=2, col=3, duration=5, description='FB',
-            project_id=self.pid, chain_id=feeding['id'],
+            row=2,
+            col=3,
+            duration=5,
+            description='FB',
+            project_id=self.pid,
+            chain_id=feeding['id'],
         )
         self.fb['type'] = 'feeding_buffer'
         self.c2 = self.model.add_task(
-            row=3, col=8, duration=5, description='C2',
-            project_id=self.pid, chain_id=critical['id'],
+            row=3,
+            col=8,
+            duration=5,
+            description='C2',
+            project_id=self.pid,
+            chain_id=critical['id'],
         )
 
         self.model.add_predecessor(self.fb['task_id'], self.f1['task_id'], 'FS')
@@ -74,10 +90,7 @@ class TestFeverChartMergeSignal:
         self.model.capture_fever_chart_snapshot(project_id=self.pid)
 
     def positions(self):
-        return {
-            t['description']: (t['col'], t['duration'])
-            for t in self.model.tasks
-        }
+        return {t['description']: (t['col'], t['duration']) for t in self.model.tasks}
 
     def test_on_track_update_pulls_merge_and_rings_alarm(self):
         # Routine "on track, no change" status on C1: remaining = 5.

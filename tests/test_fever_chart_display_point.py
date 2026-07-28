@@ -2,6 +2,7 @@
 consumption_pct math that used to be hand-copied identically into three
 places (on-screen chart, PNG export, CSV export) with no shared test.
 """
+
 from src.model.task_resource_model import fever_chart_display_point
 
 

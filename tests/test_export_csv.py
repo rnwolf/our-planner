@@ -38,27 +38,48 @@ class TestWriteCsvExport:
         model, ops = make_export_ops()
         project_id = model.projects[0]['id']
         a = model.add_task(
-            row=1, col=5, duration=4, description='Spec',
+            row=1,
+            col=5,
+            duration=4,
+            description='Spec',
             resources={1: 1.0, 2: 2.0, 3: 0.5},
-            tags=['alpha', 'beta'], url='https://example.com',
-            project_id=project_id)
+            tags=['alpha', 'beta'],
+            url='https://example.com',
+            project_id=project_id,
+        )
         a['color'] = 'salmon'
         a['optimal_duration'] = 2
         model.add_task(
-            row=2, col=9, duration=3, description='Build',
+            row=2,
+            col=9,
+            duration=3,
+            description='Build',
             resources={2: 1.0},
             predecessors=[{'id': a['task_id'], 'type': 'SS', 'lag': 2}],
-            project_id=project_id)
+            project_id=project_id,
+        )
 
-        tasks_file, resources_file, loading_file = ops._write_csv_export(
-            str(tmp_path))
+        tasks_file, resources_file, loading_file = ops._write_csv_export(str(tmp_path))
         fieldnames, rows = read_csv(tasks_file)
 
         assert fieldnames == [
-            'id', 'name', 'project', 'chain', 'row', 'start_day',
-            'start_date', 'end_date', 'duration', 'realistic_duration',
-            'optimal_duration', 'predecessor_ids', 'resource_ids', 'tags',
-            'colour', 'url']
+            'id',
+            'name',
+            'project',
+            'chain',
+            'row',
+            'start_day',
+            'start_date',
+            'end_date',
+            'duration',
+            'realistic_duration',
+            'optimal_duration',
+            'predecessor_ids',
+            'resource_ids',
+            'tags',
+            'colour',
+            'url',
+        ]
 
         by_name = {r['name']: r for r in rows}
         spec = by_name['Spec']
@@ -74,7 +95,7 @@ class TestWriteCsvExport:
         assert spec['url'] == 'https://example.com'
 
         build = by_name['Build']
-        assert build['predecessor_ids'] == f"{a['task_id']}:SS+2"
+        assert build['predecessor_ids'] == f'{a["task_id"]}:SS+2'
         assert build['resource_ids'] == '2'
         assert build['optimal_duration'] == ''
 
@@ -109,13 +130,21 @@ class TestWriteCsvExport:
         model, ops = make_export_ops()
         a = model.add_task(row=1, col=0, duration=2, description='A')
         model.add_task(
-            row=2, col=2, duration=2, description='B',
-            predecessors=[{'id': a['task_id'], 'type': 'FS', 'lag': 0},
-                          {'id': a['task_id'], 'type': 'FF', 'lag': -1}])
+            row=2,
+            col=2,
+            duration=2,
+            description='B',
+            predecessors=[
+                {'id': a['task_id'], 'type': 'FS', 'lag': 0},
+                {'id': a['task_id'], 'type': 'FF', 'lag': -1},
+            ],
+        )
         tasks_file, _, _ = ops._write_csv_export(str(tmp_path))
         _, rows = read_csv(tasks_file)
         b_row = next(r for r in rows if r['name'] == 'B')
         assert ';' in b_row['predecessor_ids']
         parsed = parse_predecessor_notation(b_row['predecessor_ids'])
         assert {(e['id'], e['type'], e['lag']) for e in parsed} == {
-            (a['task_id'], 'FS', 0), (a['task_id'], 'FF', -1)}
+            (a['task_id'], 'FS', 0),
+            (a['task_id'], 'FF', -1),
+        }

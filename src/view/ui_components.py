@@ -9,7 +9,6 @@ from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
 from src.utils.colors import (
     COLOR_NAMES,
-    DEFAULT_TASK_COLOR,
     get_resource_load_color,
 )
 from src.model.dependency_notation import (
@@ -274,9 +273,7 @@ class UIComponents:
         # ..." commands the right-click context menu offers, for editing
         # whatever task is currently selected without needing the mouse.
         self.edit_task_menu = tk.Menu(self.edit_menu, tearoff=0)
-        self.edit_menu.add_cascade(
-            label='Task', menu=self.edit_task_menu, underline=0
-        )
+        self.edit_menu.add_cascade(label='Task', menu=self.edit_task_menu, underline=0)
 
         self.edit_task_menu.add_command(
             label='Edit Task Name',
@@ -499,7 +496,9 @@ class UIComponents:
 
         # Projects menu
         self.projects_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label='Projects', menu=self.projects_menu, underline=0)
+        self.menu_bar.add_cascade(
+            label='Projects', menu=self.projects_menu, underline=0
+        )
 
         self.projects_menu.add_command(
             label='Manage Projects...',
@@ -960,9 +959,7 @@ class UIComponents:
         )
         self.resource_tags_btn.pack(side=tk.LEFT, padx=(0, 8))
 
-        tk.Label(bar, text='Load scope:', font=bar_font).pack(
-            side=tk.LEFT, padx=(0, 2)
-        )
+        tk.Label(bar, text='Load scope:', font=bar_font).pack(side=tk.LEFT, padx=(0, 2))
         self.resource_scope_combo = ttk.Combobox(
             bar,
             state='readonly',
@@ -1016,9 +1013,7 @@ class UIComponents:
 
     def on_resource_scope_selected(self, event=None):
         scope = (
-            'filtered'
-            if self.resource_scope_combo.get() == 'Filtered tasks'
-            else 'all'
+            'filtered' if self.resource_scope_combo.get() == 'Filtered tasks' else 'all'
         )
         self.controller.tag_ops.resource_load_scope = scope
         self.resource_scope_combo.selection_clear()
@@ -1181,7 +1176,9 @@ class UIComponents:
             else ideal_resource_height
         )
         resource_height = max(100, resource_height)
-        task_height = max(100, ideal_task_height + (ideal_resource_height - resource_height))
+        task_height = max(
+            100, ideal_task_height + (ideal_resource_height - resource_height)
+        )
 
         self.controller.resource_grid_ideal_height = ideal_resource_height
 
@@ -1642,7 +1639,6 @@ class UIComponents:
             date_center_y = month_row_height + date_row_height / 2
 
             # Add weekday letter as a hint
-            weekday_letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
             date_text = f'{date.day}'  # Remove day of week indicator
             # date_text = f"{date.day}\n{weekday_letters[weekday]}"
 
@@ -1781,9 +1777,7 @@ class UIComponents:
         truncated = text
         while truncated and font.measure(truncated + '...' + suffix) > max_width:
             truncated = truncated[:-1]
-        return (
-            (truncated + '...' + suffix) if truncated else ('...' + suffix)
-        ), True
+        return ((truncated + '...' + suffix) if truncated else ('...' + suffix)), True
 
     def add_tag_tooltip(self, canvas, item_id, tooltip_text):
         """Add a tooltip to a canvas item with better tracking."""
@@ -1797,7 +1791,7 @@ class UIComponents:
             # Create tooltip window
             tooltip_window = tk.Toplevel(self.controller.root)
             tooltip_window.wm_overrideredirect(True)
-            tooltip_window.wm_geometry(f'+{x+10}+{y+10}')
+            tooltip_window.wm_geometry(f'+{x + 10}+{y + 10}')
 
             # Create tooltip content
             label = tk.Label(
@@ -1856,14 +1850,14 @@ class UIComponents:
             # Task state above; shown here so it's obvious at a glance whether a
             # task intended as a buffer was actually set as one via Set Task Type
             task_type = task.get('type', 'task')
-            tooltip_parts.append(f"Task type: {task_type.replace('_', ' ').title()}")
+            tooltip_parts.append(f'Task type: {task_type.replace("_", " ").title()}')
 
             # Add project (name and its own planning/execution phase - not to be
             # confused with the task's own Task state above, a separate concept)
             project = self.controller.model.get_project_by_id(task.get('project_id'))
             if project:
                 tooltip_parts.append(
-                    f"Project: {project['name']} ({project['phase'].capitalize()})"
+                    f'Project: {project["name"]} ({project["phase"].capitalize()})'
                 )
             else:
                 tooltip_parts.append('Project: None')
@@ -1871,7 +1865,7 @@ class UIComponents:
             # Add chain (critical/feeding-NN classification)
             chain = self.controller.model.get_chain_by_id(task.get('chain_id'))
             if chain:
-                tooltip_parts.append(f"Chain: {chain['name']}")
+                tooltip_parts.append(f'Chain: {chain["name"]}')
             else:
                 tooltip_parts.append('Chain: None')
 
@@ -1879,11 +1873,11 @@ class UIComponents:
             # possible to follow/untangle feeding chains by hovering, without
             # having to open Help > task details for the same information.
             predecessor_text = format_predecessor_notation(task.get('predecessors', []))
-            tooltip_parts.append(f"Predecessors: {predecessor_text or 'None'}")
+            tooltip_parts.append(f'Predecessors: {predecessor_text or "None"}')
 
             successor_ids = self.controller.model.get_successor_ids(task_id)
             successor_text = ', '.join(map(str, successor_ids))
-            tooltip_parts.append(f"Successors: {successor_text or 'None'}")
+            tooltip_parts.append(f'Successors: {successor_text or "None"}')
 
             # Add durations
             tooltip_parts.append(f'Duration: {task["duration"]} days')
@@ -2019,14 +2013,16 @@ class UIComponents:
             marker = ' (current)' if link_type == link['type'] else ''
             type_menu.add_command(
                 label=f'{link_type}{marker}',
-                command=lambda t=link_type: self.controller.task_ops.set_dependency_type(
-                    predecessor_id, successor_id, t
+                command=lambda t=link_type: (
+                    self.controller.task_ops.set_dependency_type(
+                        predecessor_id, successor_id, t
+                    )
                 ),
             )
-        menu.add_cascade(label=f"Link Type ({link['type']})", menu=type_menu)
+        menu.add_cascade(label=f'Link Type ({link["type"]})', menu=type_menu)
 
         menu.add_command(
-            label=f"Set Lag... (current: {link['lag']})",
+            label=f'Set Lag... (current: {link["lag"]})',
             command=lambda: self.controller.task_ops.set_dependency_lag_dialog(
                 predecessor_id, successor_id
             ),
@@ -2134,22 +2130,32 @@ class UIComponents:
         y_at_0 = boundary(0, yellow_intercept)
         y_at_100 = boundary(100, yellow_intercept)
         canvas.create_polygon(
-            *to_px(0, 0), *to_px(100, 0), *to_px(100, y_at_100), *to_px(0, y_at_0),
-            fill='#C8E6C9', outline='',
+            *to_px(0, 0),
+            *to_px(100, 0),
+            *to_px(100, y_at_100),
+            *to_px(0, y_at_0),
+            fill='#C8E6C9',
+            outline='',
         )
 
         r_at_0 = boundary(0, red_intercept)
         r_at_100 = boundary(100, red_intercept)
         canvas.create_polygon(
-            *to_px(0, y_at_0), *to_px(100, y_at_100), *to_px(100, r_at_100),
+            *to_px(0, y_at_0),
+            *to_px(100, y_at_100),
+            *to_px(100, r_at_100),
             *to_px(0, r_at_0),
-            fill='#FFF59D', outline='',
+            fill='#FFF59D',
+            outline='',
         )
 
         canvas.create_polygon(
-            *to_px(0, r_at_0), *to_px(100, r_at_100), *to_px(100, y_max),
+            *to_px(0, r_at_0),
+            *to_px(100, r_at_100),
+            *to_px(100, y_max),
             *to_px(0, y_max),
-            fill='#EF9A9A', outline='',
+            fill='#EF9A9A',
+            outline='',
         )
 
         # Axes + tick labels every 25% (x) / 20% (y, scaled to y_max)
@@ -2169,18 +2175,26 @@ class UIComponents:
                 chart_x0 - 15, py, text=f'{y_pct:.0f}%', font=('Arial', 7)
             )
         canvas.create_text(
-            x0 + width / 2, y0 + height - 8,
-            text='% of protected chain complete', font=('Arial', 8),
+            x0 + width / 2,
+            y0 + height - 8,
+            text='% of protected chain complete',
+            font=('Arial', 8),
         )
         canvas.create_text(
-            x0 + 10, y0 + 22, text='% buffer consumed', font=('Arial', 8),
+            x0 + 10,
+            y0 + 22,
+            text='% buffer consumed',
+            font=('Arial', 8),
             anchor='nw',
         )
 
         if not points:
             canvas.create_text(
-                chart_x0 + chart_w / 2, chart_y0 + chart_h / 2,
-                text='No status updates recorded yet', font=('Arial', 9), fill='#777777',
+                chart_x0 + chart_w / 2,
+                chart_y0 + chart_h / 2,
+                text='No status updates recorded yet',
+                font=('Arial', 9),
+                fill='#777777',
             )
             return
 
@@ -2189,11 +2203,15 @@ class UIComponents:
         for date_str, progress_pct, consumption_pct in points:
             px, py = to_px(progress_pct, max(0.0, consumption_pct))
             if prev_px is not None:
-                canvas.create_line(prev_px[0], prev_px[1], px, py, fill='black', width=1.5)
+                canvas.create_line(
+                    prev_px[0], prev_px[1], px, py, fill='black', width=1.5
+                )
             zone = classify_fever_chart_zone(
                 progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
             )
-            dot_color = {'green': '#2E7D32', 'yellow': '#F9A825', 'red': '#C62828'}[zone]
+            dot_color = {'green': '#2E7D32', 'yellow': '#F9A825', 'red': '#C62828'}[
+                zone
+            ]
             canvas.create_oval(
                 px - 4, py - 4, px + 4, py + 4, fill=dot_color, outline='black'
             )
@@ -2321,7 +2339,9 @@ class UIComponents:
             if has_tags:
                 tag_text = ', '.join(resource['tags'])
                 full_text = f'[{tag_text}]'
-                tag_font = tkfont.Font(family='Arial', size=self.controller.tag_font_size)
+                tag_font = tkfont.Font(
+                    family='Arial', size=self.controller.tag_font_size
+                )
                 display_text, was_truncated = self._truncate_text_to_width(
                     f'[{tag_text}',
                     tag_font,
@@ -2438,15 +2458,15 @@ class UIComponents:
             try:
                 out = subprocess.run(
                     ['xrandr', '--listmonitors'],
-                    capture_output=True, text=True, timeout=2,
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
                 ).stdout
                 # " 0: +*eDP-1 1920/310x1080/170+0+0  eDP-1"
                 for w, h, mx, my in re.findall(
                     r'(\d+)/\d+x(\d+)/\d+\+(\d+)\+(\d+)', out
                 ):
-                    self._monitor_geometries.append(
-                        (int(mx), int(my), int(w), int(h))
-                    )
+                    self._monitor_geometries.append((int(mx), int(my), int(w), int(h)))
             except (OSError, subprocess.SubprocessError):
                 pass
         for mx, my, mw, mh in self._monitor_geometries:
@@ -2482,7 +2502,6 @@ class UIComponents:
     def draw_task(self, task):
         """Draw a single task box with its information, accounting for dynamic row height"""
         task_id = task['task_id']
-        row, col, duration = task['row'], task['col'], task['duration']
         description = task.get('description', 'No Description')
 
         # Get task color, default to Cyan if not set
@@ -2819,7 +2838,7 @@ class UIComponents:
         if task_id in self.task_ui_elements:
             # We need to completely redraw the task to reflect any state changes
             # First, delete all current UI elements
-            for key, element_id in self.task_ui_elements[task_id].items():
+            for element_id in self.task_ui_elements[task_id].values():
                 if isinstance(element_id, int):  # Check if it's a canvas item ID
                     self.controller.task_canvas.delete(element_id)
 
@@ -2869,7 +2888,7 @@ class UIComponents:
         self.controller.task_canvas.delete('selection_highlight')
 
         # Remove highlight references from UI elements
-        for task_id, ui_elements in self.task_ui_elements.items():
+        for ui_elements in self.task_ui_elements.values():
             if 'highlight' in ui_elements:
                 del ui_elements['highlight']
 
@@ -3125,7 +3144,7 @@ class UIComponents:
         count = len(self.controller.selected_tasks)
         if not tk.messagebox.askyesno(
             'Confirm Delete',
-            f"Are you sure you want to delete {count} selected task{'s' if count > 1 else ''}?",
+            f'Are you sure you want to delete {count} selected task{"s" if count > 1 else ""}?',
             parent=self.controller.root,
         ):
             return
@@ -3332,7 +3351,7 @@ class UIComponents:
                 task = self.controller.model.get_task(task_ids[0])
                 if task:
                     self.filter_label.config(
-                        text=f"Showing notes for Task {task_ids[0]}: {task['description']}"
+                        text=f'Showing notes for Task {task_ids[0]}: {task["description"]}'
                     )
                 else:
                     self.filter_label.config(
@@ -3507,7 +3526,7 @@ class UIComponents:
         if original_index < 0 or original_index >= len(task['notes']):
             tk.messagebox.showerror(
                 'Error',
-                f"Invalid note index: {original_index}. Task {task_id} has {len(task['notes'])} notes.",
+                f'Invalid note index: {original_index}. Task {task_id} has {len(task["notes"])} notes.',
             )
             return False
 
@@ -3517,10 +3536,10 @@ class UIComponents:
             note_text = note_text[:47] + '...'
 
         confirm_message = (
-            f"Are you sure you want to delete this note?\n\n"
-            f"Task ID: {task_id}\n"
-            f"Task Description: {task.get('description', 'Unknown')}\n"
-            f"Note Text: {note_text}"
+            f'Are you sure you want to delete this note?\n\n'
+            f'Task ID: {task_id}\n'
+            f'Task Description: {task.get("description", "Unknown")}\n'
+            f'Note Text: {note_text}'
         )
 
         if tk.messagebox.askyesno('Confirm Delete', confirm_message):

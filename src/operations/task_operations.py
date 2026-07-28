@@ -1,6 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog, messagebox, scrolledtext, colorchooser
-from datetime import datetime, timedelta
+from tkinter import ttk, simpledialog, messagebox, colorchooser
+from datetime import datetime
 from src.model.dependency_notation import (
     parse_predecessor_notation,
     parse_predecessor_token,
@@ -129,12 +129,8 @@ class TaskOperations:
 
             # Connector (for adding dependencies)
             if (
-                connector_x - hit_radius
-                < canvas_x
-                < connector_x + hit_radius
-                and connector_y - hit_radius
-                < canvas_y
-                < connector_y + hit_radius
+                connector_x - hit_radius < canvas_x < connector_x + hit_radius
+                and connector_y - hit_radius < canvas_y < connector_y + hit_radius
             ):
                 # 'target' (a bullseye) reads as "aim here to drag out a
                 # link" much better than a plain pointing hand, which is
@@ -148,10 +144,16 @@ class TaskOperations:
                 # actual, reliable signal (see reset_hover_state's docstring
                 # for why the cursor shape alone isn't enough here).
                 ring = hit_radius + 4
-                self.controller.hover_highlight_id = self.controller.task_canvas.create_oval(
-                    connector_x - ring, connector_y - ring,
-                    connector_x + ring, connector_y + ring,
-                    outline='#0d6efd', width=3, tags=('hover_highlight',),
+                self.controller.hover_highlight_id = (
+                    self.controller.task_canvas.create_oval(
+                        connector_x - ring,
+                        connector_y - ring,
+                        connector_x + ring,
+                        connector_y + ring,
+                        outline='#0d6efd',
+                        width=3,
+                        tags=('hover_highlight',),
+                    )
                 )
                 return
 
@@ -162,8 +164,16 @@ class TaskOperations:
                     text=f'Hover: Left edge (Task {task_id}) - drag to resize',
                     bg='#d4edda',
                 )
-                self.controller.hover_highlight_id = self.controller.task_canvas.create_line(
-                    x1, y1, x1, y2, fill='#198754', width=5, tags=('hover_highlight',),
+                self.controller.hover_highlight_id = (
+                    self.controller.task_canvas.create_line(
+                        x1,
+                        y1,
+                        x1,
+                        y2,
+                        fill='#198754',
+                        width=5,
+                        tags=('hover_highlight',),
+                    )
                 )
                 return
 
@@ -174,8 +184,16 @@ class TaskOperations:
                     text=f'Hover: Right edge (Task {task_id}) - drag to resize',
                     bg='#d4edda',
                 )
-                self.controller.hover_highlight_id = self.controller.task_canvas.create_line(
-                    x2, y1, x2, y2, fill='#198754', width=5, tags=('hover_highlight',),
+                self.controller.hover_highlight_id = (
+                    self.controller.task_canvas.create_line(
+                        x2,
+                        y1,
+                        x2,
+                        y2,
+                        fill='#198754',
+                        width=5,
+                        tags=('hover_highlight',),
+                    )
                 )
                 return
 
@@ -195,9 +213,16 @@ class TaskOperations:
                             text=f'Hover: Task {task_id} URL - click to open',
                             bg='#cfe2ff',
                         )
-                        self.controller.hover_highlight_id = self.controller.task_canvas.create_rectangle(
-                            x1 - 3, y1 - 3, x2 + 3, y2 + 3,
-                            outline='#0d6efd', width=2, tags=('hover_highlight',),
+                        self.controller.hover_highlight_id = (
+                            self.controller.task_canvas.create_rectangle(
+                                x1 - 3,
+                                y1 - 3,
+                                x2 + 3,
+                                y2 + 3,
+                                outline='#0d6efd',
+                                width=2,
+                                tags=('hover_highlight',),
+                            )
                         )
                         return
 
@@ -209,9 +234,17 @@ class TaskOperations:
                 # Dashed so it reads as "hovering", distinct at a glance
                 # from the solid orange rectangle highlight_selected_tasks
                 # draws for an actually-selected task.
-                self.controller.hover_highlight_id = self.controller.task_canvas.create_rectangle(
-                    x1 - 3, y1 - 3, x2 + 3, y2 + 3,
-                    outline='#997404', width=2, dash=(4, 3), tags=('hover_highlight',),
+                self.controller.hover_highlight_id = (
+                    self.controller.task_canvas.create_rectangle(
+                        x1 - 3,
+                        y1 - 3,
+                        x2 + 3,
+                        y2 + 3,
+                        outline='#997404',
+                        width=2,
+                        dash=(4, 3),
+                        tags=('hover_highlight',),
+                    )
                 )
                 return
 
@@ -487,7 +520,7 @@ class TaskOperations:
 
         lag = simpledialog.askinteger(
             'Set Lag',
-            f"Lag in days for link {predecessor_id}:{link['type']} -> {successor_id}:",
+            f'Lag in days for link {predecessor_id}:{link["type"]} -> {successor_id}:',
             initialvalue=link['lag'],
             parent=self.controller.root,
         )
@@ -499,8 +532,6 @@ class TaskOperations:
         """Remove a single dependency link."""
         if self.model.remove_predecessor(successor_id, predecessor_id):
             self.controller.ui.draw_dependencies()
-
-
 
     def create_capacity_tab(self, capacity_tab, resource_dropdown):
         """Create an improved capacity tab with vertical scrollable list."""
@@ -677,7 +708,8 @@ class TaskOperations:
         start_date_entry.pack(side=tk.LEFT, padx=5)
         tk.Label(start_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT, padx=(0, 5))
         tk.Button(
-            start_date_frame, text='Pick...',
+            start_date_frame,
+            text='Pick...',
             command=lambda: pick_date_into(start_date_var),
         ).pack(side=tk.LEFT)
 
@@ -688,13 +720,12 @@ class TaskOperations:
         tk.Label(end_date_frame, text='End Date:').pack(side=tk.LEFT, padx=5)
 
         end_date_var = tk.StringVar()
-        end_date_entry = tk.Entry(
-            end_date_frame, textvariable=end_date_var, width=10
-        )
+        end_date_entry = tk.Entry(end_date_frame, textvariable=end_date_var, width=10)
         end_date_entry.pack(side=tk.LEFT, padx=5)
         tk.Label(end_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT, padx=(0, 5))
         tk.Button(
-            end_date_frame, text='Pick...',
+            end_date_frame,
+            text='Pick...',
             command=lambda: pick_date_into(end_date_var),
         ).pack(side=tk.LEFT)
 
@@ -742,17 +773,13 @@ class TaskOperations:
                     start = i
 
             for row_index, (start_day, end_day, value) in enumerate(runs):
-                start_date = self.model.get_date_for_day(start_day).strftime(
-                    '%Y-%m-%d'
-                )
+                start_date = self.model.get_date_for_day(start_day).strftime('%Y-%m-%d')
                 if end_day == start_day:
                     day_text = str(start_day)
                     date_text = start_date
                 else:
                     day_text = f'{start_day}-{end_day}'
-                    end_date = self.model.get_date_for_day(end_day).strftime(
-                        '%Y-%m-%d'
-                    )
+                    end_date = self.model.get_date_for_day(end_day).strftime('%Y-%m-%d')
                     date_text = f'{start_date} to {end_date}'
 
                 row_frame = tk.Frame(capacity_list_frame)
@@ -1058,7 +1085,7 @@ class TaskOperations:
             resource_entries = {}
 
             # Create entry fields for each resource
-            for i, resource in enumerate(self.model.resources):
+            for resource in self.model.resources:
                 resource_id = resource['id']
                 resource_name = resource['name']
 
@@ -1096,7 +1123,7 @@ class TaskOperations:
                         # Skip invalid entries
                         messagebox.showwarning(
                             'Warning',
-                            f"Invalid allocation for resource {self.model.get_resource_by_id(resource_id)['name']}. Skipping.",
+                            f'Invalid allocation for resource {self.model.get_resource_by_id(resource_id)["name"]}. Skipping.',
                         )
 
                 dialog.destroy()
@@ -1266,7 +1293,9 @@ class TaskOperations:
         # manage_projects_dialog: editing a field must not silently
         # deselect the resource
         resource_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10),
+            listbox_frame,
+            yscrollcommand=scrollbar.set,
+            font=('Helvetica', 10),
             exportselection=False,
         )
         resource_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -1286,27 +1315,6 @@ class TaskOperations:
         )
         works_weekends_cb.pack(side=tk.LEFT)
 
-        # Update the function to add a new resource with the checkbox value
-        def add_resource_from_dialog():
-            resource_name = resource_name_var.get().strip()
-            if not resource_name:
-                messagebox.showwarning(
-                    'Invalid Name', 'Please enter a resource name.', parent=dialog
-                )
-                return
-
-            if self.model.get_resource_by_name(resource_name):
-                messagebox.showwarning(
-                    'Duplicate Name',
-                    'A resource with this name already exists.',
-                    parent=dialog,
-                )
-                return
-
-            self.model.add_resource(
-                resource_name, works_weekends=works_weekends_var.get()
-            )
-
         # Resource name editing
         tk.Label(details_frame, text='Resource Name:').grid(
             row=0, column=0, sticky='w', padx=5, pady=5
@@ -1320,7 +1328,7 @@ class TaskOperations:
             resource_listbox.delete(0, tk.END)
             for resource in self.model.resources:
                 resource_listbox.insert(
-                    tk.END, f"{resource['id']} - {resource['name']}"
+                    tk.END, f'{resource["id"]} - {resource["name"]}'
                 )
 
         populate_resource_listbox()
@@ -1537,7 +1545,7 @@ class TaskOperations:
 
         # Update dropdown values
         def update_resource_dropdown():
-            resources = [f"{r['id']} - {r['name']}" for r in self.model.resources]
+            resources = [f'{r["id"]} - {r["name"]}' for r in self.model.resources]
             current = resource_dropdown.get()
             resource_dropdown['values'] = resources
             # Preserve whatever resource was already selected (e.g. when
@@ -1642,7 +1650,9 @@ class TaskOperations:
         # highlights text silently deselects the project - making it
         # impossible to select a project and then edit its fields
         project_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10),
+            listbox_frame,
+            yscrollcommand=scrollbar.set,
+            font=('Helvetica', 10),
             exportselection=False,
         )
         project_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -1707,9 +1717,11 @@ class TaskOperations:
         )
 
         def format_project_label(project):
-            marker = ' (default)' if project['id'] == self.model.default_project_id else ''
+            marker = (
+                ' (default)' if project['id'] == self.model.default_project_id else ''
+            )
             phase_label = project['phase'].capitalize()
-            return f"{project['id']} - {project['name']}{marker} [{phase_label}]"
+            return f'{project["id"]} - {project["name"]}{marker} [{phase_label}]'
 
         def populate_project_listbox():
             project_listbox.delete(0, tk.END)
@@ -1730,16 +1742,12 @@ class TaskOperations:
             if project:
                 project_name_var.set(project['name'])
                 project_url_var.set(project['url'])
-                ccpm_method_var.set(
-                    project.get('ccpm_method', DEFAULT_CCPM_METHOD)
-                )
+                ccpm_method_var.set(project.get('ccpm_method', DEFAULT_CCPM_METHOD))
                 fever_slope_var.set(str(project.get('fever_chart_slope', 0.55)))
                 fever_yellow_var.set(
                     str(project.get('fever_chart_yellow_intercept', 10.0))
                 )
-                fever_red_var.set(
-                    str(project.get('fever_chart_red_intercept', 27.0))
-                )
+                fever_red_var.set(str(project.get('fever_chart_red_intercept', 27.0)))
 
         project_listbox.bind('<<ListboxSelect>>', on_project_select)
 
@@ -1873,15 +1881,13 @@ class TaskOperations:
                 if self.model.project_has_baseline(project['id']):
                     should_capture = messagebox.askyesno(
                         'Overwrite Baseline?',
-                        f"A buffer baseline was already captured for "
+                        f'A buffer baseline was already captured for '
                         f"'{project['name']}'. Recapture it now, overwriting the "
                         'previous baseline?',
                         parent=dialog,
                     )
                 if should_capture:
-                    captured_count = self.model.capture_project_baseline(
-                        project['id']
-                    )
+                    captured_count = self.model.capture_project_baseline(project['id'])
                     if captured_count == 0:
                         messagebox.showinfo(
                             'No Tasks Found',
@@ -1959,7 +1965,9 @@ class TaskOperations:
         # exportselection=False - see project_listbox: editing a field must
         # not silently deselect the chain
         chain_listbox = tk.Listbox(
-            listbox_frame, yscrollcommand=scrollbar.set, font=('Helvetica', 10),
+            listbox_frame,
+            yscrollcommand=scrollbar.set,
+            font=('Helvetica', 10),
             exportselection=False,
         )
         chain_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -1998,7 +2006,7 @@ class TaskOperations:
 
         def format_chain_label(chain):
             marker = ' (critical)' if chain['is_critical'] else ''
-            return f"{chain['id']} - {chain['name']}{marker}"
+            return f'{chain["id"]} - {chain["name"]}{marker}'
 
         def populate_chain_listbox():
             chain_listbox.delete(0, tk.END)
@@ -2211,7 +2219,9 @@ class TaskOperations:
         days to add to the end of the timeline, so rolling-wave planning can
         keep scheduling further into the future (e.g. after deleting old
         history, or just because the plan is running long)."""
-        current_end = self.model.get_date_for_day(self.model.days - 1).strftime('%Y-%m-%d')
+        current_end = self.model.get_date_for_day(self.model.days - 1).strftime(
+            '%Y-%m-%d'
+        )
         additional_days = simpledialog.askinteger(
             'Extend Timeline',
             f'The timeline currently runs through {current_end}.\n\n'
@@ -2323,7 +2333,8 @@ class TaskOperations:
                 cutoff_date = datetime(year, month, day)
             except (ValueError, TypeError):
                 messagebox.showerror(
-                    'Invalid Date', 'Please enter a date as YYYY-MM-DD.',
+                    'Invalid Date',
+                    'Please enter a date as YYYY-MM-DD.',
                     parent=dialog,
                 )
                 return
@@ -2355,8 +2366,8 @@ class TaskOperations:
         if cutoff_col <= 0:
             messagebox.showinfo(
                 'Nothing to Delete',
-                f"{cutoff_date.strftime('%Y-%m-%d')} is not after the current "
-                f"timeline start ({self.model.start_date.strftime('%Y-%m-%d')}) - "
+                f'{cutoff_date.strftime("%Y-%m-%d")} is not after the current '
+                f'timeline start ({self.model.start_date.strftime("%Y-%m-%d")}) - '
                 'nothing falls before it.',
                 parent=self.controller.root,
             )
@@ -2366,7 +2377,7 @@ class TaskOperations:
 
         if impact['blocking']:
             lines = [
-                f"- {b['buffer']['description']}: its {b['role']} task "
+                f'- {b["buffer"]["description"]}: its {b["role"]} task '
                 f"'{b['task']['description']}' would be deleted"
                 for b in impact['blocking']
             ]
@@ -2374,7 +2385,7 @@ class TaskOperations:
                 'Cannot Delete History',
                 'The following buffers would permanently lose the ability to '
                 'compute a fever chart if this cutoff were used (their '
-                "terminal or merge task would be deleted) - choose an earlier "
+                'terminal or merge task would be deleted) - choose an earlier '
                 'cutoff date that excludes them:\n\n' + '\n'.join(lines),
                 parent=self.controller.root,
             )
@@ -2391,26 +2402,24 @@ class TaskOperations:
             # unconditionally, whether or not there's anything to delete, so
             # this should still proceed rather than being treated as a no-op.
             message = (
-                f"No tasks start before {cutoff_date.strftime('%Y-%m-%d')}, but "
-                f"proceeding will reclaim {cutoff_col} day(s) of empty timeline "
-                "and shift every remaining task/resource left. This cannot be "
-                "undone."
+                f'No tasks start before {cutoff_date.strftime("%Y-%m-%d")}, but '
+                f'proceeding will reclaim {cutoff_col} day(s) of empty timeline '
+                'and shift every remaining task/resource left. This cannot be '
+                'undone.'
             )
         else:
             message = (
-                f"This will delete {total} task(s) starting before "
-                f"{cutoff_date.strftime('%Y-%m-%d')}, and shift every remaining "
-                "task/resource left to reclaim that space. This cannot be undone."
+                f'This will delete {total} task(s) starting before '
+                f'{cutoff_date.strftime("%Y-%m-%d")}, and shift every remaining '
+                'task/resource left to reclaim that space. This cannot be undone.'
             )
         if not_done:
-            not_done_desc = ', '.join(
-                f"'{t['description']}'" for t in not_done[:5]
-            )
+            not_done_desc = ', '.join(f"'{t['description']}'" for t in not_done[:5])
             if len(not_done) > 5:
                 not_done_desc += f', and {len(not_done) - 5} more'
             message += (
-                f"\n\nWARNING: {len(not_done)} of these task(s) are not marked "
-                f"done: {not_done_desc}. Deleting them loses track of their "
+                f'\n\nWARNING: {len(not_done)} of these task(s) are not marked '
+                f'done: {not_done_desc}. Deleting them loses track of their '
                 'progress permanently.'
             )
         message += '\n\nProceed?'
@@ -2426,7 +2435,7 @@ class TaskOperations:
             summary = f'Reclaimed {cutoff_col} day(s) of empty timeline.'
         else:
             summary = (
-                f"Deleted {total} task(s) and reclaimed {cutoff_col} day(s) "
+                f'Deleted {total} task(s) and reclaimed {cutoff_col} day(s) '
                 'from the timeline.'
             )
         messagebox.showinfo('History Deleted', summary, parent=self.controller.root)
@@ -2503,7 +2512,7 @@ class TaskOperations:
                 cal_dialog = tk.Toplevel(dialog)
                 cal_dialog.title('Select Start Date')
                 cal_dialog.geometry(
-                    f'+{dialog.winfo_rootx()+50}+{dialog.winfo_rooty()+50}'
+                    f'+{dialog.winfo_rootx() + 50}+{dialog.winfo_rooty() + 50}'
                 )
                 cal_dialog.transient(dialog)
                 cal_dialog.grab_set()
@@ -2703,12 +2712,8 @@ class TaskOperations:
             hit_radius = self.controller.connector_hit_radius()
 
             if (
-                connector_x - hit_radius
-                < canvas_x
-                < connector_x + hit_radius
-                and connector_y - hit_radius
-                < canvas_y
-                < connector_y + hit_radius
+                connector_x - hit_radius < canvas_x < connector_x + hit_radius
+                and connector_y - hit_radius < canvas_y < connector_y + hit_radius
             ):
                 self.controller.selected_task = self.model.get_task(task_id)
                 self.controller.dragging_connector = True
@@ -2828,14 +2833,16 @@ class TaskOperations:
                 # used for sizing a new task's duration below.
                 self.controller.marquee_select_in_progress = True
                 self.controller.marquee_start = (canvas_x, canvas_y)
-                self.controller.rubberband = self.controller.task_canvas.create_rectangle(
-                    canvas_x,
-                    canvas_y,
-                    canvas_x,
-                    canvas_y,
-                    outline='orange',
-                    width=2,
-                    dash=(4, 4),
+                self.controller.rubberband = (
+                    self.controller.task_canvas.create_rectangle(
+                        canvas_x,
+                        canvas_y,
+                        canvas_x,
+                        canvas_y,
+                        outline='orange',
+                        width=2,
+                        dash=(4, 4),
+                    )
                 )
                 return
 
@@ -3238,7 +3245,7 @@ class TaskOperations:
                 )
 
                 # Delete all existing UI elements for this task
-                for key, element_id in list(ui_elements.items()):
+                for element_id in list(ui_elements.values()):
                     if isinstance(element_id, int):  # Check if it's a canvas item ID
                         self.controller.task_canvas.delete(element_id)
 
@@ -3267,7 +3274,7 @@ class TaskOperations:
                 )
 
                 # Delete all existing UI elements for this task
-                for key, element_id in list(ui_elements.items()):
+                for element_id in list(ui_elements.values()):
                     if isinstance(element_id, int):  # Check if it's a canvas item ID
                         self.controller.task_canvas.delete(element_id)
 
@@ -3369,7 +3376,7 @@ class TaskOperations:
 
                             if selected_ui:
                                 # Delete all existing UI elements for this task
-                                for key, element_id in list(selected_ui.items()):
+                                for element_id in list(selected_ui.values()):
                                     if isinstance(
                                         element_id, int
                                     ):  # Check if it's a canvas item ID
@@ -3416,7 +3423,7 @@ class TaskOperations:
                         self.controller.ui.draw_task_grid()
                     else:
                         # Now delete all existing UI elements
-                        for key, element_id in list(ui_elements.items()):
+                        for element_id in list(ui_elements.values()):
                             if isinstance(
                                 element_id, int
                             ):  # Check if it's a canvas item ID
@@ -3605,7 +3612,7 @@ class TaskOperations:
                 break
 
             # Process all tasks that need shifting in this iteration
-            for other_task, other_x1, other_y1, other_x2, other_y2 in tasks_to_shift:
+            for other_task, other_x1, other_y1, _other_x2, other_y2 in tasks_to_shift:
                 # Mark this task as processed
                 processed_tasks.add(other_task['task_id'])
 
@@ -3832,9 +3839,7 @@ class TaskOperations:
             feeder = self.model.get_task(entry['id'])
             if not feeder or feeder.get('type') in BUFFER_TASK_TYPES:
                 continue
-            floor = max(
-                floor, feeder['col'] + feeder['duration'] + entry.get('lag', 0)
-            )
+            floor = max(floor, feeder['col'] + feeder['duration'] + entry.get('lag', 0))
         return floor
 
     def _earliest_allowed_start(self, task) -> int:
@@ -4010,7 +4015,10 @@ class TaskOperations:
             else:
                 continue
 
-            if new_col == buffer_task['col'] and new_duration == buffer_task['duration']:
+            if (
+                new_col == buffer_task['col']
+                and new_duration == buffer_task['duration']
+            ):
                 continue
 
             size_changed = new_duration != buffer_task['duration']
@@ -4065,7 +4073,7 @@ class TaskOperations:
         frame.pack(fill=tk.BOTH, expand=True)
 
         # Add task information header
-        header_text = f"Adding note to: Task {task['task_id']} - {task['description']}"
+        header_text = f'Adding note to: Task {task["task_id"]} - {task["description"]}'
         tk.Label(frame, text=header_text, font=('Arial', 10, 'bold')).pack(
             anchor='w', pady=(0, 10)
         )
@@ -4179,7 +4187,7 @@ class TaskOperations:
         tasks_to_show = min(5, len(selected_tasks))
         tasks_text = '\n'.join(
             [
-                f"• Task {t['task_id']}: {t['description']}"
+                f'• Task {t["task_id"]}: {t["description"]}'
                 for t in selected_tasks[:tasks_to_show]
             ]
         )
@@ -4208,8 +4216,11 @@ class TaskOperations:
         # Explicit size: a default tk.Text requests 80x24 characters, which
         # would drive the measured minsize far past this dialog's size
         note_text = tk.Text(
-            text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
-            width=50, height=8,
+            text_frame,
+            wrap=tk.WORD,
+            yscrollcommand=scrollbar.set,
+            width=50,
+            height=8,
         )
         note_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=note_text.yview)
@@ -4437,9 +4448,13 @@ class TaskOperations:
 
         button_frame = tk.Frame(frame)
         button_frame.grid(row=2, column=0, columnspan=2, sticky='e', pady=(10, 0))
-        find_btn = tk.Button(button_frame, text='Find', command=do_find, default=tk.ACTIVE)
+        find_btn = tk.Button(
+            button_frame, text='Find', command=do_find, default=tk.ACTIVE
+        )
         find_btn.pack(side=tk.RIGHT, padx=(5, 0))
-        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(side=tk.RIGHT)
+        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
+            side=tk.RIGHT
+        )
 
         # Enter anywhere in the dialog finds (works from the entry AND
         # after tabbing onto the Find button); Escape cancels
@@ -4448,7 +4463,10 @@ class TaskOperations:
 
         dialog.update_idletasks()
         x = parent.winfo_rootx() + (parent.winfo_width() - dialog.winfo_reqwidth()) // 2
-        y = parent.winfo_rooty() + (parent.winfo_height() - dialog.winfo_reqheight()) // 2
+        y = (
+            parent.winfo_rooty()
+            + (parent.winfo_height() - dialog.winfo_reqheight()) // 2
+        )
         dialog.geometry(f'+{x}+{y}')
 
         dialog.wait_visibility()
@@ -4464,12 +4482,12 @@ class TaskOperations:
             if not project or project['phase'] != 'execution':
                 messagebox.showinfo(
                     'Project Still in Planning',
-                    "Record Remaining Duration is only for tasks whose project "
-                    "is in the Execution phase - it tracks real progress "
+                    'Record Remaining Duration is only for tasks whose project '
+                    'is in the Execution phase - it tracks real progress '
                     "against the plan, which isn't a planning-time concept. "
                     f"'{project['name'] if project else 'This task'}' is still "
-                    "in Planning. Toggle its phase via "
-                    "Projects > Manage Projects... > Toggle Phase first.",
+                    'in Planning. Toggle its phase via '
+                    'Projects > Manage Projects... > Toggle Phase first.',
                     parent=self.controller.root,
                 )
                 return
@@ -4484,7 +4502,9 @@ class TaskOperations:
             setdate_text = self.controller.model.setdate.strftime('%Y-%m-%d')
 
             if task.get('actual_start_date'):
-                prompt = f'Enter remaining duration (days) for task as of {setdate_text}:'
+                prompt = (
+                    f'Enter remaining duration (days) for task as of {setdate_text}:'
+                )
             else:
                 # Recording this on a not-yet-started task has a real side
                 # effect (anchoring actual_start_date to setdate) that's easy
@@ -4494,7 +4514,7 @@ class TaskOperations:
                 prompt = (
                     f'This task has not started yet. Recording a remaining '
                     f'duration now will mark it as started on the project set '
-                    f"date ({setdate_text}), with its finish re-estimated from "
+                    f'date ({setdate_text}), with its finish re-estimated from '
                     f'the duration you enter below.\n\n'
                     f"TIP: to update a not-yet-started task's estimated "
                     f'duration (e.g. after completing its full kit) without '
@@ -4626,14 +4646,10 @@ class TaskOperations:
             tk.Label(frame, text=current_duration_text).pack(anchor='w')
 
             if task.get('optimal_duration'):
-                optimal_text = (
-                    f'Optimal Duration: {task["optimal_duration"]} days'
-                )
+                optimal_text = f'Optimal Duration: {task["optimal_duration"]} days'
                 tk.Label(frame, text=optimal_text).pack(anchor='w')
 
-            realistic_text = (
-                f'Realistic Duration: {task.get("realistic_duration", task["duration"])} days'
-            )
+            realistic_text = f'Realistic Duration: {task.get("realistic_duration", task["duration"])} days'
             tk.Label(frame, text=realistic_text).pack(anchor='w')
 
             # Baseline values, captured when the project moved planning ->
@@ -4745,7 +4761,7 @@ class TaskOperations:
             ).pack(fill=tk.X, pady=(0, 10))
 
             task_type = task.get('type', 'task')
-            type_text = f"Task type: {task_type.replace('_', ' ').title()}"
+            type_text = f'Task type: {task_type.replace("_", " ").title()}'
             tk.Label(frame, text=type_text).pack(anchor='w')
 
             current_text = f'Current Duration: {task["duration"]} days'
@@ -4920,7 +4936,7 @@ class TaskOperations:
         ]
 
         dialog = tk.Toplevel(self.controller.root)
-        dialog.title(f"Project Fever Charts: {project['name']}")
+        dialog.title(f'Project Fever Charts: {project["name"]}')
         dialog.transient(self.controller.root)
         dialog.grab_set()
         dialog.geometry('560x600')
@@ -4929,9 +4945,7 @@ class TaskOperations:
         outer.pack(fill=tk.BOTH, expand=True)
 
         scroll_canvas = tk.Canvas(outer)
-        scrollbar = ttk.Scrollbar(
-            outer, orient='vertical', command=scroll_canvas.yview
-        )
+        scrollbar = ttk.Scrollbar(outer, orient='vertical', command=scroll_canvas.yview)
         scroll_canvas.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -4940,9 +4954,7 @@ class TaskOperations:
         scroll_canvas.create_window((0, 0), window=content, anchor='nw')
         content.bind(
             '<Configure>',
-            lambda e: scroll_canvas.configure(
-                scrollregion=scroll_canvas.bbox('all')
-            ),
+            lambda e: scroll_canvas.configure(scrollregion=scroll_canvas.bbox('all')),
         )
 
         if not buffers:
@@ -4961,7 +4973,12 @@ class TaskOperations:
                 chart_canvas = tk.Canvas(content, bg='white', width=520, height=380)
                 chart_canvas.pack(padx=10, pady=10)
                 self.controller.ui.draw_fever_chart(
-                    chart_canvas, buffer_task, project, x0=10, y0=10, width=500,
+                    chart_canvas,
+                    buffer_task,
+                    project,
+                    x0=10,
+                    y0=10,
+                    width=500,
                     height=360,
                 )
 

@@ -15,6 +15,7 @@ updates, covering everything Stage 12 was still missing after Stage 15:
 Scenario: critical chain C1 -> C2 -> C3 -> Project Buffer (baseline 8),
 feeding chain F1 -> Feeding Buffer (baseline 5) merging into C2.
 """
+
 from unittest.mock import MagicMock
 
 from src.model.task_resource_model import (
@@ -44,29 +45,53 @@ class TestFeverChartsNarrative:
         feeding = self.model.get_chain_by_name('Feeding-01')
 
         self.c1 = self.model.add_task(
-            row=0, col=0, duration=5, description='C1',
-            project_id=self.pid, chain_id=critical['id'],
+            row=0,
+            col=0,
+            duration=5,
+            description='C1',
+            project_id=self.pid,
+            chain_id=critical['id'],
         )
         self.f1 = self.model.add_task(
-            row=1, col=0, duration=3, description='F1',
-            project_id=self.pid, chain_id=feeding['id'],
+            row=1,
+            col=0,
+            duration=3,
+            description='F1',
+            project_id=self.pid,
+            chain_id=feeding['id'],
         )
         self.fb = self.model.add_task(
-            row=2, col=3, duration=5, description='FB',
-            project_id=self.pid, chain_id=feeding['id'],
+            row=2,
+            col=3,
+            duration=5,
+            description='FB',
+            project_id=self.pid,
+            chain_id=feeding['id'],
         )
         self.fb['type'] = 'feeding_buffer'
         self.c2 = self.model.add_task(
-            row=0, col=8, duration=5, description='C2',
-            project_id=self.pid, chain_id=critical['id'],
+            row=0,
+            col=8,
+            duration=5,
+            description='C2',
+            project_id=self.pid,
+            chain_id=critical['id'],
         )
         self.c3 = self.model.add_task(
-            row=0, col=13, duration=5, description='C3',
-            project_id=self.pid, chain_id=critical['id'],
+            row=0,
+            col=13,
+            duration=5,
+            description='C3',
+            project_id=self.pid,
+            chain_id=critical['id'],
         )
         self.pb = self.model.add_task(
-            row=0, col=18, duration=8, description='PB',
-            project_id=self.pid, chain_id=critical['id'],
+            row=0,
+            col=18,
+            duration=8,
+            description='PB',
+            project_id=self.pid,
+            chain_id=critical['id'],
         )
         self.pb['type'] = 'project_buffer'
 
@@ -84,12 +109,20 @@ class TestFeverChartsNarrative:
         self.cpid = control_project['id']
         ctrl_chain = self.model.get_chain_by_name('Feeding-02')
         x1 = self.model.add_task(
-            row=5, col=0, duration=4, description='X1',
-            project_id=self.cpid, chain_id=ctrl_chain['id'],
+            row=5,
+            col=0,
+            duration=4,
+            description='X1',
+            project_id=self.cpid,
+            chain_id=ctrl_chain['id'],
         )
         self.ctrl_pb = self.model.add_task(
-            row=5, col=4, duration=6, description='Control PB',
-            project_id=self.cpid, chain_id=ctrl_chain['id'],
+            row=5,
+            col=4,
+            duration=6,
+            description='Control PB',
+            project_id=self.cpid,
+            chain_id=ctrl_chain['id'],
         )
         self.ctrl_pb['type'] = 'project_buffer'
         self.model.add_predecessor(self.ctrl_pb['task_id'], x1['task_id'], 'PB')
@@ -129,12 +162,18 @@ class TestFeverChartsNarrative:
         fever chart point, using the exact production math."""
         entry = buffer_task['fever_chart_history'][-1]
         baseline = buffer_task.get('baseline')
-        baseline_duration = baseline['duration'] if baseline else buffer_task['duration']
-        progress_pct, consumption_pct = fever_chart_display_point(entry, baseline_duration)
+        baseline_duration = (
+            baseline['duration'] if baseline else buffer_task['duration']
+        )
+        progress_pct, consumption_pct = fever_chart_display_point(
+            entry, baseline_duration
+        )
         slope = self.project.get('fever_chart_slope', 0.55)
         yellow = self.project.get('fever_chart_yellow_intercept', 10.0)
         red = self.project.get('fever_chart_red_intercept', 27.0)
-        zone = classify_fever_chart_zone(progress_pct, consumption_pct, slope, yellow, red)
+        zone = classify_fever_chart_zone(
+            progress_pct, consumption_pct, slope, yellow, red
+        )
         return progress_pct, consumption_pct, zone
 
     def test_day0_baseline_all_buffers_start_flat(self):

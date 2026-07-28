@@ -1,6 +1,6 @@
 import json
 from collections import Counter
-from typing import List, Dict, Any, Optional, Tuple, Set
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 
 from src.model.dependency_notation import (
@@ -366,9 +366,7 @@ class TaskResourceModel:
         self.chains.append(chain)
         return chain
 
-    def update_chain(
-        self, chain_id: int, name: str = None, color: str = None
-    ) -> bool:
+    def update_chain(self, chain_id: int, name: str = None, color: str = None) -> bool:
         """Update a chain's name and/or color."""
         chain = self.get_chain_by_id(chain_id)
         if not chain:
@@ -647,7 +645,8 @@ class TaskResourceModel:
             values = capacity
         else:
             values = [
-                c for day, c in enumerate(capacity)
+                c
+                for day, c in enumerate(capacity)
                 if self.get_date_for_day(day).weekday() < 5
             ] or capacity
         if not values:
@@ -1139,7 +1138,9 @@ class TaskResourceModel:
                 return resource
         return None
 
-    def add_resource(self, resource_name, works_weekends=True, resource_id=None, url=''):
+    def add_resource(
+        self, resource_name, works_weekends=True, resource_id=None, url=''
+    ):
         """Add a new resource with default capacity. Returns the new
         resource dict (truthy) on success, or None/False if `resource_name`
         is already taken - callers that only ever used this in a boolean
@@ -1216,7 +1217,7 @@ class TaskResourceModel:
         date = start + timedelta(days=day_index)
         # Print for debugging (you can remove this later)
         print(
-            f"Day {day_index}: {date.strftime('%Y-%m-%d')} is weekday {date.weekday()}"
+            f'Day {day_index}: {date.strftime("%Y-%m-%d")} is weekday {date.weekday()}'
         )
         return date.weekday() >= 5  # 5=Saturday, 6=Sunday
 
@@ -2009,9 +2010,7 @@ class TaskResourceModel:
         ]
         return sorted(tasks, key=lambda t: t['col'])
 
-    def get_buffer_terminal_task(
-        self, buffer_task_id: int
-    ) -> Optional[Dict[str, Any]]:
+    def get_buffer_terminal_task(self, buffer_task_id: int) -> Optional[Dict[str, Any]]:
         """Return the one ordinary task that is a buffer's own direct
         predecessor - the "terminal protected task" in Stage 8's fever chart
         calculations (the last work task before the buffer).
@@ -2027,9 +2026,7 @@ class TaskResourceModel:
 
         return None
 
-    def get_buffer_merge_task(
-        self, buffer_task_id: int
-    ) -> Optional[Dict[str, Any]]:
+    def get_buffer_merge_task(self, buffer_task_id: int) -> Optional[Dict[str, Any]]:
         """Return the one ordinary task on a buffer's successor side - the
         merge point it protects. Returns None unless exactly one such
         successor exists: a buffer with several merge successors is
@@ -2095,9 +2092,7 @@ class TaskResourceModel:
 
         terminal_baseline = terminal_task.get('baseline')
         if terminal_baseline:
-            baseline_finish = (
-                terminal_baseline['col'] + terminal_baseline['duration']
-            )
+            baseline_finish = terminal_baseline['col'] + terminal_baseline['duration']
         else:
             # No baseline on record for the terminal task (e.g. added to the
             # chain after the planning->execution transition) - treat now as
@@ -2134,13 +2129,9 @@ class TaskResourceModel:
                 if merge_task:
                     merge_baseline = merge_task.get('baseline')
                     if merge_baseline:
-                        overflow = max(
-                            0, merge_task['col'] - merge_baseline['col']
-                        )
+                        overflow = max(0, merge_task['col'] - merge_baseline['col'])
                 forecast_lateness = (
-                    buffer_baseline['duration']
-                    - buffer_task['duration']
-                    + overflow
+                    buffer_baseline['duration'] - buffer_task['duration'] + overflow
                 )
 
         return {'cpsl': cpsl, 'ppf': ppf, 'forecast_lateness': forecast_lateness}

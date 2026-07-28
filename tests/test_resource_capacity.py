@@ -1,5 +1,4 @@
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from datetime import datetime, timedelta
 
 from src.model.task_resource_model import TaskResourceModel
@@ -92,7 +91,7 @@ class TestResourceCapacity:
 
         # Create tasks with resource assignments
         # Task 1: days 0-2 with 0.5 allocation
-        task1 = self.model.add_task(
+        self.model.add_task(
             row=0,
             col=0,
             duration=3,
@@ -101,7 +100,7 @@ class TestResourceCapacity:
         )
 
         # Task 2: days 1-3 with 0.7 allocation (overlapping with Task 1 on day 1-2)
-        task2 = self.model.add_task(
+        self.model.add_task(
             row=1,
             col=1,
             duration=3,

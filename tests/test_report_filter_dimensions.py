@@ -3,6 +3,7 @@ planned start window) used by both the canvas Filter menu and the future
 Reporting framework. All are computed from existing task fields, no new
 stored field required.
 """
+
 from datetime import timedelta
 from unittest.mock import MagicMock
 
@@ -53,7 +54,9 @@ class TestFullKitReadiness:
     def test_ready_vs_not_ready(self):
         ready = self.model.add_task(row=0, col=5, duration=3, description='Kitted')
         ready['fullkit_date'] = self.model.setdate.isoformat()
-        not_ready = self.model.add_task(row=1, col=5, duration=3, description='Not kitted')
+        not_ready = self.model.add_task(
+            row=1, col=5, duration=3, description='Not kitted'
+        )
 
         assert [t['task_id'] for t in self.model.get_tasks_by_fullkit('ready')] == [
             ready['task_id']
@@ -143,7 +146,7 @@ class TestFilterCombination:
         )
         wrong_project['fullkit_date'] = self.model.setdate.isoformat()
 
-        not_kitted = self.model.add_task(
+        self.model.add_task(
             row=2, col=5, duration=3, description='NotKitted', project_id=p1['id']
         )
 

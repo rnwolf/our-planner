@@ -1,5 +1,4 @@
-import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from src.model.task_resource_model import TaskResourceModel
 
@@ -94,7 +93,8 @@ class TestTaskResourceModel:
         assert project['ccpm_method'] == 'rsem'
 
     def test_project_ccpm_method_save_load_roundtrip(self, tmp_path=None):
-        import tempfile, os
+        import tempfile
+        import os
 
         project = self.model.add_project('P1')
         self.model.update_project(project['id'], ccpm_method='hchain')

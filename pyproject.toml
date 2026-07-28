@@ -44,6 +44,8 @@ dev = [
     "mkdocstrings[python]>=0.29.1",
     "mkdocs-git-revision-date-localized-plugin>=1.4.5",
     "mkdocs-material>=9.6.11",
+    "ruff>=0.15.22",
+    "pre-commit>=4.0.0",
 ]
 
 [build-system]

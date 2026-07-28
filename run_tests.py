@@ -8,14 +8,14 @@ import os
 import sys
 import pytest
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Change to the project's root directory
     project_root = os.path.dirname(os.path.abspath(__file__))
     os.chdir(project_root)
 
     # Add arguments for pytest
     pytest_args = [
-        "--verbose",  # Verbose output
+        '--verbose',  # Verbose output
         # Add any other pytest arguments here
     ]
 

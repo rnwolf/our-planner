@@ -5,13 +5,17 @@ import re
 from datetime import datetime
 from src.model.dependency_notation import VALID_LINK_TYPES, parse_predecessor_notation
 from src.model.resource_notation import parse_resource_token
-from src.model.resource_notation import parse_resource_tokens as _parse_resource_tokens_str_keyed
+from src.model.resource_notation import (
+    parse_resource_tokens as _parse_resource_tokens_str_keyed,
+)
 from src.model.task_resource_model import CRITICAL_CHAIN_COLOR, FEEDING_CHAIN_COLORS
 
 # Matches a single predecessor token from a CCPM schedule.csv, e.g. 'K2',
 # 'W3:FB', 'R6:SS+2' - alphanumeric ids (not our own model's plain-integer
 # task ids), optionally followed by a link type and integer lag.
-_CSV_PREDECESSOR_TOKEN_RE = re.compile(r'^([A-Za-z0-9_]+)(?::([A-Za-z]{2})([+-]\d+)?)?$')
+_CSV_PREDECESSOR_TOKEN_RE = re.compile(
+    r'^([A-Za-z0-9_]+)(?::([A-Za-z]{2})([+-]\d+)?)?$'
+)
 
 # Matches a 'feeding-N' chain label from a CCPM schedule.csv.
 _FEEDING_CHAIN_LABEL_RE = re.compile(r'^feeding-(\d+)$')
@@ -27,9 +31,7 @@ def _read_csv_rows(path):
     reader above, which is a separate, older code path."""
     with open(path, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        return [
-            {(k.strip() if k else k): v for k, v in row.items()} for row in reader
-        ]
+        return [{(k.strip() if k else k): v for k, v in row.items()} for row in reader]
 
 
 def _parse_resource_tokens(value):
@@ -225,7 +227,7 @@ class FileOperations:
         self.controller.update_view()
         messagebox.showinfo(
             'Import Complete',
-            f"Imported {task_count} tasks and {len(resource_rows)} resources "
+            f'Imported {task_count} tasks and {len(resource_rows)} resources '
             f"into new project '{project_name}'.",
         )
 
@@ -496,7 +498,9 @@ class FileOperations:
             try:
                 resource_id = int(raw_id)
             except ValueError:
-                problems.append(f"row with id '{raw_id or '(blank)'}': not a whole number")
+                problems.append(
+                    f"row with id '{raw_id or '(blank)'}': not a whole number"
+                )
                 continue
 
             raw_capacity = (row.get('capacity') or '').strip()
@@ -515,7 +519,8 @@ class FileOperations:
             messagebox.showerror(
                 'Import Error',
                 'resources.csv has problem row(s) - fix these and try again '
-                '(no changes made):\n\n' + '\n'.join(problems[:10])
+                '(no changes made):\n\n'
+                + '\n'.join(problems[:10])
                 + (f'\n...and {len(problems) - 10} more' if len(problems) > 10 else ''),
                 parent=self.controller.root,
             )
@@ -524,8 +529,10 @@ class FileOperations:
         new_ids = [rid for rid, _ in parsed if not self.model.get_resource_by_id(rid)]
         existing_ids = [rid for rid, _ in parsed if self.model.get_resource_by_id(rid)]
         existing_with_capacity = [
-            rid for rid, row in parsed
-            if self.model.get_resource_by_id(rid) and (row.get('capacity') or '').strip()
+            rid
+            for rid, row in parsed
+            if self.model.get_resource_by_id(rid)
+            and (row.get('capacity') or '').strip()
         ]
 
         message = (
@@ -642,7 +649,8 @@ class FileOperations:
             messagebox.showerror(
                 'Import Error',
                 'calendar.csv has problem row(s) - fix these and try again '
-                '(no changes made):\n\n' + '\n'.join(problems[:10])
+                '(no changes made):\n\n'
+                + '\n'.join(problems[:10])
                 + (f'\n...and {len(problems) - 10} more' if len(problems) > 10 else ''),
                 parent=self.controller.root,
             )
@@ -720,7 +728,9 @@ class FileOperations:
             try:
                 task_id = int(raw_id)
             except ValueError:
-                problems.append(f"row with id '{raw_id or '(blank)'}': not a whole number")
+                problems.append(
+                    f"row with id '{raw_id or '(blank)'}': not a whole number"
+                )
                 continue
 
             name = (row.get('name') or '').strip() or f'Task {task_id}'
@@ -768,7 +778,9 @@ class FileOperations:
                 continue
 
             try:
-                predecessors = parse_predecessor_notation(row.get('predecessor_ids') or '')
+                predecessors = parse_predecessor_notation(
+                    row.get('predecessor_ids') or ''
+                )
             except ValueError as e:
                 problems.append(f"task {task_id} ('{name}'): {e}")
                 continue
@@ -793,7 +805,8 @@ class FileOperations:
             messagebox.showerror(
                 'Import Error',
                 'tasks.csv has problem row(s) - fix these and try again '
-                '(no changes made):\n\n' + '\n'.join(problems[:10])
+                '(no changes made):\n\n'
+                + '\n'.join(problems[:10])
                 + (f'\n...and {len(problems) - 10} more' if len(problems) > 10 else ''),
                 parent=self.controller.root,
             )
@@ -808,7 +821,7 @@ class FileOperations:
                 if pred_id not in parsed and not self.model.get_task(pred_id):
                     unresolved.append(
                         f"task {task_id} ('{info['name']}'): predecessor "
-                        f"{pred_id} does not exist"
+                        f'{pred_id} does not exist'
                     )
         if unresolved:
             messagebox.showerror(
@@ -816,7 +829,11 @@ class FileOperations:
                 "tasks.csv references predecessor(s) that don't exist - fix "
                 'these and try again (no changes made):\n\n'
                 + '\n'.join(unresolved[:10])
-                + (f'\n...and {len(unresolved) - 10} more' if len(unresolved) > 10 else ''),
+                + (
+                    f'\n...and {len(unresolved) - 10} more'
+                    if len(unresolved) > 10
+                    else ''
+                ),
                 parent=self.controller.root,
             )
             return

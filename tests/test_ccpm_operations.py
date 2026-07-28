@@ -25,10 +25,14 @@ def make_worked_example():
 
     def add(desc, dur, preds, rid):
         task = model.add_task(
-            row=1, col=0, duration=dur, description=desc,
+            row=1,
+            col=0,
+            duration=dur,
+            description=desc,
             resources={rid: 1.0},
             predecessors=[{'id': p, 'type': 'FS', 'lag': 0} for p in preds],
-            project_id=project_id)
+            project_id=project_id,
+        )
         return task['task_id']
 
     a = add('Spec', 10, [], 1)
@@ -56,10 +60,14 @@ class TestBuildNetworkData:
         assert by_name['Spec']['optimal_duration'] is None
         assert by_name['Commission']['predecessors'] == [
             {'id': str(ids['D']), 'type': 'FS', 'lag': 0},
-            {'id': str(ids['E']), 'type': 'FS', 'lag': 0}]
+            {'id': str(ids['E']), 'type': 'FS', 'lag': 0},
+        ]
         assert by_name['Build']['resources'] == {'2': 1.0}
-        assert {r['name'] for r in data['resources']} == \
-            {'Resource A', 'Resource B', 'Resource C'}
+        assert {r['name'] for r in data['resources']} == {
+            'Resource A',
+            'Resource B',
+            'Resource C',
+        }
         assert 'calendar' not in data  # uniform capacity -> no windows
 
     def test_excludes_buffers_and_complete_tasks(self):
@@ -73,14 +81,14 @@ class TestBuildNetworkData:
         # links into the excluded tasks were dropped with warnings
         by_name = {t['name']: t for t in data['tasks']}
         assert by_name['Commission']['predecessors'] == [
-            {'id': str(ids['D']), 'type': 'FS', 'lag': 0}]
+            {'id': str(ids['D']), 'type': 'FS', 'lag': 0}
+        ]
         assert any('buffer' in w for w in warnings)
         assert any('complete' in w for w in warnings)
 
     def test_capacity_encoding(self):
         _, _, _, ops = make_worked_example()
-        base, windows = ops._encode_capacity(
-            [1.0, 1.0, 0.0, 0.0, 2.0, 1.0, 1.0])
+        base, windows = ops._encode_capacity([1.0, 1.0, 0.0, 0.0, 2.0, 1.0, 1.0])
         assert base == 1
         assert windows == [(2, 4, 0), (4, 5, 2)]
 
@@ -89,7 +97,8 @@ class TestBuildNetworkData:
         model.get_resource_by_id(2)['capacity'][2:4] = [0.0, 0.0]
         data, _, _ = ops.build_network_data(project_id)
         assert data['calendar'] == [
-            {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}]
+            {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}
+        ]
 
 
 class TestScheduleProjectCore:
@@ -110,8 +119,7 @@ class TestScheduleProjectCore:
         project = result['project']
         assert project['name'] == 'Sample Project (CCPM)'
         assert project['ccpm_method'] == 'cap'  # inherited from the source
-        new_tasks = [t for t in model.tasks
-                     if t['project_id'] == project['id']]
+        new_tasks = [t for t in model.tasks if t['project_id'] == project['id']]
         assert len(new_tasks) == result['task_count'] == 8  # 6 tasks + FB + PB
         by_type = {}
         for t in new_tasks:
@@ -123,16 +131,22 @@ class TestScheduleProjectCore:
 
         # critical chain tasks got the critical chain assigned
         critical = model.get_critical_chain()
-        cc_tasks = [t for t in new_tasks if t['chain_id'] == critical['id']
-                    and t['type'] == 'task']
-        assert {t['description'] for t in cc_tasks} == \
-            {'Spec', 'Build', 'Integrate', 'Commission'}
+        cc_tasks = [
+            t
+            for t in new_tasks
+            if t['chain_id'] == critical['id'] and t['type'] == 'task'
+        ]
+        assert {t['description'] for t in cc_tasks} == {
+            'Spec',
+            'Build',
+            'Integrate',
+            'Commission',
+        }
 
         # shared resource pool: reused by name, none duplicated
         assert len(model.resources) == n_resources
         # source project untouched
-        assert all(t['col'] == 0 for t in model.tasks
-                   if t['project_id'] == project_id)
+        assert all(t['col'] == 0 for t in model.tasks if t['project_id'] == project_id)
 
     def test_warns_when_schedule_extends_past_grid(self):
         # Capacity data only exists for the grid; the scheduler assumes
@@ -144,8 +158,7 @@ class TestScheduleProjectCore:
             resource['capacity'] = resource['capacity'][:40]
         result = ops.schedule_project_core(project_id)
         assert result['ok'], result
-        overshoot = [w for w in result['warnings']
-                     if 'past the planning grid' in w]
+        overshoot = [w for w in result['warnings'] if 'past the planning grid' in w]
         assert len(overshoot) == 1
         assert '20 day(s)' in overshoot[0]  # 60 promised vs 40-day grid
         assert model.days >= 60  # grid extended to hold the import
@@ -154,8 +167,7 @@ class TestScheduleProjectCore:
         model, project_id, ids, ops = make_worked_example()
         result = ops.schedule_project_core(project_id)  # 60 <= 100-day grid
         assert result['ok'], result
-        assert not any('past the planning grid' in w
-                       for w in result['warnings'])
+        assert not any('past the planning grid' in w for w in result['warnings'])
 
     def test_validation_failure_reports_coded_issues(self):
         model, project_id, ids, ops = make_worked_example()
@@ -201,11 +213,17 @@ class TestExportNetworkCore:
         model, project_id, ids, ops = make_worked_example()
         model.get_resource_by_id(2)['capacity'][2:4] = [0.0, 0.0]
         files, warnings, anchor = ops.export_network_core(project_id, tmp_path)
-        assert [f.split('/')[-1] for f in files] == \
-            ['tasks.csv', 'resources.csv', 'calendar.csv']
+        assert [f.split('/')[-1] for f in files] == [
+            'tasks.csv',
+            'resources.csv',
+            'calendar.csv',
+        ]
 
-        net = load_network(tmp_path / 'tasks.csv', tmp_path / 'resources.csv',
-                           tmp_path / 'calendar.csv')
+        net = load_network(
+            tmp_path / 'tasks.csv',
+            tmp_path / 'resources.csv',
+            tmp_path / 'calendar.csv',
+        )
         report = validate_network(net)
         assert report.ok, [i.message for i in report.errors]
         result = build_schedule(net, 'export-roundtrip')
@@ -243,7 +261,8 @@ class TestAnchoring:
         data, _, anchor = ops.build_network_data(project_id)
         assert anchor == 20
         assert data['calendar'] == [
-            {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}]
+            {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}
+        ]
 
     def test_windows_before_anchor_dropped(self):
         model, project_id, ids, ops = self.make_anchored()
@@ -256,8 +275,11 @@ class TestAnchoring:
         result = ops.schedule_project_core(project_id)
         assert result['ok'], result
         assert result['anchor'] == 20
-        new_tasks = {t['description']: t for t in model.tasks
-                     if t['project_id'] == result['project']['id']}
+        new_tasks = {
+            t['description']: t
+            for t in model.tasks
+            if t['project_id'] == result['project']['id']
+        }
         # worked example positions, shifted by the anchor
         assert new_tasks['Spec']['col'] == 20 + 0
         assert new_tasks['Project buffer']['col'] == 20 + 30
@@ -274,14 +296,16 @@ class TestMetadataCarryOver:
 
         result = ops.schedule_project_core(project_id)
         assert result['ok'], result
-        new_tasks = {t['description']: t for t in model.tasks
-                     if t['project_id'] == result['project']['id']}
+        new_tasks = {
+            t['description']: t
+            for t in model.tasks
+            if t['project_id'] == result['project']['id']
+        }
 
         build = new_tasks['Build']
         assert build['color'] == 'Tomato'
         assert set(build['tags']) == {'ccpm', 'phase1', 'important'}
-        assert [n['text'] for n in build['notes']] == \
-            ['watch the vendor lead time']
+        assert [n['text'] for n in build['notes']] == ['watch the vendor lead time']
         # notes are copies, not shared references
         assert build['notes'] is not src['notes']
         assert build['notes'][0] is not src['notes'][0]
@@ -297,8 +321,9 @@ class TestMetadataCarryOver:
         for i, t in enumerate(model.tasks):
             t['row'] = 1 + i  # source occupies rows 1..6
         result = ops.schedule_project_core(project_id)
-        new_rows = sorted(t['row'] for t in model.tasks
-                          if t['project_id'] == result['project']['id'])
+        new_rows = sorted(
+            t['row'] for t in model.tasks if t['project_id'] == result['project']['id']
+        )
         assert new_rows[0] == 8  # max source row 6 + 2
 
 
@@ -314,12 +339,17 @@ class TestSaveLoadRoundTrip:
 
         loaded = TaskResourceModel()
         assert loaded.load_from_file(str(path))
-        assert all(isinstance(k, int)
-                   for t in loaded.tasks for k in t['resources'])
+        assert all(isinstance(k, int) for t in loaded.tasks for k in t['resources'])
 
         # a task created after loading must mix cleanly with loaded ones
-        loaded.add_task(row=8, col=0, duration=5, description='New task',
-                        resources={3: 1.0}, project_id=project_id)
+        loaded.add_task(
+            row=8,
+            col=0,
+            duration=5,
+            description='New task',
+            resources={3: 1.0},
+            project_id=project_id,
+        )
 
         controller = MagicMock()
         controller.model = loaded
@@ -337,10 +367,13 @@ class TestRealisticDurationRoundTrip:
         model, project_id, ids, ops = make_worked_example()
         result = ops.schedule_project_core(project_id)
         assert result['ok'], result
-        new_tasks = {t['description']: t for t in model.tasks
-                     if t['project_id'] == result['project']['id']}
+        new_tasks = {
+            t['description']: t
+            for t in model.tasks
+            if t['project_id'] == result['project']['id']
+        }
         build = new_tasks['Build']
-        assert build['duration'] == 10           # scheduled (optimal)
+        assert build['duration'] == 10  # scheduled (optimal)
         assert build['realistic_duration'] == 20  # original estimate
         # buffers have no estimate: default (copy of duration) applies
         pb = new_tasks['Project buffer']
@@ -362,8 +395,16 @@ class TestStage19ExportColumns:
         with open(tmp_path / 'tasks.csv', newline='', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             assert reader.fieldnames == [
-                'id', 'name', 'realistic_duration', 'optimal_duration',
-                'predecessor_ids', 'resource_ids', 'url', 'tags', 'colour']
+                'id',
+                'name',
+                'realistic_duration',
+                'optimal_duration',
+                'predecessor_ids',
+                'resource_ids',
+                'url',
+                'tags',
+                'colour',
+            ]
             by_name = {r['name']: r for r in reader}
         assert by_name['Spec']['tags'] == 'alpha,beta'
         assert by_name['Spec']['colour'] == 'salmon'
@@ -418,15 +459,27 @@ class TestStage19ImportTagsColour:
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
         rows = [
-            {'id': 'A', 'start': '0', 'duration': '5', 'name': 'Spec',
-             'tags': 'alpha, beta', 'colour': 'salmon'},
-            {'id': 'B', 'start': '5', 'duration': '5', 'name': 'Build',
-             'color': '#ff0000'},  # alias spelling
+            {
+                'id': 'A',
+                'start': '0',
+                'duration': '5',
+                'name': 'Spec',
+                'tags': 'alpha, beta',
+                'colour': 'salmon',
+            },
+            {
+                'id': 'B',
+                'start': '5',
+                'duration': '5',
+                'name': 'Build',
+                'color': '#ff0000',
+            },  # alias spelling
             {'id': 'C', 'start': '10', 'duration': '5', 'name': 'Test'},
         ]
         file_ops._import_schedule_tasks(rows, {}, project['id'])
-        tasks = {t['description']: t for t in model.tasks
-                 if t['project_id'] == project['id']}
+        tasks = {
+            t['description']: t for t in model.tasks if t['project_id'] == project['id']
+        }
         assert tasks['Spec']['tags'] == ['ccpm', 'alpha', 'beta']
         assert tasks['Spec']['color'] == 'salmon'
         assert tasks['Build']['color'] == '#ff0000'
@@ -436,8 +489,15 @@ class TestStage19ImportTagsColour:
     def test_ccpm_tag_not_duplicated(self):
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
-        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Spec',
-                 'tags': 'ccpm,alpha'}]
+        rows = [
+            {
+                'id': 'A',
+                'start': '0',
+                'duration': '5',
+                'name': 'Spec',
+                'tags': 'ccpm,alpha',
+            }
+        ]
         file_ops._import_schedule_tasks(rows, {}, project['id'])
         task = next(t for t in model.tasks if t['project_id'] == project['id'])
         assert task['tags'] == ['ccpm', 'alpha']
@@ -486,8 +546,15 @@ class TestPhase5AllocationImport:
     def test_quantity_token_parsed(self):
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
-        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
-                 'resource_ids': '5:3'}]
+        rows = [
+            {
+                'id': 'A',
+                'start': '0',
+                'duration': '5',
+                'name': 'Task A',
+                'resource_ids': '5:3',
+            }
+        ]
         file_ops._import_schedule_tasks(rows, {'5': 500}, project['id'])
         task = next(t for t in model.tasks if t['description'] == 'Task A')
         assert task['resources'] == {500: 3.0}
@@ -495,8 +562,15 @@ class TestPhase5AllocationImport:
     def test_bare_id_still_defaults_to_one(self):
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
-        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
-                 'resource_ids': '5'}]
+        rows = [
+            {
+                'id': 'A',
+                'start': '0',
+                'duration': '5',
+                'name': 'Task A',
+                'resource_ids': '5',
+            }
+        ]
         file_ops._import_schedule_tasks(rows, {'5': 500}, project['id'])
         task = next(t for t in model.tasks if t['description'] == 'Task A')
         assert task['resources'] == {500: 1.0}
@@ -504,8 +578,15 @@ class TestPhase5AllocationImport:
     def test_mixed_bare_and_quantity_tokens(self):
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
-        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
-                 'resource_ids': '5:2;7'}]
+        rows = [
+            {
+                'id': 'A',
+                'start': '0',
+                'duration': '5',
+                'name': 'Task A',
+                'resource_ids': '5:2;7',
+            }
+        ]
         file_ops._import_schedule_tasks(rows, {'5': 500, '7': 700}, project['id'])
         task = next(t for t in model.tasks if t['description'] == 'Task A')
         assert task['resources'] == {500: 2.0, 700: 1.0}
@@ -515,8 +596,15 @@ class TestPhase5AllocationImport:
         same as the pre-Phase-5 behavior for an unresolvable bare id."""
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
-        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
-                 'resource_ids': 'unknown:2'}]
+        rows = [
+            {
+                'id': 'A',
+                'start': '0',
+                'duration': '5',
+                'name': 'Task A',
+                'resource_ids': 'unknown:2',
+            }
+        ]
         file_ops._import_schedule_tasks(rows, {}, project['id'])
         task = next(t for t in model.tasks if t['description'] == 'Task A')
         assert task['resources'] == {}
@@ -556,13 +644,18 @@ class TestStage20BufferMethod:
             project_id = model.projects[0]['id']
             model.update_project(project_id, ccpm_method=method)
 
-            def add(desc, realistic, optimal, preds):
+            def add(
+                desc, realistic, optimal, preds, model=model, project_id=project_id
+            ):
                 task = model.add_task(
-                    row=1, col=0, duration=optimal or realistic,
-                    description=desc, resources={1: 1.0},
-                    predecessors=[{'id': p, 'type': 'FS', 'lag': 0}
-                                  for p in preds],
-                    project_id=project_id)
+                    row=1,
+                    col=0,
+                    duration=optimal or realistic,
+                    description=desc,
+                    resources={1: 1.0},
+                    predecessors=[{'id': p, 'type': 'FS', 'lag': 0} for p in preds],
+                    project_id=project_id,
+                )
                 task['realistic_duration'] = realistic
                 if optimal:
                     task['optimal_duration'] = optimal
@@ -571,7 +664,7 @@ class TestStage20BufferMethod:
             a = add('A', 10, 6, [])
             b = add('B', 20, 10, [a])
             c = add('C', 10, None, [b])
-            d = add('D', 20, None, [c])
+            add('D', 20, None, [c])
 
             controller = MagicMock()
             controller.model = model
@@ -587,11 +680,16 @@ class TestStage20BufferMethod:
 
         model, project_id, ids, ops = make_worked_example()
         model.update_project(project_id, ccpm_method='hchain')
-        with patch('src.operations.ccpm_operations.filedialog.askdirectory',
-                   return_value=str(tmp_path)), \
-             patch.object(ops, '_pick_project',
-                          return_value=model.get_project_by_id(project_id)), \
-             patch('src.operations.ccpm_operations.messagebox.showinfo') as info:
+        with (
+            patch(
+                'src.operations.ccpm_operations.filedialog.askdirectory',
+                return_value=str(tmp_path),
+            ),
+            patch.object(
+                ops, '_pick_project', return_value=model.get_project_by_id(project_id)
+            ),
+            patch('src.operations.ccpm_operations.messagebox.showinfo') as info,
+        ):
             ops.export_ccpm_network()
         assert info.called
         assert '--buffer-method hchain' in info.call_args[0][1]

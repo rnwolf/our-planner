@@ -1,6 +1,4 @@
-import pytest
 from unittest.mock import MagicMock, patch
-import tkinter as tk
 
 import sys
 import os
@@ -45,21 +43,21 @@ class TestHelpMenu:
         self.menu_bar.add_cascade.assert_called_once()
 
         # Check that the correct menu items were added
-        assert (
-            self.mock_menu.add_command.call_count == 4
-        ), 'Expected 3 menu items to be added'
+        assert self.mock_menu.add_command.call_count == 4, (
+            'Expected 3 menu items to be added'
+        )
 
         # Verify the first call was for the Website menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[0]
-        assert (
-            kwargs['label'] == 'Documentation'
-        ), f"Expected 'Documentation' but got {kwargs['label']}"
+        assert kwargs['label'] == 'Documentation', (
+            f"Expected 'Documentation' but got {kwargs['label']}"
+        )
 
         # Verify the second call was for the Website menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[1]
-        assert (
-            kwargs['label'] == 'Website'
-        ), f"Expected 'Website' but got {kwargs['label']}"
+        assert kwargs['label'] == 'Website', (
+            f"Expected 'Website' but got {kwargs['label']}"
+        )
 
         # Verify the third call was for the About menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[2]

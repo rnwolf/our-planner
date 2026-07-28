@@ -1,5 +1,4 @@
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from src.model.task_resource_model import TaskResourceModel
 from src.operations.tag_operations import TagOperations

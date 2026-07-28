@@ -1,6 +1,5 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from src.model.task_resource_model import TaskResourceModel
 from src.operations.task_operations import TaskOperations
@@ -243,7 +242,9 @@ class TestProjectStartDateUpdate:
         mock_askyesno.return_value = True
 
         self.model.capture_project_baseline(self.model.default_project_id)
-        baseline_col_before = self.model.get_task(self.task2['task_id'])['baseline']['col']
+        baseline_col_before = self.model.get_task(self.task2['task_id'])['baseline'][
+            'col'
+        ]
         assert baseline_col_before == 5
 
         new_date = datetime(2023, 1, 6)  # forward by 5 days

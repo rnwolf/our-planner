@@ -3,6 +3,7 @@ Full-Kit Readiness. Only the extractor half (compute_fullkit_readiness) is
 exercised here - the renderer half is a plain Tkinter dialog with no
 independent logic worth a headless test.
 """
+
 from unittest.mock import MagicMock
 
 from src.model.task_resource_model import TaskResourceModel
@@ -81,7 +82,11 @@ class TestFullKitReadinessReport:
         )
         started['actual_start_date'] = self.model.setdate.isoformat()
         self.model.add_task(
-            row=1, col=8, duration=3, description='Not started', project_id=project['id']
+            row=1,
+            col=8,
+            duration=3,
+            description='Not started',
+            project_id=project['id'],
         )
 
         self.tag_ops.task_state_filters = ['not_started']

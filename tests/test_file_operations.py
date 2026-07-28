@@ -1,9 +1,6 @@
-import pytest
 import os
-import json
 import tempfile
 from unittest.mock import MagicMock, patch
-from datetime import datetime
 
 from src.model.task_resource_model import TaskResourceModel
 from src.operations.file_operations import FileOperations

@@ -2,13 +2,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
 import datetime
-import tempfile
 import subprocess
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, landscape, A3, A4
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from src.utils.colors import DEFAULT_TASK_COLOR, get_resource_load_color
 from src.model.dependency_notation import format_predecessor_notation, BUFFER_LINK_TYPES
@@ -54,14 +52,14 @@ def _draw_fever_chart_image(
         fever_chart_display_point,
     )
 
-    slope = project.get("fever_chart_slope", 0.55)
-    yellow_intercept = project.get("fever_chart_yellow_intercept", 10.0)
-    red_intercept = project.get("fever_chart_red_intercept", 27.0)
+    slope = project.get('fever_chart_slope', 0.55)
+    yellow_intercept = project.get('fever_chart_yellow_intercept', 10.0)
+    red_intercept = project.get('fever_chart_red_intercept', 27.0)
 
-    history = buffer_task.get("fever_chart_history", [])
-    baseline = buffer_task.get("baseline")
+    history = buffer_task.get('fever_chart_history', [])
+    baseline = buffer_task.get('baseline')
     buffer_baseline_duration = (
-        baseline["duration"] if baseline else buffer_task["duration"]
+        baseline['duration'] if baseline else buffer_task['duration']
     )
 
     points = []
@@ -69,7 +67,7 @@ def _draw_fever_chart_image(
         progress_pct, consumption_pct = fever_chart_display_point(
             entry, buffer_baseline_duration
         )
-        points.append((entry["date"], progress_pct, consumption_pct))
+        points.append((entry['date'], progress_pct, consumption_pct))
 
     max_consumption = max([p[2] for p in points] + [100.0])
     y_max = max(100.0, ((max_consumption // 20) + 2) * 20)
@@ -87,38 +85,48 @@ def _draw_fever_chart_image(
         return max(0.0, min(y_max, slope * x_pct + intercept))
 
     title = f'{buffer_task["task_id"]} - {buffer_task["description"]}'
-    draw.text((x0 + width / 2, y0 + 20), title, fill="black", font=title_font, anchor="ma")
+    draw.text(
+        (x0 + width / 2, y0 + 20), title, fill='black', font=title_font, anchor='ma'
+    )
 
     y_at_0 = boundary(0, yellow_intercept)
     y_at_100 = boundary(100, yellow_intercept)
     draw.polygon(
         [to_px(0, 0), to_px(100, 0), to_px(100, y_at_100), to_px(0, y_at_0)],
-        fill="#C8E6C9",
+        fill='#C8E6C9',
     )
 
     r_at_0 = boundary(0, red_intercept)
     r_at_100 = boundary(100, red_intercept)
     draw.polygon(
-        [to_px(0, y_at_0), to_px(100, y_at_100), to_px(100, r_at_100), to_px(0, r_at_0)],
-        fill="#FFF59D",
+        [
+            to_px(0, y_at_0),
+            to_px(100, y_at_100),
+            to_px(100, r_at_100),
+            to_px(0, r_at_0),
+        ],
+        fill='#FFF59D',
     )
 
     draw.polygon(
         [to_px(0, r_at_0), to_px(100, r_at_100), to_px(100, y_max), to_px(0, y_max)],
-        fill="#EF9A9A",
+        fill='#EF9A9A',
     )
 
     draw.rectangle(
         [chart_x0, chart_y0, chart_x0 + chart_w, chart_y0 + chart_h],
-        outline="black",
+        outline='black',
         width=2,
     )
 
     for x_pct in (0, 25, 50, 75, 100):
         px, _ = to_px(x_pct, 0)
         draw.text(
-            (px, chart_y0 + chart_h + 15), f"{x_pct}%", fill="black", font=small_font,
-            anchor="ma",
+            (px, chart_y0 + chart_h + 15),
+            f'{x_pct}%',
+            fill='black',
+            font=small_font,
+            anchor='ma',
         )
 
     y_step = y_max / 5
@@ -126,32 +134,35 @@ def _draw_fever_chart_image(
         y_pct = i * y_step
         _, py = to_px(0, y_pct)
         draw.text(
-            (chart_x0 - 15, py), f"{y_pct:.0f}%", fill="black", font=small_font,
-            anchor="rm",
+            (chart_x0 - 15, py),
+            f'{y_pct:.0f}%',
+            fill='black',
+            font=small_font,
+            anchor='rm',
         )
 
     draw.text(
         (x0 + width / 2, y0 + height - 30),
-        "% of protected chain complete",
-        fill="black",
+        '% of protected chain complete',
+        fill='black',
         font=font,
-        anchor="ma",
+        anchor='ma',
     )
     draw.text(
         (x0 + 15, y0 + 55),
-        "% buffer consumed",
-        fill="black",
+        '% buffer consumed',
+        fill='black',
         font=font,
-        anchor="la",
+        anchor='la',
     )
 
     if not points:
         draw.text(
             (chart_x0 + chart_w / 2, chart_y0 + chart_h / 2),
-            "No status updates recorded yet",
-            fill="#777777",
+            'No status updates recorded yet',
+            fill='#777777',
             font=font,
-            anchor="mm",
+            anchor='mm',
         )
         return
 
@@ -159,15 +170,17 @@ def _draw_fever_chart_image(
     for date_str, progress_pct, consumption_pct in points:
         px, py = to_px(progress_pct, max(0.0, consumption_pct))
         if prev_px is not None:
-            draw.line([prev_px, (px, py)], fill="black", width=3)
+            draw.line([prev_px, (px, py)], fill='black', width=3)
         zone = classify_fever_chart_zone(
             progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
         )
-        dot_color = {"green": "#2E7D32", "yellow": "#F9A825", "red": "#C62828"}[zone]
+        dot_color = {'green': '#2E7D32', 'yellow': '#F9A825', 'red': '#C62828'}[zone]
         r = 10
-        draw.ellipse([px - r, py - r, px + r, py + r], fill=dot_color, outline="black", width=2)
-        date_label = datetime.datetime.fromisoformat(date_str).strftime("%m-%d")
-        draw.text((px, py - 25), date_label, fill="black", font=small_font, anchor="ma")
+        draw.ellipse(
+            [px - r, py - r, px + r, py + r], fill=dot_color, outline='black', width=2
+        )
+        date_label = datetime.datetime.fromisoformat(date_str).strftime('%m-%d')
+        draw.text((px, py - 25), date_label, fill='black', font=small_font, anchor='ma')
         prev_px = (px, py)
 
 
@@ -179,36 +192,36 @@ class ExportOperations:
     def open_export_dialog(self):
         """Open a dialog to configure export options."""
         dialog = tk.Toplevel(self.controller.root)
-        dialog.title("Export Project")
+        dialog.title('Export Project')
         dialog.transient(self.controller.root)
         dialog.grab_set()
 
         # Position only - sized to content, with a measured minsize below
         x = self.controller.root.winfo_rootx() + 50
         y = self.controller.root.winfo_rooty() + 50
-        dialog.geometry(f"+{x}+{y}")
+        dialog.geometry(f'+{x}+{y}')
 
         # Main frame with padding
         main_frame = tk.Frame(dialog, padx=20, pady=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Title
-        tk.Label(main_frame, text="Export Project", font=("Arial", 14, "bold")).pack(
-            anchor="w", pady=(0, 15)
+        tk.Label(main_frame, text='Export Project', font=('Arial', 14, 'bold')).pack(
+            anchor='w', pady=(0, 15)
         )
 
         # Export format selection
         format_frame = tk.Frame(main_frame)
         format_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(format_frame, text="Export Format:").pack(side=tk.LEFT)
+        tk.Label(format_frame, text='Export Format:').pack(side=tk.LEFT)
 
-        format_var = tk.StringVar(value="pdf")
+        format_var = tk.StringVar(value='pdf')
         formats = [
-            ("PDF Document", "pdf"),
-            ("PNG Image", "png"),
-            ("CSV Data", "csv"),
-            ("HTML Report", "html"),
+            ('PDF Document', 'pdf'),
+            ('PNG Image', 'png'),
+            ('CSV Data', 'csv'),
+            ('HTML Report', 'html'),
         ]
 
         format_menu = ttk.OptionMenu(
@@ -218,11 +231,11 @@ class ExportOperations:
 
         # Format description
         format_desc = tk.StringVar()
-        format_desc.set("PDF: Complete document with timeline, tasks, and resources.")
+        format_desc.set('PDF: Complete document with timeline, tasks, and resources.')
         format_label = tk.Label(
             main_frame,
             textvariable=format_desc,
-            fg="gray",
+            fg='gray',
             justify=tk.LEFT,
             wraplength=450,
         )
@@ -240,10 +253,10 @@ class ExportOperations:
         page_size_frame = tk.Frame(pdf_options_frame)
         page_size_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(page_size_frame, text="Page Size:").pack(side=tk.LEFT)
+        tk.Label(page_size_frame, text='Page Size:').pack(side=tk.LEFT)
 
-        page_size_var = tk.StringVar(value="A3")
-        page_sizes = ["Letter", "A4", "A3", "A2"]
+        page_size_var = tk.StringVar(value='A3')
+        page_sizes = ['Letter', 'A4', 'A3', 'A2']
 
         page_size_menu = ttk.OptionMenu(
             page_size_frame, page_size_var, page_sizes[2], *page_sizes
@@ -254,50 +267,50 @@ class ExportOperations:
         orientation_frame = tk.Frame(pdf_options_frame)
         orientation_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(orientation_frame, text="Orientation:").pack(side=tk.LEFT)
+        tk.Label(orientation_frame, text='Orientation:').pack(side=tk.LEFT)
 
-        orientation_var = tk.StringVar(value="landscape")
+        orientation_var = tk.StringVar(value='landscape')
 
         tk.Radiobutton(
             orientation_frame,
-            text="Portrait",
+            text='Portrait',
             variable=orientation_var,
-            value="portrait",
+            value='portrait',
         ).pack(side=tk.LEFT, padx=10)
         tk.Radiobutton(
             orientation_frame,
-            text="Landscape",
+            text='Landscape',
             variable=orientation_var,
-            value="landscape",
+            value='landscape',
         ).pack(side=tk.LEFT)
 
         # What to include
         include_frame = tk.Frame(pdf_options_frame)
         include_frame.pack(fill=tk.X, pady=5)
 
-        tk.Label(include_frame, text="Include:").pack(anchor="w")
+        tk.Label(include_frame, text='Include:').pack(anchor='w')
 
         include_timeline_var = tk.BooleanVar(value=True)
         include_task_grid_var = tk.BooleanVar(value=True)
         include_resources_var = tk.BooleanVar(value=True)
 
         tk.Checkbutton(
-            include_frame, text="Timeline", variable=include_timeline_var
-        ).pack(anchor="w", padx=20)
+            include_frame, text='Timeline', variable=include_timeline_var
+        ).pack(anchor='w', padx=20)
         tk.Checkbutton(
-            include_frame, text="Task Grid", variable=include_task_grid_var
-        ).pack(anchor="w", padx=20)
+            include_frame, text='Task Grid', variable=include_task_grid_var
+        ).pack(anchor='w', padx=20)
         tk.Checkbutton(
-            include_frame, text="Resource Loading", variable=include_resources_var
-        ).pack(anchor="w", padx=20)
+            include_frame, text='Resource Loading', variable=include_resources_var
+        ).pack(anchor='w', padx=20)
 
         # Apply filters
         filter_var = tk.BooleanVar(value=True)
         tk.Checkbutton(
             pdf_options_frame,
-            text="Apply current filters to export",
+            text='Apply current filters to export',
             variable=filter_var,
-        ).pack(anchor="w", pady=5)
+        ).pack(anchor='w', pady=5)
 
         # Function to update the UI based on the selected format
         def update_format_options(*args):
@@ -307,27 +320,27 @@ class ExportOperations:
             for widget in options_frame.winfo_children():
                 widget.pack_forget()
 
-            if selected_format == "pdf":
+            if selected_format == 'pdf':
                 pdf_options_frame.pack(fill=tk.BOTH, expand=True)
                 format_desc.set(
-                    "PDF: Complete document with timeline, tasks, and resources."
+                    'PDF: Complete document with timeline, tasks, and resources.'
                 )
-            elif selected_format == "png":
+            elif selected_format == 'png':
                 # PNG options would go here
-                format_desc.set("PNG: Export the current view as an image file.")
-            elif selected_format == "csv":
+                format_desc.set('PNG: Export the current view as an image file.')
+            elif selected_format == 'csv':
                 # CSV options would go here
                 format_desc.set(
-                    "CSV: Export task and resource data in spreadsheet format."
+                    'CSV: Export task and resource data in spreadsheet format.'
                 )
-            elif selected_format == "html":
+            elif selected_format == 'html':
                 # HTML options would go here
                 format_desc.set(
-                    "HTML: Interactive web report with filtering capabilities."
+                    'HTML: Interactive web report with filtering capabilities.'
                 )
 
         # Connect format selection to update function
-        format_var.trace("w", update_format_options)
+        format_var.trace('w', update_format_options)
 
         # Buttons
         button_frame = tk.Frame(main_frame)
@@ -336,7 +349,7 @@ class ExportOperations:
         def on_export():
             selected_format = format_var.get()
 
-            if selected_format == "pdf":
+            if selected_format == 'pdf':
                 # Get PDF-specific options
                 page_size = page_size_var.get()
                 orientation = orientation_var.get()
@@ -353,19 +366,19 @@ class ExportOperations:
                     include_resources=include_resources,
                     apply_filters=apply_filters,
                 )
-            elif selected_format == "png":
+            elif selected_format == 'png':
                 self.export_to_image()
-            elif selected_format == "csv":
+            elif selected_format == 'csv':
                 self.export_to_csv(parent=dialog)
-            elif selected_format == "html":
+            elif selected_format == 'html':
                 self.export_to_html()
 
             dialog.destroy()
 
-        tk.Button(button_frame, text="Cancel", command=dialog.destroy).pack(
+        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
             side=tk.RIGHT, padx=5
         )
-        tk.Button(button_frame, text="Export", command=on_export).pack(
+        tk.Button(button_frame, text='Export', command=on_export).pack(
             side=tk.RIGHT, padx=5
         )
 
@@ -382,7 +395,7 @@ class ExportOperations:
             self.controller.root.winfo_rooty()
             + (self.controller.root.winfo_height() - height) // 2
         )
-        dialog.geometry(f"+{x}+{y}")
+        dialog.geometry(f'+{x}+{y}')
 
         # Visible resize handle, and never allow shrinking below the size
         # the content actually needs (measured, so font/theme-proof)
@@ -391,8 +404,8 @@ class ExportOperations:
 
     def export_to_pdf(
         self,
-        page_size="A3",
-        orientation="landscape",
+        page_size='A3',
+        orientation='landscape',
         include_timeline=True,
         include_task_grid=True,
         include_resources=True,
@@ -401,9 +414,9 @@ class ExportOperations:
         """Export the project to a PDF file."""
         # Ask for file location
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
-            title="Export to PDF",
+            defaultextension='.pdf',
+            filetypes=[('PDF files', '*.pdf'), ('All files', '*.*')],
+            title='Export to PDF',
         )
 
         if not file_path:
@@ -411,33 +424,33 @@ class ExportOperations:
 
         try:
             # Determine page size
-            if page_size == "Letter":
+            if page_size == 'Letter':
                 pdf_size = letter
-            elif page_size == "A4":
+            elif page_size == 'A4':
                 pdf_size = A4
-            elif page_size == "A3":
+            elif page_size == 'A3':
                 pdf_size = A3
             else:
                 pdf_size = A3  # Default to A3
 
             # Apply orientation
-            if orientation == "landscape":
+            if orientation == 'landscape':
                 pdf_size = landscape(pdf_size)
 
             # Create document
             doc = SimpleDocTemplate(
                 file_path,
                 pagesize=pdf_size,
-                title=f"Task Resource Plan - {datetime.datetime.now().strftime('%Y-%m-%d')}",
-                author="Task Resource Manager",
+                title=f'Task Resource Plan - {datetime.datetime.now().strftime("%Y-%m-%d")}',
+                author='Task Resource Manager',
             )
 
             # Define styles
             styles = getSampleStyleSheet()
-            title_style = styles["Title"]
-            heading_style = styles["Heading1"]
-            sub_heading_style = styles["Heading2"]
-            normal_style = styles["Normal"]
+            title_style = styles['Title']
+            heading_style = styles['Heading1']
+            sub_heading_style = styles['Heading2']
+            normal_style = styles['Normal']
 
             # Create content
             content = []
@@ -446,17 +459,17 @@ class ExportOperations:
             project_name = (
                 os.path.basename(self.model.current_file_path)
                 if self.model.current_file_path
-                else "New Project"
+                else 'New Project'
             )
             content.append(
-                Paragraph(f"Task Resource Plan: {project_name}", title_style)
+                Paragraph(f'Task Resource Plan: {project_name}', title_style)
             )
             content.append(Spacer(1, 0.25 * inch))
 
             # Add export date
             content.append(
                 Paragraph(
-                    f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    f'Generated: {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}',
                     normal_style,
                 )
             )
@@ -464,37 +477,37 @@ class ExportOperations:
             # Add setdate
             content.append(
                 Paragraph(
-                    f"Current Plan Date: {self.model.setdate.strftime('%Y-%m-%d')}",
+                    f'Current Plan Date: {self.model.setdate.strftime("%Y-%m-%d")}',
                     normal_style,
                 )
             )
 
             # Add date range
-            start_date = self.model.start_date.strftime("%Y-%m-%d")
+            start_date = self.model.start_date.strftime('%Y-%m-%d')
             end_date = (
                 self.model.start_date + datetime.timedelta(days=self.model.days - 1)
-            ).strftime("%Y-%m-%d")
+            ).strftime('%Y-%m-%d')
             content.append(
-                Paragraph(f"Timeline: {start_date} to {end_date}", normal_style)
+                Paragraph(f'Timeline: {start_date} to {end_date}', normal_style)
             )
             content.append(Spacer(1, 0.25 * inch))
 
             # Add filter info if applicable
             if apply_filters and self.controller.tag_ops.has_active_filters():
-                content.append(Paragraph("Applied Filters:", sub_heading_style))
+                content.append(Paragraph('Applied Filters:', sub_heading_style))
 
                 if self.controller.tag_ops.task_tag_filters:
                     match_type = (
-                        "ALL" if self.controller.tag_ops.task_match_all else "ANY"
+                        'ALL' if self.controller.tag_ops.task_match_all else 'ANY'
                     )
-                    filter_text = f"Tasks: {match_type} of [{', '.join(self.controller.tag_ops.task_tag_filters)}]"
+                    filter_text = f'Tasks: {match_type} of [{", ".join(self.controller.tag_ops.task_tag_filters)}]'
                     content.append(Paragraph(filter_text, normal_style))
 
                 if self.controller.tag_ops.resource_tag_filters:
                     match_type = (
-                        "ALL" if self.controller.tag_ops.resource_match_all else "ANY"
+                        'ALL' if self.controller.tag_ops.resource_match_all else 'ANY'
                     )
-                    filter_text = f"Resources: {match_type} of [{', '.join(self.controller.tag_ops.resource_tag_filters)}]"
+                    filter_text = f'Resources: {match_type} of [{", ".join(self.controller.tag_ops.resource_tag_filters)}]'
                     content.append(Paragraph(filter_text, normal_style))
 
                 content.append(Spacer(1, 0.25 * inch))
@@ -509,46 +522,46 @@ class ExportOperations:
 
             # Table of tasks
             if include_task_grid and tasks:
-                content.append(Paragraph("Task Schedule", heading_style))
+                content.append(Paragraph('Task Schedule', heading_style))
                 content.append(Spacer(1, 0.15 * inch))
 
                 # Create task table data
                 task_data = [
                     [
-                        "ID",
-                        "Row",
-                        "Description",
-                        "Chain",
-                        "Start",
-                        "End",
-                        "Duration",
-                        "Resources",
-                        "Predecessors",
-                        "Successors",
-                        "Tags",
+                        'ID',
+                        'Row',
+                        'Description',
+                        'Chain',
+                        'Start',
+                        'End',
+                        'Duration',
+                        'Resources',
+                        'Predecessors',
+                        'Successors',
+                        'Tags',
                     ]
                 ]
 
-                for task in sorted(tasks, key=lambda t: (t["row"], t["col"])):
-                    task_id = task["task_id"]
-                    row = task["row"]
-                    col = task["col"]
-                    description = task["description"]
-                    duration = task["duration"]
+                for task in sorted(tasks, key=lambda t: (t['row'], t['col'])):
+                    task_id = task['task_id']
+                    row = task['row']
+                    col = task['col']
+                    description = task['description']
+                    duration = task['duration']
 
                     # Chain (critical/feeding-NN classification)
-                    chain = self.model.get_chain_by_id(task.get("chain_id"))
-                    chain_text = chain["name"] if chain else ""
+                    chain = self.model.get_chain_by_id(task.get('chain_id'))
+                    chain_text = chain['name'] if chain else ''
 
                     # Calculate dates
-                    start_date = self.model.get_date_for_day(col).strftime("%Y-%m-%d")
+                    start_date = self.model.get_date_for_day(col).strftime('%Y-%m-%d')
                     end_date = self.model.get_date_for_day(col + duration - 1).strftime(
-                        "%Y-%m-%d"
+                        '%Y-%m-%d'
                     )
 
                     # Format resources
                     resource_names = []
-                    for resource_id_str, allocation in task["resources"].items():
+                    for resource_id_str, allocation in task['resources'].items():
                         resource_id = (
                             int(resource_id_str)
                             if isinstance(resource_id_str, str)
@@ -556,20 +569,20 @@ class ExportOperations:
                         )
                         resource = self.model.get_resource_by_id(resource_id)
                         if resource:
-                            resource_names.append(f"{resource['name']} ({allocation})")
+                            resource_names.append(f'{resource["name"]} ({allocation})')
 
-                    resources_text = ", ".join(resource_names)
+                    resources_text = ', '.join(resource_names)
 
                     # Format predecessors and successors
                     predecessors_text = format_predecessor_notation(
-                        task.get("predecessors", [])
+                        task.get('predecessors', [])
                     )
-                    successors_text = ", ".join(
-                        map(str, self.model.get_successor_ids(task["task_id"]))
+                    successors_text = ', '.join(
+                        map(str, self.model.get_successor_ids(task['task_id']))
                     )
 
                     # Format tags
-                    tags_text = ", ".join(task.get("tags", []))
+                    tags_text = ', '.join(task.get('tags', []))
 
                     task_data.append(
                         [
@@ -592,20 +605,20 @@ class ExportOperations:
                 task_table.setStyle(
                     TableStyle(
                         [
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
-                            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 10),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
-                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, 0), 10),
+                            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                             (
-                                "ALIGN",
+                                'ALIGN',
                                 (4, 1),
                                 (6, -1),
-                                "CENTER",
+                                'CENTER',
                             ),  # Center date and duration columns
                         ]
                     )
@@ -616,33 +629,33 @@ class ExportOperations:
 
             # Resource loading information
             if include_resources and resources:
-                content.append(Paragraph("Resource Loading", heading_style))
+                content.append(Paragraph('Resource Loading', heading_style))
                 content.append(Spacer(1, 0.15 * inch))
 
                 # Create resource table data
-                resource_data = [["ID", "Name", "Tags", "Allocation"]]
+                resource_data = [['ID', 'Name', 'Tags', 'Allocation']]
 
                 # Calculate resource loading
                 resource_loading = self.model.calculate_resource_loading()
 
                 for resource in resources:
-                    resource_id = resource["id"]
-                    name = resource["name"]
-                    tags = ", ".join(resource.get("tags", []))
+                    resource_id = resource['id']
+                    name = resource['name']
+                    tags = ', '.join(resource.get('tags', []))
 
                     # Calculate total and max allocation
                     total_allocation = sum(resource_loading[resource_id])
                     max_allocation = max(resource_loading[resource_id])
-                    capacity = sum(resource["capacity"])
+                    capacity = sum(resource['capacity'])
 
                     # Calculate percent utilization
                     if capacity > 0:
                         utilization = (total_allocation / capacity) * 100
                         utilization_text = (
-                            f"{utilization:.1f}% (Max: {max_allocation:.1f})"
+                            f'{utilization:.1f}% (Max: {max_allocation:.1f})'
                         )
                     else:
-                        utilization_text = "N/A"
+                        utilization_text = 'N/A'
 
                     resource_data.append([resource_id, name, tags, utilization_text])
 
@@ -651,15 +664,15 @@ class ExportOperations:
                 resource_table.setStyle(
                     TableStyle(
                         [
-                            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                            ("TEXTCOLOR", (0, 0), (-1, 0), colors.black),
-                            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-                            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                            ("FONTSIZE", (0, 0), (-1, 0), 10),
-                            ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                            ("BACKGROUND", (0, 1), (-1, -1), colors.white),
-                            ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, 0), 10),
+                            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ]
                     )
                 )
@@ -671,26 +684,26 @@ class ExportOperations:
             doc.build(content)
 
             # Show success message
-            messagebox.showinfo("Export Successful", f"Project exported to {file_path}")
+            messagebox.showinfo('Export Successful', f'Project exported to {file_path}')
 
             # Ask if user wants to open the file
             if messagebox.askyesno(
-                "Open File", "Would you like to open the exported PDF file?"
+                'Open File', 'Would you like to open the exported PDF file?'
             ):
                 try:
-                    if os.name == "nt":  # Windows
+                    if os.name == 'nt':  # Windows
                         os.startfile(file_path)
-                    elif os.name == "posix":  # macOS or Linux
-                        subprocess.call(("xdg-open", file_path))
+                    elif os.name == 'posix':  # macOS or Linux
+                        subprocess.call(('xdg-open', file_path))
                 except Exception as e:
                     messagebox.showwarning(
-                        "Could not open file", f"Error opening file: {e}"
+                        'Could not open file', f'Error opening file: {e}'
                     )
 
             return True
 
         except Exception as e:
-            messagebox.showerror("Export Error", f"Error exporting to PDF: {e}")
+            messagebox.showerror('Export Error', f'Error exporting to PDF: {e}')
             return False
 
     # def export_to_image(self):
@@ -708,13 +721,13 @@ class ExportOperations:
         """Export the current view to an image (PNG)."""
         # Ask for file location
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".png",
+            defaultextension='.png',
             filetypes=[
-                ("PNG files", "*.png"),
-                ("JPEG files", "*.jpg"),
-                ("All files", "*.*"),
+                ('PNG files', '*.png'),
+                ('JPEG files', '*.jpg'),
+                ('All files', '*.*'),
             ],
-            title="Export to Image",
+            title='Export to Image',
         )
 
         if not file_path:
@@ -723,7 +736,6 @@ class ExportOperations:
         try:
             # For this implementation, we'll use PIL to create a screenshot of the canvases
             from PIL import Image, ImageDraw, ImageFont
-            import io
 
             # Calculate the dimensions of the image to create
             timeline_width = self.controller.cell_width * self.model.days
@@ -760,13 +772,13 @@ class ExportOperations:
                 full_height += resources_height + padding
 
             # Create a new image with white background
-            image = Image.new("RGB", (full_width, full_height), "white")
+            image = Image.new('RGB', (full_width, full_height), 'white')
             draw = ImageDraw.Draw(image)
 
             # Try to load a font
             try:
-                font = ImageFont.truetype("arial.ttf", 14)
-                title_font = ImageFont.truetype("arial.ttf", 18)
+                font = ImageFont.truetype('arial.ttf', 14)
+                title_font = ImageFont.truetype('arial.ttf', 18)
             except IOError:
                 # Fallback to default font
                 font = ImageFont.load_default()
@@ -776,26 +788,26 @@ class ExportOperations:
             project_name = (
                 os.path.basename(self.model.current_file_path)
                 if self.model.current_file_path
-                else "New Project"
+                else 'New Project'
             )
-            export_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            export_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
             draw.text(
                 (padding, padding),
-                f"Task Resource Plan: {project_name}",
-                fill="black",
+                f'Task Resource Plan: {project_name}',
+                fill='black',
                 font=title_font,
             )
             draw.text(
                 (padding, padding + 25),
-                f"Generated: {export_date}",
-                fill="black",
+                f'Generated: {export_date}',
+                fill='black',
                 font=font,
             )
             draw.text(
                 (padding + 300, padding + 25),
-                f"Current Date: {self.model.setdate.strftime('%Y-%m-%d')}",
-                fill="black",
+                f'Current Date: {self.model.setdate.strftime("%Y-%m-%d")}',
+                fill='black',
                 font=font,
             )
 
@@ -807,7 +819,7 @@ class ExportOperations:
             if include_timeline:
                 # Draw timeline header
                 draw.text(
-                    (padding, current_y), "Timeline", fill="black", font=title_font
+                    (padding, current_y), 'Timeline', fill='black', font=title_font
                 )
                 current_y += 30
 
@@ -824,8 +836,8 @@ class ExportOperations:
                             y_offset + self.controller.timeline_height,
                         ),
                     ],
-                    fill="#f5f5f5",
-                    outline="gray",
+                    fill='#f5f5f5',
+                    outline='gray',
                 )
 
                 # Draw month headers and day numbers
@@ -833,13 +845,13 @@ class ExportOperations:
                 month_ranges = self.model.get_month_ranges()
 
                 for month_range in month_ranges:
-                    start_x = month_range["start"] * self.controller.cell_width
-                    end_x = (month_range["end"] + 1) * self.controller.cell_width
+                    start_x = month_range['start'] * self.controller.cell_width
+                    end_x = (month_range['end'] + 1) * self.controller.cell_width
                     month_center_x = (start_x + end_x) / 2
 
                     # Draw month background
                     fill_color = (
-                        "#f0f0f0" if month_range["start"] % 2 == 0 else "#e0e0e0"
+                        '#f0f0f0' if month_range['start'] % 2 == 0 else '#e0e0e0'
                     )
                     draw.rectangle(
                         [
@@ -850,7 +862,7 @@ class ExportOperations:
                             ),
                         ],
                         fill=fill_color,
-                        outline="gray",
+                        outline='gray',
                     )
 
                     # Draw month label
@@ -859,10 +871,10 @@ class ExportOperations:
                             x_offset + month_center_x,
                             y_offset + self.controller.timeline_height / 6,
                         ),
-                        month_range["label"],
-                        fill="black",
+                        month_range['label'],
+                        fill='black',
                         font=font,
-                        anchor="mm",
+                        anchor='mm',
                     )
 
                 # Draw day numbers and dates
@@ -876,27 +888,27 @@ class ExportOperations:
                             (x_offset + x, y_offset),
                             (x_offset + x, y_offset + self.controller.timeline_height),
                         ],
-                        fill="gray",
+                        fill='gray',
                     )
 
                     # Draw date
                     date_y = y_offset + (self.controller.timeline_height * 2 / 3)
                     draw.text(
                         (x_offset + x + self.controller.cell_width / 2, date_y),
-                        f"{date.day}",
-                        fill="black",
+                        f'{date.day}',
+                        fill='black',
                         font=font,
-                        anchor="mm",
+                        anchor='mm',
                     )
 
                     # Draw day number
                     day_y = y_offset + (self.controller.timeline_height * 5 / 6)
                     draw.text(
                         (x_offset + x + self.controller.cell_width / 2, day_y),
-                        f"{i+1}",
-                        fill="black",
+                        f'{i + 1}',
+                        fill='black',
                         font=font,
-                        anchor="mm",
+                        anchor='mm',
                     )
 
                 # Draw the last vertical grid line
@@ -908,7 +920,7 @@ class ExportOperations:
                             y_offset + self.controller.timeline_height,
                         ),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 # Draw horizontal dividers
@@ -918,7 +930,7 @@ class ExportOperations:
                         (x_offset, date_divider_y),
                         (x_offset + timeline_width, date_divider_y),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 day_divider_y = y_offset + (self.controller.timeline_height * 2 / 3)
@@ -927,7 +939,7 @@ class ExportOperations:
                         (x_offset, day_divider_y),
                         (x_offset + timeline_width, day_divider_y),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 # Update current Y position
@@ -937,7 +949,7 @@ class ExportOperations:
             if include_tasks:
                 # Draw task grid header
                 draw.text(
-                    (padding, current_y), "Task Grid", fill="black", font=title_font
+                    (padding, current_y), 'Task Grid', fill='black', font=title_font
                 )
                 current_y += 30
 
@@ -952,10 +964,10 @@ class ExportOperations:
                             label_x + self.controller.label_column_width / 2,
                             row_y + self.controller.task_height / 2,
                         ),
-                        f"Row {i+1}",
-                        fill="black",
+                        f'Row {i + 1}',
+                        fill='black',
                         font=font,
-                        anchor="mm",
+                        anchor='mm',
                     )
 
                     # Draw horizontal grid line
@@ -964,7 +976,7 @@ class ExportOperations:
                             (label_x, row_y),
                             (label_x + self.controller.label_column_width, row_y),
                         ],
-                        fill="gray",
+                        fill='gray',
                     )
 
                 # Draw the last horizontal line
@@ -976,7 +988,7 @@ class ExportOperations:
                             current_y + tasks_height,
                         ),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 # Draw vertical line separating labels from grid
@@ -988,7 +1000,7 @@ class ExportOperations:
                             current_y + tasks_height,
                         ),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 # Setup grid coordinates
@@ -1001,28 +1013,28 @@ class ExportOperations:
                         (grid_x, grid_y),
                         (grid_x + timeline_width, grid_y + tasks_height),
                     ],
-                    fill="white",
-                    outline="gray",
+                    fill='white',
+                    outline='gray',
                 )
 
                 # Draw grid lines
                 for i in range(self.model.days + 1):
                     x = grid_x + (i * self.controller.cell_width)
-                    draw.line([(x, grid_y), (x, grid_y + tasks_height)], fill="gray")
+                    draw.line([(x, grid_y), (x, grid_y + tasks_height)], fill='gray')
 
                 for i in range(self.model.max_rows + 1):
                     y = grid_y + (i * self.controller.task_height)
-                    draw.line([(grid_x, y), (grid_x + timeline_width, y)], fill="gray")
+                    draw.line([(grid_x, y), (grid_x + timeline_width, y)], fill='gray')
 
                 # Draw tasks
                 tasks = self.controller.tag_ops.get_filtered_tasks()
 
                 for task in tasks:
-                    task_id = task["task_id"]
-                    row = task["row"]
-                    col = task["col"]
-                    duration = task["duration"]
-                    description = task["description"]
+                    task_id = task['task_id']
+                    row = task['row']
+                    col = task['col']
+                    duration = task['duration']
+                    description = task['description']
 
                     # Calculate position
                     task_x = grid_x + (col * self.controller.cell_width)
@@ -1031,11 +1043,11 @@ class ExportOperations:
                     task_height = self.controller.task_height
 
                     # Draw task box, using the same color as shown on the task grid
-                    task_color = task.get("color", DEFAULT_TASK_COLOR)
+                    task_color = task.get('color', DEFAULT_TASK_COLOR)
                     draw.rectangle(
                         [(task_x, task_y), (task_x + task_width, task_y + task_height)],
                         fill=task_color,
-                        outline="black",
+                        outline='black',
                     )
 
                     # Draw task text
@@ -1044,74 +1056,74 @@ class ExportOperations:
 
                     draw.text(
                         (text_x, text_y),
-                        f"{task_id} - {description}",
-                        fill="black",
+                        f'{task_id} - {description}',
+                        fill='black',
                         font=font,
-                        anchor="mm",
+                        anchor='mm',
                     )
 
                     # Draw tags if present
                     if (
-                        "tags" in task
-                        and task["tags"]
-                        and hasattr(self.controller.ui, "show_tags_var")
+                        'tags' in task
+                        and task['tags']
+                        and hasattr(self.controller.ui, 'show_tags_var')
                         and self.controller.ui.show_tags_var.get()
                     ):
-                        tag_text = ", ".join(task["tags"])
+                        tag_text = ', '.join(task['tags'])
                         draw.text(
                             (text_x, text_y + 15),
-                            f"[{tag_text}]",
-                            fill="blue",
+                            f'[{tag_text}]',
+                            fill='blue',
                             font=font,
-                            anchor="mm",
+                            anchor='mm',
                         )
 
                 # Draw dependencies, drawing each link from its predecessor
                 # to the current task (successors are derived, not stored)
                 for task in tasks:
-                    task_id = task["task_id"]
+                    task_id = task['task_id']
 
-                    for link in task.get("predecessors", []):
-                        predecessor = self.model.get_task(link["id"])
+                    for link in task.get('predecessors', []):
+                        predecessor = self.model.get_task(link['id'])
                         if predecessor:
                             # Get task coordinates
                             task_x = (
                                 grid_x
-                                + (predecessor["col"] * self.controller.cell_width)
-                                + (predecessor["duration"] * self.controller.cell_width)
+                                + (predecessor['col'] * self.controller.cell_width)
+                                + (predecessor['duration'] * self.controller.cell_width)
                             )
                             task_y = (
                                 grid_y
-                                + (predecessor["row"] * self.controller.task_height)
+                                + (predecessor['row'] * self.controller.task_height)
                                 + (self.controller.task_height / 2)
                             )
 
                             successor_x = grid_x + (
-                                task["col"] * self.controller.cell_width
+                                task['col'] * self.controller.cell_width
                             )
                             successor_y = (
                                 grid_y
-                                + (task["row"] * self.controller.task_height)
+                                + (task['row'] * self.controller.task_height)
                                 + (self.controller.task_height / 2)
                             )
 
                             # Draw arrow
                             # Determine color based on dependency direction
                             predecessor_end_date = (
-                                predecessor["col"] + predecessor["duration"]
+                                predecessor['col'] + predecessor['duration']
                             )
-                            successor_start_date = task["col"]
+                            successor_start_date = task['col']
 
                             if predecessor_end_date > successor_start_date:
-                                arrow_color = "red"  # backward dependency
+                                arrow_color = 'red'  # backward dependency
                             else:
-                                arrow_color = "blue"  # forward dependency
+                                arrow_color = 'blue'  # forward dependency
 
                             # Draw line
                             if (
-                                predecessor["row"] == task["row"]
-                                and predecessor["col"] + predecessor["duration"]
-                                == task["col"]
+                                predecessor['row'] == task['row']
+                                and predecessor['col'] + predecessor['duration']
+                                == task['col']
                             ):
                                 # Direct connection, no need to draw arrow
                                 pass
@@ -1119,7 +1131,7 @@ class ExportOperations:
                                 # Draw curved arrow
                                 # For simplicity in PIL, we'll just draw straight lines
                                 # (buffer links are dashed to set them apart visually)
-                                if link["type"] in BUFFER_LINK_TYPES:
+                                if link['type'] in BUFFER_LINK_TYPES:
                                     _draw_dashed_line(
                                         draw,
                                         task_x,
@@ -1161,8 +1173,8 @@ class ExportOperations:
                 # Draw resource grid header
                 draw.text(
                     (padding, current_y),
-                    "Resource Loading",
-                    fill="black",
+                    'Resource Loading',
+                    fill='black',
                     font=title_font,
                 )
                 current_y += 30
@@ -1178,29 +1190,29 @@ class ExportOperations:
                             label_x + self.controller.label_column_width / 2,
                             row_y + self.controller.task_height / 2,
                         ),
-                        resource["name"],
-                        fill="black",
+                        resource['name'],
+                        fill='black',
                         font=font,
-                        anchor="mm",
+                        anchor='mm',
                     )
 
                     # Draw tags if present
                     if (
-                        "tags" in resource
-                        and resource["tags"]
-                        and hasattr(self.controller.ui, "show_tags_var")
+                        'tags' in resource
+                        and resource['tags']
+                        and hasattr(self.controller.ui, 'show_tags_var')
                         and self.controller.ui.show_tags_var.get()
                     ):
-                        tag_text = ", ".join(resource["tags"])
+                        tag_text = ', '.join(resource['tags'])
                         draw.text(
                             (
                                 label_x + self.controller.label_column_width / 2,
                                 row_y + self.controller.task_height / 2 + 15,
                             ),
-                            f"[{tag_text}]",
-                            fill="blue",
+                            f'[{tag_text}]',
+                            fill='blue',
                             font=font,
-                            anchor="mm",
+                            anchor='mm',
                         )
 
                     # Draw horizontal grid line
@@ -1209,7 +1221,7 @@ class ExportOperations:
                             (label_x, row_y),
                             (label_x + self.controller.label_column_width, row_y),
                         ],
-                        fill="gray",
+                        fill='gray',
                     )
 
                 # Draw the last horizontal line
@@ -1221,7 +1233,7 @@ class ExportOperations:
                             current_y + resources_height,
                         ),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 # Draw vertical line separating labels from grid
@@ -1233,7 +1245,7 @@ class ExportOperations:
                             current_y + resources_height,
                         ),
                     ],
-                    fill="gray",
+                    fill='gray',
                 )
 
                 # Setup grid coordinates
@@ -1245,11 +1257,11 @@ class ExportOperations:
 
                 # Draw resource grid
                 for i, resource in enumerate(resources):
-                    resource_id = resource["id"]
+                    resource_id = resource['id']
 
                     for day in range(self.model.days):
                         # Get resource capacity and loading
-                        capacity = resource["capacity"][day]
+                        capacity = resource['capacity'][day]
                         load = resource_loading[resource_id][day]
 
                         # Cell coordinates
@@ -1271,18 +1283,18 @@ class ExportOperations:
                                 ),
                             ],
                             fill=color,
-                            outline="gray",
+                            outline='gray',
                         )
 
                         # Display load number if there is any loading
                         if load > 0:
                             # Format load to show decimals only if needed
                             load_text = (
-                                f"{load:.1f}" if load != int(load) else str(int(load))
+                                f'{load:.1f}' if load != int(load) else str(int(load))
                             )
 
                             # Show as fraction of capacity
-                            display_text = f"{load_text}/{capacity}"
+                            display_text = f'{load_text}/{capacity}'
 
                             # Draw text
                             draw.text(
@@ -1291,16 +1303,16 @@ class ExportOperations:
                                     cell_y + self.controller.task_height / 2,
                                 ),
                                 display_text,
-                                fill="black",
+                                fill='black',
                                 font=font,
-                                anchor="mm",
+                                anchor='mm',
                             )
 
                 # Draw vertical grid lines
                 for i in range(self.model.days + 1):
                     x = grid_x + (i * self.controller.cell_width)
                     draw.line(
-                        [(x, grid_y), (x, grid_y + resources_height)], fill="gray"
+                        [(x, grid_y), (x, grid_y + resources_height)], fill='gray'
                     )
 
                 # Update current Y position
@@ -1310,32 +1322,32 @@ class ExportOperations:
             image.save(file_path)
 
             # Show success message
-            messagebox.showinfo("Export Successful", f"Image exported to {file_path}")
+            messagebox.showinfo('Export Successful', f'Image exported to {file_path}')
 
             # Ask if user wants to open the file
             if messagebox.askyesno(
-                "Open File", "Would you like to open the exported image file?"
+                'Open File', 'Would you like to open the exported image file?'
             ):
                 try:
-                    if os.name == "nt":  # Windows
+                    if os.name == 'nt':  # Windows
                         os.startfile(file_path)
-                    elif os.name == "posix":  # macOS or Linux
-                        subprocess.call(("xdg-open", file_path))
+                    elif os.name == 'posix':  # macOS or Linux
+                        subprocess.call(('xdg-open', file_path))
                 except Exception as e:
                     messagebox.showwarning(
-                        "Could not open file", f"Error opening file: {e}"
+                        'Could not open file', f'Error opening file: {e}'
                     )
 
             return True
 
         except ImportError:
             messagebox.showerror(
-                "Export Error",
-                "Could not export to image. Please install the Pillow library (pip install Pillow).",
+                'Export Error',
+                'Could not export to image. Please install the Pillow library (pip install Pillow).',
             )
             return False
         except Exception as e:
-            messagebox.showerror("Export Error", f"Error exporting to image: {e}")
+            messagebox.showerror('Export Error', f'Error exporting to image: {e}')
             return False
 
     def export_fever_charts(self, project=None):
@@ -1348,8 +1360,8 @@ class ExportOperations:
         if project is None:
             if not self.model.projects:
                 messagebox.showinfo(
-                    "No Projects",
-                    "Create a project first via Projects > Manage Projects...",
+                    'No Projects',
+                    'Create a project first via Projects > Manage Projects...',
                     parent=self.controller.root,
                 )
                 return False
@@ -1359,24 +1371,24 @@ class ExportOperations:
             else:
                 from src.operations.task_operations import OptionSelectDialog
 
-                names = [p["name"] for p in self.model.projects]
+                names = [p['name'] for p in self.model.projects]
                 default = self.model.get_default_project()
                 dialog = OptionSelectDialog(
                     self.controller.root,
-                    "Export Fever Charts",
-                    "Project:",
+                    'Export Fever Charts',
+                    'Project:',
                     names,
-                    initial_value=default["name"] if default else names[0],
+                    initial_value=default['name'] if default else names[0],
                 )
                 if dialog.result is None:
                     return False
                 project = self.model.get_project_by_name(dialog.result)
 
-        if project["phase"] != "execution":
+        if project['phase'] != 'execution':
             messagebox.showinfo(
-                "Not Yet in Execution",
+                'Not Yet in Execution',
                 f"'{project['name']}' isn't in the execution phase yet, so "
-                "there is nothing to chart.",
+                'there is nothing to chart.',
                 parent=self.controller.root,
             )
             return False
@@ -1384,19 +1396,19 @@ class ExportOperations:
         buffers = [
             t
             for t in self.model.tasks
-            if t.get("project_id") == project["id"]
-            and t.get("type") in ("project_buffer", "feeding_buffer")
+            if t.get('project_id') == project['id']
+            and t.get('type') in ('project_buffer', 'feeding_buffer')
         ]
         if not buffers:
             messagebox.showinfo(
-                "No Buffers Found",
+                'No Buffers Found',
                 f"'{project['name']}' has no buffer tasks to chart.",
                 parent=self.controller.root,
             )
             return False
 
         directory_path = filedialog.askdirectory(
-            title="Choose folder to save fever chart images"
+            title='Choose folder to save fever chart images'
         )
         if not directory_path:
             return False
@@ -1405,58 +1417,66 @@ class ExportOperations:
             from PIL import Image, ImageDraw, ImageFont
 
             try:
-                font = ImageFont.truetype("arial.ttf", 22)
-                title_font = ImageFont.truetype("arial.ttf", 30)
-                small_font = ImageFont.truetype("arial.ttf", 18)
+                font = ImageFont.truetype('arial.ttf', 22)
+                title_font = ImageFont.truetype('arial.ttf', 30)
+                small_font = ImageFont.truetype('arial.ttf', 18)
             except IOError:
                 font = ImageFont.load_default()
                 title_font = ImageFont.load_default()
                 small_font = ImageFont.load_default()
 
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
             width, height = 1600, 1200
             exported = 0
 
             for buffer_task in buffers:
-                image = Image.new("RGB", (width, height), "white")
+                image = Image.new('RGB', (width, height), 'white')
                 draw = ImageDraw.Draw(image)
                 _draw_fever_chart_image(
-                    draw, 0, 0, width, height, buffer_task, project, font,
-                    title_font, small_font,
+                    draw,
+                    0,
+                    0,
+                    width,
+                    height,
+                    buffer_task,
+                    project,
+                    font,
+                    title_font,
+                    small_font,
                 )
 
-                safe_project = "".join(
-                    c if c.isalnum() else "_" for c in project["name"]
+                safe_project = ''.join(
+                    c if c.isalnum() else '_' for c in project['name']
                 )
-                safe_desc = "".join(
-                    c if c.isalnum() else "_" for c in buffer_task["description"]
+                safe_desc = ''.join(
+                    c if c.isalnum() else '_' for c in buffer_task['description']
                 )
                 filename = (
-                    f"{safe_project}_fever_chart_{buffer_task['task_id']}_"
-                    f"{safe_desc}_{timestamp}.png"
+                    f'{safe_project}_fever_chart_{buffer_task["task_id"]}_'
+                    f'{safe_desc}_{timestamp}.png'
                 )
                 image.save(os.path.join(directory_path, filename))
                 exported += 1
 
             messagebox.showinfo(
-                "Export Complete",
-                f"Exported {exported} fever chart(s) to:\n{directory_path}",
+                'Export Complete',
+                f'Exported {exported} fever chart(s) to:\n{directory_path}',
                 parent=self.controller.root,
             )
             return True
 
         except ImportError:
             messagebox.showerror(
-                "Export Error",
-                "Could not export fever charts. Please install the Pillow "
-                "library (pip install Pillow).",
+                'Export Error',
+                'Could not export fever charts. Please install the Pillow '
+                'library (pip install Pillow).',
                 parent=self.controller.root,
             )
             return False
         except Exception as e:
             messagebox.showerror(
-                "Export Error",
-                f"Error exporting fever charts: {e}",
+                'Export Error',
+                f'Error exporting fever charts: {e}',
                 parent=self.controller.root,
             )
             return False
@@ -1466,10 +1486,10 @@ class ExportOperations:
         the single-chart counterpart to `export_fever_charts`' bulk export.
         """
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".png",
-            filetypes=[("PNG files", "*.png"), ("All files", "*.*")],
-            title="Export Fever Chart",
-            initialfile=f"fever_chart_{buffer_task['task_id']}.png",
+            defaultextension='.png',
+            filetypes=[('PNG files', '*.png'), ('All files', '*.*')],
+            title='Export Fever Chart',
+            initialfile=f'fever_chart_{buffer_task["task_id"]}.png',
         )
         if not file_path:
             return False
@@ -1478,19 +1498,27 @@ class ExportOperations:
             from PIL import Image, ImageDraw, ImageFont
 
             try:
-                font = ImageFont.truetype("arial.ttf", 22)
-                title_font = ImageFont.truetype("arial.ttf", 30)
-                small_font = ImageFont.truetype("arial.ttf", 18)
+                font = ImageFont.truetype('arial.ttf', 22)
+                title_font = ImageFont.truetype('arial.ttf', 30)
+                small_font = ImageFont.truetype('arial.ttf', 18)
             except IOError:
                 font = ImageFont.load_default()
                 title_font = ImageFont.load_default()
                 small_font = ImageFont.load_default()
 
             width, height = 1600, 1200
-            image = Image.new("RGB", (width, height), "white")
+            image = Image.new('RGB', (width, height), 'white')
             draw = ImageDraw.Draw(image)
             _draw_fever_chart_image(
-                draw, 0, 0, width, height, buffer_task, project, font, title_font,
+                draw,
+                0,
+                0,
+                width,
+                height,
+                buffer_task,
+                project,
+                font,
+                title_font,
                 small_font,
             )
             image.save(file_path)
@@ -1498,16 +1526,16 @@ class ExportOperations:
 
         except ImportError:
             messagebox.showerror(
-                "Export Error",
-                "Could not export fever chart. Please install the Pillow "
-                "library (pip install Pillow).",
+                'Export Error',
+                'Could not export fever chart. Please install the Pillow '
+                'library (pip install Pillow).',
                 parent=self.controller.root,
             )
             return False
         except Exception as e:
             messagebox.showerror(
-                "Export Error",
-                f"Error exporting fever chart: {e}",
+                'Export Error',
+                f'Error exporting fever chart: {e}',
                 parent=self.controller.root,
             )
             return False
@@ -1535,8 +1563,8 @@ class ExportOperations:
         if project is None:
             if not self.model.projects:
                 messagebox.showinfo(
-                    "No Projects",
-                    "Create a project first via Projects > Manage Projects...",
+                    'No Projects',
+                    'Create a project first via Projects > Manage Projects...',
                     parent=self.controller.root,
                 )
                 return False
@@ -1546,24 +1574,24 @@ class ExportOperations:
             else:
                 from src.operations.task_operations import OptionSelectDialog
 
-                names = [p["name"] for p in self.model.projects]
+                names = [p['name'] for p in self.model.projects]
                 default = self.model.get_default_project()
                 dialog = OptionSelectDialog(
                     self.controller.root,
-                    "Export Fever Chart Data",
-                    "Project:",
+                    'Export Fever Chart Data',
+                    'Project:',
                     names,
-                    initial_value=default["name"] if default else names[0],
+                    initial_value=default['name'] if default else names[0],
                 )
                 if dialog.result is None:
                     return False
                 project = self.model.get_project_by_name(dialog.result)
 
-        if project["phase"] != "execution":
+        if project['phase'] != 'execution':
             messagebox.showinfo(
-                "Not Yet in Execution",
+                'Not Yet in Execution',
                 f"'{project['name']}' isn't in the execution phase yet, so "
-                "there is no fever chart data to export.",
+                'there is no fever chart data to export.',
                 parent=self.controller.root,
             )
             return False
@@ -1571,112 +1599,115 @@ class ExportOperations:
         buffers = [
             t
             for t in self.model.tasks
-            if t.get("project_id") == project["id"]
-            and t.get("type") in ("project_buffer", "feeding_buffer")
+            if t.get('project_id') == project['id']
+            and t.get('type') in ('project_buffer', 'feeding_buffer')
         ]
         if not buffers:
             messagebox.showinfo(
-                "No Buffers Found",
+                'No Buffers Found',
                 f"'{project['name']}' has no buffer tasks to export data for.",
                 parent=self.controller.root,
             )
             return False
 
-        safe_project = "".join(c if c.isalnum() else "_" for c in project["name"])
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_project = ''.join(c if c.isalnum() else '_' for c in project['name'])
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
-            title="Export Fever Chart Data",
-            initialfile=f"{safe_project}_fever_chart_data_{timestamp}.csv",
+            defaultextension='.csv',
+            filetypes=[('CSV files', '*.csv'), ('All files', '*.*')],
+            title='Export Fever Chart Data',
+            initialfile=f'{safe_project}_fever_chart_data_{timestamp}.csv',
         )
         if not file_path:
             return False
 
-        slope = project.get("fever_chart_slope", 0.55)
-        yellow_intercept = project.get("fever_chart_yellow_intercept", 10.0)
-        red_intercept = project.get("fever_chart_red_intercept", 27.0)
+        slope = project.get('fever_chart_slope', 0.55)
+        yellow_intercept = project.get('fever_chart_yellow_intercept', 10.0)
+        red_intercept = project.get('fever_chart_red_intercept', 27.0)
         buffer_type_labels = {
-            "project_buffer": "Project Buffer",
-            "feeding_buffer": "Feeding Buffer",
+            'project_buffer': 'Project Buffer',
+            'feeding_buffer': 'Feeding Buffer',
         }
 
         try:
             import csv
 
             fieldnames = [
-                "Project",
-                "Buffer ID",
-                "Buffer Description",
-                "Buffer Type",
-                "Date",
-                "CPSL",
-                "PPF",
-                "Progress %",
-                "Baseline Buffer Duration",
-                "Forecast Lateness",
-                "Consumption %",
-                "Zone",
+                'Project',
+                'Buffer ID',
+                'Buffer Description',
+                'Buffer Type',
+                'Date',
+                'CPSL',
+                'PPF',
+                'Progress %',
+                'Baseline Buffer Duration',
+                'Forecast Lateness',
+                'Consumption %',
+                'Zone',
             ]
 
             rows_written = 0
-            with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
 
                 for buffer_task in buffers:
-                    baseline = buffer_task.get("baseline")
+                    baseline = buffer_task.get('baseline')
                     buffer_baseline_duration = (
-                        baseline["duration"] if baseline else buffer_task["duration"]
+                        baseline['duration'] if baseline else buffer_task['duration']
                     )
 
-                    for entry in buffer_task.get("fever_chart_history", []):
-                        cpsl = entry["cpsl"]
-                        ppf = entry["ppf"]
-                        forecast_lateness = entry["forecast_lateness"]
+                    for entry in buffer_task.get('fever_chart_history', []):
+                        cpsl = entry['cpsl']
+                        ppf = entry['ppf']
+                        forecast_lateness = entry['forecast_lateness']
                         progress_pct, consumption_pct = fever_chart_display_point(
                             entry, buffer_baseline_duration
                         )
                         zone = classify_fever_chart_zone(
-                            progress_pct, consumption_pct, slope, yellow_intercept,
+                            progress_pct,
+                            consumption_pct,
+                            slope,
+                            yellow_intercept,
                             red_intercept,
                         )
                         date_str = datetime.datetime.fromisoformat(
-                            entry["date"]
-                        ).strftime("%Y-%m-%d")
+                            entry['date']
+                        ).strftime('%Y-%m-%d')
 
                         writer.writerow(
                             {
-                                "Project": project["name"],
-                                "Buffer ID": buffer_task["task_id"],
-                                "Buffer Description": buffer_task["description"],
-                                "Buffer Type": buffer_type_labels.get(
-                                    buffer_task.get("type"), buffer_task.get("type")
+                                'Project': project['name'],
+                                'Buffer ID': buffer_task['task_id'],
+                                'Buffer Description': buffer_task['description'],
+                                'Buffer Type': buffer_type_labels.get(
+                                    buffer_task.get('type'), buffer_task.get('type')
                                 ),
-                                "Date": date_str,
-                                "CPSL": cpsl,
-                                "PPF": ppf,
-                                "Progress %": round(progress_pct, 1),
-                                "Baseline Buffer Duration": buffer_baseline_duration,
-                                "Forecast Lateness": forecast_lateness,
-                                "Consumption %": round(consumption_pct, 1),
-                                "Zone": zone,
+                                'Date': date_str,
+                                'CPSL': cpsl,
+                                'PPF': ppf,
+                                'Progress %': round(progress_pct, 1),
+                                'Baseline Buffer Duration': buffer_baseline_duration,
+                                'Forecast Lateness': forecast_lateness,
+                                'Consumption %': round(consumption_pct, 1),
+                                'Zone': zone,
                             }
                         )
                         rows_written += 1
 
             messagebox.showinfo(
-                "Export Complete",
-                f"Exported {rows_written} fever chart data point(s) across "
-                f"{len(buffers)} buffer(s) to:\n{file_path}",
+                'Export Complete',
+                f'Exported {rows_written} fever chart data point(s) across '
+                f'{len(buffers)} buffer(s) to:\n{file_path}',
                 parent=self.controller.root,
             )
             return True
 
         except Exception as e:
             messagebox.showerror(
-                "Export Error",
-                f"Error exporting fever chart data: {e}",
+                'Export Error',
+                f'Error exporting fever chart data: {e}',
                 parent=self.controller.root,
             )
             return False
@@ -1711,7 +1742,7 @@ class ExportOperations:
             else os.path.expanduser('~')
         )
         directory_path = filedialog.askdirectory(
-            title="Choose Directory for CSV Export",
+            title='Choose Directory for CSV Export',
             parent=parent,
             initialdir=initial_dir,
         )
@@ -1723,32 +1754,32 @@ class ExportOperations:
             files = self._write_csv_export(directory_path)
         except Exception as e:
             messagebox.showerror(
-                "Export Error", f"Error exporting to CSV: {e}", parent=parent
+                'Export Error', f'Error exporting to CSV: {e}', parent=parent
             )
             return False
 
         # Show success message
         messagebox.showinfo(
-            "Export Successful",
-            "Data exported to:\n" + "\n".join(files),
+            'Export Successful',
+            'Data exported to:\n' + '\n'.join(files),
             parent=parent,
         )
 
         # Ask if user wants to open the directory
         if messagebox.askyesno(
-            "Open Directory",
-            "Would you like to open the export directory?",
+            'Open Directory',
+            'Would you like to open the export directory?',
             parent=parent,
         ):
             try:
-                if os.name == "nt":  # Windows
+                if os.name == 'nt':  # Windows
                     os.startfile(directory_path)
-                elif os.name == "posix":  # macOS or Linux
-                    subprocess.call(("xdg-open", directory_path))
+                elif os.name == 'posix':  # macOS or Linux
+                    subprocess.call(('xdg-open', directory_path))
             except Exception as e:
                 messagebox.showwarning(
-                    "Could not open directory",
-                    f"Error opening directory: {e}",
+                    'Could not open directory',
+                    f'Error opening directory: {e}',
                     parent=parent,
                 )
 
@@ -1773,29 +1804,29 @@ class ExportOperations:
         resource_loading = self.model.calculate_resource_loading()
 
         # Create unique base filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_filename = f"task_resource_export_{timestamp}"
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        base_filename = f'task_resource_export_{timestamp}'
 
         # 1. Export tasks
-        tasks_file = os.path.join(directory_path, f"{base_filename}_tasks.csv")
-        with open(tasks_file, "w", newline="", encoding="utf-8") as csvfile:
+        tasks_file = os.path.join(directory_path, f'{base_filename}_tasks.csv')
+        with open(tasks_file, 'w', newline='', encoding='utf-8') as csvfile:
             fieldnames = [
-                "id",
-                "name",
-                "project",
-                "chain",
-                "row",
-                "start_day",
-                "start_date",
-                "end_date",
-                "duration",
-                "realistic_duration",
-                "optimal_duration",
-                "predecessor_ids",
-                "resource_ids",
-                "tags",
-                "colour",
-                "url",
+                'id',
+                'name',
+                'project',
+                'chain',
+                'row',
+                'start_day',
+                'start_date',
+                'end_date',
+                'duration',
+                'realistic_duration',
+                'optimal_duration',
+                'predecessor_ids',
+                'resource_ids',
+                'tags',
+                'colour',
+                'url',
             ]
 
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -1803,17 +1834,17 @@ class ExportOperations:
 
             for task in tasks:
                 # Calculate dates
-                start_date = self.model.get_date_for_day(task["col"]).strftime(
-                    "%Y-%m-%d"
+                start_date = self.model.get_date_for_day(task['col']).strftime(
+                    '%Y-%m-%d'
                 )
                 end_date = self.model.get_date_for_day(
-                    task["col"] + task["duration"] - 1
-                ).strftime("%Y-%m-%d")
+                    task['col'] + task['duration'] - 1
+                ).strftime('%Y-%m-%d')
 
                 # id:allocation tokens (':1' omitted), resource ids as in
                 # the resources CSV written below
                 resource_tokens = []
-                for resource_id_str, allocation in task["resources"].items():
+                for resource_id_str, allocation in task['resources'].items():
                     resource_id = (
                         int(resource_id_str)
                         if isinstance(resource_id_str, str)
@@ -1822,35 +1853,33 @@ class ExportOperations:
                     resource = self.model.get_resource_by_id(resource_id)
                     if resource:
                         resource_tokens.append(
-                            _resource_token(resource["id"], allocation)
+                            _resource_token(resource['id'], allocation)
                         )
 
                 # Project and chain (rolling-wave / CCPM classification)
-                project = self.model.get_project_by_id(task.get("project_id"))
-                chain = self.model.get_chain_by_id(task.get("chain_id"))
+                project = self.model.get_project_by_id(task.get('project_id'))
+                chain = self.model.get_chain_by_id(task.get('chain_id'))
 
-                optimal = task.get("optimal_duration")
+                optimal = task.get('optimal_duration')
                 row = {
-                    "id": task["task_id"],
-                    "name": task["description"],
-                    "project": project["name"] if project else "",
-                    "chain": chain["name"] if chain else "",
-                    "row": task["row"],
-                    "start_day": task["col"],
-                    "start_date": start_date,
-                    "end_date": end_date,
-                    "duration": task["duration"],
-                    "realistic_duration": task.get("realistic_duration", ""),
-                    "optimal_duration": optimal
-                    if optimal not in (None, "")
-                    else "",
-                    "predecessor_ids": format_predecessor_notation(
-                        task.get("predecessors", []), sep=";"
+                    'id': task['task_id'],
+                    'name': task['description'],
+                    'project': project['name'] if project else '',
+                    'chain': chain['name'] if chain else '',
+                    'row': task['row'],
+                    'start_day': task['col'],
+                    'start_date': start_date,
+                    'end_date': end_date,
+                    'duration': task['duration'],
+                    'realistic_duration': task.get('realistic_duration', ''),
+                    'optimal_duration': optimal if optimal not in (None, '') else '',
+                    'predecessor_ids': format_predecessor_notation(
+                        task.get('predecessors', []), sep=';'
                     ),
-                    "resource_ids": ";".join(resource_tokens),
-                    "tags": ",".join(task.get("tags", [])),
-                    "colour": task.get("color", ""),
-                    "url": task.get("url", ""),
+                    'resource_ids': ';'.join(resource_tokens),
+                    'tags': ','.join(task.get('tags', [])),
+                    'colour': task.get('color', ''),
+                    'url': task.get('url', ''),
                 }
 
                 writer.writerow(row)
@@ -1858,11 +1887,9 @@ class ExportOperations:
         # 2. Export resources - identity only, aligned with the CCPM
         # resources.csv shape. Derived stats (total loading, utilization)
         # live in the per-day resource_loading CSV below.
-        resources_file = os.path.join(
-            directory_path, f"{base_filename}_resources.csv"
-        )
-        with open(resources_file, "w", newline="", encoding="utf-8") as csvfile:
-            fieldnames = ["id", "name", "capacity", "tags"]
+        resources_file = os.path.join(directory_path, f'{base_filename}_resources.csv')
+        with open(resources_file, 'w', newline='', encoding='utf-8') as csvfile:
+            fieldnames = ['id', 'name', 'capacity', 'tags']
 
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
@@ -1870,58 +1897,56 @@ class ExportOperations:
             for resource in resources:
                 # Base capacity = the most common per-day value, same
                 # encoding the CCPM export uses
-                base_capacity, _ = CcpmOperations._encode_capacity(
-                    resource["capacity"]
-                )
+                base_capacity, _ = CcpmOperations._encode_capacity(resource['capacity'])
                 writer.writerow(
                     {
-                        "id": resource["id"],
-                        "name": resource["name"],
-                        "capacity": base_capacity,
-                        "tags": ",".join(resource.get("tags", [])),
+                        'id': resource['id'],
+                        'name': resource['name'],
+                        'capacity': base_capacity,
+                        'tags': ','.join(resource.get('tags', [])),
                     }
                 )
 
         # 3. Export daily resource loading
         loading_file = os.path.join(
-            directory_path, f"{base_filename}_resource_loading.csv"
+            directory_path, f'{base_filename}_resource_loading.csv'
         )
-        with open(loading_file, "w", newline="", encoding="utf-8") as csvfile:
+        with open(loading_file, 'w', newline='', encoding='utf-8') as csvfile:
             # Create header with date columns
-            fieldnames = ["Resource ID", "Resource Name"]
+            fieldnames = ['Resource ID', 'Resource Name']
 
             # Add all days as columns
             for day in range(self.model.days):
-                date = self.model.get_date_for_day(day).strftime("%Y-%m-%d")
-                fieldnames.append(f"Loading_{date}")
-                fieldnames.append(f"Capacity_{date}")
-                fieldnames.append(f"Utilization_{date}")
+                date = self.model.get_date_for_day(day).strftime('%Y-%m-%d')
+                fieldnames.append(f'Loading_{date}')
+                fieldnames.append(f'Capacity_{date}')
+                fieldnames.append(f'Utilization_{date}')
 
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
             # Write resource loading data
             for resource in resources:
-                resource_id = resource["id"]
+                resource_id = resource['id']
 
                 # Start with resource info
                 row = {
-                    "Resource ID": resource_id,
-                    "Resource Name": resource["name"],
+                    'Resource ID': resource_id,
+                    'Resource Name': resource['name'],
                 }
 
                 # Add loading for each day
                 for day in range(self.model.days):
-                    date = self.model.get_date_for_day(day).strftime("%Y-%m-%d")
-                    capacity = resource["capacity"][day]
+                    date = self.model.get_date_for_day(day).strftime('%Y-%m-%d')
+                    capacity = resource['capacity'][day]
                     loading = resource_loading[resource_id][day]
 
                     # Calculate utilization
                     utilization = (loading / capacity * 100) if capacity > 0 else 0
 
-                    row[f"Loading_{date}"] = loading
-                    row[f"Capacity_{date}"] = capacity
-                    row[f"Utilization_{date}"] = f"{utilization:.2f}%"
+                    row[f'Loading_{date}'] = loading
+                    row[f'Capacity_{date}'] = capacity
+                    row[f'Utilization_{date}'] = f'{utilization:.2f}%'
 
                 writer.writerow(row)
 
@@ -1942,9 +1967,9 @@ class ExportOperations:
         """Export to an interactive HTML report."""
         # Ask for file location
         file_path = filedialog.asksaveasfilename(
-            defaultextension=".html",
-            filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
-            title="Export to HTML",
+            defaultextension='.html',
+            filetypes=[('HTML files', '*.html'), ('All files', '*.*')],
+            title='Export to HTML',
         )
 
         if not file_path:
@@ -1962,30 +1987,30 @@ class ExportOperations:
             )
 
             # Write HTML file
-            with open(file_path, "w", encoding="utf-8") as f:
+            with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
 
             # Show success message
-            messagebox.showinfo("Export Successful", f"Project exported to {file_path}")
+            messagebox.showinfo('Export Successful', f'Project exported to {file_path}')
 
             # Ask if user wants to open the file
             if messagebox.askyesno(
-                "Open File", "Would you like to open the exported HTML file?"
+                'Open File', 'Would you like to open the exported HTML file?'
             ):
                 try:
-                    if os.name == "nt":  # Windows
+                    if os.name == 'nt':  # Windows
                         os.startfile(file_path)
-                    elif os.name == "posix":  # macOS or Linux
-                        subprocess.call(("xdg-open", file_path))
+                    elif os.name == 'posix':  # macOS or Linux
+                        subprocess.call(('xdg-open', file_path))
                 except Exception as e:
                     messagebox.showwarning(
-                        "Could not open file", f"Error opening file: {e}"
+                        'Could not open file', f'Error opening file: {e}'
                     )
 
             return True
 
         except Exception as e:
-            messagebox.showerror("Export Error", f"Error exporting to HTML: {e}")
+            messagebox.showerror('Export Error', f'Error exporting to HTML: {e}')
             return False
 
     def _generate_html_report(self, tasks, resources, resource_loading):
@@ -1994,22 +2019,22 @@ class ExportOperations:
         project_name = (
             os.path.basename(self.model.current_file_path)
             if self.model.current_file_path
-            else "New Project"
+            else 'New Project'
         )
-        export_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        start_date = self.model.start_date.strftime("%Y-%m-%d")
+        export_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+        start_date = self.model.start_date.strftime('%Y-%m-%d')
         end_date = (
             self.model.start_date + datetime.timedelta(days=self.model.days - 1)
-        ).strftime("%Y-%m-%d")
+        ).strftime('%Y-%m-%d')
 
         # Generate task data as JSON for the timeline
         task_data = []
         for task in tasks:
-            task_id = task["task_id"]
-            description = task["description"]
-            row = task["row"]
-            col = task["col"]
-            duration = task["duration"]
+            task_id = task['task_id']
+            description = task['description']
+            row = task['row']
+            col = task['col']
+            duration = task['duration']
 
             # Calculate start and end dates
             start_date_obj = self.model.get_date_for_day(col)
@@ -2017,7 +2042,7 @@ class ExportOperations:
 
             # Format resource allocations
             resource_text = []
-            for resource_id_str, allocation in task["resources"].items():
+            for resource_id_str, allocation in task['resources'].items():
                 resource_id = (
                     int(resource_id_str)
                     if isinstance(resource_id_str, str)
@@ -2025,36 +2050,36 @@ class ExportOperations:
                 )
                 resource = self.model.get_resource_by_id(resource_id)
                 if resource:
-                    resource_text.append(f"{resource['name']} ({allocation})")
+                    resource_text.append(f'{resource["name"]} ({allocation})')
 
             # Determine color based on tags
-            color = self._get_color_for_tags(task.get("tags", []))
+            color = self._get_color_for_tags(task.get('tags', []))
 
             task_data.append(
                 {
-                    "id": task_id,
-                    "name": description,
-                    "row": row,
-                    "start": start_date_obj.strftime("%Y-%m-%d"),
-                    "end": end_date_obj.strftime("%Y-%m-%d"),
-                    "resources": ", ".join(resource_text),
-                    "tags": task.get("tags", []),
-                    "color": color,
+                    'id': task_id,
+                    'name': description,
+                    'row': row,
+                    'start': start_date_obj.strftime('%Y-%m-%d'),
+                    'end': end_date_obj.strftime('%Y-%m-%d'),
+                    'resources': ', '.join(resource_text),
+                    'tags': task.get('tags', []),
+                    'color': color,
                 }
             )
 
         # Generate resource loading data
         resource_data = []
         for resource in resources:
-            resource_id = resource["id"]
-            name = resource["name"]
+            resource_id = resource['id']
+            name = resource['name']
 
             # Calculate loading by day
             loading_by_day = []
             for day in range(self.model.days):
                 date_obj = self.model.get_date_for_day(day)
-                date_str = date_obj.strftime("%Y-%m-%d")
-                capacity = resource["capacity"][day]
+                date_str = date_obj.strftime('%Y-%m-%d')
+                capacity = resource['capacity'][day]
                 loading = resource_loading[resource_id][day]
 
                 # Calculate utilization percentage
@@ -2062,30 +2087,30 @@ class ExportOperations:
 
                 loading_by_day.append(
                     {
-                        "date": date_str,
-                        "loading": loading,
-                        "capacity": capacity,
-                        "utilization": utilization,
+                        'date': date_str,
+                        'loading': loading,
+                        'capacity': capacity,
+                        'utilization': utilization,
                     }
                 )
 
             resource_data.append(
                 {
-                    "id": resource_id,
-                    "name": name,
-                    "tags": resource.get("tags", []),
-                    "loading": loading_by_day,
+                    'id': resource_id,
+                    'name': name,
+                    'tags': resource.get('tags', []),
+                    'loading': loading_by_day,
                 }
             )
 
         # Generate all unique tags
         all_tags = set()
         for task in tasks:
-            for tag in task.get("tags", []):
+            for tag in task.get('tags', []):
                 all_tags.add(tag)
 
         for resource in resources:
-            for tag in resource.get("tags", []):
+            for tag in resource.get('tags', []):
                 all_tags.add(tag)
 
         # Convert data to JSON for embedding in the HTML
@@ -2094,7 +2119,7 @@ class ExportOperations:
         tasks_json = json.dumps(task_data)
         resources_json = json.dumps(resource_data)
         tags_json = json.dumps(list(all_tags))
-        setdate_str = self.model.setdate.strftime("%Y-%m-%d")
+        setdate_str = self.model.setdate.strftime('%Y-%m-%d')
 
         # HTML template - JavaScript code needs to be careful with braces since this is inside an f-string
         html = f"""<!DOCTYPE html>
@@ -2853,7 +2878,7 @@ class ExportOperations:
     def _get_color_for_tags(self, tags):
         """Generate a color based on task tags."""
         if not tags:
-            return "#6c757d"  # Default gray
+            return '#6c757d'  # Default gray
 
         # Use the first tag for the color
         tag = tags[0]
@@ -2868,4 +2893,4 @@ class ExportOperations:
         g = (hash_value & 0x00FF00) >> 8
         b = hash_value & 0x0000FF
 
-        return f"#{r:02x}{g:02x}{b:02x}"
+        return f'#{r:02x}{g:02x}{b:02x}'

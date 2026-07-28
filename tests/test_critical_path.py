@@ -1,6 +1,4 @@
-import pytest
-from unittest.mock import MagicMock, patch
-import networkx as nx
+from unittest.mock import MagicMock
 
 from src.model.task_resource_model import TaskResourceModel
 from src.operations.network_operations import NetworkOperations

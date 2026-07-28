@@ -14,8 +14,6 @@ from src.operations.export_operations import ExportOperations
 from src.operations.report_operations import ReportOperations
 from src.operations.ccpm_operations import CcpmOperations
 
-from src.utils import colors
-
 
 class TaskResourceManager:
     """Controller class that connects the model and view components."""
@@ -316,28 +314,28 @@ class TaskResourceManager:
             if task_filters:
                 match_type = 'ALL' if self.tag_ops.task_match_all else 'ANY'
                 status_text.append(
-                    f"Tasks: {match_type} of [{', '.join(task_filters)}]"
+                    f'Tasks: {match_type} of [{", ".join(task_filters)}]'
                 )
 
             if project_filters:
                 names = [
                     p['name'] for p in self.model.projects if p['id'] in project_filters
                 ]
-                status_text.append(f"Project: {', '.join(names)}")
+                status_text.append(f'Project: {", ".join(names)}')
 
             if state_filters:
-                status_text.append(f"State: {', '.join(state_filters)}")
+                status_text.append(f'State: {", ".join(state_filters)}')
 
             if fullkit_filter and fullkit_filter != 'any':
-                status_text.append(f"Full-Kit: {fullkit_filter}")
+                status_text.append(f'Full-Kit: {fullkit_filter}')
 
             if start_window_filters:
-                status_text.append(f"Start: {', '.join(start_window_filters)}")
+                status_text.append(f'Start: {", ".join(start_window_filters)}')
 
             if resource_filters:
                 match_type = 'ALL' if self.tag_ops.resource_match_all else 'ANY'
                 status_text.append(
-                    f"Resources: {match_type} of [{', '.join(resource_filters)}]"
+                    f'Resources: {match_type} of [{", ".join(resource_filters)}]'
                 )
 
             resource_project_filters = self.tag_ops.resource_project_filters
@@ -347,7 +345,7 @@ class TaskResourceManager:
                     for p in self.model.projects
                     if p['id'] in resource_project_filters
                 ]
-                status_text.append(f"Resource Project: {', '.join(names)}")
+                status_text.append(f'Resource Project: {", ".join(names)}')
 
             self.filter_status.config(text=' | '.join(status_text))
             self.clear_filters_btn.config(state=tk.NORMAL)
@@ -556,9 +554,9 @@ class TaskResourceManager:
         until there's enough room - `draw_resource_grid` uses this to
         decide whether to draw it at all.
         """
-        linespace = tkfont.Font(
-            family='Arial', size=self.tag_font_size
-        ).metrics('linespace')
+        linespace = tkfont.Font(family='Arial', size=self.tag_font_size).metrics(
+            'linespace'
+        )
         return linespace <= self.task_height / 2
 
     def on_zoom(self, event):
@@ -569,8 +567,6 @@ class TaskResourceManager:
             # Store the old cell width and zoom level for calculations
             old_cell_width = self.cell_width
             old_task_height = self.task_height
-            old_label_width = self.label_column_width
-            old_zoom_level = self.zoom_level
 
             # Get the current position in the canvas (accounting for scroll)
             canvas_x = self.task_canvas.canvasx(event.x)
@@ -654,8 +650,6 @@ class TaskResourceManager:
             self.task_label_canvas.yview_moveto(new_top_fraction)
 
             # Update resource canvas vertical position if needed
-            resource_row_under_cursor = canvas_y / old_task_height
-            new_resource_row_y = resource_row_under_cursor * self.task_height
             resource_height = (
                 len(self.tag_ops.get_filtered_resources()) * self.task_height
             )

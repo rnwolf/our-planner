@@ -6,7 +6,6 @@ This module contains the UI components for the Network menu.
 
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
-import webbrowser
 
 
 class NetworkMenu:
@@ -105,7 +104,7 @@ class NetworkMenu:
                 for task_id in critical_path:
                     task = self.controller.model.get_task(task_id)
                     if task:
-                        path_items.append(f"Task {task_id} ({task['description']})")
+                        path_items.append(f'Task {task_id} ({task["description"]})')
                     else:
                         path_items.append(f'Task {task_id}')
 
@@ -119,10 +118,10 @@ class NetworkMenu:
                         task_info = network_analysis.get(task_id, {})
 
                         text_area.insert(
-                            tk.END, f"Task {task_id}: {task['description']}\n"
+                            tk.END, f'Task {task_id}: {task["description"]}\n'
                         )
                         text_area.insert(
-                            tk.END, f"  Duration: {task['duration']} days\n"
+                            tk.END, f'  Duration: {task["duration"]} days\n'
                         )
 
                         # Start and end dates
@@ -131,10 +130,10 @@ class NetworkMenu:
                             task['col'] + task['duration'] - 1
                         )
                         text_area.insert(
-                            tk.END, f"  Start Date: {start_date.strftime('%Y-%m-%d')}\n"
+                            tk.END, f'  Start Date: {start_date.strftime("%Y-%m-%d")}\n'
                         )
                         text_area.insert(
-                            tk.END, f"  End Date: {end_date.strftime('%Y-%m-%d')}\n"
+                            tk.END, f'  End Date: {end_date.strftime("%Y-%m-%d")}\n'
                         )
 
                         # Early/Late start/finish
@@ -144,7 +143,7 @@ class NetworkMenu:
                             )
                             text_area.insert(
                                 tk.END,
-                                f"  Early Start: Day {task_info['early_start']} ({early_start_date.strftime('%Y-%m-%d')})\n",
+                                f'  Early Start: Day {task_info["early_start"]} ({early_start_date.strftime("%Y-%m-%d")})\n',
                             )
 
                         if 'early_finish' in task_info:
@@ -153,7 +152,7 @@ class NetworkMenu:
                             )
                             text_area.insert(
                                 tk.END,
-                                f"  Early Finish: Day {task_info['early_finish']} ({early_finish_date.strftime('%Y-%m-%d')})\n",
+                                f'  Early Finish: Day {task_info["early_finish"]} ({early_finish_date.strftime("%Y-%m-%d")})\n',
                             )
 
                         if 'late_start' in task_info:
@@ -162,7 +161,7 @@ class NetworkMenu:
                             )
                             text_area.insert(
                                 tk.END,
-                                f"  Late Start: Day {task_info['late_start']} ({late_start_date.strftime('%Y-%m-%d')})\n",
+                                f'  Late Start: Day {task_info["late_start"]} ({late_start_date.strftime("%Y-%m-%d")})\n',
                             )
 
                         if 'late_finish' in task_info:
@@ -171,12 +170,12 @@ class NetworkMenu:
                             )
                             text_area.insert(
                                 tk.END,
-                                f"  Late Finish: Day {task_info['late_finish']} ({late_finish_date.strftime('%Y-%m-%d')})\n",
+                                f'  Late Finish: Day {task_info["late_finish"]} ({late_finish_date.strftime("%Y-%m-%d")})\n',
                             )
 
                         if 'float' in task_info:
                             text_area.insert(
-                                tk.END, f"  Float: {task_info['float']} days\n"
+                                tk.END, f'  Float: {task_info["float"]} days\n'
                             )
 
                         text_area.insert(tk.END, '\n')
@@ -245,9 +244,7 @@ class NetworkMenu:
             # the content actually needs (measured, so font/theme-proof)
             ttk.Sizegrip(cp_dialog).place(relx=1.0, rely=1.0, anchor='se')
             cp_dialog.update_idletasks()
-            cp_dialog.minsize(
-                cp_dialog.winfo_reqwidth(), cp_dialog.winfo_reqheight()
-            )
+            cp_dialog.minsize(cp_dialog.winfo_reqwidth(), cp_dialog.winfo_reqheight())
 
         except Exception as e:
             messagebox.showerror(

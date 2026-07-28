@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, simpledialog
+from tkinter import ttk
 import re
 
 
@@ -146,7 +146,7 @@ class TagsDialog(tk.Toplevel):
             suggestion_scrollbar.config(command=suggestion_canvas.yview)
 
             suggestion_container = tk.Frame(suggestion_canvas)
-            suggestion_canvas_window = suggestion_canvas.create_window(
+            suggestion_canvas.create_window(
                 (0, 0), window=suggestion_container, anchor='nw'
             )
 
@@ -506,7 +506,9 @@ class ProjectFilterDialog(tk.Toplevel):
     is inherently OR logic among checked projects - no match-all toggle.
     """
 
-    def __init__(self, parent, title, projects=None, initially_selected=None, on_filter=None):
+    def __init__(
+        self, parent, title, projects=None, initially_selected=None, on_filter=None
+    ):
         super().__init__(parent)
         self.title(title)
         self.transient(parent)
@@ -594,7 +596,7 @@ class ProjectFilterDialog(tk.Toplevel):
                 self.project_vars[project['id']] = var
                 tk.Checkbutton(
                     project_container,
-                    text=f"{project['name']} ({project['phase'].capitalize()})",
+                    text=f'{project["name"]} ({project["phase"].capitalize()})',
                     variable=var,
                     anchor='w',
                 ).pack(fill=tk.X, padx=5, pady=1)
@@ -686,9 +688,9 @@ class CheckboxListFilterDialog(tk.Toplevel):
         for key, label in self.options:
             var = tk.BooleanVar(value=key in self.initially_selected)
             self.option_vars[key] = var
-            tk.Checkbutton(
-                selection_frame, text=label, variable=var, anchor='w'
-            ).pack(fill=tk.X, padx=5, pady=1)
+            tk.Checkbutton(selection_frame, text=label, variable=var, anchor='w').pack(
+                fill=tk.X, padx=5, pady=1
+            )
 
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
@@ -915,7 +917,7 @@ class TagOperations:
         # Create and show the tags dialog
         TagsDialog(
             self.controller.root,
-            f"Edit Resource Tags: {resource['name']}",
+            f'Edit Resource Tags: {resource["name"]}',
             current_tags=resource['tags'],
             all_tags=self.model.get_all_tags(),
             on_save=lambda tags: self.save_resource_tags(resource_id, tags),

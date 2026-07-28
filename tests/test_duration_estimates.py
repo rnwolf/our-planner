@@ -1,7 +1,6 @@
 import os
 import tempfile
 
-import pytest
 
 from src.model.task_resource_model import TaskResourceModel
 
@@ -19,15 +18,11 @@ class TestDurationEstimateDefaults:
         self.model = TaskResourceModel()
 
     def test_realistic_duration_defaults_to_duration(self):
-        task = self.model.add_task(
-            row=1, col=5, duration=7, description='Test Task'
-        )
+        task = self.model.add_task(row=1, col=5, duration=7, description='Test Task')
         assert task['realistic_duration'] == 7
 
     def test_optimal_duration_defaults_to_none(self):
-        task = self.model.add_task(
-            row=1, col=5, duration=7, description='Test Task'
-        )
+        task = self.model.add_task(row=1, col=5, duration=7, description='Test Task')
         assert task['optimal_duration'] is None
 
 
@@ -38,18 +33,14 @@ class TestSetOptimalDuration:
         self.model = TaskResourceModel()
 
     def test_set_optimal_duration_updates_task(self):
-        task = self.model.add_task(
-            row=1, col=5, duration=10, description='Test Task'
-        )
+        task = self.model.add_task(row=1, col=5, duration=10, description='Test Task')
         result = self.model.set_optimal_duration(task['task_id'], 6)
 
         assert result is True
         assert self.model.get_task(task['task_id'])['optimal_duration'] == 6
 
     def test_set_optimal_duration_does_not_change_duration_or_realistic(self):
-        task = self.model.add_task(
-            row=1, col=5, duration=10, description='Test Task'
-        )
+        task = self.model.add_task(row=1, col=5, duration=10, description='Test Task')
         self.model.set_optimal_duration(task['task_id'], 6)
 
         updated = self.model.get_task(task['task_id'])
@@ -68,18 +59,14 @@ class TestSetRealisticDuration:
         self.model = TaskResourceModel()
 
     def test_set_realistic_duration_updates_task(self):
-        task = self.model.add_task(
-            row=1, col=5, duration=10, description='Test Task'
-        )
+        task = self.model.add_task(row=1, col=5, duration=10, description='Test Task')
         result = self.model.set_realistic_duration(task['task_id'], 12)
 
         assert result is True
         assert self.model.get_task(task['task_id'])['realistic_duration'] == 12
 
     def test_set_realistic_duration_does_not_change_duration(self):
-        task = self.model.add_task(
-            row=1, col=5, duration=10, description='Test Task'
-        )
+        task = self.model.add_task(row=1, col=5, duration=10, description='Test Task')
         self.model.set_realistic_duration(task['task_id'], 12)
 
         assert self.model.get_task(task['task_id'])['duration'] == 10
@@ -140,11 +127,17 @@ class TestBaselineCapturesDurationEstimates:
 
     def test_capture_project_baseline_returns_task_count(self):
         self.model.add_task(
-            row=1, col=5, duration=10, description='Task 1',
+            row=1,
+            col=5,
+            duration=10,
+            description='Task 1',
             project_id=self.project['id'],
         )
         self.model.add_task(
-            row=2, col=5, duration=5, description='Task 2',
+            row=2,
+            col=5,
+            duration=5,
+            description='Task 2',
             project_id=self.project['id'],
         )
 

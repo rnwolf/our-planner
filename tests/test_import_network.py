@@ -6,6 +6,7 @@ file_operations.py's "Import Network Data" section and
 src/view/menus/help_menu.py's "Importing Your Project" docs for the
 full behavioral contract this covers.
 """
+
 import csv
 from unittest.mock import MagicMock, patch
 
@@ -36,13 +37,20 @@ def run_import(file_ops, method_name, csv_path, confirm=True):
     Returns the list of (title, message) pairs passed to showerror, so
     tests can assert on abort behavior without a real popup."""
     errors = []
-    with patch('src.operations.file_operations.filedialog.askopenfilename',
-               return_value=csv_path), \
-         patch('src.operations.file_operations.messagebox.askyesno',
-               return_value=confirm), \
-         patch('src.operations.file_operations.messagebox.showinfo'), \
-         patch('src.operations.file_operations.messagebox.showerror',
-               side_effect=lambda title, msg, **k: errors.append((title, msg))):
+    with (
+        patch(
+            'src.operations.file_operations.filedialog.askopenfilename',
+            return_value=csv_path,
+        ),
+        patch(
+            'src.operations.file_operations.messagebox.askyesno', return_value=confirm
+        ),
+        patch('src.operations.file_operations.messagebox.showinfo'),
+        patch(
+            'src.operations.file_operations.messagebox.showerror',
+            side_effect=lambda title, msg, **k: errors.append((title, msg)),
+        ),
+    ):
         getattr(file_ops, method_name)()
     return errors
 
@@ -66,8 +74,11 @@ class TestImportResources:
     def test_creates_new_resource_with_capacity_and_url(self, tmp_path):
         model, controller, file_ops = make_file_ops()
         path = tmp_path / 'resources.csv'
-        write_csv(path, ['id', 'name', 'capacity', 'url'],
-                  [[500, 'Widget Line', 3, 'http://example.com/widget']])
+        write_csv(
+            path,
+            ['id', 'name', 'capacity', 'url'],
+            [[500, 'Widget Line', 3, 'http://example.com/widget']],
+        )
 
         run_import(file_ops, 'import_resources', str(path))
 
@@ -83,8 +94,9 @@ class TestImportResources:
         model.resources[0]['url'] = 'http://old.example'
 
         path = tmp_path / 'resources.csv'
-        write_csv(path, ['id', 'name', 'url'],
-                  [[existing_id, 'Renamed', '']])  # url blank -> unchanged
+        write_csv(
+            path, ['id', 'name', 'url'], [[existing_id, 'Renamed', '']]
+        )  # url blank -> unchanged
 
         run_import(file_ops, 'import_resources', str(path))
 
@@ -151,8 +163,7 @@ class TestImportResourceCalendars:
         r = model.resources[0]
 
         path = tmp_path / 'calendar.csv'
-        write_csv(path, ['resource_id', 'from', 'to', 'capacity'],
-                  [[r['id'], 2, 4, 0]])
+        write_csv(path, ['resource_id', 'from', 'to', 'capacity'], [[r['id'], 2, 4, 0]])
         run_import(file_ops, 'import_resource_calendars', str(path))
 
         assert r['capacity'][2] == 0.0
@@ -164,8 +175,7 @@ class TestImportResourceCalendars:
         before = [list(r['capacity']) for r in model.resources]
 
         path = tmp_path / 'calendar.csv'
-        write_csv(path, ['resource_id', 'from', 'to', 'capacity'],
-                  [[999999, 0, 2, 0]])
+        write_csv(path, ['resource_id', 'from', 'to', 'capacity'], [[999999, 0, 2, 0]])
         errors = run_import(file_ops, 'import_resource_calendars', str(path))
 
         assert errors
@@ -182,9 +192,11 @@ class TestImportTasks:
     def test_new_task_gets_resource_allocation(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[100, 'Task A', 5, '', f'{rid}:1']])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[100, 'Task A', 5, '', f'{rid}:1']],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         t = model.get_task(100)
@@ -197,9 +209,11 @@ class TestImportTasks:
         model, controller, file_ops = make_file_ops()
         ids = [r['id'] for r in model.resources[:3]]
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[101, 'All hands', 5, '', ';'.join(str(i) for i in ids)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[101, 'All hands', 5, '', ';'.join(str(i) for i in ids)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         t = model.get_task(101)
@@ -207,12 +221,13 @@ class TestImportTasks:
 
     def test_fs_link_places_successor_at_predecessor_finish(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
-        anchor = model.add_task(row=0, col=10, duration=5, description='Anchor',
-                                 task_id=800)
+        model.add_task(row=0, col=10, duration=5, description='Anchor', task_id=800)
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[801, 'FS child', 4, '800', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[801, 'FS child', 4, '800', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         assert model.get_task(801)['col'] == 15  # 10 + 5
@@ -221,32 +236,42 @@ class TestImportTasks:
         model, controller, file_ops, rid = self._setup_with_resource()
         model.add_task(row=0, col=10, duration=5, description='Anchor', task_id=800)
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[802, 'SS child', 3, '800:SS+1', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[802, 'SS child', 3, '800:SS+1', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         assert model.get_task(802)['col'] == 11  # 10 + 1
 
-    def test_ff_link_places_successor_finish_relative_to_predecessor_finish(self, tmp_path):
+    def test_ff_link_places_successor_finish_relative_to_predecessor_finish(
+        self, tmp_path
+    ):
         model, controller, file_ops, rid = self._setup_with_resource()
         model.add_task(row=0, col=10, duration=6, description='Anchor', task_id=700)
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[701, 'FF child', 3, '700:FF+1', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[701, 'FF child', 3, '700:FF+1', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         # pred finish (10+6) - own duration (3) + lag (1) = 14
         assert model.get_task(701)['col'] == 14
 
-    def test_sf_link_places_successor_finish_relative_to_predecessor_start(self, tmp_path):
+    def test_sf_link_places_successor_finish_relative_to_predecessor_start(
+        self, tmp_path
+    ):
         model, controller, file_ops, rid = self._setup_with_resource()
         model.add_task(row=0, col=10, duration=6, description='Anchor', task_id=700)
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[702, 'SF child', 4, '700:SF', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[702, 'SF child', 4, '700:SF', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         # pred start (10) - own duration (4) + lag (0) = 6
@@ -255,9 +280,11 @@ class TestImportTasks:
     def test_root_task_anchored_at_current_project_date(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[900, 'Root', 2, '', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[900, 'Root', 2, '', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         expected = model.get_day_for_date(model.setdate)
@@ -266,11 +293,15 @@ class TestImportTasks:
     def test_new_tasks_get_distinct_fresh_rows(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[910, 'A', 2, '', str(rid)],
-                   [911, 'B', 2, '', str(rid)],
-                   [912, 'C', 2, '', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [
+                [910, 'A', 2, '', str(rid)],
+                [911, 'B', 2, '', str(rid)],
+                [912, 'C', 2, '', str(rid)],
+            ],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         rows = {model.get_task(i)['row'] for i in (910, 911, 912)}
@@ -279,9 +310,11 @@ class TestImportTasks:
     def test_missing_resource_aborts_with_no_task_created(self, tmp_path):
         model, controller, file_ops = make_file_ops()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[950, 'Bad', 2, '', '999999']])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[950, 'Bad', 2, '', '999999']],
+        )
         errors = run_import(file_ops, 'import_tasks', str(path))
 
         assert errors
@@ -290,9 +323,11 @@ class TestImportTasks:
     def test_missing_predecessor_aborts_with_no_task_created(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[951, 'Bad', 2, '424242', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[951, 'Bad', 2, '424242', str(rid)]],
+        )
         errors = run_import(file_ops, 'import_tasks', str(path))
 
         assert errors
@@ -301,10 +336,11 @@ class TestImportTasks:
     def test_cyclic_predecessor_aborts_with_no_task_created(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[960, 'A', 2, '961', str(rid)],
-                   [961, 'B', 2, '960', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[960, 'A', 2, '961', str(rid)], [961, 'B', 2, '960', str(rid)]],
+        )
         errors = run_import(file_ops, 'import_tasks', str(path))
 
         assert errors
@@ -314,18 +350,22 @@ class TestImportTasks:
     def test_reimport_updates_existing_task_without_duplicating(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[970, 'Original name', 3, '', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[970, 'Original name', 3, '', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
         original_row = model.get_task(970)['row']
         original_col = model.get_task(970)['col']
         count_before = len(model.tasks)
 
         # Re-import the same id with a changed name/duration.
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[970, 'Renamed', 9, '', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[970, 'Renamed', 9, '', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         assert len(model.tasks) == count_before
@@ -338,9 +378,11 @@ class TestImportTasks:
     def test_existing_task_state_and_notes_untouched_by_reimport(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[980, 'Task', 3, '', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[980, 'Task', 3, '', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path))
 
         t = model.get_task(980)
@@ -356,9 +398,11 @@ class TestImportTasks:
     def test_declining_confirmation_makes_no_changes(self, tmp_path):
         model, controller, file_ops, rid = self._setup_with_resource()
         path = tmp_path / 'tasks.csv'
-        write_csv(path, ['id', 'name', 'realistic_duration', 'predecessor_ids',
-                         'resource_ids'],
-                  [[990, 'Task', 3, '', str(rid)]])
+        write_csv(
+            path,
+            ['id', 'name', 'realistic_duration', 'predecessor_ids', 'resource_ids'],
+            [[990, 'Task', 3, '', str(rid)]],
+        )
         run_import(file_ops, 'import_tasks', str(path), confirm=False)
 
         assert model.get_task(990) is None

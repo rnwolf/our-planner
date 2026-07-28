@@ -1,9 +1,7 @@
-import pytest
 import os
 import json
 import tempfile
 from unittest.mock import MagicMock, patch
-import tkinter as tk
 
 from src.model.task_resource_model import TaskResourceModel
 from src.operations.task_operations import TaskOperations
@@ -274,15 +272,15 @@ class TestScenarios:
         task3 = self.model.get_task(task3['task_id'])
 
         # Task1 should still be at column 5
-        assert task1['col'] == 5, f"Expected task1 column to be 5, got {task1['col']}"
+        assert task1['col'] == 5, f'Expected task1 column to be 5, got {task1["col"]}'
 
         # Task2 should have shifted right to avoid overlap with task1
         # Original position was 7, but task1 now ends at col 8 (5+3), so task2 should start at col 8
-        assert task2['col'] == 8, f"Expected task2 column to be 8, got {task2['col']}"
+        assert task2['col'] == 8, f'Expected task2 column to be 8, got {task2["col"]}'
 
         # Task3 should have also shifted if task2 now overlaps with it
         # If task2 is at col 8 with duration 2, it ends at col 10, so task3 should be at col 10 or later
         if task2['col'] + task2['duration'] > task3['col']:
-            assert (
-                task3['col'] >= task2['col'] + task2['duration']
-            ), f"Expected task3 column to be at least {task2['col'] + task2['duration']}, got {task3['col']}"
+            assert task3['col'] >= task2['col'] + task2['duration'], (
+                f'Expected task3 column to be at least {task2["col"] + task2["duration"]}, got {task3["col"]}'
+            )

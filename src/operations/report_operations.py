@@ -89,7 +89,7 @@ class ReportOperations:
         pct = (ready_count / total * 100) if total else 0.0
 
         dialog = tk.Toplevel(self.controller.root)
-        dialog.title(f"Full-Kit Readiness: {project['name']}")
+        dialog.title(f'Full-Kit Readiness: {project["name"]}')
         dialog.transient(self.controller.root)
         dialog.grab_set()
         dialog.geometry('480x420')
@@ -99,7 +99,7 @@ class ReportOperations:
 
         tk.Label(
             frame,
-            text=f"Full-Kit Readiness: {project['name']}",
+            text=f'Full-Kit Readiness: {project["name"]}',
             font=('Arial', 10, 'bold'),
             wraplength=460,
         ).pack(fill=tk.X, pady=(0, 10))
@@ -141,7 +141,7 @@ class ReportOperations:
                 )
                 status = 'Ready' if task.get('fullkit_date') else 'Not Kitted'
                 listbox.insert(
-                    tk.END, f"[{status}] {planned_start} - {task['description']}"
+                    tk.END, f'[{status}] {planned_start} - {task["description"]}'
                 )
 
         tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
@@ -182,9 +182,9 @@ class ReportOperations:
         from ccpm_scheduler import ScheduleRow
 
         rows = []
-        for task in sorted(tasks, key=lambda t: (t['col'],
-                                                 t['col'] + t['duration'],
-                                                 t['task_id'])):
+        for task in sorted(
+            tasks, key=lambda t: (t['col'], t['col'] + t['duration'], t['task_id'])
+        ):
             names = []
             for rid in task.get('resources') or {}:
                 resource = self.model.get_resource_by_id(rid)
@@ -193,20 +193,23 @@ class ReportOperations:
             realistic = task.get('realistic_duration')
             if realistic in (None, '') or realistic == task['duration']:
                 realistic = None
-            rows.append(ScheduleRow(
-                id=str(task['task_id']),
-                name=task['description'],
-                type=task.get('type') or 'task',
-                chain=self._chain_label(task.get('chain_id')),
-                start=task['col'],
-                finish=task['col'] + task['duration'],
-                duration=task['duration'],
-                realistic_duration=realistic,
-                resource_ids=';'.join(names),
-                predecessor_ids=format_predecessor_notation(
-                    task.get('predecessors') or []),
-                url=task.get('url', '') or '',
-            ))
+            rows.append(
+                ScheduleRow(
+                    id=str(task['task_id']),
+                    name=task['description'],
+                    type=task.get('type') or 'task',
+                    chain=self._chain_label(task.get('chain_id')),
+                    start=task['col'],
+                    finish=task['col'] + task['duration'],
+                    duration=task['duration'],
+                    realistic_duration=realistic,
+                    resource_ids=';'.join(names),
+                    predecessor_ids=format_predecessor_notation(
+                        task.get('predecessors') or []
+                    ),
+                    url=task.get('url', '') or '',
+                )
+            )
         return rows
 
     def view_network_graph_selected(self):
@@ -219,19 +222,20 @@ class ReportOperations:
                 parent=self.controller.root,
             )
             return
-        plan = (os.path.basename(self.model.current_file_path)
-                if self.model.current_file_path else 'Untitled plan')
+        plan = (
+            os.path.basename(self.model.current_file_path)
+            if self.model.current_file_path
+            else 'Untitled plan'
+        )
         plural = 's' if len(tasks) != 1 else ''
-        self._open_network_graph(
-            tasks, f'{len(tasks)} selected task{plural} — {plan}')
+        self._open_network_graph(tasks, f'{len(tasks)} selected task{plural} — {plan}')
 
     def view_network_graph_project(self):
         """Reports > Network Graph > Project..."""
         project = self._select_project('Network Graph')
         if not project:
             return
-        tasks = [t for t in self.model.tasks
-                 if t.get('project_id') == project['id']]
+        tasks = [t for t in self.model.tasks if t.get('project_id') == project['id']]
         if not tasks:
             messagebox.showinfo(
                 'Network Graph',
@@ -247,9 +251,9 @@ class ReportOperations:
         from ccpm_scheduler import Schedule, render_network_html
 
         html = render_network_html(
-            Schedule(rows=self.build_network_report_rows(tasks)), title=title)
-        fd, path = tempfile.mkstemp(prefix='our-planner-network-',
-                                    suffix='.html')
+            Schedule(rows=self.build_network_report_rows(tasks)), title=title
+        )
+        fd, path = tempfile.mkstemp(prefix='our-planner-network-', suffix='.html')
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
             f.write(html)
         webbrowser.open('file://' + path)

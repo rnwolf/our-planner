@@ -36,6 +36,7 @@ tests/test_fever_charts_narrative.py (or wherever Stage 12's pytest test
 ends up living) - this script is the scratch tool for getting there, not a
 replacement for that test.
 """
+
 import argparse
 import sys
 from datetime import timedelta
@@ -72,14 +73,56 @@ def build_scenario():
     critical = model.get_chain_by_name('Critical')
     feeding = model.get_chain_by_name('Feeding-01')
 
-    c1 = model.add_task(row=0, col=0, duration=5, description='C1', project_id=pid, chain_id=critical['id'])
-    f1 = model.add_task(row=1, col=0, duration=3, description='F1', project_id=pid, chain_id=feeding['id'])
-    fb = model.add_task(row=2, col=3, duration=5, description='FB', project_id=pid, chain_id=feeding['id'])
+    c1 = model.add_task(
+        row=0,
+        col=0,
+        duration=5,
+        description='C1',
+        project_id=pid,
+        chain_id=critical['id'],
+    )
+    f1 = model.add_task(
+        row=1,
+        col=0,
+        duration=3,
+        description='F1',
+        project_id=pid,
+        chain_id=feeding['id'],
+    )
+    fb = model.add_task(
+        row=2,
+        col=3,
+        duration=5,
+        description='FB',
+        project_id=pid,
+        chain_id=feeding['id'],
+    )
     fb['type'] = 'feeding_buffer'
     fb['color'] = 'Salmon'
-    c2 = model.add_task(row=0, col=8, duration=5, description='C2', project_id=pid, chain_id=critical['id'])
-    c3 = model.add_task(row=0, col=13, duration=5, description='C3', project_id=pid, chain_id=critical['id'])
-    pb = model.add_task(row=0, col=18, duration=8, description='PB', project_id=pid, chain_id=critical['id'])
+    c2 = model.add_task(
+        row=0,
+        col=8,
+        duration=5,
+        description='C2',
+        project_id=pid,
+        chain_id=critical['id'],
+    )
+    c3 = model.add_task(
+        row=0,
+        col=13,
+        duration=5,
+        description='C3',
+        project_id=pid,
+        chain_id=critical['id'],
+    )
+    pb = model.add_task(
+        row=0,
+        col=18,
+        duration=8,
+        description='PB',
+        project_id=pid,
+        chain_id=critical['id'],
+    )
     pb['type'] = 'project_buffer'
     pb['color'] = 'Plum'
 
@@ -101,8 +144,22 @@ def build_scenario():
     control_project = model.add_project('Control')
     cpid = control_project['id']
     ctrl_chain = model.get_chain_by_name('Feeding-02')
-    x1 = model.add_task(row=5, col=0, duration=4, description='X1', project_id=cpid, chain_id=ctrl_chain['id'])
-    ctrl_pb = model.add_task(row=5, col=4, duration=6, description='Control PB', project_id=cpid, chain_id=ctrl_chain['id'])
+    x1 = model.add_task(
+        row=5,
+        col=0,
+        duration=4,
+        description='X1',
+        project_id=cpid,
+        chain_id=ctrl_chain['id'],
+    )
+    ctrl_pb = model.add_task(
+        row=5,
+        col=4,
+        duration=6,
+        description='Control PB',
+        project_id=cpid,
+        chain_id=ctrl_chain['id'],
+    )
     ctrl_pb['type'] = 'project_buffer'
     ctrl_pb['color'] = 'Plum'
     model.add_predecessor(ctrl_pb['task_id'], x1['task_id'], 'PB')
@@ -114,8 +171,14 @@ def build_scenario():
     model.capture_fever_chart_snapshot()  # day-0 point for every buffer
 
     tasks = {
-        'C1': c1, 'F1': f1, 'FB': fb, 'C2': c2, 'C3': c3, 'PB': pb,
-        'X1': x1, 'Control PB': ctrl_pb,
+        'C1': c1,
+        'F1': f1,
+        'FB': fb,
+        'C2': c2,
+        'C3': c3,
+        'PB': pb,
+        'X1': x1,
+        'Control PB': ctrl_pb,
     }
     return model, task_ops, project, control_project, tasks
 
@@ -140,12 +203,12 @@ def print_manual_steps(model, day, task, remaining):
     date_str = (model.start_date + timedelta(days=day)).strftime('%Y-%m-%d')
     already_started = bool(task.get('actual_start_date'))
     print('  MANUAL STEPS in the running app:')
-    print(f"    1. Date menu -> Set Current Date... -> set to {date_str}")
+    print(f'    1. Date menu -> Set Current Date... -> set to {date_str}')
     print(f"    2. Right-click '{task['description']}' -> Record Remaining Duration...")
     print(f"    3. Enter {remaining} in the 'Remaining Duration' prompt and confirm")
     if not already_started:
         print(
-            "       (first time this task has been updated - the app will warn "
+            '       (first time this task has been updated - the app will warn '
             "it's about to mark the task started on this date)"
         )
 
@@ -158,14 +221,16 @@ def explain_progress_frontier(model, buffer_task):
     or well-forecast an unfinished task's position looks."""
     terminal_task = model.get_buffer_terminal_task(buffer_task['task_id'])
     chain_tasks = sorted(
-        model.get_chain_tasks(terminal_task.get('chain_id'), terminal_task.get('project_id')),
+        model.get_chain_tasks(
+            terminal_task.get('chain_id'), terminal_task.get('project_id')
+        ),
         key=lambda t: t['col'],
     )
     chain_start = min(t['col'] for t in chain_tasks)
 
-    print(f"\n  How Progress % was calculated for {buffer_task['description']}:")
-    print(f"    Chain tasks (by start): {[t['description'] for t in chain_tasks]}")
-    print(f"    chain_start = min(col) = {chain_start}")
+    print(f'\n  How Progress % was calculated for {buffer_task["description"]}:')
+    print(f'    Chain tasks (by start): {[t["description"] for t in chain_tasks]}')
+    print(f'    chain_start = min(col) = {chain_start}')
 
     frontier = chain_start
     print('    Frontier walk (same tasks, sorted by FINISH instead):')
@@ -174,10 +239,12 @@ def explain_progress_frontier(model, buffer_task):
         done = task.get('state') == 'done'
         if done:
             frontier = max(frontier, finish)
-            print(f"      {task['description']}: finish={finish}, done -> frontier advances to {frontier}")
+            print(
+                f'      {task["description"]}: finish={finish}, done -> frontier advances to {frontier}'
+            )
         else:
             print(
-                f"      {task['description']}: finish={finish}, NOT done -> STOP "
+                f'      {task["description"]}: finish={finish}, NOT done -> STOP '
                 '(only a completed task can push the frontier forward, regardless '
                 "of how confident that task's own forecast position looks)"
             )
@@ -207,8 +274,10 @@ def explain_consumption(model, buffer_task):
     baseline_duration = baseline['duration'] if baseline else buffer_task['duration']
     live_duration = buffer_task['duration']
 
-    print(f"\n  How Consumption % was calculated for {buffer_task['description']}:")
-    print(f'    Baseline buffer size = {baseline_duration} days (the insurance agreed at baseline capture)')
+    print(f'\n  How Consumption % was calculated for {buffer_task["description"]}:')
+    print(
+        f'    Baseline buffer size = {baseline_duration} days (the insurance agreed at baseline capture)'
+    )
     print(f'    Live buffer size now = {live_duration} days')
 
     if buffer_task.get('type') == 'feeding_buffer':
@@ -219,12 +288,12 @@ def explain_consumption(model, buffer_task):
             if merge_baseline:
                 overflow = max(0, merge_task['col'] - merge_baseline['col'])
                 print(
-                    f"    Merge point ({merge_task['description']}) baseline start = "
-                    f"{merge_baseline['col']}, current start = {merge_task['col']}"
+                    f'    Merge point ({merge_task["description"]}) baseline start = '
+                    f'{merge_baseline["col"]}, current start = {merge_task["col"]}'
                 )
                 print(
-                    f"    Overflow past baseline merge point = max(0, "
-                    f"{merge_task['col']} - {merge_baseline['col']}) = {overflow}"
+                    f'    Overflow past baseline merge point = max(0, '
+                    f'{merge_task["col"]} - {merge_baseline["col"]}) = {overflow}'
                 )
         forecast_lateness = baseline_duration - live_duration + overflow
         print(
@@ -233,7 +302,7 @@ def explain_consumption(model, buffer_task):
         )
         print(
             '    (a Feeding Buffer measures how much of the agreed protection is '
-            "no longer available - whichever side the shock came from, push (the "
+            'no longer available - whichever side the shock came from, push (the '
             'feeding chain slipping into it) or pull (the merge point being '
             "dragged earlier) - it's the same formula either way, Stage 15)"
         )
@@ -285,8 +354,12 @@ def report(model, project, control_project, tasks, label):
         entry = history[-1]
         baseline = task.get('baseline')
         baseline_duration = baseline['duration'] if baseline else task['duration']
-        progress_pct, consumption_pct = fever_chart_display_point(entry, baseline_duration)
-        zone = classify_fever_chart_zone(progress_pct, consumption_pct, slope, yellow, red)
+        progress_pct, consumption_pct = fever_chart_display_point(
+            entry, baseline_duration
+        )
+        zone = classify_fever_chart_zone(
+            progress_pct, consumption_pct, slope, yellow, red
+        )
         print(
             f'  {name}: col={task["col"]:>3} duration={task["duration"]:>3} | '
             f'CPSL={entry["cpsl"]:>3} PPF={entry["ppf"]:>3} '
@@ -310,25 +383,31 @@ def report(model, project, control_project, tasks, label):
 # describe it generically instead of duplicating the same info in prose.
 STEPS = [
     {
-        'day': 0, 'task': 'C1', 'remaining': 5,
+        'day': 0,
+        'task': 'C1',
+        'remaining': 5,
         'label': 'Day 0 - C1 starts on schedule (remaining=5)',
         'note': (
             "C1's very first status update, recorded on its actual (on-schedule) "
-            "start day - anchors actual_start_date/col correctly to day 0. "
-            "Mirrors real life: even if you hear about this days later, you set "
-            "Current Date back to when the work actually started before "
-            "recording it, rather than to today. Skipping this and jumping "
+            'start day - anchors actual_start_date/col correctly to day 0. '
+            'Mirrors real life: even if you hear about this days later, you set '
+            'Current Date back to when the work actually started before '
+            'recording it, rather than to today. Skipping this and jumping '
             "straight to a later 'finished' update would collapse C1's anchor "
-            "to that later date instead (see the day-5 step below)."
+            'to that later date instead (see the day-5 step below).'
         ),
     },
     {
-        'day': 2, 'task': 'F1', 'remaining': 1,
+        'day': 2,
+        'task': 'F1',
+        'remaining': 1,
         'label': 'Day 2 - F1 on track (remaining=1)',
         'note': 'Pure "no news" update - nothing should move, FB stays green at 0%.',
     },
     {
-        'day': 2, 'task': 'C1', 'remaining': 3,
+        'day': 2,
+        'task': 'C1',
+        'remaining': 3,
         'label': 'Day 2 - C1 on track (remaining=3)',
         'note': (
             'A PM reviewing status on day 2 would check both tasks in flight, '
@@ -337,7 +416,9 @@ STEPS = [
         ),
     },
     {
-        'day': 5, 'task': 'C1', 'remaining': 0,
+        'day': 5,
+        'task': 'C1',
+        'remaining': 0,
         'label': 'Day 5 - C1 finishes on time (remaining=0)',
         'note': (
             'C1 (planned finish day 5) finishes exactly on time. Because it was '
@@ -351,10 +432,12 @@ STEPS = [
         'explain_progress': ['PB'],
     },
     {
-        'day': 9, 'task': 'F1', 'remaining': 0,
+        'day': 9,
+        'task': 'F1',
+        'remaining': 0,
         'label': 'Day 9 - F1 actually finishes 6 days late (remaining=0)',
         'note': (
-            "F1 (planned finish day 3) actually finishes on day 9 - a 6-day "
+            'F1 (planned finish day 3) actually finishes on day 9 - a 6-day '
             "slip. FB's 5-day baseline can't absorb that - fully consumed with "
             "1 day of overflow pushed onto the merge point C2 (Stage 7's push "
             "side, the untested half of Stage 12's remaining scope)."
@@ -363,7 +446,9 @@ STEPS = [
         'explain_consumption': ['FB', 'PB'],
     },
     {
-        'day': 9, 'task': 'C2', 'remaining': 5,
+        'day': 9,
+        'task': 'C2',
+        'remaining': 5,
         'label': 'Day 9 - routine check-in on C2 (remaining=5, unchanged)',
         'note': (
             'A routine, unrelated on-track check-in on C2 - confirms the merge '
@@ -373,35 +458,41 @@ STEPS = [
         ),
     },
     {
-        'day': 14, 'task': 'C2', 'remaining': 0,
+        'day': 14,
+        'task': 'C2',
+        'remaining': 0,
         'label': 'Day 14 - C2 finishes on time (remaining=0)',
         'note': (
-            "C3 is FS-dependent on C2 - in reality, C3 could not have genuinely "
-            "started, let alone been reported finished, before C2 was actually "
-            "done. This step completes C2 (matching its own day-9 forecast: 5 "
-            "remaining then, so finishing exactly on day 14) before C3 is "
+            'C3 is FS-dependent on C2 - in reality, C3 could not have genuinely '
+            'started, let alone been reported finished, before C2 was actually '
+            'done. This step completes C2 (matching its own day-9 forecast: 5 '
+            'remaining then, so finishing exactly on day 14) before C3 is '
             "touched again, so the narrative doesn't imply an impossible task "
-            "ordering. Watch how completing C2 shifts the Progress Frontier "
+            'ordering. Watch how completing C2 shifts the Progress Frontier '
             "forward past its own span too, not just C1's."
         ),
         'explain_progress': ['PB'],
     },
     {
-        'day': 16, 'task': 'C3', 'remaining': 4,
+        'day': 16,
+        'task': 'C3',
+        'remaining': 4,
         'label': 'Day 16 - C3 reports a 2-day slip (remaining=4)',
         'note': (
-            "C3 reports a modest 2-day slip against its baseline finish (day "
-            "18) - first sign of trouble for the project buffer."
+            'C3 reports a modest 2-day slip against its baseline finish (day '
+            '18) - first sign of trouble for the project buffer.'
         ),
         'explain_progress': ['PB'],
         'explain_consumption': ['PB'],
     },
     {
-        'day': 22, 'task': 'C3', 'remaining': 0,
+        'day': 22,
+        'task': 'C3',
+        'remaining': 0,
         'label': 'Day 22 - C3 finishes, 5 days late overall (remaining=0)',
         'note': (
-            "C3 finishes 5 days late in total against its baseline (day 18) - "
-            "a bigger bite out of the project buffer. This is the "
+            'C3 finishes 5 days late in total against its baseline (day 18) - '
+            'a bigger bite out of the project buffer. This is the '
             '"trajectory" Stage 12 wants to see: two points on the same '
             "buffer's chart, moving in a worsening direction."
         ),
@@ -413,14 +504,21 @@ STEPS = [
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--auto', action='store_true', help='run straight through, no pauses')
-    parser.add_argument('--step', type=int, default=len(STEPS), help='stop after this many steps')
     parser.add_argument(
-        '--save-scenario', default=DEFAULT_SCENARIO_PATH,
+        '--auto', action='store_true', help='run straight through, no pauses'
+    )
+    parser.add_argument(
+        '--step', type=int, default=len(STEPS), help='stop after this many steps'
+    )
+    parser.add_argument(
+        '--save-scenario',
+        default=DEFAULT_SCENARIO_PATH,
         help=f'where to save the Day 0 scenario for File > Open in the real app (default: {DEFAULT_SCENARIO_PATH})',
     )
     parser.add_argument(
-        '--no-save', action='store_true', help="don't write the scenario JSON file",
+        '--no-save',
+        action='store_true',
+        help="don't write the scenario JSON file",
     )
     args = parser.parse_args()
 
@@ -432,8 +530,8 @@ def main():
         print(f'Day 0 scenario saved to {args.save_scenario}')
         print(f'  -> In the running app: File > Open... > {args.save_scenario}')
         print(
-            f"  -> The current date is already saved as {day0_date} in that file - "
-            "no manual date change needed until step 1."
+            f'  -> The current date is already saved as {day0_date} in that file - '
+            'no manual date change needed until step 1.'
         )
 
     resourced_tasks = [t for t in model.tasks if t.get('resources')]
@@ -441,17 +539,23 @@ def main():
         print(
             '  -> No resources are assigned to any task in this scenario - every '
             'delay/slip below comes purely from dependency links and buffer math, '
-            'not resource contention (Stage 17\'s resource buffer idea, not exercised here).\n'
+            "not resource contention (Stage 17's resource buffer idea, not exercised here).\n"
         )
 
-    report(model, project, control_project, tasks, 'Day 0 - baseline captured, execution begins')
+    report(
+        model,
+        project,
+        control_project,
+        tasks,
+        'Day 0 - baseline captured, execution begins',
+    )
 
     if not args.auto:
         input('\nPress Enter for step 1...')
 
     for i, step in enumerate(STEPS[: args.step], start=1):
         task = tasks[step['task']]
-        print(f"\n{step['note']}")
+        print(f'\n{step["note"]}')
         print_manual_steps(model, step['day'], task, step['remaining'])
 
         if not args.auto:
@@ -460,8 +564,10 @@ def main():
                 'to reveal the expected result...'
             )
 
-        record_status(model, task_ops, project['id'], step['day'], task, step['remaining'])
-        report(model, project, control_project, tasks, f"Step {i}: {step['label']}")
+        record_status(
+            model, task_ops, project['id'], step['day'], task, step['remaining']
+        )
+        report(model, project, control_project, tasks, f'Step {i}: {step["label"]}')
 
         for buffer_name in step.get('explain_progress', []):
             explain_progress_frontier(model, tasks[buffer_name])

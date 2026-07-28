@@ -72,9 +72,7 @@ def format_predecessor_token(entry: Dict[str, Any]) -> str:
     return token
 
 
-def format_predecessor_notation(
-    entries: List[Dict[str, Any]], sep: str = ' '
-) -> str:
+def format_predecessor_notation(entries: List[Dict[str, Any]], sep: str = ' ') -> str:
     """Serialize link entries back into the compact predecessor_ids notation.
 
     `sep` defaults to a space (the app's dialogs); CSV exports pass ';' to

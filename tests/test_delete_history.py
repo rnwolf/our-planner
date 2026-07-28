@@ -9,6 +9,7 @@ every buffer's forecast-lateness math compares a task's *current* col
 against its own baseline col, so both must shift together or the numbers
 silently drift.
 """
+
 from datetime import timedelta
 from unittest.mock import MagicMock
 
@@ -48,14 +49,29 @@ class TestDeleteHistoryImpact:
         chain = self.model.get_chain_by_name('Critical')
 
         self.t1 = self.model.add_task(
-            row=0, col=0, duration=5, description='T1', project_id=self.pid, chain_id=chain['id']
+            row=0,
+            col=0,
+            duration=5,
+            description='T1',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.t1['state'] = 'done'
         self.t2 = self.model.add_task(
-            row=1, col=5, duration=5, description='T2', project_id=self.pid, chain_id=chain['id']
+            row=1,
+            col=5,
+            duration=5,
+            description='T2',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.pb = self.model.add_task(
-            row=2, col=10, duration=5, description='PB', project_id=self.pid, chain_id=chain['id']
+            row=2,
+            col=10,
+            duration=5,
+            description='PB',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.pb['type'] = 'project_buffer'
 
@@ -98,10 +114,20 @@ class TestDeleteHistoryImpact:
         F1 -> FB -> T2 merge-point shape."""
         chain = self.model.get_chain_by_name('Feeding-01')
         f1 = self.model.add_task(
-            row=3, col=0, duration=2, description='F1', project_id=self.pid, chain_id=chain['id']
+            row=3,
+            col=0,
+            duration=2,
+            description='F1',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         fb = self.model.add_task(
-            row=4, col=2, duration=3, description='FB', project_id=self.pid, chain_id=chain['id']
+            row=4,
+            col=2,
+            duration=3,
+            description='FB',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         fb['type'] = 'feeding_buffer'
         self.model.add_predecessor(fb['task_id'], f1['task_id'], 'FS')
@@ -130,14 +156,29 @@ class TestDeleteHistory:
         chain = self.model.get_chain_by_name('Critical')
 
         self.t1 = self.model.add_task(
-            row=0, col=0, duration=5, description='T1', project_id=self.pid, chain_id=chain['id']
+            row=0,
+            col=0,
+            duration=5,
+            description='T1',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.t1['state'] = 'done'
         self.t2 = self.model.add_task(
-            row=1, col=5, duration=5, description='T2', project_id=self.pid, chain_id=chain['id']
+            row=1,
+            col=5,
+            duration=5,
+            description='T2',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.pb = self.model.add_task(
-            row=2, col=10, duration=5, description='PB', project_id=self.pid, chain_id=chain['id']
+            row=2,
+            col=10,
+            duration=5,
+            description='PB',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.pb['type'] = 'project_buffer'
         self.model.add_predecessor(self.t2['task_id'], self.t1['task_id'], 'FS')
@@ -230,11 +271,21 @@ class TestSafeDeleteCutoff:
         chain = self.model.get_chain_by_name('Critical')
 
         self.t1 = self.model.add_task(
-            row=0, col=0, duration=5, description='T1', project_id=self.pid, chain_id=chain['id']
+            row=0,
+            col=0,
+            duration=5,
+            description='T1',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.t1['state'] = 'done'
         self.t2 = self.model.add_task(
-            row=1, col=5, duration=5, description='T2', project_id=self.pid, chain_id=chain['id']
+            row=1,
+            col=5,
+            duration=5,
+            description='T2',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.model.add_predecessor(self.t2['task_id'], self.t1['task_id'], 'FS')
         self.model.capture_project_baseline(self.pid)
@@ -250,7 +301,11 @@ class TestSafeDeleteCutoff:
     def test_bounded_by_buffer_terminal_task_even_when_done(self):
         self.t2['state'] = 'done'
         pb = self.model.add_task(
-            row=2, col=10, duration=5, description='PB', project_id=self.pid,
+            row=2,
+            col=10,
+            duration=5,
+            description='PB',
+            project_id=self.pid,
             chain_id=self.model.get_chain_by_name('Critical')['id'],
         )
         pb['type'] = 'project_buffer'
@@ -275,14 +330,29 @@ class TestDeleteHistoryDialogConfirmation:
         self.pid = project['id']
         chain = self.model.get_chain_by_name('Critical')
         self.t1 = self.model.add_task(
-            row=0, col=0, duration=5, description='T1', project_id=self.pid, chain_id=chain['id']
+            row=0,
+            col=0,
+            duration=5,
+            description='T1',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.t1['state'] = 'done'
         self.t2 = self.model.add_task(
-            row=1, col=5, duration=5, description='T2', project_id=self.pid, chain_id=chain['id']
+            row=1,
+            col=5,
+            duration=5,
+            description='T2',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.pb = self.model.add_task(
-            row=2, col=10, duration=5, description='PB', project_id=self.pid, chain_id=chain['id']
+            row=2,
+            col=10,
+            duration=5,
+            description='PB',
+            project_id=self.pid,
+            chain_id=chain['id'],
         )
         self.pb['type'] = 'project_buffer'
         self.model.add_predecessor(self.t2['task_id'], self.t1['task_id'], 'FS')
@@ -308,7 +378,12 @@ class TestDeleteHistoryDialogConfirmation:
         chain = empty_model.get_chain_by_name('Critical')
         # Earliest task starts at col 10 - cols 0-9 are genuinely empty.
         empty_model.add_task(
-            row=0, col=10, duration=5, description='T1', project_id=pid, chain_id=chain['id']
+            row=0,
+            col=10,
+            duration=5,
+            description='T1',
+            project_id=pid,
+            chain_id=chain['id'],
         )
         controller = MagicMock()
         controller.model = empty_model
@@ -318,8 +393,10 @@ class TestDeleteHistoryDialogConfirmation:
         start_before = empty_model.start_date
         cutoff = empty_model.get_date_for_day(5)  # squarely in the empty gap
 
-        with patch.object(messagebox, 'askyesno', return_value=True) as mock_confirm, \
-             patch.object(messagebox, 'showinfo') as mock_info:
+        with (
+            patch.object(messagebox, 'askyesno', return_value=True) as mock_confirm,
+            patch.object(messagebox, 'showinfo') as mock_info,
+        ):
             task_ops._delete_history_confirm(cutoff)
 
         mock_confirm.assert_called_once()
@@ -332,8 +409,10 @@ class TestDeleteHistoryDialogConfirmation:
         import tkinter.messagebox as messagebox
         from unittest.mock import patch
 
-        with patch.object(messagebox, 'showerror') as mock_error, \
-             patch.object(messagebox, 'askyesno') as mock_confirm:
+        with (
+            patch.object(messagebox, 'showerror') as mock_error,
+            patch.object(messagebox, 'askyesno') as mock_confirm,
+        ):
             self.task_ops._delete_history_confirm(self._cutoff_date(6))
 
         mock_error.assert_called_once()
@@ -344,8 +423,10 @@ class TestDeleteHistoryDialogConfirmation:
         import tkinter.messagebox as messagebox
         from unittest.mock import patch
 
-        with patch.object(messagebox, 'askyesno', return_value=True), \
-             patch.object(messagebox, 'showinfo') as mock_info:
+        with (
+            patch.object(messagebox, 'askyesno', return_value=True),
+            patch.object(messagebox, 'showinfo') as mock_info,
+        ):
             self.task_ops._delete_history_confirm(self._cutoff_date(5))
 
         assert self.model.get_task(self.t1['task_id']) is None
@@ -411,9 +492,7 @@ class TestExtendTimeline:
         self.model.extend_timeline(14)
 
         for day in range(days_before, self.model.days):
-            expected = (
-                0.0 if self.model.get_date_for_day(day).weekday() >= 5 else 1.0
-            )
+            expected = 0.0 if self.model.get_date_for_day(day).weekday() >= 5 else 1.0
             assert resource['capacity'][day] == expected
 
     def test_existing_days_untouched(self):
@@ -454,9 +533,7 @@ class TestExtendTimeline:
         self.model.extend_timeline(14)
 
         for day in range(days_before, self.model.days):
-            expected = (
-                0.0 if self.model.get_date_for_day(day).weekday() >= 5 else 3.0
-            )
+            expected = 0.0 if self.model.get_date_for_day(day).weekday() >= 5 else 3.0
             assert resource['capacity'][day] == expected
 
     def test_returns_false_for_non_positive_additional_days(self):
@@ -479,8 +556,10 @@ class TestExtendTimelineDialog:
         from unittest.mock import patch
 
         days_before = self.model.days
-        with patch.object(simpledialog, 'askinteger', return_value=20), \
-             patch.object(messagebox, 'showinfo') as mock_info:
+        with (
+            patch.object(simpledialog, 'askinteger', return_value=20),
+            patch.object(messagebox, 'showinfo') as mock_info,
+        ):
             self.task_ops.extend_timeline_dialog()
 
         assert self.model.days == days_before + 20

@@ -5,7 +5,7 @@ This module contains the UI components for the Help menu.
 """
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, ttk
+from tkinter import scrolledtext, ttk
 import webbrowser
 from src.utils.version import get_version
 from src.model.dependency_notation import format_predecessor_notation
@@ -237,9 +237,7 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
         # the content actually needs (measured, so font/theme-proof)
         ttk.Sizegrip(doc_dialog).place(relx=1.0, rely=1.0, anchor='se')
         doc_dialog.update_idletasks()
-        doc_dialog.minsize(
-            doc_dialog.winfo_reqwidth(), doc_dialog.winfo_reqheight()
-        )
+        doc_dialog.minsize(doc_dialog.winfo_reqwidth(), doc_dialog.winfo_reqheight())
 
     def open_website(self):
         """Open the project website in the default browser."""
@@ -384,23 +382,23 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
         selected_tasks = self.controller.selected_tasks
         if selected_tasks:
             for i, task in enumerate(selected_tasks):
-                text_area.insert(tk.END, f'Task {i+1}:\n')
-                text_area.insert(tk.END, f"  ID: {task['task_id']}\n")
-                text_area.insert(tk.END, f"  Description: {task['description']}\n")
+                text_area.insert(tk.END, f'Task {i + 1}:\n')
+                text_area.insert(tk.END, f'  ID: {task["task_id"]}\n')
+                text_area.insert(tk.END, f'  Description: {task["description"]}\n')
                 project = self.controller.model.get_project_by_id(
                     task.get('project_id')
                 )
                 if project:
                     text_area.insert(
                         tk.END,
-                        f"  Project: {project['name']} ({project['phase'].capitalize()})\n",
+                        f'  Project: {project["name"]} ({project["phase"].capitalize()})\n',
                     )
                 else:
                     text_area.insert(tk.END, '  Project: None\n')
                 text_area.insert(
-                    tk.END, f"  Row: {task['row']}, Column: {task['col']}\n"
+                    tk.END, f'  Row: {task["row"]}, Column: {task["col"]}\n'
                 )
-                text_area.insert(tk.END, f"  Duration: {task['duration']}\n")
+                text_area.insert(tk.END, f'  Duration: {task["duration"]}\n')
 
                 # Calculate and show calendar dates
                 start_date = self.controller.model.get_date_for_day(task['col'])
@@ -408,42 +406,40 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
                     task['col'] + task['duration'] - 1
                 )
                 text_area.insert(
-                    tk.END, f"  Start Date: {start_date.strftime('%Y-%m-%d')}\n"
+                    tk.END, f'  Start Date: {start_date.strftime("%Y-%m-%d")}\n'
                 )
                 text_area.insert(
-                    tk.END, f"  End Date: {end_date.strftime('%Y-%m-%d')}\n"
+                    tk.END, f'  End Date: {end_date.strftime("%Y-%m-%d")}\n'
                 )
 
                 # Predecessors
                 if task.get('predecessors'):
                     text_area.insert(
                         tk.END,
-                        f"  Predecessors: {format_predecessor_notation(task['predecessors'])}\n",
+                        f'  Predecessors: {format_predecessor_notation(task["predecessors"])}\n',
                     )
                 else:
-                    text_area.insert(tk.END, f'  Predecessors: None\n')
+                    text_area.insert(tk.END, '  Predecessors: None\n')
 
                 # Successors (derived from other tasks' predecessor links)
-                successor_ids = self.controller.model.get_successor_ids(
-                    task['task_id']
-                )
+                successor_ids = self.controller.model.get_successor_ids(task['task_id'])
                 if successor_ids:
                     text_area.insert(
                         tk.END,
-                        f"  Successors: {', '.join(map(str, successor_ids))}\n",
+                        f'  Successors: {", ".join(map(str, successor_ids))}\n',
                     )
                 else:
-                    text_area.insert(tk.END, f'  Successors: None\n')
+                    text_area.insert(tk.END, '  Successors: None\n')
 
                 # Tags
                 if 'tags' in task and task['tags']:
-                    text_area.insert(tk.END, f"  Tags: {', '.join(task['tags'])}\n")
+                    text_area.insert(tk.END, f'  Tags: {", ".join(task["tags"])}\n')
                 else:
-                    text_area.insert(tk.END, f'  Tags: None\n')
+                    text_area.insert(tk.END, '  Tags: None\n')
 
                 # Resources
                 if task['resources']:
-                    text_area.insert(tk.END, f'  Resources:\n')
+                    text_area.insert(tk.END, '  Resources:\n')
                     for resource_id, allocation in task['resources'].items():
                         resource = self.controller.model.get_resource_by_id(
                             int(resource_id)
@@ -452,10 +448,10 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
                         )
                         if resource:
                             text_area.insert(
-                                tk.END, f"    {resource['name']}: {allocation}\n"
+                                tk.END, f'    {resource["name"]}: {allocation}\n'
                             )
                 else:
-                    text_area.insert(tk.END, f'  Resources: None\n')
+                    text_area.insert(tk.END, '  Resources: None\n')
 
                 text_area.insert(tk.END, '\n')
         else:
@@ -514,23 +510,23 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
         selected_tasks = self.controller.selected_tasks
         if selected_tasks:
             for i, task in enumerate(selected_tasks):
-                text_area.insert(tk.END, f'Task {i+1}:\n')
-                text_area.insert(tk.END, f"  ID: {task['task_id']}\n")
-                text_area.insert(tk.END, f"  Description: {task['description']}\n")
+                text_area.insert(tk.END, f'Task {i + 1}:\n')
+                text_area.insert(tk.END, f'  ID: {task["task_id"]}\n')
+                text_area.insert(tk.END, f'  Description: {task["description"]}\n')
                 project = self.controller.model.get_project_by_id(
                     task.get('project_id')
                 )
                 if project:
                     text_area.insert(
                         tk.END,
-                        f"  Project: {project['name']} ({project['phase'].capitalize()})\n",
+                        f'  Project: {project["name"]} ({project["phase"].capitalize()})\n',
                     )
                 else:
                     text_area.insert(tk.END, '  Project: None\n')
                 text_area.insert(
-                    tk.END, f"  Row: {task['row']}, Column: {task['col']}\n"
+                    tk.END, f'  Row: {task["row"]}, Column: {task["col"]}\n'
                 )
-                text_area.insert(tk.END, f"  Duration: {task['duration']}\n")
+                text_area.insert(tk.END, f'  Duration: {task["duration"]}\n')
 
                 # Calculate and show calendar dates
                 start_date = self.controller.model.get_date_for_day(task['col'])
@@ -538,42 +534,40 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
                     task['col'] + task['duration'] - 1
                 )
                 text_area.insert(
-                    tk.END, f"  Start Date: {start_date.strftime('%Y-%m-%d')}\n"
+                    tk.END, f'  Start Date: {start_date.strftime("%Y-%m-%d")}\n'
                 )
                 text_area.insert(
-                    tk.END, f"  End Date: {end_date.strftime('%Y-%m-%d')}\n"
+                    tk.END, f'  End Date: {end_date.strftime("%Y-%m-%d")}\n'
                 )
 
                 # Predecessors
                 if task.get('predecessors'):
                     text_area.insert(
                         tk.END,
-                        f"  Predecessors: {format_predecessor_notation(task['predecessors'])}\n",
+                        f'  Predecessors: {format_predecessor_notation(task["predecessors"])}\n',
                     )
                 else:
-                    text_area.insert(tk.END, f'  Predecessors: None\n')
+                    text_area.insert(tk.END, '  Predecessors: None\n')
 
                 # Successors (derived from other tasks' predecessor links)
-                successor_ids = self.controller.model.get_successor_ids(
-                    task['task_id']
-                )
+                successor_ids = self.controller.model.get_successor_ids(task['task_id'])
                 if successor_ids:
                     text_area.insert(
                         tk.END,
-                        f"  Successors: {', '.join(map(str, successor_ids))}\n",
+                        f'  Successors: {", ".join(map(str, successor_ids))}\n',
                     )
                 else:
-                    text_area.insert(tk.END, f'  Successors: None\n')
+                    text_area.insert(tk.END, '  Successors: None\n')
 
                 # Tags
                 if 'tags' in task and task['tags']:
-                    text_area.insert(tk.END, f"  Tags: {', '.join(task['tags'])}\n")
+                    text_area.insert(tk.END, f'  Tags: {", ".join(task["tags"])}\n')
                 else:
-                    text_area.insert(tk.END, f'  Tags: None\n')
+                    text_area.insert(tk.END, '  Tags: None\n')
 
                 # Resources
                 if task['resources']:
-                    text_area.insert(tk.END, f'  Resources:\n')
+                    text_area.insert(tk.END, '  Resources:\n')
                     for resource_id, allocation in task['resources'].items():
                         resource = self.controller.model.get_resource_by_id(
                             int(resource_id)
@@ -582,10 +576,10 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
                         )
                         if resource:
                             text_area.insert(
-                                tk.END, f"    {resource['name']}: {allocation}\n"
+                                tk.END, f'    {resource["name"]}: {allocation}\n'
                             )
                 else:
-                    text_area.insert(tk.END, f'  Resources: None\n')
+                    text_area.insert(tk.END, '  Resources: None\n')
 
                 text_area.insert(tk.END, '\n')
         else:

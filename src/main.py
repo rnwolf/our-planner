@@ -35,7 +35,7 @@ def main():
         version=f'%(prog)s {__version__}',  # Display version
     )
     # parse the command line arguments and display verison information
-    args = parser.parse_args()
+    parser.parse_args()
     # If no arguments are provided, launch the GUI
     if len(sys.argv) == 1:
         root = tk.Tk()

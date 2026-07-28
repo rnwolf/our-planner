@@ -1,5 +1,3 @@
-import pytest
-from unittest.mock import MagicMock
 from datetime import datetime
 
 from src.model.task_resource_model import TaskResourceModel
@@ -116,7 +114,6 @@ class TestTaskNotes:
         """Test saving and loading a file preserves notes."""
         import tempfile
         import os
-        import json
 
         # Create a temporary file
         with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp:

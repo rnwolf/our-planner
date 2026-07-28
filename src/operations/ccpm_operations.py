@@ -75,13 +75,13 @@ class CcpmOperations:
             if task.get('type') in BUFFER_TASK_TYPES:
                 warnings.append(
                     f"buffer task '{task['description']}' not exported - the "
-                    f"scheduler computes its own buffers"
+                    f'scheduler computes its own buffers'
                 )
                 continue
             if self.model.get_task_state(task) == 'complete':
                 warnings.append(
                     f"task '{task['description']}' is complete - excluded "
-                    f"(the scheduler plans remaining work)"
+                    f'(the scheduler plans remaining work)'
                 )
                 continue
             exported[task['task_id']] = task
@@ -92,35 +92,44 @@ class CcpmOperations:
             links = []
             for entry in task.get('predecessors') or []:
                 if entry['id'] in exported:
-                    links.append({'id': str(entry['id']),
-                                  'type': entry['type'], 'lag': entry['lag']})
+                    links.append(
+                        {
+                            'id': str(entry['id']),
+                            'type': entry['type'],
+                            'lag': entry['lag'],
+                        }
+                    )
                 else:
                     warnings.append(
                         f"task '{task['description']}': predecessor link to "
-                        f"task id {entry['id']} dropped (done, buffer, or "
-                        f"outside this project)"
+                        f'task id {entry["id"]} dropped (done, buffer, or '
+                        f'outside this project)'
                     )
-            allocations = {str(rid): float(alloc)
-                           for rid, alloc in (task.get('resources') or {}).items()}
+            allocations = {
+                str(rid): float(alloc)
+                for rid, alloc in (task.get('resources') or {}).items()
+            }
             resource_ids.update(task.get('resources') or {})
             realistic = task.get('realistic_duration')
             if realistic in (None, ''):
                 realistic = task.get('duration')
             optimal = task.get('optimal_duration')
-            tasks_out.append({
-                'id': str(task['task_id']),
-                'name': task['description'],
-                'realistic_duration': realistic,
-                'optimal_duration': optimal if optimal not in (None, '') else None,
-                'predecessors': links,
-                'resources': allocations,
-                'url': task.get('url', '') or '',
-                # Stage 19: carried for the CSV export / round trip; the
-                # scheduler's network_from_json reads known keys only, so
-                # these are ignored on the in-process JSON path
-                'tags': list(task.get('tags') or []),
-                'colour': task.get('color', '') or '',
-            })
+            tasks_out.append(
+                {
+                    'id': str(task['task_id']),
+                    'name': task['description'],
+                    'realistic_duration': realistic,
+                    'optimal_duration': optimal if optimal not in (None, '') else None,
+                    'predecessors': links,
+                    'resources': allocations,
+                    'url': task.get('url', '') or '',
+                    # Stage 19: carried for the CSV export / round trip; the
+                    # scheduler's network_from_json reads known keys only, so
+                    # these are ignored on the in-process JSON path
+                    'tags': list(task.get('tags') or []),
+                    'colour': task.get('color', '') or '',
+                }
+            )
 
         anchor = min((t['col'] for t in exported.values()), default=0)
 
@@ -130,16 +139,22 @@ class CcpmOperations:
             if resource is None:
                 continue
             base, windows = self._encode_capacity(resource['capacity'])
-            resources_out.append({'id': str(rid), 'name': resource['name'],
-                                  'capacity': base})
+            resources_out.append(
+                {'id': str(rid), 'name': resource['name'], 'capacity': base}
+            )
             for start, end, value in windows:
                 # shift to anchor-relative days; windows entirely before the
                 # anchor are in the past for this project and don't apply
                 if end - anchor <= 0:
                     continue
-                calendar_out.append({'resource_id': str(rid),
-                                     'from': max(start - anchor, 0),
-                                     'to': end - anchor, 'capacity': value})
+                calendar_out.append(
+                    {
+                        'resource_id': str(rid),
+                        'from': max(start - anchor, 0),
+                        'to': end - anchor,
+                        'capacity': value,
+                    }
+                )
 
         data = {'tasks': tasks_out, 'resources': resources_out}
         if calendar_out:
@@ -156,6 +171,7 @@ class CcpmOperations:
         """Collapse a per-day capacity array into (base_capacity, windows):
         base is the most common value, windows are the half-open [from, to)
         runs that differ from it. Whole-number floats become ints."""
+
         def norm(v):
             return int(v) if isinstance(v, float) and v.is_integer() else v
 
@@ -166,8 +182,9 @@ class CcpmOperations:
         for day, value in enumerate(values):
             if value != base and run_start is None:
                 run_start = day
-            elif run_start is not None and (value == base
-                                            or value != values[run_start]):
+            elif run_start is not None and (
+                value == base or value != values[run_start]
+            ):
                 windows.append((run_start, day, values[run_start]))
                 run_start = day if value != base else None
         if run_start is not None:
@@ -182,34 +199,55 @@ class CcpmOperations:
           ok False -> {'ok', 'issues': [{'code','message',...}], 'warnings'}
           ok True  -> {'ok', 'project', 'stats', 'task_count', 'warnings'}
         No UI - the dialogs live in schedule_with_ccpm()."""
-        from ccpm_scheduler import (CcpmError, build_schedule, check_schedule,
-                                    network_from_json, validate_network)
+        from ccpm_scheduler import (
+            CcpmError,
+            build_schedule,
+            check_schedule,
+            network_from_json,
+            validate_network,
+        )
 
         data, warnings, anchor = self.build_network_data(project_id)
         if not data['tasks']:
-            return {'ok': False, 'warnings': warnings, 'issues': [{
-                'code': 'E_EMPTY_PROJECT',
-                'message': 'no schedulable tasks in this project '
-                           '(buffers and done tasks are excluded)'}]}
+            return {
+                'ok': False,
+                'warnings': warnings,
+                'issues': [
+                    {
+                        'code': 'E_EMPTY_PROJECT',
+                        'message': 'no schedulable tasks in this project '
+                        '(buffers and done tasks are excluded)',
+                    }
+                ],
+            }
 
         network = network_from_json(data)
         report = validate_network(network)
         warnings.extend(w.message for w in report.warnings)
         if not report.ok:
-            return {'ok': False, 'warnings': warnings,
-                    'issues': [i.to_json() for i in report.errors]}
+            return {
+                'ok': False,
+                'warnings': warnings,
+                'issues': [i.to_json() for i in report.errors],
+            }
 
         source = self.model.get_project_by_id(project_id)
-        title = new_project_name or f"{source['name']} (CCPM)"
+        title = new_project_name or f'{source["name"]} (CCPM)'
         try:
             result = build_schedule(network, title)
         except CcpmError as e:
-            return {'ok': False, 'warnings': warnings, 'issues': [
-                {'code': 'E_UNSCHEDULABLE', 'message': str(e)}]}
+            return {
+                'ok': False,
+                'warnings': warnings,
+                'issues': [{'code': 'E_UNSCHEDULABLE', 'message': str(e)}],
+            }
         verify = check_schedule(result.schedule, network)
         if not verify.ok:  # engine bug guard - should never happen
-            return {'ok': False, 'warnings': warnings,
-                    'issues': [i.to_json() for i in verify.errors]}
+            return {
+                'ok': False,
+                'warnings': warnings,
+                'issues': [i.to_json() for i in verify.errors],
+            }
 
         name = title
         n = 2
@@ -232,24 +270,27 @@ class CcpmOperations:
                 f'past the planning grid (day {grid_days}): resource '
                 f'availability beyond the grid was assumed at base capacity '
                 f'- record any known leave on the extended timeline and '
-                f'reschedule to be sure')
+                f'reschedule to be sure'
+            )
         self._file_ops._ensure_model_days(anchor + max_finish + 5)
-        resource_rows = [{'id': r['id'], 'name': r['name'],
-                          'capacity': r['capacity']}
-                         for r in data['resources']]
+        resource_rows = [
+            {'id': r['id'], 'name': r['name'], 'capacity': r['capacity']}
+            for r in data['resources']
+        ]
         resource_id_map = self._file_ops._import_resources(resource_rows)
         # no calendar pass: every exported resource already exists by name,
         # so _import_resources reuses it with its capacity array intact
         schedule_rows = [r.to_csv_dict() for r in result.schedule.rows]
         task_count = self._file_ops._import_schedule_tasks(
-            schedule_rows, resource_id_map, project['id'])
+            schedule_rows, resource_id_map, project['id']
+        )
 
-        new_tasks = [t for t in self.model.tasks
-                     if t['project_id'] == project['id']]
+        new_tasks = [t for t in self.model.tasks if t['project_id'] == project['id']]
         self._place_beside_source(new_tasks, project_id)
-        source_by_id = {t['task_id']: t for t in self.model.tasks
-                        if t['project_id'] == project_id}
-        for row_dict, task in zip(schedule_rows, new_tasks):
+        source_by_id = {
+            t['task_id']: t for t in self.model.tasks if t['project_id'] == project_id
+        }
+        for row_dict, task in zip(schedule_rows, new_tasks, strict=True):
             # back onto the timeline: the schedule was built anchor-relative
             task['col'] += anchor
             # the schedule's task ids ARE the source task ids - carry the
@@ -267,8 +308,14 @@ class CcpmOperations:
             # generated network is selectable via the tag filter
             self.model.set_task_tags(task['task_id'], tags)
 
-        return {'ok': True, 'project': project, 'task_count': task_count,
-                'anchor': anchor, 'stats': result.stats, 'warnings': warnings}
+        return {
+            'ok': True,
+            'project': project,
+            'task_count': task_count,
+            'anchor': anchor,
+            'stats': result.stats,
+            'warnings': warnings,
+        }
 
     def _place_beside_source(self, new_tasks, source_project_id):
         """Move the freshly imported rows to start two rows below the source
@@ -278,18 +325,22 @@ class CcpmOperations:
         if not new_tasks:
             return
         new_ids = {t['task_id'] for t in new_tasks}
-        source_rows = [t['row'] for t in self.model.tasks
-                       if t['project_id'] == source_project_id
-                       and t['task_id'] not in new_ids]
+        source_rows = [
+            t['row']
+            for t in self.model.tasks
+            if t['project_id'] == source_project_id and t['task_id'] not in new_ids
+        ]
         if not source_rows:
             return
         desired = max(source_rows) + 2
         current = min(t['row'] for t in new_tasks)
         if desired >= current:
             return
-        occupied = any(t['row'] >= desired for t in self.model.tasks
-                       if t['task_id'] not in new_ids
-                       and t['project_id'] != source_project_id)
+        occupied = any(
+            t['row'] >= desired
+            for t in self.model.tasks
+            if t['task_id'] not in new_ids and t['project_id'] != source_project_id
+        )
         if occupied:
             return
         shift = current - desired
@@ -308,19 +359,38 @@ class CcpmOperations:
         path = os.path.join(folder, 'tasks.csv')
         with open(path, 'w', newline='', encoding='utf-8') as f:
             w = csv.writer(f)
-            w.writerow(['id', 'name', 'realistic_duration', 'optimal_duration',
-                        'predecessor_ids', 'resource_ids', 'url', 'tags',
-                        'colour'])
+            w.writerow(
+                [
+                    'id',
+                    'name',
+                    'realistic_duration',
+                    'optimal_duration',
+                    'predecessor_ids',
+                    'resource_ids',
+                    'url',
+                    'tags',
+                    'colour',
+                ]
+            )
             for t in data['tasks']:
-                w.writerow([
-                    t['id'], t['name'], t['realistic_duration'],
-                    t['optimal_duration'] if t['optimal_duration'] is not None else '',
-                    ';'.join(self._link_token(e) for e in t['predecessors']),
-                    ';'.join(resource_token(rid, alloc) for rid, alloc in t['resources'].items()),
-                    t['url'],
-                    ','.join(t['tags']),
-                    t['colour'],
-                ])
+                w.writerow(
+                    [
+                        t['id'],
+                        t['name'],
+                        t['realistic_duration'],
+                        t['optimal_duration']
+                        if t['optimal_duration'] is not None
+                        else '',
+                        ';'.join(self._link_token(e) for e in t['predecessors']),
+                        ';'.join(
+                            resource_token(rid, alloc)
+                            for rid, alloc in t['resources'].items()
+                        ),
+                        t['url'],
+                        ','.join(t['tags']),
+                        t['colour'],
+                    ]
+                )
         files.append(path)
 
         path = os.path.join(folder, 'resources.csv')
@@ -337,8 +407,7 @@ class CcpmOperations:
                 w = csv.writer(f)
                 w.writerow(['resource_id', 'from', 'to', 'capacity'])
                 for c in data['calendar']:
-                    w.writerow([c['resource_id'], c['from'], c['to'],
-                                c['capacity']])
+                    w.writerow([c['resource_id'], c['from'], c['to'], c['capacity']])
             files.append(path)
 
         # Notes go to a file, not the completion dialog: with many warnings
@@ -355,9 +424,9 @@ class CcpmOperations:
     def _link_token(entry):
         token = entry['id']
         if entry['type'] != 'FS' or entry['lag']:
-            token += f":{entry['type']}"
+            token += f':{entry["type"]}'
             if entry['lag']:
-                token += f"{entry['lag']:+d}"
+                token += f'{entry["lag"]:+d}'
         return token
 
     # ------------------------------------------------------------ UI flows
@@ -370,32 +439,31 @@ class CcpmOperations:
             return
         folder = filedialog.askdirectory(
             title=f"Folder for '{project['name']}' CCPM input files",
-            parent=self.controller.root)
+            parent=self.controller.root,
+        )
         if not folder:
             return
         try:
-            files, warnings, anchor = self.export_network_core(
-                project['id'], folder)
+            files, warnings, anchor = self.export_network_core(project['id'], folder)
         except Exception as e:
             messagebox.showerror('Export Error', f'Export failed: {e}')
             return
         note = ''
         if warnings:
-            note = (f'\n\n{len(warnings)} note(s) about the export written '
-                    f'to notes.txt.')
-        has_calendar = any(os.path.basename(p) == 'calendar.csv'
-                           for p in files)
+            note = f'\n\n{len(warnings)} note(s) about the export written to notes.txt.'
+        has_calendar = any(os.path.basename(p) == 'calendar.csv' for p in files)
         method = project.get('ccpm_method', 'cap')
         messagebox.showinfo(
             'Export Complete',
-            f"Wrote {', '.join(os.path.basename(p) for p in files)} to "
+            f'Wrote {", ".join(os.path.basename(p) for p in files)} to '
             f'{folder}.\n\nDay 0 in these files = timeline day {anchor} '
             f"(the project's earliest task).\n\nSchedule it with:\n"
             f'  ccpm-scheduler build tasks.csv resources.csv'
             + (' --calendar calendar.csv' if has_calendar else '')
             + f' --buffer-method {method}'
             + ' --out-dir plan\n\nthen bring the result back via '
-            "'File → Import CCPM Schedule...'." + note)
+            "'File → Import CCPM Schedule...'." + note,
+        )
 
     def schedule_with_ccpm(self):
         """File → Schedule with CCPM... : validate + schedule the picked
@@ -410,12 +478,13 @@ class CcpmOperations:
             return
 
         if not result['ok']:
-            lines = [f"- {i['message']}" for i in result['issues']]
+            lines = [f'- {i["message"]}' for i in result['issues']]
             messagebox.showerror(
                 'CCPM Validation Failed',
                 f"'{project['name']}' cannot be scheduled yet:\n\n"
                 + '\n'.join(lines)
-                + '\n\nFix the network and try again.')
+                + '\n\nFix the network and try again.',
+            )
             return
 
         self.controller.update_view()
@@ -434,12 +503,13 @@ class CcpmOperations:
             'CCPM Schedule Created',
             f"Created project '{result['project']['name']}' with "
             f"{result['task_count']} rows (tagged 'ccpm'), anchored at "
-            f"timeline day {result['anchor']}.\n\n"
-            f"Critical chain: {' → '.join(stats.critical_chain)} "
+            f'timeline day {result["anchor"]}.\n\n'
+            f'Critical chain: {" → ".join(stats.critical_chain)} '
             f'({stats.critical_chain_length} days)\n'
             f'Project buffer: {stats.project_buffer} days\n'
-            f"Promised completion: timeline day "
-            f"{result['anchor'] + stats.promise_day}" + note)
+            f'Promised completion: timeline day '
+            f'{result["anchor"] + stats.promise_day}' + note,
+        )
 
     def _pick_project(self, title):
         """Choose a project: the only one silently, else a list dialog."""
@@ -454,16 +524,22 @@ class CcpmOperations:
         dialog.title(title)
         dialog.transient(self.controller.root)
         dialog.grab_set()
-        tk.Label(dialog, text='Project:').pack(padx=10, pady=(10, 2),
-                                               anchor='w')
+        tk.Label(dialog, text='Project:').pack(padx=10, pady=(10, 2), anchor='w')
         listbox = tk.Listbox(dialog, height=min(len(projects), 12), width=40)
         for p in projects:
             listbox.insert(tk.END, p['name'])
         listbox.pack(padx=10, fill='both', expand=True)
         default = self.model.get_default_project()
         listbox.selection_set(
-            next((i for i, p in enumerate(projects)
-                  if default and p['id'] == default['id']), 0))
+            next(
+                (
+                    i
+                    for i, p in enumerate(projects)
+                    if default and p['id'] == default['id']
+                ),
+                0,
+            )
+        )
 
         chosen = []
 
@@ -476,9 +552,9 @@ class CcpmOperations:
         listbox.bind('<Double-Button-1>', ok)
         buttons = tk.Frame(dialog)
         buttons.pack(pady=8)
-        tk.Button(buttons, text='OK', width=8, command=ok).pack(
-            side='left', padx=4)
-        tk.Button(buttons, text='Cancel', width=8,
-                  command=dialog.destroy).pack(side='left', padx=4)
+        tk.Button(buttons, text='OK', width=8, command=ok).pack(side='left', padx=4)
+        tk.Button(buttons, text='Cancel', width=8, command=dialog.destroy).pack(
+            side='left', padx=4
+        )
         dialog.wait_window()
         return chosen[0] if chosen else None
