@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 from typing import List, Dict, Any, Optional, Tuple, Set
 from datetime import datetime, timedelta
 
@@ -606,11 +607,12 @@ class TaskResourceModel:
         planning can keep scheduling further into the future once older
         history has been deleted (or just because the plan is running long).
 
-        New days get the same weekend-aware default capacity a brand new
-        resource gets from `add_resource` (1.0, or 0.0 on Sat/Sun for a
-        resource with `works_weekends=False`) - not a blind 1.0 fill for
-        every resource regardless of schedule, which would make a weekend-off
-        resource look available on newly-added Saturdays.
+        New days continue each resource's own typical capacity (the most
+        common value among its existing weekday entries - not a brand new
+        resource's flat 1.0 default), with the same weekend-aware zeroing
+        `add_resource` applies for a resource with `works_weekends=False` -
+        so a resource already configured for e.g. 4 units keeps showing 4
+        on the newly-added days instead of silently dropping to 1.
 
         Returns False (no-op) if `additional_days <= 0`.
         """
@@ -622,15 +624,35 @@ class TaskResourceModel:
 
         for resource in self.resources:
             works_weekends = resource.get('works_weekends', True)
+            base = self._typical_capacity(resource, works_weekends)
             new_capacity = []
             for day in range(old_days, self.days):
                 if not works_weekends and self.get_date_for_day(day).weekday() >= 5:
                     new_capacity.append(0.0)
                 else:
-                    new_capacity.append(1.0)
+                    new_capacity.append(base)
             resource['capacity'] = resource['capacity'] + new_capacity
 
         return True
+
+    def _typical_capacity(self, resource, works_weekends: bool) -> float:
+        """A resource's normal day capacity: the most common value among
+        its existing WEEKDAY entries. Weekday-only so a works_weekends=False
+        resource's own weekend zeros (a separate, deliberate mechanism)
+        never skew what "normal" capacity means - e.g. a short project
+        where weekends are a large fraction of days could otherwise make
+        0 look like the "typical" value."""
+        capacity = resource.get('capacity') or []
+        if works_weekends:
+            values = capacity
+        else:
+            values = [
+                c for day, c in enumerate(capacity)
+                if self.get_date_for_day(day).weekday() < 5
+            ] or capacity
+        if not values:
+            return 1.0
+        return Counter(values).most_common(1)[0][0]
 
     def get_next_task_id(self) -> int:
         """Generate a unique task ID."""

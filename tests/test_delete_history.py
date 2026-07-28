@@ -425,6 +425,40 @@ class TestExtendTimeline:
 
         assert resource['capacity'][3] == 0.5
 
+    def test_new_days_continue_resources_own_capacity(self):
+        """Regression: extending the timeline used to blindly fill new days
+        with 1.0 regardless of what a resource was actually configured
+        for - a resource already set to e.g. 4 units would silently drop
+        to 1 on the newly-added days."""
+        self.model.add_resource('Crew')
+        resource = self.model.get_resource_by_name('Crew')
+        for day in range(len(resource['capacity'])):
+            resource['capacity'][day] = 4.0
+        days_before = self.model.days
+
+        self.model.extend_timeline(10)
+
+        assert all(c == 4.0 for c in resource['capacity'][days_before:])
+
+    def test_new_days_continue_own_capacity_respecting_weekends(self):
+        """The typical-capacity computation for a works_weekends=False
+        resource must be based on its weekday entries, not skewed by its
+        own weekend zeros, while still zeroing new weekend days."""
+        self.model.add_resource('WeekendCrew', works_weekends=False)
+        resource = self.model.get_resource_by_name('WeekendCrew')
+        for day in range(len(resource['capacity'])):
+            is_weekend = self.model.get_date_for_day(day).weekday() >= 5
+            resource['capacity'][day] = 0.0 if is_weekend else 3.0
+        days_before = self.model.days
+
+        self.model.extend_timeline(14)
+
+        for day in range(days_before, self.model.days):
+            expected = (
+                0.0 if self.model.get_date_for_day(day).weekday() >= 5 else 3.0
+            )
+            assert resource['capacity'][day] == expected
+
     def test_returns_false_for_non_positive_additional_days(self):
         days_before = self.model.days
         assert self.model.extend_timeline(0) is False

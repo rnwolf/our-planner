@@ -167,13 +167,16 @@ class TestScheduleProjectCore:
         assert 'E_NO_RESOURCE' in {i['code'] for i in result['issues']}
         assert len(model.projects) == n_projects  # nothing created
 
-    def test_fractional_allocation_rejected(self):
+    def test_fractional_allocation_accepted(self):
+        """ccpm-scheduler >= 0.11 (Phase 5): a fractional allocation is a
+        valid time-share (e.g. 0.5 of one person), not rejected - this
+        used to assert the opposite, back when the engine only accepted
+        exactly 1."""
         model, project_id, ids, ops = make_worked_example()
         task = next(t for t in model.tasks if t['task_id'] == ids['B'])
         task['resources'] = {2: 0.5}
         result = ops.schedule_project_core(project_id)
-        assert not result['ok']
-        assert 'E_FRACTIONAL_ALLOCATION' in {i['code'] for i in result['issues']}
+        assert result['ok'], result.get('issues')
 
     def test_empty_project(self):
         model, _, _, ops = make_worked_example()
@@ -208,12 +211,20 @@ class TestExportNetworkCore:
         result = build_schedule(net, 'export-roundtrip')
         assert result.stats.critical_chain == [str(ids[k]) for k in 'ABDF']
 
-    def test_fractional_allocation_warns(self, tmp_path):
+    def test_allocation_quantity_written_to_csv(self, tmp_path):
+        """ccpm-scheduler >= 0.11 (Phase 5) can express a non-1 allocation
+        in tasks.csv via 'id:qty' - no warning/truncation needed (this test
+        used to assert the opposite, back when the CSV path couldn't
+        express allocations at all)."""
         model, project_id, ids, ops = make_worked_example()
         task = next(t for t in model.tasks if t['task_id'] == ids['B'])
         task['resources'] = {2: 0.5}
-        _, warnings, _ = ops.export_network_core(project_id, tmp_path)
-        assert any('allocation 0.5' in w for w in warnings)
+        files, warnings, _ = ops.export_network_core(project_id, tmp_path)
+        assert warnings == []
+        tasks_csv = next(f for f in files if str(f).endswith('tasks.csv'))
+        with open(tasks_csv, encoding='utf-8') as f:
+            content = f.read()
+        assert '2:0.5' in content
 
 
 class TestAnchoring:
@@ -373,13 +384,13 @@ class TestStage19ExportColumns:
     def test_warnings_written_to_notes_txt(self, tmp_path):
         model, project_id, ids, ops = make_worked_example()
         task = next(t for t in model.tasks if t['task_id'] == ids['B'])
-        task['resources'] = {2: 0.5}  # flatten-and-warn path
+        task['actual_end_date'] = '2026-01-01'  # complete - excluded-with-warning path
         files, warnings, _ = ops.export_network_core(project_id, tmp_path)
         assert warnings
         notes = tmp_path / 'notes.txt'
         assert str(notes) in [str(f) for f in files]
         content = notes.read_text(encoding='utf-8')
-        assert 'allocation 0.5' in content
+        assert 'is complete - excluded' in content
 
     def test_no_notes_txt_without_warnings(self, tmp_path):
         import os
@@ -455,6 +466,60 @@ class TestStage19ImportTagsColour:
         spec = next(t for t in model2.tasks if t['description'] == 'Spec')
         assert spec['tags'] == ['ccpm', 'alpha']
         assert spec['color'] == 'salmon'
+
+
+class TestPhase5AllocationImport:
+    """ccpm-scheduler >= 0.11 (Phase 5) encodes a per-task resource
+    quantity as 'id:qty' in schedule.csv's resource_ids column - a bare id
+    means 1.0. Before this fix, _import_schedule_tasks looked up the whole
+    token ('5:3') in resource_id_map, which only holds bare ids, silently
+    dropping the resource entirely."""
+
+    def make_file_ops(self):
+        from src.operations.file_operations import FileOperations
+
+        model = TaskResourceModel()
+        controller = MagicMock()
+        controller.model = model
+        return model, FileOperations(controller, model)
+
+    def test_quantity_token_parsed(self):
+        model, file_ops = self.make_file_ops()
+        project = model.add_project('Imported')
+        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
+                 'resource_ids': '5:3'}]
+        file_ops._import_schedule_tasks(rows, {'5': 500}, project['id'])
+        task = next(t for t in model.tasks if t['description'] == 'Task A')
+        assert task['resources'] == {500: 3.0}
+
+    def test_bare_id_still_defaults_to_one(self):
+        model, file_ops = self.make_file_ops()
+        project = model.add_project('Imported')
+        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
+                 'resource_ids': '5'}]
+        file_ops._import_schedule_tasks(rows, {'5': 500}, project['id'])
+        task = next(t for t in model.tasks if t['description'] == 'Task A')
+        assert task['resources'] == {500: 1.0}
+
+    def test_mixed_bare_and_quantity_tokens(self):
+        model, file_ops = self.make_file_ops()
+        project = model.add_project('Imported')
+        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
+                 'resource_ids': '5:2;7'}]
+        file_ops._import_schedule_tasks(rows, {'5': 500, '7': 700}, project['id'])
+        task = next(t for t in model.tasks if t['description'] == 'Task A')
+        assert task['resources'] == {500: 2.0, 700: 1.0}
+
+    def test_unresolvable_id_skipped_not_crashed(self):
+        """A token whose resource id isn't in resource_id_map is skipped,
+        same as the pre-Phase-5 behavior for an unresolvable bare id."""
+        model, file_ops = self.make_file_ops()
+        project = model.add_project('Imported')
+        rows = [{'id': 'A', 'start': '0', 'duration': '5', 'name': 'Task A',
+                 'resource_ids': 'unknown:2'}]
+        file_ops._import_schedule_tasks(rows, {}, project['id'])
+        task = next(t for t in model.tasks if t['description'] == 'Task A')
+        assert task['resources'] == {}
 
 
 class TestStage20BufferMethod:

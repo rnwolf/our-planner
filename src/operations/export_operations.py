@@ -12,18 +12,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from src.utils.colors import DEFAULT_TASK_COLOR, get_resource_load_color
 from src.model.dependency_notation import format_predecessor_notation, BUFFER_LINK_TYPES
+from src.model.resource_notation import resource_token as _resource_token
 from src.operations.ccpm_operations import CcpmOperations
-
-
-def _resource_token(resource_id, allocation):
-    """`id:allocation` resource token (Stage 19): ':1' is omitted, whole
-    floats print as ints - `5:2;7` = 2 units of resource 5, 1 of resource 7."""
-    allocation = float(allocation)
-    if allocation == 1.0:
-        return str(resource_id)
-    if allocation.is_integer():
-        return f"{resource_id}:{int(allocation)}"
-    return f"{resource_id}:{allocation}"
 
 
 def _draw_dashed_line(draw, x1, y1, x2, y2, fill, width, dash_length=6, gap_length=4):

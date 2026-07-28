@@ -41,6 +41,7 @@ import tkinter as tk
 from collections import Counter
 from tkinter import filedialog, messagebox
 
+from src.model.resource_notation import resource_token
 from src.model.task_resource_model import BUFFER_TASK_TYPES
 from src.operations.file_operations import FileOperations
 
@@ -300,15 +301,6 @@ class CcpmOperations:
         the external scheduler's input format. Returns (files, warnings,
         anchor) — the CSVs' day 0 is timeline day `anchor`."""
         data, warnings, anchor = self.build_network_data(project_id)
-        for task in data['tasks']:
-            for rid, alloc in task['resources'].items():
-                if alloc != 1:
-                    warnings.append(
-                        f"task '{task['name']}': allocation {alloc} of "
-                        f"resource {rid} exported as a whole resource (CSV "
-                        f"cannot express allocations; the scheduler uses "
-                        f"whole resources)"
-                    )
 
         os.makedirs(folder, exist_ok=True)
         files = []
@@ -324,7 +316,7 @@ class CcpmOperations:
                     t['id'], t['name'], t['realistic_duration'],
                     t['optimal_duration'] if t['optimal_duration'] is not None else '',
                     ';'.join(self._link_token(e) for e in t['predecessors']),
-                    ';'.join(t['resources']),
+                    ';'.join(resource_token(rid, alloc) for rid, alloc in t['resources'].items()),
                     t['url'],
                     ','.join(t['tags']),
                     t['colour'],

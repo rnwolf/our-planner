@@ -4,6 +4,8 @@ import os
 import re
 from datetime import datetime
 from src.model.dependency_notation import VALID_LINK_TYPES, parse_predecessor_notation
+from src.model.resource_notation import parse_resource_token
+from src.model.resource_notation import parse_resource_tokens as _parse_resource_tokens_str_keyed
 from src.model.task_resource_model import CRITICAL_CHAIN_COLOR, FEEDING_CHAIN_COLORS
 
 # Matches a single predecessor token from a CCPM schedule.csv, e.g. 'K2',
@@ -32,21 +34,19 @@ def _read_csv_rows(path):
 
 def _parse_resource_tokens(value):
     """Parse a semicolon-separated resource_ids cell (Import Tasks...) into
-    {resource_id: allocation}. A bare id defaults to allocation 1.0
-    (ccpm-scheduler's own convention); 'id:allocation' is this app's own
-    extension - export_operations.py's `_resource_token` is the writer
-    counterpart. Raises ValueError on a malformed token."""
-    result = {}
-    for token in (value or '').split(';'):
-        token = token.strip()
-        if not token:
-            continue
-        if ':' in token:
-            id_part, _, alloc_part = token.partition(':')
-            result[int(id_part.strip())] = float(alloc_part.strip())
-        else:
-            result[int(token)] = 1.0
-    return result
+    {resource_id: allocation}, with resource_id converted to our own
+    internal int id (Import Network matches by id directly - see
+    file_operations.py's "Import Network Data" section - so no
+    resource_id_map indirection is needed here, unlike
+    _import_schedule_tasks's ccpm-scheduler round trip below). A bare id
+    defaults to allocation 1.0; 'id:allocation' is this app's own
+    extension of ccpm-scheduler's own 'id:qty' notation
+    (src/model/resource_notation.py has the shared parse/render logic).
+    Raises ValueError on a malformed token."""
+    return {
+        int(rid): alloc
+        for rid, alloc in _parse_resource_tokens_str_keyed(value).items()
+    }
 
 
 class FileOperations:
@@ -298,14 +298,23 @@ class FileOperations:
             task_type = (row.get('type') or 'task').strip() or 'task'
             chain_label = (row.get('chain') or '').strip()
 
+            # ccpm-scheduler >= 0.11 (Phase 5) encodes a per-task quantity as
+            # 'id:qty' in resource_ids (a bare id means 1.0) - parse it per
+            # token rather than looking the whole token up in
+            # resource_id_map, which only holds bare ids and would silently
+            # drop e.g. '5:3' as an unresolvable key.
             resources = {}
             for token in (row.get('resource_ids') or '').split(';'):
                 token = token.strip()
                 if not token:
                     continue
-                mapped_id = resource_id_map.get(token)
+                try:
+                    rid, alloc = parse_resource_token(token)
+                except ValueError:
+                    continue
+                mapped_id = resource_id_map.get(rid)
                 if mapped_id is not None:
-                    resources[mapped_id] = 1.0
+                    resources[mapped_id] = alloc
 
             new_task = self.model.add_task(
                 row=start_row + i,
