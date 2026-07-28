@@ -60,6 +60,7 @@ For example:
 import pytest
 from task_manager import TaskResourceManager
 
+
 class TestTaskResourceManager:
     def test_something(self):
         # Test code here
