@@ -137,18 +137,25 @@ on Linux, `uv` will download and use its own managed Python build rather than yo
 python: ../../src/xcb_io.c:166: append_pending_request: Assertion `!xcb_xlib_unknown_seq_number' failed.
 ```
 
-This is a known limitation of `uv`'s managed Python builds on Linux, not a bug in our-planner. The fix is to make `uv` use your system Python instead, since that one links against the X11 libraries already on your machine:
+This is a known limitation of `uv`'s managed Python builds on Linux, not a bug in our-planner. The fix is to make `uv` use a real, X11-linked Python instead — either your distro's default `python3`, or (recommended if that default is very new — see below) a specific version installed via the [deadsnakes PPA](https://github.com/deadsnakes/python3.13):
 
 ```bash
-# 1. Make sure Tkinter is installed for your system Python (see Prerequisites above)
+# 1. If your distro's default python3 is very new (see note below), install a
+#    stable version from deadsnakes instead, e.g. Python 3.13:
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.13 python3.13-tk
+
+# 2. Otherwise, just make sure Tkinter is installed for your system Python:
 sudo apt-get install python3-tk
 
-# 2. Pin the project to your system Python interpreter, e.g. for Python 3.14:
-echo "3.14" > .python-version
+# 3. Pin the project to whichever interpreter you're using, e.g. for
+#    Python 3.13:
+echo "3.13" > .python-version
 
-# 3. Remove any venv uv already built with its own managed Python, then run
+# 4. Remove any venv uv already built with its own managed Python, then run
 rm -rf .venv
-uv run --python "$(command -v python3)" our-planner
+uv run --python "$(command -v python3.13)" our-planner   # or plain "python3"
 ```
 
 If your system Python is very new, some dependencies (e.g. `pillow`, pulled in via `reportlab`) may not have prebuilt wheels for it yet. In that case `uv` will try to compile them from source, which can fail with an error such as:
@@ -157,7 +164,7 @@ If your system Python is very new, some dependencies (e.g. `pillow`, pulled in v
 RequiredDependencyException: The headers or library files could not be found for jpeg
 ```
 
-Install the corresponding `-dev` packages and try again:
+This is exactly the case the deadsnakes route above avoids — a widely-used stable release like 3.13 has prebuilt wheels for everything this project needs, so nothing gets compiled from source. If you'd rather stick with your very-new system Python anyway, install the corresponding `-dev` packages and try again:
 
 ```bash
 sudo apt install libjpeg-turbo8-dev liblcms2-dev libopenjp2-7-dev libtiff-dev libwebp-dev
