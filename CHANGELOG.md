@@ -1,4 +1,17 @@
 
+    ## [0.1.22] - 2026-07-28
+    ### Fixed
+    - A long-duration task's centered name label on the task box can scroll off-screen,
+      leaving no way to read it. The task tooltip now shows the task name as its first
+      line(s) - wrapped to at most two lines and truncated with an ellipsis if still too
+      long - above the existing state/type/project/chain/etc. fields.
+    ### Changed
+    - Documentation site rebuilt with zensical (replacing mkdocs) and now deploys
+      automatically to GitHub Pages via a new workflow on every push to main, instead of
+      the previous manual, long-stale gh-pages branch deploy.
+    - Adopted ruff for linting/formatting and pre-commit (with prek also supported) to
+      run it automatically before each commit.
+
     ## [0.1.21] - 2026-07-27
     ### Fixed
     - Project Settings no longer corrupts resource capacity arrays when changing the
