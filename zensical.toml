@@ -1,0 +1,39 @@
+[project]
+site_name = "our-planner"
+site_description = "An application for collaboratively working on plans with our team, using Critical Chain Project Management (CCPM) buffer management."
+site_author = "R.N. Wolf"
+site_url = "https://rnwolf.github.io/our-planner/"
+repo_url = "https://github.com/rnwolf/our-planner"
+repo_name = "rnwolf/our-planner"
+
+copyright = """
+Copyright &copy; 2025-2026 <a href="https://www.rnwolf.net/" target="_blank" rel="noopener">R.N. Wolf</a>
+"""
+
+nav = [
+    { "Home" = "index.md" },
+    { "Getting Started" = "getting-started.md" },
+    { "User Guide" = "user-guide.md" },
+    { "CCPM File Formats" = "file-structure.md" },
+    { "Buffer Management" = "buffer-management.md" },
+    { "Improvements" = "improvements.md" },
+    { "Troubleshooting" = "troubleshooting.md" },
+    { "Contributing" = "contributing.md" },
+    { "Changelog" = "CHANGELOG.md" },
+    { "Licence" = "licence.md" },
+]
+
+[project.theme]
+language = "en"
+features = [
+    "content.code.annotate",
+    "content.code.copy",
+    "content.code.select",
+    "content.footnote.tooltips",
+    "content.tabs.link",
+    "content.tooltips",
+    "navigation.sections",
+    "navigation.top",
+    "search.highlight",
+    "search.suggest",
+]
