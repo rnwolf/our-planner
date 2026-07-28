@@ -2,7 +2,7 @@
 #    uv pip compile pyproject.toml -o requirements.txt
 babel==2.17.0
     # via tkcalendar
-ccpm-scheduler==0.10.0
+ccpm-scheduler==0.12.0
     # via our-planner (pyproject.toml)
 chardet==5.2.0
     # via reportlab

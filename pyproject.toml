@@ -30,7 +30,7 @@ dependencies = [
     "tkcalendar>=1.6.1",
     "reportlab>=4.0.0",
     "networkx>=3.0",
-    "ccpm-scheduler>=0.10.0",
+    "ccpm-scheduler>=0.12.0",
 ]
 
 [dependency-groups]
