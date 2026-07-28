@@ -1,5 +1,6 @@
 import re
 import subprocess
+import textwrap
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkfont
@@ -20,6 +21,26 @@ from src.model.task_resource_model import (
     classify_fever_chart_zone,
     fever_chart_display_point,
 )
+
+# Wrap width for the task name at the top of the task tooltip - a plain
+# character count (not pixels), tuned for this Label's default font.
+TASK_NAME_TOOLTIP_WIDTH = 30
+
+
+def wrap_task_name_for_tooltip(name, width=TASK_NAME_TOOLTIP_WIDTH, max_lines=2):
+    """Wrap a task name to at most `max_lines` lines of `width` characters,
+    truncating the last line with an ellipsis if it doesn't fit - so a long
+    task name (whose centered label on the task box itself may be scrolled
+    off-screen for a long-duration task) is still fully readable at a
+    glance, without growing the tooltip unboundedly."""
+    lines = textwrap.wrap(name, width=width) or ['']
+    if len(lines) <= max_lines:
+        return lines
+    truncated = lines[:max_lines]
+    ellipsis = '...'
+    last = truncated[-1][: max(width - len(ellipsis), 0)].rstrip()
+    truncated[-1] = last + ellipsis
+    return truncated
 
 
 class UIComponents:
@@ -1841,6 +1862,13 @@ class UIComponents:
 
             # Create tooltip text with all relevant information
             tooltip_parts = []
+
+            # Task name first - for a long-duration task, its centered label
+            # on the task box itself can be scrolled off-screen, so the
+            # tooltip is the only reliable place to read it. Wrapped/
+            # truncated to keep the popup from growing unboundedly wide.
+            task_name = task.get('description', 'No Description')
+            tooltip_parts.extend(wrap_task_name_for_tooltip(task_name))
 
             # Add state
             state = task.get('state', 'planning')
