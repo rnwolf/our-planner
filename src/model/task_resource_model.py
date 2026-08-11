@@ -1401,6 +1401,152 @@ class TaskResourceModel:
                     )
         return links
 
+    def _backfill_task_defaults(self, task) -> None:
+        """Fill in any CCPM/notes fields an older save is missing, and
+        normalize predecessors/resources to their current shape - so a
+        loaded task behaves identically to one built fresh by add_task."""
+        if 'notes' not in task:
+            task['notes'] = []
+        else:
+            # Ensure each note has the expected structure
+            for note in task['notes']:
+                if not isinstance(note, dict):
+                    # Convert to proper format if needed
+                    task['notes'] = []
+                    break
+
+                # Ensure timestamp and text fields exist
+                if 'timestamp' not in note or 'text' not in note:
+                    # If note is missing key fields, reset notes
+                    task['notes'] = []
+                    break
+                # Add CCPM fields if they don't exist
+
+        if 'state' not in task:
+            task['state'] = 'planning'
+
+        if 'type' not in task:
+            task['type'] = 'task'
+
+        if 'project_id' not in task:
+            task['project_id'] = None
+
+        if 'chain_id' not in task:
+            task['chain_id'] = None
+
+        if 'baseline' not in task:
+            task['baseline'] = None
+
+        if 'buffer_size_history' not in task:
+            task['buffer_size_history'] = []
+
+        if 'fever_chart_history' not in task:
+            task['fever_chart_history'] = []
+
+        # Add fields if they don't exist fir backward compatability
+        if 'realistic_duration' not in task:
+            task['realistic_duration'] = task['duration']
+
+        if 'optimal_duration' not in task:
+            task['optimal_duration'] = None
+
+        if 'actual_start_date' not in task:
+            task['actual_start_date'] = None
+
+        if 'actual_end_date' not in task:
+            task['actual_end_date'] = None
+
+        if 'fullkit_date' not in task:
+            task['fullkit_date'] = None
+
+        if 'remaining_duration_history' not in task:
+            task['remaining_duration_history'] = []
+
+        # Predecessors carry link type/lag now; older saves stored plain
+        # ids (implicit Finish-to-Start). successors is derived, not
+        # loaded, so drop any stale copy from older saves.
+        task['predecessors'] = normalize_predecessor_entries(task.get('predecessors'))
+        task.pop('successors', None)
+
+        # JSON object keys are always strings, but everywhere else the
+        # allocation dict is keyed by the integer resource id - convert
+        # back so loaded and freshly-created tasks behave identically
+        task['resources'] = {
+            int(rid) if isinstance(rid, str) and rid.isdigit() else rid: alloc
+            for rid, alloc in (task.get('resources') or {}).items()
+        }
+
+    def _load_dates_and_settings(self, data) -> None:
+        """Load start_date/setdate/max_rows from a save file, falling back
+        to sane defaults for a missing or unparseable value."""
+        # Load start_date if available
+        if 'start_date' in data:
+            try:
+                self.start_date = datetime.fromisoformat(data['start_date'])
+            except ValueError:
+                # If there's an error parsing the date, use the current date
+                self.start_date = datetime.now().replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+
+        # Load setdate if available
+        if 'setdate' in data:
+            try:
+                self.setdate = datetime.fromisoformat(data['setdate'])
+            except ValueError:
+                # If there's an error parsing the date, use the current date
+                self.setdate = datetime.now().replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+
+        # Load max_rows (previously max_tasks)
+        if 'max_rows' in data:
+            self.max_rows = data['max_rows']
+        elif 'max_tasks' in data:  # For backward compatibility
+            self.max_rows = data['max_tasks']
+
+    def _backfill_resource_defaults(self) -> None:
+        """Fill in any fields an older save's resources are missing, and
+        assign ids to any resource that predates them."""
+        # Ensure resource capacity arrays are proper length
+        for resource in self.resources:
+            if 'works_weekends' not in resource:
+                resource['works_weekends'] = True
+
+            if 'capacity' not in resource or len(resource['capacity']) != self.days:
+                resource['capacity'] = [1.0] * self.days
+
+            # Ensure resources have tags field
+            if 'tags' not in resource:
+                resource['tags'] = []
+
+            # Ensure resources have a url field (added for CSV import)
+            if 'url' not in resource:
+                resource['url'] = ''
+
+        # Ensure resources have IDs
+        for resource in self.resources:
+            if 'id' not in resource:
+                resource['id'] = self._get_next_resource_id()
+
+    def _recompute_task_and_resource_id_counters(self) -> None:
+        """Set task_id_counter/resource_id_counter to the highest id
+        actually present, so later auto-assigned ids never collide with a
+        loaded one."""
+        # Find highest task ID to update counter
+        max_task_id = 0
+        for task in self.tasks:
+            if task['task_id'] > max_task_id:
+                max_task_id = task['task_id']
+        self.task_id_counter = max_task_id
+
+        # Find highest resource ID to update counter
+        max_resource_id = 0
+        for resource in self.resources:
+            if resource['id'] > max_resource_id:
+                max_resource_id = resource['id']
+        self.resource_id_counter = max_resource_id
+
     def load_from_file(self, file_path: str) -> bool:
         """Load project data from a file."""
         try:
@@ -1416,141 +1562,14 @@ class TaskResourceModel:
             self.resources = data['resources']
             self.days = data['days']
 
-            # After loading tasks, ensure each task has a notes field for backward complatability
-            # After loading tasks, ensure each task has a notes field with the expected structure
+            # After loading tasks, ensure each task has a notes field with
+            # the expected structure, and every other CCPM field it needs.
             for task in self.tasks:
-                if 'notes' not in task:
-                    task['notes'] = []
-                else:
-                    # Ensure each note has the expected structure
-                    for note in task['notes']:
-                        if not isinstance(note, dict):
-                            # Convert to proper format if needed
-                            task['notes'] = []
-                            break
+                self._backfill_task_defaults(task)
 
-                        # Ensure timestamp and text fields exist
-                        if 'timestamp' not in note or 'text' not in note:
-                            # If note is missing key fields, reset notes
-                            task['notes'] = []
-                            break
-                    # Add CCPM fields if they don't exist
-
-                if 'state' not in task:
-                    task['state'] = 'planning'
-
-                if 'type' not in task:
-                    task['type'] = 'task'
-
-                if 'project_id' not in task:
-                    task['project_id'] = None
-
-                if 'chain_id' not in task:
-                    task['chain_id'] = None
-
-                if 'baseline' not in task:
-                    task['baseline'] = None
-
-                if 'buffer_size_history' not in task:
-                    task['buffer_size_history'] = []
-
-                if 'fever_chart_history' not in task:
-                    task['fever_chart_history'] = []
-
-                # Add fields if they don't exist fir backward compatability
-                if 'realistic_duration' not in task:
-                    task['realistic_duration'] = task['duration']
-
-                if 'optimal_duration' not in task:
-                    task['optimal_duration'] = None
-
-                if 'actual_start_date' not in task:
-                    task['actual_start_date'] = None
-
-                if 'actual_end_date' not in task:
-                    task['actual_end_date'] = None
-
-                if 'fullkit_date' not in task:
-                    task['fullkit_date'] = None
-
-                if 'remaining_duration_history' not in task:
-                    task['remaining_duration_history'] = []
-
-                # Predecessors carry link type/lag now; older saves stored plain
-                # ids (implicit Finish-to-Start). successors is derived, not
-                # loaded, so drop any stale copy from older saves.
-                task['predecessors'] = normalize_predecessor_entries(
-                    task.get('predecessors')
-                )
-                task.pop('successors', None)
-
-                # JSON object keys are always strings, but everywhere else the
-                # allocation dict is keyed by the integer resource id - convert
-                # back so loaded and freshly-created tasks behave identically
-                task['resources'] = {
-                    int(rid) if isinstance(rid, str) and rid.isdigit() else rid: alloc
-                    for rid, alloc in (task.get('resources') or {}).items()
-                }
-            # Load start_date if available
-            if 'start_date' in data:
-                try:
-                    self.start_date = datetime.fromisoformat(data['start_date'])
-                except ValueError:
-                    # If there's an error parsing the date, use the current date
-                    self.start_date = datetime.now().replace(
-                        hour=0, minute=0, second=0, microsecond=0
-                    )
-
-            # Load setdate if available
-            if 'setdate' in data:
-                try:
-                    self.setdate = datetime.fromisoformat(data['setdate'])
-                except ValueError:
-                    # If there's an error parsing the date, use the current date
-                    self.setdate = datetime.now().replace(
-                        hour=0, minute=0, second=0, microsecond=0
-                    )
-
-            # Load max_rows (previously max_tasks)
-            if 'max_rows' in data:
-                self.max_rows = data['max_rows']
-            elif 'max_tasks' in data:  # For backward compatibility
-                self.max_rows = data['max_tasks']
-
-            # Ensure resource capacity arrays are proper length
-            for resource in self.resources:
-                if 'works_weekends' not in resource:
-                    resource['works_weekends'] = True
-
-                if 'capacity' not in resource or len(resource['capacity']) != self.days:
-                    resource['capacity'] = [1.0] * self.days
-
-                # Ensure resources have tags field
-                if 'tags' not in resource:
-                    resource['tags'] = []
-
-                # Ensure resources have a url field (added for CSV import)
-                if 'url' not in resource:
-                    resource['url'] = ''
-
-            # Ensure resources have IDs
-            for resource in self.resources:
-                if 'id' not in resource:
-                    resource['id'] = self._get_next_resource_id()
-
-            # Find highest task ID to update counter
-            max_task_id = 0
-            for task in self.tasks:
-                if task['task_id'] > max_task_id:
-                    max_task_id = task['task_id']
-            self.task_id_counter = max_task_id
-
-            # Find highest resource ID to update counter
-            max_resource_id = 0
-            for resource in self.resources:
-                if resource['id'] > max_resource_id:
-                    max_resource_id = resource['id']
-            self.resource_id_counter = max_resource_id
+            self._load_dates_and_settings(data)
+            self._backfill_resource_defaults()
+            self._recompute_task_and_resource_id_counters()
 
             # Load projects (older saves won't have this at all)
             self.projects = data.get('projects', [])
