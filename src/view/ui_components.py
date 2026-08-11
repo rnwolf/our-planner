@@ -13,6 +13,7 @@ from src.utils.colors import (
     COLOR_NAMES,
     get_resource_load_color,
 )
+from src.utils.tk_helpers import add_resize_handle
 from src.model.dependency_notation import (
     LINK_TYPES_ORDERED,
     BUFFER_LINK_TYPES,
@@ -214,11 +215,7 @@ class UIComponents:
         # Bind Enter key
         dialog.bind('<Return>', lambda e: set_date())
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def reset_setdate_to_today(self):
         """Reset the setdate to today's date"""
@@ -3109,11 +3106,7 @@ class UIComponents:
         )
         dialog.geometry(f'+{x}+{y}')
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def remove_tag_from_selected_tasks(self):
         """Remove a tag from all selected tasks"""
@@ -3175,11 +3168,7 @@ class UIComponents:
             side=tk.RIGHT
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def delete_selected_tasks(self):
         """Delete all selected tasks"""

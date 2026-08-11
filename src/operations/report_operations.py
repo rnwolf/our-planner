@@ -6,6 +6,7 @@ from tkinter import ttk, messagebox
 
 from src.model.dependency_notation import format_predecessor_notation
 from src.operations.task_operations import OptionSelectDialog
+from src.utils.tk_helpers import add_resize_handle
 
 
 class ReportOperations:
@@ -146,11 +147,7 @@ class ReportOperations:
 
         tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     # ---- Network Graph report (Stage 18) --------------------------------
     # Renders any set of tasks as the interactive project-network HTML the

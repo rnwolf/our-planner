@@ -11,6 +11,7 @@ from src.model.task_resource_model import (
     CCPM_METHODS,
     DEFAULT_CCPM_METHOD,
 )
+from src.utils.tk_helpers import add_resize_handle
 
 
 class FloatEntryDialog(simpledialog.Dialog):
@@ -1156,11 +1157,7 @@ class TaskOperations:
             )
             dialog.geometry(f'+{x}+{y}')
 
-            # Visible resize handle, and never allow shrinking below the size
-            # the content actually needs (measured, so font/theme-proof)
-            ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-            dialog.update_idletasks()
-            dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+            add_resize_handle(dialog)
 
     def _delete_task_and_ui(self, task_id):
         """Remove a task from the model and clean up its canvas elements."""
@@ -1607,11 +1604,7 @@ class TaskOperations:
 
         notebook.bind('<<NotebookTabChanged>>', on_tab_changed)
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def manage_projects_dialog(self, parent=None):
         """Open a dialog to add, edit, remove, and set the default project."""
@@ -1924,11 +1917,7 @@ class TaskOperations:
             side=tk.RIGHT, padx=10, pady=10
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def manage_chains_dialog(self, parent=None):
         """Open a dialog to add, edit, remove, and set the critical chain."""
@@ -2128,11 +2117,7 @@ class TaskOperations:
             side=tk.RIGHT, padx=10, pady=10
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def update_project_start_date(self, new_start_date):
         """Update the project start date and adjust tasks and resources accordingly."""
@@ -2350,11 +2335,7 @@ class TaskOperations:
             side=tk.LEFT, padx=5
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def _delete_history_confirm(self, cutoff_date):
         """Compute the impact of `cutoff_date`, show a hard-block error if
@@ -2644,11 +2625,7 @@ class TaskOperations:
             side=tk.RIGHT, padx=5
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def on_task_press(self, event):
         """Handle mouse press on tasks or grid"""
@@ -4149,11 +4126,7 @@ class TaskOperations:
         dialog.bind('<Alt-c>', lambda e: dialog.destroy())
         dialog.bind('<Alt-C>', lambda e: dialog.destroy())
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def add_note_to_selected_tasks(self):
         """Add the same note to all selected tasks."""
@@ -4270,11 +4243,7 @@ class TaskOperations:
         dialog.bind('<Alt-c>', lambda e: dialog.destroy())
         dialog.bind('<Alt-C>', lambda e: dialog.destroy())
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def view_task_notes(self, task=None):
         """View notes for a specific task."""
@@ -4724,11 +4693,7 @@ class TaskOperations:
             # Close button
             tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
 
-            # Visible resize handle, and never allow shrinking below the size
-            # the content actually needs (measured, so font/theme-proof)
-            ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-            dialog.update_idletasks()
-            dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+            add_resize_handle(dialog)
 
     def view_buffer_history(self, task=None):
         """Show a dialog with a buffer task's size-change history (Stage 7).
@@ -4823,11 +4788,7 @@ class TaskOperations:
 
             tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
 
-            # Visible resize handle, and never allow shrinking below the size
-            # the content actually needs (measured, so font/theme-proof)
-            ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-            dialog.update_idletasks()
-            dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+            add_resize_handle(dialog)
 
     def view_fever_chart(self, task=None):
         """Show a single buffer's fever chart (Stage 8) in its own dialog."""
@@ -4882,11 +4843,7 @@ class TaskOperations:
             side=tk.LEFT, padx=5
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def view_project_fever_charts(self, project=None):
         """Show every buffer's fever chart for a project together (Stage 8),
@@ -5003,11 +4960,7 @@ class TaskOperations:
             side=tk.LEFT, padx=5
         )
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(dialog).place(relx=1.0, rely=1.0, anchor='se')
-        dialog.update_idletasks()
-        dialog.minsize(dialog.winfo_reqwidth(), dialog.winfo_reqheight())
+        add_resize_handle(dialog)
 
     def _update_resource_capacities_for_date_change(self, delta_days):
         """Update resource capacities when the start date changes."""

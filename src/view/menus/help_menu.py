@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import scrolledtext, ttk
 import webbrowser
 from src.utils.version import get_version
+from src.utils.tk_helpers import add_resize_handle
 from src.model.dependency_notation import format_predecessor_notation
 
 
@@ -233,11 +234,7 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
         # Bind Escape key to close dialog
         doc_dialog.bind('<Escape>', lambda e: doc_dialog.destroy())
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(doc_dialog).place(relx=1.0, rely=1.0, anchor='se')
-        doc_dialog.update_idletasks()
-        doc_dialog.minsize(doc_dialog.winfo_reqwidth(), doc_dialog.winfo_reqheight())
+        add_resize_handle(doc_dialog)
 
     def open_website(self):
         """Open the project website in the default browser."""
@@ -475,13 +472,7 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
         # Bind Escape key to close dialog
         debug_dialog.bind('<Escape>', lambda e: debug_dialog.destroy())
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(debug_dialog).place(relx=1.0, rely=1.0, anchor='se')
-        debug_dialog.update_idletasks()
-        debug_dialog.minsize(
-            debug_dialog.winfo_reqwidth(), debug_dialog.winfo_reqheight()
-        )
+        add_resize_handle(debug_dialog)
 
     def refresh_debug_info(self, text_area):
         """Refresh the debug information in the text area."""

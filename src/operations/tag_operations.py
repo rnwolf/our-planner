@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import re
+from src.utils.tk_helpers import add_resize_handle
 
 
 class TagsDialog(tk.Toplevel):
@@ -36,11 +37,7 @@ class TagsDialog(tk.Toplevel):
 
         self.create_widgets()
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
-        self.update_idletasks()
-        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
+        add_resize_handle(self)
 
         # Make dialog modal
         self.wait_visibility()
@@ -329,11 +326,7 @@ class TagFilterDialog(tk.Toplevel):
 
         self.create_widgets()
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
-        self.update_idletasks()
-        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
+        add_resize_handle(self)
 
         # Make dialog modal
         self.wait_visibility()
@@ -527,11 +520,7 @@ class ProjectFilterDialog(tk.Toplevel):
 
         self.create_widgets()
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
-        self.update_idletasks()
-        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
+        add_resize_handle(self)
 
         self.wait_visibility()
         self.focus_set()
@@ -655,11 +644,7 @@ class CheckboxListFilterDialog(tk.Toplevel):
 
         self.create_widgets()
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
-        self.update_idletasks()
-        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
+        add_resize_handle(self)
 
         self.wait_visibility()
         self.focus_set()
@@ -742,11 +727,7 @@ class FullKitFilterDialog(tk.Toplevel):
 
         self.create_widgets()
 
-        # Visible resize handle, and never allow shrinking below the size
-        # the content actually needs (measured, so font/theme-proof)
-        ttk.Sizegrip(self).place(relx=1.0, rely=1.0, anchor='se')
-        self.update_idletasks()
-        self.minsize(self.winfo_reqwidth(), self.winfo_reqheight())
+        add_resize_handle(self)
 
         self.wait_visibility()
         self.focus_set()
