@@ -2355,11 +2355,19 @@ class UIComponents:
             display_name, name_truncated = self._truncate_text_to_width(
                 resource_text, name_font, self.controller.label_column_width - 10
             )
+            # Same URL affordance as a task box's name (draw_task): blue
+            # text, click to open in the browser - only when the resource
+            # actually has one.
+            resource_url = resource.get('url')
+            has_url = bool(
+                resource_url and isinstance(resource_url, str) and resource_url.strip()
+            )
             name_id = self.controller.resource_label_canvas.create_text(
                 self.controller.label_column_width / 2,  # Center in wider column
                 name_y,
                 text=display_name,
                 anchor='center',
+                fill='blue' if has_url else 'black',
                 font=(
                     'Arial',
                     self.controller.resource_font_size,
@@ -2377,6 +2385,12 @@ class UIComponents:
                 '<ButtonPress-3>',
                 lambda e, rid=resource_id: self.show_resource_context_menu(e, rid),
             )
+            if has_url:
+                self.controller.resource_label_canvas.tag_bind(
+                    f'resource_{resource_id}',
+                    '<Button-1>',
+                    lambda e, url=resource_url: self.open_url(url),
+                )
 
             # Draw tags if present - centered in wider column
             if has_tags:
