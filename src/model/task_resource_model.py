@@ -121,6 +121,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],  # Add tags list to resources
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -128,6 +129,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -135,6 +137,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -142,6 +145,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -149,6 +153,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -156,6 +161,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -163,6 +169,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -170,6 +177,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -177,6 +185,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
             {
                 'id': self._get_next_resource_id(),
@@ -184,6 +193,7 @@ class TaskResourceModel:
                 'capacity': [1.0] * 100,
                 'tags': [],
                 'url': '',
+                'emails': '',
             },
         ]
 
@@ -1171,6 +1181,7 @@ class TaskResourceModel:
         works_weekends: bool = True,
         resource_id: Optional[int] = None,
         url: str = '',
+        emails: str = '',
     ) -> Optional[ResourceDict]:
         """Add a new resource with default capacity. Returns the new
         resource dict (truthy) on success, or None/False if `resource_name`
@@ -1209,6 +1220,7 @@ class TaskResourceModel:
             'tags': [],
             'works_weekends': works_weekends,
             'url': url,
+            'emails': emails,
         }
 
         self.resources.append(new_resource)
@@ -1523,6 +1535,10 @@ class TaskResourceModel:
             # Ensure resources have a url field (added for CSV import)
             if 'url' not in resource:
                 resource['url'] = ''
+
+            # Ensure resources have an emails field (added for CSV import)
+            if 'emails' not in resource:
+                resource['emails'] = ''
 
         # Ensure resources have IDs
         for resource in self.resources:

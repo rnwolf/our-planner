@@ -273,7 +273,11 @@ class FileOperations:
                 resource_id_map[row['id'].strip()] = existing['id']
                 continue
 
-            self.model.add_resource(name)
+            self.model.add_resource(
+                name,
+                url=(row.get('url') or '').strip(),
+                emails=(row.get('emails') or '').strip(),
+            )
             created = self.model.get_resource_by_name(name)
             capacity_value = float(row.get('capacity') or 1)
             if capacity_value != 1.0:
@@ -478,12 +482,12 @@ class FileOperations:
         """File > Import Network > Import Resources...: create or update
         resources from a resources.csv, matched by id. A brand-new id gets
         the imported capacity (default 1.0) as its starting per-day array.
-        An id that already exists has name/url updated (only for non-empty
-        cells), and its capacity RESET to a flat per-day array of the CSV's
-        value if the `capacity` cell is non-empty - a blank cell leaves
-        whatever capacity configuration (including any per-day pattern) the
-        resource already has untouched. tags/works_weekends are never
-        touched by import either way."""
+        An id that already exists has name/url/emails updated (only for
+        non-empty cells), and its capacity RESET to a flat per-day array of
+        the CSV's value if the `capacity` cell is non-empty - a blank cell
+        leaves whatever capacity configuration (including any per-day
+        pattern) the resource already has untouched. tags/works_weekends are
+        never touched by import either way."""
         path = filedialog.askopenfilename(
             defaultextension='.csv',
             filetypes=[
@@ -517,6 +521,21 @@ class FileOperations:
             except ValueError:
                 problems.append(
                     f"row with id '{raw_id or '(blank)'}': not a whole number"
+                )
+                continue
+
+            # csv.DictReader dumps any fields past the last header into a
+            # None-keyed overflow list rather than erroring - the signature
+            # of an unquoted comma inside a cell (most likely `emails`,
+            # which invites multiple comma-separated addresses) shifting
+            # every later column on the row. Silently importing that would
+            # misassign data instead of failing loudly, so reject it here.
+            if row.get(None):
+                problems.append(
+                    f'resource {resource_id}: row has more columns than the '
+                    f"header - check for an unquoted comma (e.g. in 'emails';"
+                    f" use ';' to separate multiple addresses, or quote the "
+                    f'cell)'
                 )
                 continue
 
@@ -554,8 +573,8 @@ class FileOperations:
 
         message = (
             f'{len(new_ids)} new resource(s) will be created.\n'
-            f'{len(existing_ids)} existing resource(s) will have name/url '
-            f'updated where the CSV provides a value.\n'
+            f'{len(existing_ids)} existing resource(s) will have '
+            f'name/url/emails updated where the CSV provides a value.\n'
             f'{len(existing_with_capacity)} of those will also have their '
             f'capacity RESET to the CSV value (replacing any existing '
             f'per-day pattern) - existing resources with a blank capacity '
@@ -572,6 +591,7 @@ class FileOperations:
         for resource_id, row in parsed:
             name = (row.get('name') or '').strip()
             url = (row.get('url') or '').strip()
+            emails = (row.get('emails') or '').strip()
             raw_capacity = (row.get('capacity') or '').strip()
             existing = self.model.get_resource_by_id(resource_id)
             if existing:
@@ -579,6 +599,8 @@ class FileOperations:
                     existing['name'] = name
                 if url:
                     existing['url'] = url
+                if emails:
+                    existing['emails'] = emails
                 if raw_capacity:
                     existing['capacity'] = [float(raw_capacity)] * self.model.days
                 updated += 1
@@ -588,6 +610,7 @@ class FileOperations:
                     name or f'Resource {resource_id}',
                     resource_id=resource_id,
                     url=url,
+                    emails=emails,
                 )
                 if capacity_value != 1.0:
                     new_resource['capacity'] = [capacity_value] * self.model.days

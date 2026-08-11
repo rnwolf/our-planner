@@ -104,6 +104,56 @@ class TestImportResources:
         assert r['name'] == 'Renamed'
         assert r['url'] == 'http://old.example'
 
+    def test_creates_new_resource_with_emails(self, tmp_path):
+        model, controller, file_ops = make_file_ops()
+        path = tmp_path / 'resources.csv'
+        write_csv(
+            path,
+            ['id', 'name', 'emails'],
+            [[501, 'Widget Line', 'a@example.com;b@example.com']],
+        )
+
+        run_import(file_ops, 'import_resources', str(path))
+
+        r = model.get_resource_by_id(501)
+        assert r is not None
+        assert r['emails'] == 'a@example.com;b@example.com'
+
+    def test_existing_resource_emails_updated_only_when_nonempty(self, tmp_path):
+        model, controller, file_ops = make_file_ops()
+        existing_id = model.resources[0]['id']
+        model.resources[0]['emails'] = 'old@example.com'
+
+        path = tmp_path / 'resources.csv'
+        write_csv(
+            path, ['id', 'name', 'emails'], [[existing_id, 'Renamed', '']]
+        )  # emails blank -> unchanged
+
+        run_import(file_ops, 'import_resources', str(path))
+
+        r = model.get_resource_by_id(existing_id)
+        assert r['emails'] == 'old@example.com'
+
+    def test_unquoted_comma_in_a_cell_aborts_with_no_changes(self, tmp_path):
+        """Regression for the CSV comma-collision risk: a hand-edited file
+        with e.g. 'a@x.com,b@y.com' typed into `emails` without quoting it
+        looks to csv.DictReader like extra columns, not one cell - which
+        would otherwise silently misalign the rest of the row instead of
+        failing loudly."""
+        model, controller, file_ops = make_file_ops()
+        count_before = len(model.resources)
+
+        path = tmp_path / 'resources.csv'
+        with open(path, 'w', newline='', encoding='utf-8') as f:
+            f.write('id,name,emails\n')
+            f.write('502,Widget Line,a@x.com,b@y.com\n')  # unquoted extra comma
+
+        errors = run_import(file_ops, 'import_resources', str(path))
+
+        assert errors, 'expected an error popup'
+        assert len(model.resources) == count_before
+        assert model.get_resource_by_id(502) is None
+
     def test_existing_resource_capacity_reset_when_provided(self, tmp_path):
         model, controller, file_ops = make_file_ops()
         r = model.resources[0]
@@ -155,6 +205,54 @@ class TestImportResources:
         r = model.get_resource_by_id(501)
         assert r is not None
         assert r['capacity'][0] == 7.0
+
+
+class TestPrivateImportResources:
+    """The thin `_import_resources` helper `import_ccpm_schedule` uses for
+    the round trip with the external ccpm-scheduler tool - distinct from
+    the richer `import_resources` (Import Network > Import Resources...)
+    covered above. It only sets fields on a brand-new resource; an existing
+    resource reused by name is left untouched (matching its existing
+    capacity behavior)."""
+
+    def test_new_resource_gets_url_and_emails(self):
+        model, controller, file_ops = make_file_ops()
+        resource_rows = [
+            {
+                'id': 'r1',
+                'name': 'Brand New',
+                'capacity': '1',
+                'url': 'https://example.com/r1',
+                'emails': 'a@example.com;b@example.com',
+            }
+        ]
+        resource_id_map = file_ops._import_resources(resource_rows)
+
+        r = model.get_resource_by_name('Brand New')
+        assert r is not None
+        assert r['url'] == 'https://example.com/r1'
+        assert r['emails'] == 'a@example.com;b@example.com'
+        assert resource_id_map == {'r1': r['id']}
+
+    def test_existing_resource_reused_by_name_is_untouched(self):
+        model, controller, file_ops = make_file_ops()
+        existing = model.resources[0]
+        existing['url'] = 'https://old.example'
+        existing['emails'] = 'old@example.com'
+
+        resource_rows = [
+            {
+                'id': 'r1',
+                'name': existing['name'],
+                'capacity': '1',
+                'url': 'https://new.example',
+                'emails': 'new@example.com',
+            }
+        ]
+        file_ops._import_resources(resource_rows)
+
+        assert existing['url'] == 'https://old.example'
+        assert existing['emails'] == 'old@example.com'
 
 
 class TestImportResourceCalendars:

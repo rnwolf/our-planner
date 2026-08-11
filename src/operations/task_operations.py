@@ -1320,6 +1320,26 @@ class TaskOperations:
         name_entry = tk.Entry(details_frame, textvariable=resource_name_var, width=30)
         name_entry.grid(row=0, column=1, sticky='w', padx=5, pady=5)
 
+        # Resource URL editing
+        tk.Label(details_frame, text='Resource URL:').grid(
+            row=2, column=0, sticky='w', padx=5, pady=5
+        )
+        resource_url_var = tk.StringVar()
+        url_entry = tk.Entry(details_frame, textvariable=resource_url_var, width=30)
+        url_entry.grid(row=2, column=1, sticky='w', padx=5, pady=5)
+
+        # Resource email(s) editing - one or more addresses, comma/
+        # semicolon-separated (see docs/file-structure.md for the CSV
+        # column this round-trips through)
+        tk.Label(details_frame, text='Email(s):').grid(
+            row=3, column=0, sticky='w', padx=5, pady=5
+        )
+        resource_emails_var = tk.StringVar()
+        emails_entry = tk.Entry(
+            details_frame, textvariable=resource_emails_var, width=30
+        )
+        emails_entry.grid(row=3, column=1, sticky='w', padx=5, pady=5)
+
         # Populate the listbox
         def populate_resource_listbox():
             resource_listbox.delete(0, tk.END)
@@ -1360,6 +1380,12 @@ class TaskOperations:
 
                 # Also update works_weekends property
                 resource['works_weekends'] = works_weekends_var.get()
+
+                # Update URL/emails - no uniqueness constraint, so no
+                # dedicated model setter, unlike the name (see
+                # update_resource_name below for that invariant)
+                resource['url'] = resource_url_var.get().strip()
+                resource['emails'] = resource_emails_var.get().strip()
 
                 # Recalculate capacity for weekends based on new setting
                 if 'works_weekends' in resource and not resource['works_weekends']:
@@ -1408,16 +1434,20 @@ class TaskOperations:
                 return
 
             self.model.add_resource(
-                resource_name, works_weekends=works_weekends_var.get()
+                resource_name,
+                works_weekends=works_weekends_var.get(),
+                url=resource_url_var.get().strip(),
+                emails=resource_emails_var.get().strip(),
             )
 
-            self.model.add_resource(resource_name)
             # Refresh the listbox
             populate_resource_listbox()
             messagebox.showinfo(
                 'Success', f"Resource '{resource_name}' added.", parent=dialog
             )
             resource_name_var.set('')  # Clear the entry field
+            resource_url_var.set('')
+            resource_emails_var.set('')
 
             # Update the resource grid in the main UI
             self.controller.update_resource_loading()
@@ -1507,6 +1537,8 @@ class TaskOperations:
                 if resource:
                     resource_name_var.set(resource['name'])
                     works_weekends_var.set(resource.get('works_weekends', True))
+                    resource_url_var.set(resource.get('url', ''))
+                    resource_emails_var.set(resource.get('emails', ''))
                     resource_dropdown.set(resource_text)
                     refresh_capacity_list()
 

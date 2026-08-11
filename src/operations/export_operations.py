@@ -1893,7 +1893,7 @@ class ExportOperations:
         # live in the per-day resource_loading CSV below.
         resources_file = os.path.join(directory_path, f'{base_filename}_resources.csv')
         with open(resources_file, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['id', 'name', 'capacity', 'tags']
+            fieldnames = ['id', 'name', 'capacity', 'tags', 'url', 'emails']
 
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
@@ -1908,6 +1908,8 @@ class ExportOperations:
                         'name': resource['name'],
                         'capacity': base_capacity,
                         'tags': ','.join(resource.get('tags', [])),
+                        'url': resource.get('url', ''),
+                        'emails': resource.get('emails', ''),
                     }
                 )
 

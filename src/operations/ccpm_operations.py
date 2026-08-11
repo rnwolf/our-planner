@@ -140,7 +140,13 @@ class CcpmOperations:
                 continue
             base, windows = self._encode_capacity(resource['capacity'])
             resources_out.append(
-                {'id': str(rid), 'name': resource['name'], 'capacity': base}
+                {
+                    'id': str(rid),
+                    'name': resource['name'],
+                    'capacity': base,
+                    'url': resource.get('url', ''),
+                    'emails': resource.get('emails', ''),
+                }
             )
             for start, end, value in windows:
                 # shift to anchor-relative days; windows entirely before the
@@ -396,9 +402,9 @@ class CcpmOperations:
         path = os.path.join(folder, 'resources.csv')
         with open(path, 'w', newline='', encoding='utf-8') as f:
             w = csv.writer(f)
-            w.writerow(['id', 'name', 'capacity'])
+            w.writerow(['id', 'name', 'capacity', 'url', 'emails'])
             for r in data['resources']:
-                w.writerow([r['id'], r['name'], r['capacity']])
+                w.writerow([r['id'], r['name'], r['capacity'], r['url'], r['emails']])
         files.append(path)
 
         if data.get('calendar'):

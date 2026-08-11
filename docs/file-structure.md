@@ -23,9 +23,12 @@ F,Commission,10,D;E,red,
 
 ### resources.csv
 
-**resources.csv** — `id, name, capacity, url (optional)`; capacity defaults to 1.
+**resources.csv** — `id, name, capacity, url (optional), emails (optional)`; capacity defaults to 1.
 
 A list of the project resources and default capacity.
+
+- `url`: optional link to the resource's profile/ticket queue/etc.
+- `emails`: optional contact address(es) for the resource, used by reports/exports to reach them directly - scheduling itself ignores this column entirely. One or more addresses, separated by `,` or `;`. If you're hand-editing this file (outside our-planner's own export), prefer `;` between multiple addresses: a bare `,` only survives round-tripping through a CSV reader if the whole cell is quoted (e.g. `"alice@example.com,bob@example.com"`), and a text editor or careless spreadsheet edit can easily leave that comma unquoted - which silently shifts every later column on the row rather than failing loudly. our-planner's own exports always quote correctly either way.
 
 ### `calendar.csv`
 

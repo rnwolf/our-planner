@@ -86,6 +86,20 @@ class TestBuildNetworkData:
         assert any('buffer' in w for w in warnings)
         assert any('complete' in w for w in warnings)
 
+    def test_resource_url_and_emails_carried(self):
+        """url/emails ride along in the JSON exchange dict even though the
+        scheduler itself ignores them - they're only there for the CSV
+        round trip's resources.csv (see TestExportNetworkCore)."""
+        model, project_id, ids, ops = make_worked_example()
+        model.get_resource_by_id(1)['url'] = 'https://example.com/r1'
+        model.get_resource_by_id(1)['emails'] = 'r1@example.com;r1b@example.com'
+        data, _, _ = ops.build_network_data(project_id)
+        by_name = {r['name']: r for r in data['resources']}
+        assert by_name['Resource A']['url'] == 'https://example.com/r1'
+        assert by_name['Resource A']['emails'] == 'r1@example.com;r1b@example.com'
+        assert by_name['Resource B']['url'] == ''
+        assert by_name['Resource B']['emails'] == ''
+
     def test_capacity_encoding(self):
         _, _, _, ops = make_worked_example()
         base, windows = ops._encode_capacity([1.0, 1.0, 0.0, 0.0, 2.0, 1.0, 1.0])
@@ -228,6 +242,21 @@ class TestExportNetworkCore:
         assert report.ok, [i.message for i in report.errors]
         result = build_schedule(net, 'export-roundtrip')
         assert result.stats.critical_chain == [str(ids[k]) for k in 'ABDF']
+
+    def test_resource_url_and_emails_written_to_csv(self, tmp_path):
+        import csv
+
+        model, project_id, ids, ops = make_worked_example()
+        model.get_resource_by_id(1)['url'] = 'https://example.com/r1'
+        model.get_resource_by_id(1)['emails'] = 'r1@example.com;r1b@example.com'
+        files, _, _ = ops.export_network_core(project_id, tmp_path)
+        resources_csv = next(f for f in files if str(f).endswith('resources.csv'))
+        with open(resources_csv, newline='', encoding='utf-8') as f:
+            rows = {r['name']: r for r in csv.DictReader(f)}
+        assert rows['Resource A']['url'] == 'https://example.com/r1'
+        assert rows['Resource A']['emails'] == 'r1@example.com;r1b@example.com'
+        assert rows['Resource B']['url'] == ''
+        assert rows['Resource B']['emails'] == ''
 
     def test_allocation_quantity_written_to_csv(self, tmp_path):
         """ccpm-scheduler >= 0.11 (Phase 5) can express a non-1 allocation

@@ -115,6 +115,9 @@ class ResourceDict(TypedDict):
     capacity: List[float]
     tags: List[str]
     url: str
+    # Zero or more contact addresses as one comma/semicolon-separated string;
+    # stored and edited as free text, not parsed into a list.
+    emails: str
     # Absent on resources seeded in __init__ (pre-dates this field); present
     # on resources created via add_resource(). Readers use
     # resource.get('works_weekends', True).

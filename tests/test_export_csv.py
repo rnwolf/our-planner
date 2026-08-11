@@ -103,17 +103,23 @@ class TestWriteCsvExport:
         model, ops = make_export_ops()
         model.get_resource_by_id(2)['capacity'] = [2.0] * model.days
         model.get_resource_by_id(2)['tags'] = ['team-a']
+        model.get_resource_by_id(2)['url'] = 'https://example.com/team-a'
+        model.get_resource_by_id(2)['emails'] = 'a@example.com;b@example.com'
 
         _, resources_file, _ = ops._write_csv_export(str(tmp_path))
         fieldnames, rows = read_csv(resources_file)
 
         # Derived stats (Total Capacity/Loading, Average/Peak Utilization)
-        # are gone; shape aligns with the CCPM resources.csv plus tags
-        assert fieldnames == ['id', 'name', 'capacity', 'tags']
+        # are gone; shape aligns with the CCPM resources.csv plus tags/url/emails
+        assert fieldnames == ['id', 'name', 'capacity', 'tags', 'url', 'emails']
         by_id = {r['id']: r for r in rows}
         assert by_id['1']['capacity'] == '1'
+        assert by_id['1']['url'] == ''
+        assert by_id['1']['emails'] == ''
         assert by_id['2']['capacity'] == '2'
         assert by_id['2']['tags'] == 'team-a'
+        assert by_id['2']['url'] == 'https://example.com/team-a'
+        assert by_id['2']['emails'] == 'a@example.com;b@example.com'
 
     def test_loading_csv_unchanged(self, tmp_path):
         model, ops = make_export_ops()
