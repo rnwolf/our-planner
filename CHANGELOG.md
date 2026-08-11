@@ -1,4 +1,39 @@
 
+    ## [0.1.23] - 2026-08-11
+    ### Added
+    - Resources gained an optional `emails` field (one or more addresses, comma/semicolon-
+      separated) alongside the existing `url` - both are now editable in the Manage
+      Resources dialog and carried through every resources.csv this app reads or writes,
+      not just the fields the CSV importer recognized before. The ccpm-scheduler round
+      trip's resources.csv also gains the same two columns; scheduling itself ignores
+      them.
+    - Resources with a `url` now show their name in blue in the resource grid and open it
+      in the browser on click, matching the existing task name behavior.
+    - Astral `ty` for static type checking, with a pre-commit hook and a Stop hook that
+      runs it after every turn.
+    ### Fixed
+    - resources.csv import now rejects a row with more columns than the header instead of
+      silently misaligning data - the failure mode an unquoted comma inside a cell (e.g.
+      multiple `emails` addresses) produces.
+    - `url` was importable but never appeared in either resources.csv export, and had no
+      editor in the Manage Resources dialog - both gaps are closed.
+    - A dead duplicate `add_resource()` call in the Manage Resources dialog's "Add
+      Resource" handler.
+    - Four real bugs `ty` caught while getting the codebase to a clean check: a dead/
+      broken duplicate method referencing a nonexistent model attribute, a dead `import
+      toml` block, a deprecated tkinter `trace()` call, and a fragile cross-block
+      variable reference.
+    - Dropped the docs.yml release trigger, which always failed harmlessly (a
+      release-triggered run checks out the tag rather than main, which the
+      github-pages environment's protection rules reject) - the preceding push-to-main
+      run already deploys the correct content.
+    ### Changed
+    - Introduced TypedDicts (`src/model/entities.py`) for the core Task/Project/
+      Resource/Chain shapes, replacing loosely-typed dicts throughout the model.
+    - `load_from_file`'s backward-compat backfill logic split into named helper
+      methods; a duplicated dialog resize-handle snippet extracted into a shared
+      helper. Pure refactors, no behavior changes.
+
     ## [0.1.22] - 2026-07-28
     ### Fixed
     - A long-duration task's centered name label on the task box can scroll off-screen,
