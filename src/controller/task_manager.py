@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font as tkfont
+from typing import Optional
 
 from src.model import TaskResourceModel
 from src.view import UIComponents
@@ -131,15 +132,22 @@ class TaskResourceManager:
 
         # Note: The notes panel will be packed on the right side of horizontal_layout_frame when shown
 
-        # Initialize canvas references (will be populated by UI component)
-        self.timeline_canvas = None
-        self.task_canvas = None
-        self.timeline_canvas = None
-        self.resource_canvas = None
-        self.task_label_canvas = None
-        self.resource_label_canvas = None
-        self.h_scrollbar = None
-        self.v_scrollbar = None
+        # Initialize canvas references (will be populated by UI component).
+        # Always real widgets by the time __init__ finishes below (see
+        # self.ui.create_*_frame() calls) - never None again after that, but
+        # declared Optional here since that's this attribute's only true type
+        # from a fresh, unannotated `= None` otherwise.
+        self.timeline_canvas: Optional[tk.Canvas] = None
+        self.task_canvas: Optional[tk.Canvas] = None
+        self.resource_canvas: Optional[tk.Canvas] = None
+        self.task_label_canvas: Optional[tk.Canvas] = None
+        self.resource_label_canvas: Optional[tk.Canvas] = None
+        self.timeline_label_canvas: Optional[tk.Canvas] = None
+        self.h_scrollbar: Optional[tk.Scrollbar] = None
+        self.v_scrollbar: Optional[tk.Scrollbar] = None
+        self.timeline_label_frame: Optional[tk.Frame] = None
+        self.task_label_frame: Optional[tk.Frame] = None
+        self.resource_label_frame: Optional[tk.Frame] = None
 
         # Initialize handlers
         self.task_ops = TaskOperations(self, self.model)
@@ -466,6 +474,7 @@ class TaskResourceManager:
         self.multi_select_mode = not self.multi_select_mode
 
         # Update cursor to indicate mode
+        assert self.task_canvas is not None
         self.task_canvas.config(cursor='crosshair' if self.multi_select_mode else '')
 
         # Clear selected tasks when disabling multi-select mode
@@ -564,6 +573,19 @@ class TaskResourceManager:
         and scaling fonts, row heights, and label column width appropriately"""
         # Check if Ctrl key is pressed
         if event.state & 0x4:  # 0x4 is the state for Ctrl key
+            # Every widget below is always real by the time a zoom event can
+            # fire - they're all built during __init__, before any event
+            # loop iteration runs.
+            assert self.task_canvas is not None
+            assert self.timeline_canvas is not None
+            assert self.resource_canvas is not None
+            assert self.task_label_canvas is not None
+            assert self.resource_label_canvas is not None
+            assert self.timeline_label_frame is not None
+            assert self.timeline_label_canvas is not None
+            assert self.task_label_frame is not None
+            assert self.resource_label_frame is not None
+
             # Store the old cell width and zoom level for calculations
             old_cell_width = self.cell_width
             old_task_height = self.task_height
@@ -674,6 +696,7 @@ class TaskResourceManager:
         it zooms toward the center of the current viewport instead of
         wherever the cursor happens to be.
         """
+        assert self.task_canvas is not None
         center_x = self.task_canvas.winfo_width() / 2
         center_y = self.task_canvas.winfo_height() / 2
         self.on_zoom(
@@ -693,6 +716,18 @@ class TaskResourceManager:
     # Add a method to reset zoom to 100%
     def reset_zoom(self):
         """Reset zoom level to 100% and restore default sizes and fonts"""
+        # Every widget below is always real by the time a zoom reset can be
+        # triggered - they're all built during __init__.
+        assert self.task_canvas is not None
+        assert self.timeline_canvas is not None
+        assert self.resource_canvas is not None
+        assert self.task_label_canvas is not None
+        assert self.resource_label_canvas is not None
+        assert self.timeline_label_frame is not None
+        assert self.timeline_label_canvas is not None
+        assert self.task_label_frame is not None
+        assert self.resource_label_frame is not None
+
         # Store current view fractions
         old_cell_width = self.cell_width
         old_task_height = self.task_height
@@ -754,6 +789,7 @@ class TaskResourceManager:
         """Scroll the task grid so the given task sits centered in the
         visible viewport (or as close as the scrollregion edges allow) -
         the reposition half of Tasks > Select Task by ID."""
+        assert self.task_canvas is not None
         total_width = self.cell_width * self.model.days
         total_height = self.task_height * self.model.max_rows
         visible_width = max(1, self.task_canvas.winfo_width())
@@ -774,6 +810,7 @@ class TaskResourceManager:
         (whatever they currently are at the active zoom level) rather than
         relying on Canvas's own imprecise built-in 'unit' scroll amount.
         """
+        assert self.task_canvas is not None
         if dx_cells:
             total_width = self.cell_width * self.model.days
             current_left = self.task_canvas.xview()[0] * total_width
@@ -790,6 +827,12 @@ class TaskResourceManager:
 
     def update_all_scrollregions(self):
         """Update scrollregions for all canvases based on the current zoom level and row height"""
+        assert self.timeline_canvas is not None
+        assert self.task_canvas is not None
+        assert self.task_label_canvas is not None
+        assert self.resource_canvas is not None
+        assert self.resource_label_canvas is not None
+
         # Calculate canvas widths and heights
         canvas_width = self.cell_width * self.model.days
         task_canvas_height = self.task_height * self.model.max_rows

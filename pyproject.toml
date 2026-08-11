@@ -42,6 +42,7 @@ dev = [
     "zensical>=0.0.51",
     "ruff>=0.15.22",
     "pre-commit>=4.0.0",
+    "ty>=0.0.70",
 ]
 
 [build-system]
@@ -75,4 +76,19 @@ unfixable = ["B"]
 [tool.ruff.format]
 # 5. Use single quotes in `ruff format`.
 quote-style = "single"
+
+[tool.ty.src]
+# Test doubles intentionally build partial task/resource dict literals as
+# lightweight stand-ins - excluded rather than forced to conform to the
+# TypedDicts in src/model/entities.py.
+exclude = ["tests/"]
+
+[tool.ty.terminal]
+# Forces the agent's execution script to crash on warnings, preventing bad code generation
+error-on-warning = true
+
+[tool.ty.rules]
+# Elevate implicit type problems to errors so agents don't generate untyped technical debt
+possibly-unresolved-reference = "error"
+invalid-assignment = "error"
 

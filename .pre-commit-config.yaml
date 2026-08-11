@@ -5,3 +5,8 @@ repos:
       - id: ruff-check
         args: [--fix] # Automatically fixes eligible lint errors before committing
       - id: ruff-format # Replaces Black for lightning-fast formatting
+
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.70
+    hooks:
+      - id: ty

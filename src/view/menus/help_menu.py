@@ -267,18 +267,6 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
         )
         title_label.pack(pady=(0, 10))
 
-        # Version information - get from the package
-        try:
-            import toml
-
-            with open('pyproject.toml', 'r') as f:
-                pyproject_data = toml.load(f)
-            __version__ = pyproject_data.get('project', {}).get('version', '0.1.0')
-
-            version_text = f'Version {__version__}'
-        except ImportError:
-            version_text = 'Version 0.1.0'
-
         # Version information - get from utility function
         version_text = f'Version {get_version()}'
         version_label = tk.Label(frame, text=version_text, font=('Arial', 10))

@@ -2,8 +2,9 @@ import re
 import subprocess
 import textwrap
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from tkinter import font as tkfont
+from typing import Optional
 import webbrowser
 from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
@@ -41,6 +42,16 @@ def wrap_task_name_for_tooltip(name, width=TASK_NAME_TOOLTIP_WIDTH, max_lines=2)
     last = truncated[-1][: max(width - len(ellipsis), 0)].rstrip()
     truncated[-1] = last + ellipsis
     return truncated
+
+
+class NoteFrame(tk.Frame):
+    """A note item's container Frame, carrying the note's owning task id and
+    its position in that task's notes list - stapled on at creation
+    (_create_note_item) and read back by that note's delete button."""
+
+    task_id: Optional[int]
+    original_index: int
+    display_index: int
 
 
 class UIComponents:
@@ -183,7 +194,7 @@ class UIComponents:
                 self.draw_timeline()
                 dialog.destroy()
             except (ValueError, IndexError):
-                tk.messagebox.showerror(
+                messagebox.showerror(
                     'Invalid Date Format',
                     'Please enter a valid date in YYYY-MM-DD format.',
                     parent=dialog,
@@ -1444,13 +1455,19 @@ class UIComponents:
 
         for label, _ in buffer_only_entries:
             try:
-                self.context_menu.delete(self.context_menu.index(label))
+                # A missing label raises TclError (caught below) rather than
+                # index() returning None - it's never actually None here.
+                index = self.context_menu.index(label)
+                assert index is not None
+                self.context_menu.delete(index)
             except tk.TclError:
                 pass  # Entry not currently present
 
         is_buffer = (task or {}).get('type') in ('project_buffer', 'feeding_buffer')
         if is_buffer:
             anchor = self.context_menu.index('View Duration History...')
+            # 'View Duration History...' is a permanent entry, always present.
+            assert anchor is not None
             for offset, (label, command) in enumerate(buffer_only_entries, start=1):
                 self.context_menu.insert_command(
                     anchor + offset, label=label, command=command
@@ -2326,6 +2343,7 @@ class UIComponents:
                 and self.show_tags_var.get()
                 and self.controller.resource_tag_zone_fits()
             )
+            tag_y = None
             if has_tags:
                 name_y = y + self.controller.task_height / 4
                 tag_y = y + self.controller.task_height * 3 / 4
@@ -3006,7 +3024,7 @@ class UIComponents:
             import re
 
             if not re.match(r'^[\w\-]+$', tag):
-                tk.messagebox.showerror(
+                messagebox.showerror(
                     'Invalid Tag',
                     'Tags can only contain letters, numbers, underscores, and hyphens.',
                     parent=dialog,
@@ -3110,7 +3128,7 @@ class UIComponents:
                     all_tags.add(tag)
 
         if not all_tags:
-            tk.messagebox.showinfo('No Tags', "The selected tasks don't have any tags.")
+            messagebox.showinfo('No Tags', "The selected tasks don't have any tags.")
             return
 
         # Create a dialog to choose which tag to remove
@@ -3170,7 +3188,7 @@ class UIComponents:
 
         # Confirm deletion
         count = len(self.controller.selected_tasks)
-        if not tk.messagebox.askyesno(
+        if not messagebox.askyesno(
             'Confirm Delete',
             f'Are you sure you want to delete {count} selected task{"s" if count > 1 else ""}?',
             parent=self.controller.root,
@@ -3423,7 +3441,7 @@ class UIComponents:
     def _create_note_item(self, note, display_index):
         """Create a UI element for a single note."""
         # Create a frame for the note with a border
-        note_frame = tk.Frame(
+        note_frame = NoteFrame(
             self.notes_container, bd=1, relief=tk.SOLID, padx=8, pady=8
         )
         note_frame.pack(fill=tk.X, padx=5, pady=5)
@@ -3545,14 +3563,12 @@ class UIComponents:
         """
         task = self.controller.model.get_task(task_id)
         if not task or 'notes' not in task:
-            tk.messagebox.showerror(
-                'Error', f'Task {task_id} not found or has no notes.'
-            )
+            messagebox.showerror('Error', f'Task {task_id} not found or has no notes.')
             return False
 
         # Make sure the index is valid for this specific task
         if original_index < 0 or original_index >= len(task['notes']):
-            tk.messagebox.showerror(
+            messagebox.showerror(
                 'Error',
                 f'Invalid note index: {original_index}. Task {task_id} has {len(task["notes"])} notes.',
             )
@@ -3570,13 +3586,13 @@ class UIComponents:
             f'Note Text: {note_text}'
         )
 
-        if tk.messagebox.askyesno('Confirm Delete', confirm_message):
+        if messagebox.askyesno('Confirm Delete', confirm_message):
             # Delete the note directly from the task's notes array
             if self.controller.model.delete_note_from_task(task_id, original_index):
                 self.update_notes_panel()
                 return True
             else:
-                tk.messagebox.showerror(
+                messagebox.showerror(
                     'Error',
                     'Failed to delete note. This may be due to a data inconsistency.',
                 )

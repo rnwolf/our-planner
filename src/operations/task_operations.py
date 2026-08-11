@@ -816,7 +816,7 @@ class TaskOperations:
             dialog_window = capacity_tab.winfo_toplevel()
             selected = resource_dropdown.get()
             if not selected:
-                tk.messagebox.showwarning(
+                messagebox.showwarning(
                     'Warning', 'Please select a resource.', parent=dialog_window
                 )
                 return
@@ -829,7 +829,7 @@ class TaskOperations:
 
                 # Validate day
                 if day < 0 or day >= self.model.days:
-                    tk.messagebox.showwarning(
+                    messagebox.showwarning(
                         'Warning',
                         f'Day index must be between 0 and {self.model.days - 1}.',
                         parent=dialog_window,
@@ -842,7 +842,7 @@ class TaskOperations:
 
                     # Validate end day
                     if end_day < day or end_day >= self.model.days:
-                        tk.messagebox.showwarning(
+                        messagebox.showwarning(
                             'Warning',
                             f'End day index must be between {day} and {self.model.days - 1}.',
                             parent=dialog_window,
@@ -852,7 +852,7 @@ class TaskOperations:
                     # Get capacity
                     capacity = float(capacity_var.get())
                     if capacity < 0:
-                        tk.messagebox.showwarning(
+                        messagebox.showwarning(
                             'Warning',
                             'Capacity cannot be negative.',
                             parent=dialog_window,
@@ -863,7 +863,7 @@ class TaskOperations:
                     for i in range(day, end_day + 1):
                         self.model.update_resource_capacity(resource_id, i, capacity)
 
-                    tk.messagebox.showinfo(
+                    messagebox.showinfo(
                         'Success',
                         f'Capacity updated for days {day} to {end_day}.',
                         parent=dialog_window,
@@ -873,7 +873,7 @@ class TaskOperations:
                     # Single day update
                     capacity = float(capacity_var.get())
                     if capacity < 0:
-                        tk.messagebox.showwarning(
+                        messagebox.showwarning(
                             'Warning',
                             'Capacity cannot be negative.',
                             parent=dialog_window,
@@ -882,7 +882,7 @@ class TaskOperations:
 
                     # Update capacity
                     self.model.update_resource_capacity(resource_id, day, capacity)
-                    tk.messagebox.showinfo(
+                    messagebox.showinfo(
                         'Success',
                         f'Capacity updated for day {day}.',
                         parent=dialog_window,
@@ -892,7 +892,7 @@ class TaskOperations:
                 draw_capacity_list(resource_id)
 
             except ValueError:
-                tk.messagebox.showwarning(
+                messagebox.showwarning(
                     'Warning', 'Please enter valid numbers.', parent=dialog_window
                 )
                 return
@@ -902,7 +902,7 @@ class TaskOperations:
             dialog_window = capacity_tab.winfo_toplevel()
             selected = resource_dropdown.get()
             if not selected:
-                tk.messagebox.showwarning(
+                messagebox.showwarning(
                     'Warning', 'Please select a resource.', parent=dialog_window
                 )
                 return
@@ -919,7 +919,7 @@ class TaskOperations:
                 try:
                     start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
                 except ValueError:
-                    tk.messagebox.showwarning(
+                    messagebox.showwarning(
                         'Warning',
                         'Start date must be in YYYY-MM-DD format.',
                         parent=dialog_window,
@@ -933,7 +933,7 @@ class TaskOperations:
                     try:
                         end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
                     except ValueError:
-                        tk.messagebox.showwarning(
+                        messagebox.showwarning(
                             'Warning',
                             'End date must be in YYYY-MM-DD format.',
                             parent=dialog_window,
@@ -942,7 +942,7 @@ class TaskOperations:
 
                 # Validate date range
                 if end_date < start_date:
-                    tk.messagebox.showwarning(
+                    messagebox.showwarning(
                         'Warning',
                         'End date must be after start date.',
                         parent=dialog_window,
@@ -955,7 +955,7 @@ class TaskOperations:
 
                 # Validate indices are within project range
                 if start_day < 0 or start_day >= self.model.days:
-                    tk.messagebox.showwarning(
+                    messagebox.showwarning(
                         'Warning',
                         'Start date is outside the project timeline.',
                         parent=dialog_window,
@@ -963,7 +963,7 @@ class TaskOperations:
                     return
 
                 if end_day < 0 or end_day >= self.model.days:
-                    tk.messagebox.showwarning(
+                    messagebox.showwarning(
                         'Warning',
                         'End date is outside the project timeline.',
                         parent=dialog_window,
@@ -973,7 +973,7 @@ class TaskOperations:
                 # Get capacity
                 capacity = float(date_capacity_var.get())
                 if capacity < 0:
-                    tk.messagebox.showwarning(
+                    messagebox.showwarning(
                         'Warning',
                         'Capacity cannot be negative.',
                         parent=dialog_window,
@@ -984,7 +984,7 @@ class TaskOperations:
                 for i in range(start_day, end_day + 1):
                     self.model.update_resource_capacity(resource_id, i, capacity)
 
-                tk.messagebox.showinfo(
+                messagebox.showinfo(
                     'Success',
                     f'Capacity updated for dates from {start_date_str} to {end_date_str}.',
                     parent=dialog_window,
@@ -994,7 +994,7 @@ class TaskOperations:
                 draw_capacity_list(resource_id)
 
             except ValueError as e:
-                tk.messagebox.showwarning(
+                messagebox.showwarning(
                     'Warning', f'Error: {str(e)}', parent=dialog_window
                 )
                 return
@@ -1258,7 +1258,7 @@ class TaskOperations:
         list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Create notebook for resource tabs
-        notebook = tk.ttk.Notebook(list_frame)
+        notebook = ttk.Notebook(list_frame)
         notebook.pack(fill=tk.BOTH, expand=True)
 
         # Resources tab
@@ -1529,7 +1529,7 @@ class TaskOperations:
 
         # Create the dropdown for resource selection
         resource_var = tk.StringVar()
-        resource_dropdown = tk.ttk.Combobox(
+        resource_dropdown = ttk.Combobox(
             capacity_tab, textvariable=resource_var, state='readonly'
         )
 
@@ -2150,7 +2150,7 @@ class TaskOperations:
         message += "- Click 'Yes' to move tasks to maintain their calendar dates.\n"
         message += "- Click 'No' to keep tasks in their current grid positions."
 
-        if not tk.messagebox.askyesno('Adjust Tasks?', message):
+        if not messagebox.askyesno('Adjust Tasks?', message):
             # User chose not to shift tasks, just update the start date
             self.model.start_date = new_start_date
             return True
@@ -2167,7 +2167,7 @@ class TaskOperations:
                 if new_col < 0:
                     # Task would be before the new start date
                     message = f"Task {task['task_id']}: '{task['description']}' will be deleted as it falls outside the timeline.\nContinue?"
-                    if not tk.messagebox.askyesno('Confirm Task Deletion', message):
+                    if not messagebox.askyesno('Confirm Task Deletion', message):
                         return False  # User cancelled
                     tasks_to_remove.append(task['task_id'])
                 else:
@@ -2191,7 +2191,7 @@ class TaskOperations:
                     message = f"Task {task['task_id']}: '{task['description']}' will extend beyond the timeline.\n"
                     message += "Do you want to truncate it? Click 'No' to delete it."
 
-                    if tk.messagebox.askyesno('Truncate Task?', message):
+                    if messagebox.askyesno('Truncate Task?', message):
                         # Truncate the task
                         task['duration'] = self.model.days - new_col
                     else:
@@ -4112,7 +4112,7 @@ class TaskOperations:
             text = note_text.get('1.0', tk.END).strip()
 
             if not text:
-                tk.messagebox.showwarning(
+                messagebox.showwarning(
                     'Empty Note', 'Please enter note text.', parent=dialog
                 )
                 return
@@ -4236,7 +4236,7 @@ class TaskOperations:
             text = note_text.get('1.0', tk.END).strip()
 
             if not text:
-                tk.messagebox.showwarning(
+                messagebox.showwarning(
                     'Empty Note', 'Please enter note text.', parent=dialog
                 )
                 return

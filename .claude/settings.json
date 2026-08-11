@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ty check >&2 || exit 2",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

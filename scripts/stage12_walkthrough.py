@@ -40,6 +40,7 @@ replacement for that test.
 import argparse
 import sys
 from datetime import timedelta
+from typing import List, NotRequired, TypedDict
 from unittest.mock import MagicMock
 
 from src.model.task_resource_model import (
@@ -50,6 +51,16 @@ from src.model.task_resource_model import (
 from src.operations.task_operations import TaskOperations
 
 DEFAULT_SCENARIO_PATH = 'scripts/stage12_scenario.json'
+
+
+class WalkthroughStep(TypedDict):
+    day: int
+    task: str
+    remaining: int
+    label: str
+    note: str
+    explain_progress: NotRequired[List[str]]
+    explain_consumption: NotRequired[List[str]]
 
 
 def build_scenario():
@@ -69,9 +80,13 @@ def build_scenario():
     model.remove_project(model.projects[0]['id'])
 
     project = model.add_project('Stage12 Demo')
+    assert (
+        project is not None
+    )  # no name collision - the sample project was just removed
     pid = project['id']
     critical = model.get_chain_by_name('Critical')
     feeding = model.get_chain_by_name('Feeding-01')
+    assert critical is not None and feeding is not None  # always seeded by __init__
 
     c1 = model.add_task(
         row=0,
@@ -142,8 +157,10 @@ def build_scenario():
     # chain instead keeps it visually obvious this is an unrelated project,
     # not "a second critical chain".
     control_project = model.add_project('Control')
+    assert control_project is not None  # no name collision - fresh project name
     cpid = control_project['id']
     ctrl_chain = model.get_chain_by_name('Feeding-02')
+    assert ctrl_chain is not None  # always seeded by __init__
     x1 = model.add_task(
         row=5,
         col=0,
@@ -381,7 +398,7 @@ def report(model, project, control_project, tasks, label):
 
 # Each step is data, not an opaque lambda, so print_manual_steps() can
 # describe it generically instead of duplicating the same info in prose.
-STEPS = [
+STEPS: List[WalkthroughStep] = [
     {
         'day': 0,
         'task': 'C1',

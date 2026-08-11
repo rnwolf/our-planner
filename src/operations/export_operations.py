@@ -318,7 +318,11 @@ class ExportOperations:
 
             # Clear the options frame
             for widget in options_frame.winfo_children():
-                widget.pack_forget()
+                # Toplevel doesn't participate in pack/grid geometry
+                # management, so it has no pack_forget - not expected among
+                # this frame's children, but guard rather than assume.
+                if not isinstance(widget, tk.Toplevel):
+                    widget.pack_forget()
 
             if selected_format == 'pdf':
                 pdf_options_frame.pack(fill=tk.BOTH, expand=True)
@@ -340,7 +344,7 @@ class ExportOperations:
                 )
 
         # Connect format selection to update function
-        format_var.trace('w', update_format_options)
+        format_var.trace_add('write', update_format_options)
 
         # Buttons
         button_frame = tk.Frame(main_frame)

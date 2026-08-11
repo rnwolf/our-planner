@@ -213,7 +213,7 @@ class NetworkMenu:
                     count = network_ops.tag_critical_path(critical_path)
 
                     # Show confirmation message
-                    tk.messagebox.showinfo(
+                    messagebox.showinfo(
                         'Critical Path Tagged',
                         f"Added 'CriticalPath' tag to {count} tasks.",
                         parent=cp_dialog,

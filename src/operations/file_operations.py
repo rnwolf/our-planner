@@ -3,7 +3,9 @@ import csv
 import os
 import re
 from datetime import datetime
+from typing import Dict, List, Optional, TypedDict, cast
 from src.model.dependency_notation import VALID_LINK_TYPES, parse_predecessor_notation
+from src.model.entities import PredecessorLink
 from src.model.resource_notation import parse_resource_token
 from src.model.resource_notation import (
     parse_resource_tokens as _parse_resource_tokens_str_keyed,
@@ -34,7 +36,7 @@ def _read_csv_rows(path):
         return [{(k.strip() if k else k): v for k, v in row.items()} for row in reader]
 
 
-def _parse_resource_tokens(value):
+def _parse_resource_tokens(value) -> Dict[int, float]:
     """Parse a semicolon-separated resource_ids cell (Import Tasks...) into
     {resource_id: allocation}, with resource_id converted to our own
     internal int id (Import Network matches by id directly - see
@@ -49,6 +51,21 @@ def _parse_resource_tokens(value):
         int(rid): alloc
         for rid, alloc in _parse_resource_tokens_str_keyed(value).items()
     }
+
+
+class ParsedTaskRow(TypedDict):
+    """One validated tasks.csv row, staged by import_tasks before it's
+    applied to the model (as a new task via add_task, or patched onto an
+    existing one)."""
+
+    name: str
+    duration: int
+    optimal_duration: Optional[int]
+    resources: Dict[int, float]
+    predecessors: List[PredecessorLink]
+    url: str
+    tags: List[str]
+    colour: str
 
 
 class FileOperations:
@@ -720,7 +737,7 @@ class FileOperations:
             return
 
         problems = []
-        parsed = {}
+        parsed: Dict[int, ParsedTaskRow] = {}
         order = []
 
         for row in rows:
@@ -778,8 +795,9 @@ class FileOperations:
                 continue
 
             try:
-                predecessors = parse_predecessor_notation(
-                    row.get('predecessor_ids') or ''
+                predecessors = cast(
+                    List[PredecessorLink],
+                    parse_predecessor_notation(row.get('predecessor_ids') or ''),
                 )
             except ValueError as e:
                 problems.append(f"task {task_id} ('{name}'): {e}")

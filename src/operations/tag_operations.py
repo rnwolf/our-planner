@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 import re
 
 
@@ -207,7 +207,7 @@ class TagsDialog(tk.Toplevel):
         """Update the scroll region of the tag canvas."""
         self.tag_canvas.configure(scrollregion=self.tag_canvas.bbox('all'))
 
-    def update_tag_canvas(self, event=None):
+    def update_tag_canvas(self, event: tk.Event):
         """Update the tag canvas when it's resized."""
         # Update the width of the window to match the canvas
         self.tag_canvas.itemconfig(self.tag_canvas_window, width=event.width)
@@ -265,7 +265,7 @@ class TagsDialog(tk.Toplevel):
 
         # Validate tag (only letters, numbers, underscore, hyphen, no spaces)
         if not re.match(r'^[\w\-]+$', tag):
-            tk.messagebox.showerror(
+            messagebox.showerror(
                 'Invalid Tag',
                 'Tags can only contain letters, numbers, underscores, and hyphens.',
             )

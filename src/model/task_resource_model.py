@@ -1,12 +1,25 @@
 import json
 from collections import Counter
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, cast
 from datetime import datetime, timedelta
 
 from src.model.dependency_notation import (
     DEFAULT_LINK_TYPE,
     VALID_LINK_TYPES,
     normalize_predecessor_entries,
+)
+from src.model.entities import (
+    ChainDict,
+    FeverChartHistoryEntry,
+    FeverChartPoint,
+    NoteDict,
+    NoteWithTaskInfo,
+    PredecessorLink,
+    ProjectDict,
+    RemainingDurationHistoryEntry,
+    ResourceDict,
+    SuccessorLink,
+    TaskDict,
 )
 
 TASK_TYPES = ['task', 'project_buffer', 'feeding_buffer']
@@ -68,7 +81,7 @@ def classify_fever_chart_zone(
 
 
 def fever_chart_display_point(
-    entry: Dict[str, Any], buffer_baseline_duration: float
+    entry: FeverChartHistoryEntry, buffer_baseline_duration: float
 ) -> Tuple[float, float]:
     """Turn one `fever_chart_history` entry (cpsl/ppf/forecast_lateness, as
     logged by `capture_fever_chart_snapshot`) into (progress_pct,
@@ -101,7 +114,7 @@ class TaskResourceModel:
 
         # Resource management with IDs
         self.resource_id_counter = 0
-        self.resources = [
+        self.resources: List[ResourceDict] = [
             {
                 'id': self._get_next_resource_id(),
                 'name': 'Resource A',
@@ -175,7 +188,7 @@ class TaskResourceModel:
         ]
 
         # Data structures
-        self.tasks = []
+        self.tasks: List[TaskDict] = []
         self.task_id_counter = 0
 
         # File path
@@ -187,7 +200,7 @@ class TaskResourceModel:
         # Project management, for rolling-wave planning across multiple
         # projects sharing the same resource pool on one canvas
         self.project_id_counter = 0
-        self.projects: List[Dict[str, Any]] = []
+        self.projects: List[ProjectDict] = []
         self.default_project_id: Optional[int] = None
         # Seed a default project so a fresh plan (and its sample tasks) isn't unassigned
         self.add_project('Sample Project')
@@ -195,7 +208,7 @@ class TaskResourceModel:
         # Chain classification (critical chain / feeding chains), global across
         # the whole plan - a task's chain_id references one of these
         self.chain_id_counter = 0
-        self.chains: List[Dict[str, Any]] = []
+        self.chains: List[ChainDict] = []
         # Seed the critical chain plus 7 feeding chains with distinguishable
         # default colors - hand-picking that many good colors is hard, so the
         # tool supplies a reasonable starting palette, fully editable afterward
@@ -213,26 +226,26 @@ class TaskResourceModel:
         self.project_id_counter += 1
         return self.project_id_counter
 
-    def get_project_by_id(self, project_id: int) -> Optional[Dict[str, Any]]:
+    def get_project_by_id(self, project_id: Optional[int]) -> Optional[ProjectDict]:
         """Find a project by its ID."""
         for project in self.projects:
             if project['id'] == project_id:
                 return project
         return None
 
-    def get_project_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_project_by_name(self, name: str) -> Optional[ProjectDict]:
         """Find a project by its name."""
         for project in self.projects:
             if project['name'] == name:
                 return project
         return None
 
-    def add_project(self, name: str, url: str = '') -> Optional[Dict[str, Any]]:
+    def add_project(self, name: str, url: str = '') -> Optional[ProjectDict]:
         """Add a new project. The first project added becomes the default."""
         if self.get_project_by_name(name):
             return None
 
-        project = {
+        project: ProjectDict = {
             'id': self._get_next_project_id(),
             'name': name,
             'url': url,
@@ -256,12 +269,12 @@ class TaskResourceModel:
     def update_project(
         self,
         project_id: int,
-        name: str = None,
-        url: str = None,
-        ccpm_method: str = None,
-        fever_chart_slope: float = None,
-        fever_chart_yellow_intercept: float = None,
-        fever_chart_red_intercept: float = None,
+        name: Optional[str] = None,
+        url: Optional[str] = None,
+        ccpm_method: Optional[str] = None,
+        fever_chart_slope: Optional[float] = None,
+        fever_chart_yellow_intercept: Optional[float] = None,
+        fever_chart_red_intercept: Optional[float] = None,
     ) -> bool:
         """Update a project's name, url, CCPM buffer-sizing method, and/or
         fever chart zone settings."""
@@ -317,7 +330,7 @@ class TaskResourceModel:
         self.default_project_id = project_id
         return True
 
-    def get_default_project(self) -> Optional[Dict[str, Any]]:
+    def get_default_project(self) -> Optional[ProjectDict]:
         """Return the current default project, if any."""
         if self.default_project_id is None:
             return None
@@ -328,14 +341,14 @@ class TaskResourceModel:
         self.chain_id_counter += 1
         return self.chain_id_counter
 
-    def get_chain_by_id(self, chain_id: int) -> Optional[Dict[str, Any]]:
+    def get_chain_by_id(self, chain_id: int) -> Optional[ChainDict]:
         """Find a chain by its ID."""
         for chain in self.chains:
             if chain['id'] == chain_id:
                 return chain
         return None
 
-    def get_chain_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_chain_by_name(self, name: str) -> Optional[ChainDict]:
         """Find a chain by its name."""
         for chain in self.chains:
             if chain['name'] == name:
@@ -344,7 +357,7 @@ class TaskResourceModel:
 
     def add_chain(
         self, name: str, color: str, is_critical: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[ChainDict]:
         """Add a new chain (the critical chain, or a feeding chain).
 
         Only one chain may be critical at a time - adding a new critical chain
@@ -357,7 +370,7 @@ class TaskResourceModel:
             for chain in self.chains:
                 chain['is_critical'] = False
 
-        chain = {
+        chain: ChainDict = {
             'id': self._get_next_chain_id(),
             'name': name,
             'color': color,
@@ -366,7 +379,9 @@ class TaskResourceModel:
         self.chains.append(chain)
         return chain
 
-    def update_chain(self, chain_id: int, name: str = None, color: str = None) -> bool:
+    def update_chain(
+        self, chain_id: int, name: Optional[str] = None, color: Optional[str] = None
+    ) -> bool:
         """Update a chain's name and/or color."""
         chain = self.get_chain_by_id(chain_id)
         if not chain:
@@ -407,7 +422,7 @@ class TaskResourceModel:
 
         return True
 
-    def get_critical_chain(self) -> Optional[Dict[str, Any]]:
+    def get_critical_chain(self) -> Optional[ChainDict]:
         """Return the chain currently flagged as critical, if any."""
         for chain in self.chains:
             if chain.get('is_critical'):
@@ -480,7 +495,7 @@ class TaskResourceModel:
 
         return count
 
-    def shift_task_position(self, task: Dict[str, Any], delta_days: int) -> None:
+    def shift_task_position(self, task: TaskDict, delta_days: int) -> None:
         """Shift a task's `col` by `delta_days`, and its `baseline['col']` by
         the exact same amount if a baseline has been captured (Stage 1/4).
 
@@ -713,17 +728,23 @@ class TaskResourceModel:
         col: int,
         duration: int,
         description: str,
-        resources: Dict[int, float] = None,  # Changed to Dict[resource_id, allocation]
+        resources: Optional[
+            Dict[int, float]
+        ] = None,  # Changed to Dict[resource_id, allocation]
         url: str = '',
-        predecessors: List[Any] = None,  # List of {id, type, lag} link entries
-        tags: List[str] = None,  # Add tags parameter
-        color: str = None,  # Add color parameter with None default
-        project_id: int = None,  # Defaults to the current default project
-        chain_id: int = None,  # Which chain (critical/feeding-NN) this task belongs to
-        task_id: int = None,  # Explicit id (CSV import, matching an id from a
+        predecessors: Optional[
+            List[Any]
+        ] = None,  # List of {id, type, lag} link entries
+        tags: Optional[List[str]] = None,  # Add tags parameter
+        color: Optional[str] = None,  # Add color parameter with None default
+        project_id: Optional[int] = None,  # Defaults to the current default project
+        chain_id: Optional[
+            int
+        ] = None,  # Which chain (critical/feeding-NN) this task belongs to
+        task_id: Optional[int] = None,  # Explicit id (CSV import, matching an id from a
         # previous export) - bumps task_id_counter instead of drawing from it,
         # so later auto-assigned ids never collide with it.
-    ) -> Dict[str, Any]:
+    ) -> TaskDict:
         """Add a new task to the model."""
         tags = tags or []  # Default to empty list if None
         color = color or 'Cyan'  # Default color if None
@@ -739,7 +760,7 @@ class TaskResourceModel:
         else:
             self.task_id_counter = max(self.task_id_counter, task_id)
 
-        task = {
+        task: TaskDict = {
             'task_id': task_id,
             'row': row,
             'col': col,
@@ -748,7 +769,9 @@ class TaskResourceModel:
             'url': url,
             'resources': resources or {},  # Changed to Dict[resource_id, allocation]
             # 'successors' is not stored - it is derived (see get_successor_ids)
-            'predecessors': normalize_predecessor_entries(predecessors),
+            'predecessors': cast(
+                List[PredecessorLink], normalize_predecessor_entries(predecessors)
+            ),
             'tags': tags,  # Add tags to task dictionary
             'color': color,  # Add color to task dictionary
             'notes': [],  # Initialize empty notes list
@@ -868,7 +891,7 @@ class TaskResourceModel:
 
     def get_tasks_by_tags(
         self, tags: List[str], match_all: bool = False
-    ) -> List[Dict[str, Any]]:
+    ) -> List[TaskDict]:
         """
         Get tasks that match the specified tags.
 
@@ -902,7 +925,7 @@ class TaskResourceModel:
 
     def get_resources_by_tags(
         self, tags: List[str], match_all: bool = False
-    ) -> List[Dict[str, Any]]:
+    ) -> List[ResourceDict]:
         """
         Get resources that match the specified tags.
 
@@ -934,7 +957,7 @@ class TaskResourceModel:
 
         return matching_resources
 
-    def get_task_state(self, task: Dict[str, Any]) -> str:
+    def get_task_state(self, task: TaskDict) -> str:
         """Derive a task's execution state from its actual date fields (Stage
         10 Part A) - no separate stored field, so it can never drift out of
         sync with actual_start_date/actual_end_date."""
@@ -944,7 +967,7 @@ class TaskResourceModel:
             return 'in_progress'
         return 'not_started'
 
-    def get_tasks_by_state(self, states: List[str]) -> List[Dict[str, Any]]:
+    def get_tasks_by_state(self, states: List[str]) -> List[TaskDict]:
         """Get tasks whose derived state (see get_task_state) is one of
         `states` - OR logic among the selected states, matching the Project
         filter's checkbox pattern."""
@@ -952,7 +975,7 @@ class TaskResourceModel:
             return self.tasks.copy()
         return [t for t in self.tasks if self.get_task_state(t) in states]
 
-    def get_tasks_by_fullkit(self, value: str) -> List[Dict[str, Any]]:
+    def get_tasks_by_fullkit(self, value: str) -> List[TaskDict]:
         """Get tasks matching a full-kit readiness value: 'ready' (fullkit_date
         set) or 'not_ready' (fullkit_date not set)."""
         if value == 'ready':
@@ -961,7 +984,7 @@ class TaskResourceModel:
             return [t for t in self.tasks if not t.get('fullkit_date')]
         return self.tasks.copy()
 
-    def get_task_start_window(self, task: Dict[str, Any]) -> str:
+    def get_task_start_window(self, task: TaskDict) -> str:
         """Bucket a task's planned start date (its `col`, converted to a
         calendar date) relative to the current setdate ("today" in the app's
         own simulated timeline, not wall-clock time - consistent with the rest
@@ -990,7 +1013,7 @@ class TaskResourceModel:
             return 'month2'
         return 'later'
 
-    def get_tasks_by_start_window(self, windows: List[str]) -> List[Dict[str, Any]]:
+    def get_tasks_by_start_window(self, windows: List[str]) -> List[TaskDict]:
         """Get tasks whose derived planned-start window (see
         get_task_start_window) is one of `windows` - OR logic among the
         selected windows."""
@@ -1037,12 +1060,16 @@ class TaskResourceModel:
         """Update task properties."""
         for task in self.tasks:
             if task['task_id'] == task_id:
+                # updates' keys are arbitrary TaskDict field names picked at
+                # runtime by the caller - not literal keys a TypedDict can
+                # check, so this one assignment is intentionally untyped.
+                task_dict = cast(Dict[str, Any], task)
                 for key, value in updates.items():
-                    task[key] = value
+                    task_dict[key] = value
                 return True
         return False
 
-    def get_task(self, task_id: int) -> Optional[Dict[str, Any]]:
+    def get_task(self, task_id: int) -> Optional[TaskDict]:
         """Get a task by its ID."""
         for task in self.tasks:
             if task['task_id'] == task_id:
@@ -1058,7 +1085,7 @@ class TaskResourceModel:
         return self.update_task(task_id, duration=duration)
 
     def calculate_resource_loading(
-        self, tasks: Optional[List[Dict[str, Any]]] = None
+        self, tasks: Optional[List[TaskDict]] = None
     ) -> Dict[int, List[float]]:
         """Calculate resource loading based on task positions.
 
@@ -1124,14 +1151,14 @@ class TaskResourceModel:
                     assigned.add(int(resource_id_str))
         return assigned
 
-    def get_resource_by_id(self, resource_id: int) -> Optional[Dict[str, Any]]:
+    def get_resource_by_id(self, resource_id: int) -> Optional[ResourceDict]:
         """Find a resource by its ID."""
         for resource in self.resources:
             if resource['id'] == resource_id:
                 return resource
         return None
 
-    def get_resource_by_name(self, resource_name: str) -> Optional[Dict[str, Any]]:
+    def get_resource_by_name(self, resource_name: str) -> Optional[ResourceDict]:
         """Find a resource by its name."""
         for resource in self.resources:
             if resource['name'] == resource_name:
@@ -1139,8 +1166,12 @@ class TaskResourceModel:
         return None
 
     def add_resource(
-        self, resource_name, works_weekends=True, resource_id=None, url=''
-    ):
+        self,
+        resource_name: str,
+        works_weekends: bool = True,
+        resource_id: Optional[int] = None,
+        url: str = '',
+    ) -> Optional[ResourceDict]:
         """Add a new resource with default capacity. Returns the new
         resource dict (truthy) on success, or None/False if `resource_name`
         is already taken - callers that only ever used this in a boolean
@@ -1171,7 +1202,7 @@ class TaskResourceModel:
         else:
             self.resource_id_counter = max(self.resource_id_counter, resource_id)
 
-        new_resource = {
+        new_resource: ResourceDict = {
             'id': resource_id,
             'name': resource_name,
             'capacity': default_capacity,
@@ -1209,51 +1240,6 @@ class TaskResourceModel:
             resource['name'] = new_name
             return True
         return False
-
-    def _is_weekend(self, day_index, start_date=None):
-        """Determine if a day index is a weekend based on a given start date."""
-        # Use provided start date or the model's current start date
-        start = start_date if start_date is not None else self.model.start_date
-        date = start + timedelta(days=day_index)
-        # Print for debugging (you can remove this later)
-        print(
-            f'Day {day_index}: {date.strftime("%Y-%m-%d")} is weekday {date.weekday()}'
-        )
-        return date.weekday() >= 5  # 5=Saturday, 6=Sunday
-
-    def _update_resource_capacities_for_date_change(self, delta_days):
-        """Update resource capacities when the start date changes."""
-        # Calculate the new start date
-        new_start_date = self.model.start_date + timedelta(days=-delta_days)
-
-        # For each resource
-        for resource in self.model.resources:
-            works_weekends = resource.get('works_weekends', True)
-            new_capacity = [1.0] * self.model.days
-
-            if delta_days > 0:
-                # Moving start date forward, shift capacities left
-                for day in range(self.model.days - delta_days):
-                    if day + delta_days < len(resource['capacity']):
-                        # Copy existing capacity if available
-                        new_capacity[day] = resource['capacity'][day + delta_days]
-
-            elif delta_days < 0:
-                # Moving start date backward, shift capacities right
-                abs_delta = abs(delta_days)
-                for day in range(abs_delta, self.model.days):
-                    if day - abs_delta < len(resource['capacity']):
-                        # Copy existing capacity if available
-                        new_capacity[day] = resource['capacity'][day - abs_delta]
-
-            # Check all days for weekend status using the new start date
-            if not works_weekends:
-                for day in range(self.model.days):
-                    if self._is_weekend(day, new_start_date):
-                        new_capacity[day] = 0.0
-
-            # Update the resource capacity
-            resource['capacity'] = new_capacity
 
     def update_resource_capacity(
         self, resource_id: int, day: int, capacity: float
@@ -1367,7 +1353,7 @@ class TaskResourceModel:
         if not task:
             return False
 
-        normalized = normalize_predecessor_entries(entries)
+        normalized = cast(List[PredecessorLink], normalize_predecessor_entries(entries))
         for entry in normalized:
             if entry['id'] == task_id:
                 return False  # Prevent self-linking
@@ -1396,13 +1382,13 @@ class TaskResourceModel:
             if any(entry['id'] == task_id for entry in t.get('predecessors', []))
         ]
 
-    def get_successor_links(self, task_id: int) -> List[Dict[str, Any]]:
+    def get_successor_links(self, task_id: int) -> List[SuccessorLink]:
         """Return this task's outgoing links, derived from successors' predecessor lists.
 
         Each entry is `{'task_id': successor_id, 'type': str, 'lag': int}`, mirroring
         the predecessor entry on the successor task that points back at `task_id`.
         """
-        links = []
+        links: List[SuccessorLink] = []
         for t in self.tasks:
             for entry in t.get('predecessors', []):
                 if entry['id'] == task_id:
@@ -1757,13 +1743,13 @@ class TaskResourceModel:
             task['notes'] = []
 
         # Create the note with timestamp
-        note = {'timestamp': datetime.now().isoformat(), 'text': note_text}
+        note: NoteDict = {'timestamp': datetime.now().isoformat(), 'text': note_text}
 
         # Add the note to the task
         task['notes'].append(note)
         return True
 
-    def get_task_notes(self, task_id: int) -> List[Dict[str, Any]]:
+    def get_task_notes(self, task_id: int) -> List[NoteDict]:
         """Get all notes for a specific task.
 
         Args:
@@ -1801,7 +1787,7 @@ class TaskResourceModel:
         task['notes'].pop(note_index)
         return True
 
-    def get_all_notes_for_tasks(self, task_ids: List[int]) -> List[Dict[str, Any]]:
+    def get_all_notes_for_tasks(self, task_ids: List[int]) -> List[NoteWithTaskInfo]:
         """Get all notes for a list of tasks, sorted by timestamp.
 
         Args:
@@ -1819,12 +1805,13 @@ class TaskResourceModel:
 
             # Add task_id and original_index to each note for reference
             for i, note in enumerate(task['notes']):
-                note_with_task = note.copy()
-                note_with_task['task_id'] = task_id
-                note_with_task['task_description'] = task.get(
-                    'description', f'Task {task_id}'
-                )
-                note_with_task['original_index'] = i  # Store the original index
+                note_with_task: NoteWithTaskInfo = {
+                    'timestamp': note['timestamp'],
+                    'text': note['text'],
+                    'task_id': task_id,
+                    'task_description': task.get('description', f'Task {task_id}'),
+                    'original_index': i,  # Store the original index
+                }
                 all_notes.append(note_with_task)
 
         # Sort all notes by timestamp, newest first
@@ -1857,7 +1844,7 @@ class TaskResourceModel:
             return False
 
         # Create record with current setdate
-        record = {
+        record: RemainingDurationHistoryEntry = {
             'date': self.setdate.isoformat(),
             'remaining_duration': remaining_duration,
         }
@@ -1876,6 +1863,9 @@ class TaskResourceModel:
 
         # Re-estimate the finish from the latest entry on record (by date)
         latest_entry = self._get_latest_remaining_duration_entry(task_id)
+        # Guaranteed non-None: the record just appended above is always in
+        # the history this looks up.
+        assert latest_entry is not None
         entry_col = self.get_day_for_date(datetime.fromisoformat(latest_entry['date']))
         task['duration'] = max(
             0, entry_col + latest_entry['remaining_duration'] - task['col']
@@ -1888,7 +1878,9 @@ class TaskResourceModel:
 
         return True
 
-    def get_remaining_duration_history(self, task_id: int) -> List[Dict[str, Any]]:
+    def get_remaining_duration_history(
+        self, task_id: int
+    ) -> List[RemainingDurationHistoryEntry]:
         """Get the history of remaining duration estimates for a task.
 
         Args:
@@ -1905,7 +1897,7 @@ class TaskResourceModel:
 
     def _get_latest_remaining_duration_entry(
         self, task_id: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[RemainingDurationHistoryEntry]:
         """Get the most recent remaining duration history entry.
 
         "Most recent" is by date, then by recording order for entries sharing
@@ -1993,7 +1985,9 @@ class TaskResourceModel:
         )
         return True
 
-    def get_chain_tasks(self, chain_id: int, project_id: int) -> List[Dict[str, Any]]:
+    def get_chain_tasks(
+        self, chain_id: Optional[int], project_id: Optional[int]
+    ) -> List[TaskDict]:
         """Return a chain's ordinary (non-buffer) tasks, sorted by start
         (`col`). Includes every task tagged with this chain, regardless of
         whether they form a single strand or branching/parallel feeder
@@ -2010,7 +2004,7 @@ class TaskResourceModel:
         ]
         return sorted(tasks, key=lambda t: t['col'])
 
-    def get_buffer_terminal_task(self, buffer_task_id: int) -> Optional[Dict[str, Any]]:
+    def get_buffer_terminal_task(self, buffer_task_id: int) -> Optional[TaskDict]:
         """Return the one ordinary task that is a buffer's own direct
         predecessor - the "terminal protected task" in Stage 8's fever chart
         calculations (the last work task before the buffer).
@@ -2026,7 +2020,7 @@ class TaskResourceModel:
 
         return None
 
-    def get_buffer_merge_task(self, buffer_task_id: int) -> Optional[Dict[str, Any]]:
+    def get_buffer_merge_task(self, buffer_task_id: int) -> Optional[TaskDict]:
         """Return the one ordinary task on a buffer's successor side - the
         merge point it protects. Returns None unless exactly one such
         successor exists: a buffer with several merge successors is
@@ -2044,7 +2038,7 @@ class TaskResourceModel:
 
     def compute_fever_chart_point(
         self, buffer_task_id: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[FeverChartPoint]:
         """Compute Stage 8's CPSL/PPF/forecast_lateness for a buffer, as of now.
 
         Returns None if not computable: not actually a buffer, no terminal
@@ -2136,7 +2130,7 @@ class TaskResourceModel:
 
         return {'cpsl': cpsl, 'ppf': ppf, 'forecast_lateness': forecast_lateness}
 
-    def capture_fever_chart_snapshot(self, project_id: int = None) -> int:
+    def capture_fever_chart_snapshot(self, project_id: Optional[int] = None) -> int:
         """Recompute and log a fever chart point for every buffer that
         currently supports one (Stage 8) - meant to be called after every
         status update, since a buffer's numbers can only reliably be
