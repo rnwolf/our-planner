@@ -1,0 +1,229 @@
+"""Fast, in-process driver for scripted UI scenarios.
+
+Runs the real `TaskResourceManager` app - real Tk root, real canvas, real
+context menus, real dialogs - so a scenario exercises the actual wiring
+between a user action and the model, not just the model/operations layer
+(that's already covered by tests/test_scenarios.py and
+scripts/stage12_walkthrough.py, which build scenarios directly against a
+MagicMock controller and never touch Tk).
+
+The one thing this driver fakes is *answering* modal dialogs
+(simpledialog.askstring, messagebox.*): those call `wait_window`, which
+runs its own nested Tk loop, so a same-thread caller can't sequence
+"trigger the action" then "answer the popped dialog" without either a
+second thread or patching the dialog call itself. Patching is what
+test_scenarios.py already does (`patch('tkinter.messagebox.askyesno', ...)`)
+and is far more reliable than timing a second thread against a nested
+mainloop, so this driver does the same, just generalized to route by the
+dialog's title so a scenario can answer several different prompts across
+one run.
+
+For a narrated, on-screen video (real dialogs, real mouse movement) a
+separate "visual" driver reuses the same coordinate math but drives via
+ydotool + org.gnome.Shell.Screencast instead of calling handlers directly.
+This module is the fast half only.
+"""
+
+from __future__ import annotations
+
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+from unittest.mock import patch
+
+from src.controller.task_manager import TaskResourceManager
+
+
+class SyntheticEvent:
+    """A minimal stand-in for a real Tk event - just the attributes the
+    canvas handlers actually read (event.x/y/state). The app itself
+    already builds one of these for its own Ctrl-+/- zoom shortcut
+    (TaskResourceManager.zoom_via_keyboard), so this isn't a workaround,
+    it's the same technique the codebase already uses to drive its own
+    handlers synthetically."""
+
+    def __init__(self, x: float, y: float, state: int = 0):
+        self.x = x
+        self.y = y
+        self.state = state
+
+
+class ScenarioDriver:
+    """Drives one real, in-process TaskResourceManager instance."""
+
+    def __init__(self):
+        self.root = tk.Tk()
+        # Some dialogs (e.g. edit_task_resources) call wait_visibility() on
+        # a Toplevel transient to root - that never fires if root itself is
+        # withdrawn/unmapped, so the window has to actually be shown, not
+        # hidden, even for the "fast" driver.
+        self.app = TaskResourceManager(self.root)
+        self.model = self.app.model
+        # The app always seeds a default project with sample tasks
+        # (model.create_sample_tasks(), called from TaskResourceManager
+        # .__init__) - clear them so a scenario's CCPM run only ever sees
+        # the tasks it explicitly created.
+        for task in list(self.model.tasks):
+            self.model.delete_task(task['task_id'])
+        self.pump()
+
+    def pump(self):
+        """Process pending Tk events/redraws without blocking."""
+        self.root.update()
+
+    def close(self):
+        self.root.destroy()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        self.close()
+
+    # -- generic widget-tree helpers (for dialogs that are hand-built
+    # Toplevels rather than simpledialog/messagebox, so there's no single
+    # call to patch - e.g. Edit Task Resources) ------------------------
+
+    def _find_toplevel(self, title: str) -> tk.Toplevel:
+        candidates = [
+            w
+            for w in self.root.winfo_children()
+            if isinstance(w, tk.Toplevel) and w.title() == title
+        ]
+        assert candidates, f'no open {title!r} dialog found'
+        return candidates[-1]
+
+    def _find_widgets(self, parent, cls):
+        found = []
+        for child in parent.winfo_children():
+            if isinstance(child, cls):
+                found.append(child)
+            found.extend(self._find_widgets(child, cls))
+        return found
+
+    def _find_button(self, parent, text: str) -> tk.Button:
+        for button in self._find_widgets(parent, tk.Button):
+            if button.cget('text') == text:
+                return button
+        raise AssertionError(f'no button labeled {text!r} found')
+
+    # -- task grid -----------------------------------------------------
+
+    def _canvas_xy(self, row: int, col: int) -> tuple[float, float]:
+        x = col * self.app.cell_width
+        y = row * self.app.task_height + self.app.task_height / 2
+        return x, y
+
+    def create_task(self, row: int, col: int, duration: int, name: str):
+        """Drag-create a task on the real canvas, the same gesture a user
+        performs (press on empty grid, drag to the end column, release) -
+        then answer the three dialogs that follow release (name, resources,
+        tags) the way a scenario wants them answered."""
+        start_x, y = self._canvas_xy(row, col)
+        end_x, _ = self._canvas_xy(row, col + duration - 1)
+
+        def fake_askstring(title, _prompt, **_kwargs):
+            if title == 'New Task':
+                return name
+            raise AssertionError(f'unexpected askstring during create_task: {title!r}')
+
+        with (
+            patch.object(simpledialog, 'askstring', side_effect=fake_askstring),
+            patch.object(
+                self.app.task_ops, 'edit_task_resources', lambda *_a, **_k: None
+            ),
+            patch.object(self.app.tag_ops, 'edit_task_tags', lambda *_a, **_k: None),
+        ):
+            self.app.task_ops.on_task_press(SyntheticEvent(start_x, y))
+            self.app.task_ops.on_task_release(SyntheticEvent(end_x, y))
+        self.pump()
+
+        task = next((t for t in self.model.tasks if t['description'] == name), None)
+        assert task is not None, (
+            f'create_task({name!r}) did not add a task to the model'
+        )
+        return task
+
+    def add_resource(self, name: str):
+        """Toolbar/menu 'Add Resource' - a plain simpledialog.askstring
+        prompt, unlike the hand-built Toplevel dialogs elsewhere."""
+        with patch.object(simpledialog, 'askstring', return_value=name):
+            self.app.task_ops.add_resource()
+        self.pump()
+        resource = next((r for r in self.model.resources if r['name'] == name), None)
+        assert resource is not None, f'add_resource({name!r}) did not add a resource'
+        return resource
+
+    def assign_resource(self, task, resource, allocation: float = 1.0):
+        """Right-click task -> Edit Task Resources: a hand-built Toplevel
+        with one Entry per known resource (in model.resources order) and a
+        Save button, not a simpledialog - driven by finding those real
+        widgets and using them, rather than patching a single call."""
+        self.app.task_ops.edit_task_resources(task)
+        self.pump()
+
+        dialog = self._find_toplevel('Edit Task Resources')
+        entries = self._find_widgets(dialog, tk.Entry)
+        index = self.model.resources.index(resource)
+        entries[index].delete(0, tk.END)
+        entries[index].insert(0, str(allocation))
+        self._find_button(dialog, 'Save').invoke()
+        self.pump()
+
+    # -- dependencies ----------------------------------------------------
+
+    def assert_context_menu_has(self, label: str):
+        """Confirms the real right-click context menu (the single reused
+        tk.Menu built once in UIComponents.create_context_menu) actually
+        carries a command with this label - the wiring check dogtail would
+        have given us, done directly against the real Menu widget instead."""
+        menu = self.app.ui.context_menu
+        try:
+            menu.index(label)
+        except tk.TclError as e:
+            raise AssertionError(f'context menu has no {label!r} entry: {e}') from e
+
+    def add_predecessor(
+        self, task, predecessor_task, link_type: str = 'FS', lag: int = 0
+    ):
+        """Wires `predecessor_task -> task` via the exact handler the
+        context menu's 'Add Predecessor...' command invokes
+        (task_ops.add_predecessor_dialog) - same code path a real
+        right-click would run, only the popped text-entry dialog is faked."""
+        self.app.ui.update_context_menu_for_task(task)
+        self.assert_context_menu_has('Add Predecessor')
+
+        token = str(predecessor_task['task_id'])
+        if link_type != 'FS' or lag:
+            token += f':{link_type}{"+" if lag >= 0 else ""}{lag}'
+
+        with patch.object(simpledialog, 'askstring', return_value=token):
+            self.app.task_ops.add_predecessor_dialog(task)
+        self.pump()
+
+    # -- CCPM --------------------------------------------------------------
+
+    def schedule_with_ccpm(self) -> str:
+        """File -> Schedule with CCPM... against whatever single project
+        exists (only one project means CcpmOperations._pick_project
+        auto-selects it, no list dialog to answer). Returns the info
+        messagebox's text (or raises with the error box's text on
+        failure) instead of letting either block on a real popup."""
+        captured: dict[str, str] = {}
+
+        def fake_showinfo(_title, message, **_kwargs):
+            captured['info'] = message
+
+        def fake_showerror(title, message, **_kwargs):
+            captured['error'] = f'{title}: {message}'
+
+        with (
+            patch.object(messagebox, 'showinfo', side_effect=fake_showinfo),
+            patch.object(messagebox, 'showerror', side_effect=fake_showerror),
+        ):
+            self.app.ccpm_ops.schedule_with_ccpm()
+        self.pump()
+
+        if 'error' in captured:
+            raise AssertionError(f'Schedule with CCPM failed: {captured["error"]}')
+        assert 'info' in captured, 'Schedule with CCPM produced no confirmation dialog'
+        return captured['info']
