@@ -89,6 +89,23 @@ class BufferUpdateReasonEntry(TypedDict):
     note: NotRequired[str]
 
 
+class StatusUpdateLogEntry(TypedDict):
+    """One recorded status update, as returned by
+    ReportOperations.compute_status_update_log for the Status Update Log
+    report. Same shape as BufferUpdateReasonEntry but a distinct type: that
+    one is filtered down to only entries carrying a reason/note, scoped to
+    one buffer's protected chain; this is every update (reason/note or
+    not) across whatever the Filter menu currently scopes to, so a team
+    can review the complete record, not just the annotated subset."""
+
+    date: str
+    task_id: int
+    task_description: str
+    remaining_duration: int
+    reason: NotRequired[str]
+    note: NotRequired[str]
+
+
 class SuccessorLink(TypedDict):
     """One outgoing link derived from a successor's predecessor entry, as
     returned by get_successor_links. Mirrors PredecessorLink but keyed by

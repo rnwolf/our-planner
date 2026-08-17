@@ -1,3 +1,4 @@
+import datetime
 import os
 import tempfile
 import tkinter as tk
@@ -6,7 +7,7 @@ from tkinter import ttk, messagebox
 
 from src.model.dependency_notation import format_predecessor_notation
 from src.operations.task_operations import OptionSelectDialog
-from src.utils.tk_helpers import add_resize_handle
+from src.utils.tk_helpers import add_resize_handle, mnemonic
 
 
 class ReportOperations:
@@ -146,6 +147,197 @@ class ReportOperations:
                 )
 
         tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
+
+        add_resize_handle(dialog)
+
+    # ---- Status Update Log report ----------------------------------------
+    # The root-cause counterpart to Full-Kit Readiness: every Record
+    # Remaining Duration update (reason/note or not), for periodic review
+    # of *why* a plan is deviating, not just that it is.
+
+    def compute_status_update_log(self, project) -> tuple[list, int]:
+        """The extractor half - separated from the dialog (the renderer
+        half) so the underlying data can be tested without a real Tk root.
+        Returns (entries_sorted_oldest_first, with_reason_or_note_count),
+        scoped to `project` and whatever filters are currently active on
+        the Filter menu (same convention as compute_fullkit_readiness)."""
+        filtered = self.controller.tag_ops.get_filtered_tasks()
+        tasks = [t for t in filtered if t.get('project_id') == project['id']]
+
+        entries = []
+        for task in tasks:
+            for record in task.get('remaining_duration_history', []):
+                entry = {
+                    'date': record['date'],
+                    'task_id': task['task_id'],
+                    'task_description': task['description'],
+                    'remaining_duration': record['remaining_duration'],
+                }
+                if record.get('reason'):
+                    entry['reason'] = record['reason']
+                if record.get('note'):
+                    entry['note'] = record['note']
+                entries.append(entry)
+
+        entries.sort(key=lambda e: e['date'])
+        with_reason_or_note = sum(
+            1 for e in entries if e.get('reason') or e.get('note')
+        )
+        return entries, with_reason_or_note
+
+    def view_status_update_log(self, project=None):
+        """Every Record Remaining Duration update for a project (not just
+        the ones with a reason/note - the point is reviewing the complete
+        record to spot patterns, e.g. "most of our buffer consumption is
+        Waiting for Resource"), scoped by whatever's currently active on
+        the Filter menu, same as Full-Kit Readiness."""
+        if project is None:
+            project = self._select_project('Status Update Log')
+            if project is None:
+                return
+
+        entries, with_reason_or_note = self.compute_status_update_log(project)
+
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title(f'Status Update Log: {project["name"]}')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+        dialog.geometry('560x520')
+
+        frame = tk.Frame(dialog, padx=10, pady=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(
+            frame,
+            text=f'Status Update Log: {project["name"]}',
+            font=('Arial', 10, 'bold'),
+            wraplength=520,
+        ).pack(fill=tk.X, pady=(0, 10))
+
+        if self.controller.tag_ops.has_active_filters():
+            tk.Label(
+                frame,
+                text='(Scoped to the currently active Filter menu selection)',
+                font=('Arial', 8, 'italic'),
+                fg='gray',
+            ).pack(anchor='w', pady=(0, 5))
+
+        summary = tk.Label(
+            frame,
+            text=(
+                f'{len(entries)} status update(s) recorded, '
+                f'{with_reason_or_note} with a reason/note'
+            ),
+        )
+        summary.pack(anchor='w', pady=(0, 5))
+
+        only_annotated_var = tk.BooleanVar(value=False)
+
+        list_frame = tk.Frame(frame)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        listbox = tk.Listbox(
+            list_frame, yscrollcommand=scrollbar.set, exportselection=False
+        )
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=listbox.yview)
+
+        detail = tk.Label(frame, text='', anchor='w', justify=tk.LEFT, wraplength=520)
+
+        # Rebuilt on toggle rather than filtered in place, matching the
+        # Fever Charts "Show Status Update Reasons/Notes" toggle's pattern
+        # - the list contents shown here always mirror `visible` exactly,
+        # so index-based lookups from a click can't drift out of sync.
+        visible: list = []
+
+        def on_select(event=None):
+            selected = listbox.curselection()
+            if not selected:
+                return
+            entry = visible[selected[0]]
+            detail.config(text=entry.get('note') or '(no note)')
+
+        def rebuild():
+            visible.clear()
+            visible.extend(
+                e
+                for e in entries
+                if not only_annotated_var.get() or e.get('reason') or e.get('note')
+            )
+            listbox.delete(0, tk.END)
+            if not visible:
+                listbox.insert(tk.END, 'No matching status updates.')
+                detail.config(text='')
+                return
+            for entry in visible:
+                date = datetime.datetime.fromisoformat(entry['date']).strftime(
+                    '%Y-%m-%d'
+                )
+                line = (
+                    f'{date}  {entry["task_description"]}: '
+                    f'{entry["remaining_duration"]}d remaining'
+                )
+                if entry.get('reason'):
+                    line += f'  —  {entry["reason"]}'
+                listbox.insert(tk.END, line)
+            listbox.selection_set(tk.END)
+            on_select()
+
+        listbox.bind('<<ListboxSelect>>', on_select)
+
+        only_annotated_check = tk.Checkbutton(
+            frame,
+            text='Only show updates with a reason or note',
+            variable=only_annotated_var,
+            underline=mnemonic('Only show updates with a reason or note', 'Only'),
+            command=rebuild,
+        )
+        only_annotated_check.pack(anchor='w', pady=(5, 5))
+        dialog.bind(
+            '<Alt-o>',
+            lambda e: (
+                only_annotated_var.set(not only_annotated_var.get()),
+                rebuild(),
+            ),
+        )
+
+        detail.pack(anchor='w', fill=tk.X, pady=(5, 0))
+
+        rebuild()
+
+        button_frame = tk.Frame(frame)
+        button_frame.pack(pady=(10, 0))
+
+        download_button = tk.Button(
+            button_frame,
+            text='Download Data (CSV)...',
+            underline=mnemonic('Download Data (CSV)...', 'Download'),
+            command=lambda: self.controller.export_ops.export_status_update_log(
+                project=project
+            ),
+        )
+        download_button.pack(side=tk.LEFT, padx=5)
+        download_button.bind('<Return>', lambda e: download_button.invoke())
+        dialog.bind(
+            '<Alt-d>',
+            lambda e: self.controller.export_ops.export_status_update_log(
+                project=project
+            ),
+        )
+
+        close_button = tk.Button(
+            button_frame,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=dialog.destroy,
+        )
+        close_button.pack(side=tk.LEFT, padx=5)
+        close_button.bind('<Return>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 
         add_resize_handle(dialog)
 

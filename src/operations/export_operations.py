@@ -1716,6 +1716,114 @@ class ExportOperations:
             )
             return False
 
+    def export_status_update_log(self, project=None):
+        """Export a project's Status Update Log (Reports > Status Update
+        Log...) to CSV - the reason/note behind each Record Remaining
+        Duration update, for building pivot tables or feeding a PMO
+        reporting system.
+
+        Reuses report_ops.compute_status_update_log rather than re-deriving
+        the same rows independently, so the CSV can never disagree with
+        what the report dialog it was downloaded from actually showed
+        (same reasoning as export_fever_chart_data mirroring
+        draw_fever_chart's own math).
+        """
+        if project is None:
+            if not self.model.projects:
+                messagebox.showinfo(
+                    'No Projects',
+                    'Create a project first via Projects > Manage Projects...',
+                    parent=self.controller.root,
+                )
+                return False
+
+            if len(self.model.projects) == 1:
+                project = self.model.projects[0]
+            else:
+                from src.operations.task_operations import OptionSelectDialog
+
+                names = [p['name'] for p in self.model.projects]
+                default = self.model.get_default_project()
+                dialog = OptionSelectDialog(
+                    self.controller.root,
+                    'Export Status Update Log',
+                    'Project:',
+                    names,
+                    initial_value=default['name'] if default else names[0],
+                )
+                if dialog.result is None:
+                    return False
+                project = self.model.get_project_by_name(dialog.result)
+
+        entries, _ = self.controller.report_ops.compute_status_update_log(project)
+        if not entries:
+            messagebox.showinfo(
+                'No Status Updates Found',
+                f"'{project['name']}' has no recorded status updates to export "
+                '(within the currently active Filter menu scope, if any).',
+                parent=self.controller.root,
+            )
+            return False
+
+        safe_project = ''.join(c if c.isalnum() else '_' for c in project['name'])
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_path = filedialog.asksaveasfilename(
+            defaultextension='.csv',
+            filetypes=[('CSV files', '*.csv'), ('All files', '*.*')],
+            title='Export Status Update Log',
+            initialfile=f'{safe_project}_status_update_log_{timestamp}.csv',
+        )
+        if not file_path:
+            return False
+
+        try:
+            import csv
+
+            fieldnames = [
+                'Project',
+                'Task ID',
+                'Task Description',
+                'Date',
+                'Remaining Duration',
+                'Reason',
+                'Note',
+            ]
+
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+
+                for entry in entries:
+                    date_str = datetime.datetime.fromisoformat(entry['date']).strftime(
+                        '%Y-%m-%d'
+                    )
+                    writer.writerow(
+                        {
+                            'Project': project['name'],
+                            'Task ID': entry['task_id'],
+                            'Task Description': entry['task_description'],
+                            'Date': date_str,
+                            'Remaining Duration': entry['remaining_duration'],
+                            'Reason': entry.get('reason', ''),
+                            'Note': entry.get('note', ''),
+                        }
+                    )
+
+            messagebox.showinfo(
+                'Export Complete',
+                f'Exported {len(entries)} status update(s) to:\n{file_path}',
+                parent=self.controller.root,
+            )
+            return True
+
+        except Exception as e:
+            messagebox.showerror(
+                'Export Error',
+                f'Error exporting status update log: {e}',
+                parent=self.controller.root,
+            )
+            return False
+
     # def export_to_csv(self):
     #     """Export task and resource data to CSV."""
     #     # For a full implementation, we would:

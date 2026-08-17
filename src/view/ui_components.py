@@ -705,6 +705,11 @@ class UIComponents:
             underline=mnemonic('Full-Kit Readiness...', 'Readiness'),
             command=lambda: self.controller.report_ops.view_fullkit_readiness_report(),
         )
+        self.reports_menu.add_command(
+            label='Status Update Log...',
+            underline=mnemonic('Status Update Log...', 'Status'),
+            command=lambda: self.controller.report_ops.view_status_update_log(),
+        )
 
         # Network Graph (Stage 18) - the interactive dependency-graph view
         # from the external ccpm-scheduler, for any set of tasks
