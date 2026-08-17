@@ -8,7 +8,7 @@ import tkinter as tk
 from tkinter import scrolledtext, ttk
 import webbrowser
 from src.utils.version import get_version
-from src.utils.tk_helpers import add_resize_handle
+from src.utils.tk_helpers import add_resize_handle, mnemonic
 from src.model.dependency_notation import format_predecessor_notation
 
 
@@ -32,11 +32,26 @@ class HelpMenu:
 
         # Add menu items
         self.help_menu.add_command(
-            label='Documentation', command=self.show_documentation
+            label='Documentation',
+            underline=mnemonic('Documentation', 'Documentation'),
+            command=self.show_documentation,
         )
-        self.help_menu.add_command(label='Website', command=self.open_website)
-        self.help_menu.add_command(label='About', command=self.show_about)
-        self.help_menu.add_command(label='Debug', command=self.show_debug)
+        self.help_menu.add_command(
+            label='Website',
+            underline=mnemonic('Website', 'Website'),
+            command=self.open_website,
+        )
+        self.help_menu.add_command(
+            label='About',
+            underline=mnemonic('About', 'About'),
+            command=self.show_about,
+        )
+        self.help_menu.add_command(
+            label='Debug',
+            # 2nd letter - 'D' is already Documentation's mnemonic above
+            underline=mnemonic('Debug', 'Debug', 'e'),
+            command=self.show_debug,
+        )
 
     def show_documentation(self):
         """Show the user documentation."""

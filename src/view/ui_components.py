@@ -13,7 +13,7 @@ from src.utils.colors import (
     COLOR_NAMES,
     get_resource_load_color,
 )
-from src.utils.tk_helpers import add_resize_handle
+from src.utils.tk_helpers import add_resize_handle, mnemonic
 from src.model.dependency_notation import (
     LINK_TYPES_ORDERED,
     BUFFER_LINK_TYPES,
@@ -235,22 +235,36 @@ class UIComponents:
         self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label='File', menu=self.file_menu, underline=0)
 
-        # File operations
+        # File operations - accelerator= is display-only in Tk, so each of
+        # these also needs the matching root.bind() below to actually work.
         self.file_menu.add_command(
-            label='New', command=self.controller.file_ops.new_project
+            label='New',
+            underline=mnemonic('New', 'New'),
+            accelerator='Ctrl+N',
+            command=self.controller.file_ops.new_project,
         )
         self.file_menu.add_command(
-            label='Open...', command=self.controller.file_ops.open_file
+            label='Open...',
+            underline=mnemonic('Open...', 'Open'),
+            accelerator='Ctrl+O',
+            command=self.controller.file_ops.open_file,
         )
         self.file_menu.add_command(
-            label='Save', command=self.controller.file_ops.save_file
+            label='Save',
+            underline=mnemonic('Save', 'Save'),
+            accelerator='Ctrl+S',
+            command=self.controller.file_ops.save_file,
         )
         self.file_menu.add_command(
-            label='Save As...', command=self.controller.file_ops.save_file_as
+            label='Save As...',
+            underline=mnemonic('Save As...', 'As'),
+            accelerator='Ctrl+Shift+S',
+            command=self.controller.file_ops.save_file_as,
         )
         self.file_menu.add_separator()
         self.file_menu.add_command(
             label='Import CCPM Schedule...',
+            underline=mnemonic('Import CCPM Schedule...', 'Import'),
             command=self.controller.file_ops.import_ccpm_schedule,
         )
 
@@ -262,36 +276,50 @@ class UIComponents:
         # resource_ids must already exist).
         self.import_network_menu = tk.Menu(self.file_menu, tearoff=0)
         self.file_menu.add_cascade(
-            label='Import Network', menu=self.import_network_menu
+            label='Import Network',
+            menu=self.import_network_menu,
+            # the 'w' - 'I' is already Import CCPM Schedule's mnemonic above
+            underline=mnemonic('Import Network', 'Network', 'w'),
         )
         self.import_network_menu.add_command(
             label='Import Resources...',
+            underline=mnemonic('Import Resources...', 'Resources'),
             command=self.controller.file_ops.import_resources,
         )
         self.import_network_menu.add_command(
             label='Import Resource Calendars...',
+            underline=mnemonic('Import Resource Calendars...', 'Calendars'),
             command=self.controller.file_ops.import_resource_calendars,
         )
         self.import_network_menu.add_command(
             label='Import Tasks...',
+            underline=mnemonic('Import Tasks...', 'Tasks'),
             command=self.controller.file_ops.import_tasks,
         )
 
         self.file_menu.add_command(
             label='Export CCPM Network...',
+            underline=mnemonic('Export CCPM Network...', 'CCPM'),
             command=self.controller.ccpm_ops.export_ccpm_network,
         )
         self.file_menu.add_command(
             label='Schedule with CCPM...',
+            underline=mnemonic('Schedule with CCPM...', 'Schedule'),
             command=self.controller.ccpm_ops.schedule_with_ccpm,
         )
         self.file_menu.add_separator()
-        self.file_menu.add_command(label='Exit', command=self.controller.root.quit)
+        self.file_menu.add_command(
+            label='Exit',
+            underline=mnemonic('Exit', 'Exit', 'x'),  # 'E' is Export's mnemonic below
+            command=self.controller.root.quit,
+        )
 
         # Add separator and export commands
         self.file_menu.add_separator()
         self.file_menu.add_command(
-            label='Export...', command=self.controller.export_ops.open_export_dialog
+            label='Export...',
+            underline=mnemonic('Export...', 'Export'),
+            command=self.controller.export_ops.open_export_dialog,
         )
 
         # Edit menu (Alt+E)
@@ -371,12 +399,14 @@ class UIComponents:
         # Edit operations
         self.edit_menu.add_command(
             label='Add Resource...',
+            underline=mnemonic('Add Resource...', 'Add'),
             command=lambda: self.controller.task_ops.add_resource(
                 parent=self.controller.root
             ),
         )
         self.edit_menu.add_command(
             label='Edit Resources...',
+            underline=mnemonic('Edit Resources...', 'Resources'),
             command=lambda: self.controller.task_ops.edit_resources(
                 parent=self.controller.root
             ),
@@ -384,6 +414,7 @@ class UIComponents:
         self.edit_menu.add_separator()
         self.edit_menu.add_command(
             label='Project Settings...',
+            underline=mnemonic('Project Settings...', 'Project'),
             command=lambda: self.controller.task_ops.edit_project_settings(
                 parent=self.controller.root
             ),
@@ -418,6 +449,7 @@ class UIComponents:
         self.auto_scheduling_var = tk.BooleanVar(value=False)
         self.tasks_menu.add_checkbutton(
             label='Auto Scheduling',
+            underline=mnemonic('Auto Scheduling', 'Auto'),
             variable=self.auto_scheduling_var,
             command=self.controller.toggle_auto_scheduling,
         )
@@ -438,44 +470,63 @@ class UIComponents:
 
         self.filter_menu.add_command(
             label='Filter Tasks by Tags...',
+            underline=mnemonic('Filter Tasks by Tags...', 'Tags'),
             command=self.controller.tag_ops.filter_tasks_by_tags,
         )
         self.filter_menu.add_command(
             label='Filter Tasks by Project...',
+            underline=mnemonic('Filter Tasks by Project...', 'Project'),
             command=self.controller.tag_ops.filter_tasks_by_project,
         )
         self.filter_menu.add_command(
             label='Filter Tasks by State...',
+            underline=mnemonic('Filter Tasks by State...', 'State'),
             command=self.controller.tag_ops.filter_tasks_by_state,
         )
         self.filter_menu.add_command(
             label='Filter Tasks by Full-Kit Readiness...',
+            underline=mnemonic('Filter Tasks by Full-Kit Readiness...', 'Full-Kit'),
             command=self.controller.tag_ops.filter_tasks_by_fullkit,
         )
         self.filter_menu.add_command(
             label='Filter Tasks by Planned Start...',
+            # the 'l' - 'P' is already "...by Project..." above, 'S' is
+            # already "...by State..." above
+            underline=mnemonic('Filter Tasks by Planned Start...', 'Planned', 'l'),
             command=self.controller.tag_ops.filter_tasks_by_start_window,
         )
         self.filter_menu.add_command(
             label='Filter Resources by Tags...',
+            underline=mnemonic('Filter Resources by Tags...', 'Resources'),
             command=self.controller.tag_ops.filter_resources_by_tags,
         )
         self.filter_menu.add_command(
             label='Filter Resources by Project...',
+            # the 2nd letter of "Project" - 'P' is taken by the Resources
+            # mnemonic just above reading differently ('R'), but 'Project'
+            # itself would repeat "...Tasks by Project..."'s 'P' above
+            underline=mnemonic('Filter Resources by Project...', 'Project', 'r'),
             command=self.controller.tag_ops.filter_resources_by_project,
         )
         self.filter_menu.add_separator()
         self.filter_menu.add_command(
             label='Select Tasks by Tags...',
+            # the 2nd letter of "Select" - 'S' is "...by State..." above,
+            # 'T' is "...by Tags..." above
+            underline=mnemonic('Select Tasks by Tags...', 'Select', 'e'),
             command=self.controller.tag_ops.select_tasks_by_tag,
         )
         self.filter_menu.add_command(
             label='Toggle Multi-Select Mode',
+            # 'Multi' - 'T' is already "...by Tags..." above
+            underline=mnemonic('Toggle Multi-Select Mode', 'Multi'),
             command=self.controller.toggle_multi_select_mode,
         )
         self.filter_menu.add_separator()
         self.filter_menu.add_command(
-            label='Clear All Filters', command=self.controller.clear_all_filters
+            label='Clear All Filters',
+            underline=mnemonic('Clear All Filters', 'Clear'),
+            command=self.controller.clear_all_filters,
         )
 
         # View menu (new)
@@ -486,6 +537,7 @@ class UIComponents:
         self.show_tags_var = tk.BooleanVar(value=True)
         self.view_menu.add_checkbutton(
             label='Show Tags on Tasks',
+            underline=mnemonic('Show Tags on Tasks', 'Show'),
             variable=self.show_tags_var,
             command=self.controller.update_view,
         )
@@ -493,13 +545,17 @@ class UIComponents:
         # Add notes panel toggle to the View menu
         self.view_menu.add_separator()
         self.view_menu.add_command(
-            label='Toggle Notes Panel', command=self.controller.toggle_notes_panel
+            label='Toggle Notes Panel',
+            underline=mnemonic('Toggle Notes Panel', 'Notes'),
+            command=self.controller.toggle_notes_panel,
         )
 
         # Add zoom options
         self.view_menu.add_separator()
         self.view_menu.add_command(
-            label='Reset Zoom (Ctrl+0)', command=self.controller.reset_zoom
+            label='Reset Zoom (Ctrl+0)',
+            underline=mnemonic('Reset Zoom (Ctrl+0)', 'Reset'),
+            command=self.controller.reset_zoom,
         )
 
         # Date menu
@@ -508,18 +564,24 @@ class UIComponents:
 
         # Date operations
         self.date_menu.add_command(
-            label='Set Current Date...', command=self.edit_setdate
+            label='Set Current Date...',
+            underline=mnemonic('Set Current Date...', 'Set'),
+            command=self.edit_setdate,
         )
         self.date_menu.add_command(
-            label='Reset to Today', command=self.reset_setdate_to_today
+            label='Reset to Today',
+            underline=mnemonic('Reset to Today', 'Reset'),
+            command=self.reset_setdate_to_today,
         )
         self.date_menu.add_separator()
         self.date_menu.add_command(
             label='Extend Timeline...',
+            underline=mnemonic('Extend Timeline...', 'Extend'),
             command=self.controller.task_ops.extend_timeline_dialog,
         )
         self.date_menu.add_command(
             label='Delete History...',
+            underline=mnemonic('Delete History...', 'Delete'),
             command=self.controller.task_ops.delete_history_dialog,
         )
 
@@ -531,6 +593,7 @@ class UIComponents:
 
         self.projects_menu.add_command(
             label='Manage Projects...',
+            underline=mnemonic('Manage Projects...', 'Manage'),
             command=lambda: self.controller.task_ops.manage_projects_dialog(
                 parent=self.controller.root
             ),
@@ -545,10 +608,13 @@ class UIComponents:
 
         self.reports_menu.add_command(
             label='Project Fever Charts...',
+            underline=mnemonic('Project Fever Charts...', 'Fever'),
             command=lambda: self.controller.task_ops.view_project_fever_charts(),
         )
         self.reports_menu.add_command(
             label='Full-Kit Readiness...',
+            # 'Readiness' - 'F' is already the Fever Charts mnemonic above
+            underline=mnemonic('Full-Kit Readiness...', 'Readiness'),
             command=lambda: self.controller.report_ops.view_fullkit_readiness_report(),
         )
 
@@ -836,6 +902,22 @@ class UIComponents:
         # Add Ctrl+E for export
         self.controller.root.bind(
             '<Control-e>', lambda e: self.controller.export_ops.open_export_dialog()
+        )
+
+        # File menu accelerators (Ctrl+N/O/S, Ctrl+Shift+S) - the menu's
+        # accelerator= text is display-only in Tk, it doesn't bind a key on
+        # its own.
+        self.controller.root.bind(
+            '<Control-n>', lambda e: self.controller.file_ops.new_project()
+        )
+        self.controller.root.bind(
+            '<Control-o>', lambda e: self.controller.file_ops.open_file()
+        )
+        self.controller.root.bind(
+            '<Control-s>', lambda e: self.controller.file_ops.save_file()
+        )
+        self.controller.root.bind(
+            '<Control-Shift-S>', lambda e: self.controller.file_ops.save_file_as()
         )
 
     def create_resource_grid_frame(self):

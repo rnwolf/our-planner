@@ -6,7 +6,7 @@ This module contains the UI components for the Network menu.
 
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
-from src.utils.tk_helpers import add_resize_handle
+from src.utils.tk_helpers import add_resize_handle, mnemonic
 
 
 class NetworkMenu:
@@ -29,7 +29,9 @@ class NetworkMenu:
 
         # Add menu items
         self.network_menu.add_command(
-            label='Critical Path', command=self.show_critical_path
+            label='Critical Path',
+            underline=mnemonic('Critical Path', 'Critical'),
+            command=self.show_critical_path,
         )
 
     def _build_critical_path_dialog(self):
