@@ -1313,6 +1313,13 @@ class TaskOperations:
         dialog.bind('<Alt-s>', lambda e: save_resources())
         dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 
+        # A plain tk.Button only binds <space> to invoke itself by
+        # default, not <Return> - reasonable expectation on every
+        # platform's convention is that Enter activates whichever button
+        # currently has focus, so each needs it bound explicitly.
+        for button in (remove_button, add_button, save_button, cancel_button):
+            button.bind('<Return>', lambda e, b=button: b.invoke())
+
         refresh_assigned()
         refresh_available()
         search_entry.focus_set()
