@@ -169,18 +169,56 @@ class ScenarioDriver:
         self._find_button(dialog, 'Save').invoke()
         self.pump()
 
-    # -- dependencies ----------------------------------------------------
+    # -- menu wiring checks ----------------------------------------------
+    #
+    # The wiring check dogtail/AT-SPI would have given us (does this
+    # command actually exist, under this label, in this menu?) done
+    # directly against the real tk.Menu widgets instead - Tk never
+    # exposes an accessibility tree for these, so this is the equivalent
+    # check available to us.
 
-    def assert_context_menu_has(self, label: str):
-        """Confirms the real right-click context menu (the single reused
-        tk.Menu built once in UIComponents.create_context_menu) actually
-        carries a command with this label - the wiring check dogtail would
-        have given us, done directly against the real Menu widget instead."""
-        menu = self.app.ui.context_menu
+    def assert_menu_has(self, menu: tk.Menu, label: str):
+        """Confirms `menu` carries a real entry (command, cascade,
+        checkbutton, ...) with this exact label."""
         try:
             menu.index(label)
         except tk.TclError as e:
-            raise AssertionError(f'context menu has no {label!r} entry: {e}') from e
+            raise AssertionError(f'menu has no {label!r} entry: {e}') from e
+
+    def assert_context_menu_has(self, label: str):
+        """Confirms the real right-click context menu (the single reused
+        tk.Menu built once in UIComponents.create_context_menu) carries a
+        command with this label."""
+        self.assert_menu_has(self.app.ui.context_menu, label)
+
+    def get_submenu(self, menu: tk.Menu, cascade_label: str) -> tk.Menu:
+        """The tk.Menu a cascade item labeled `cascade_label` opens."""
+        self.assert_menu_has(menu, cascade_label)
+        index = menu.index(cascade_label)
+        assert index is not None  # assert_menu_has above already confirmed this
+        entry_type = menu.type(index)
+        assert entry_type == 'cascade', (
+            f'{cascade_label!r} is a {entry_type!r} entry, not a cascade'
+        )
+        submenu_name = menu.entrycget(index, 'menu')
+        return menu.nametowidget(submenu_name)
+
+    def assert_menu_path_has(self, *path: str) -> tk.Menu:
+        """Confirms a full menu-bar path exists and is wired up, e.g.
+        `assert_menu_path_has('File', 'Import Network', 'Import Resources...')`
+        walks menu_bar -> the 'File' cascade -> the 'Import Network'
+        cascade -> asserts 'Import Resources...' is a real entry there.
+        Returns the menu containing the final path segment, so a scenario
+        can go on to invoke it (e.g. `.invoke(label)`) instead of calling
+        the handler directly."""
+        assert path, 'assert_menu_path_has() needs at least one label'
+        menu = self.app.ui.menu_bar
+        for cascade_label in path[:-1]:
+            menu = self.get_submenu(menu, cascade_label)
+        self.assert_menu_has(menu, path[-1])
+        return menu
+
+    # -- dependencies ----------------------------------------------------
 
     def add_predecessor(
         self, task, predecessor_task, link_type: str = 'FS', lag: int = 0
@@ -208,6 +246,8 @@ class ScenarioDriver:
         auto-selects it, no list dialog to answer). Returns the info
         messagebox's text (or raises with the error box's text on
         failure) instead of letting either block on a real popup."""
+        self.assert_menu_path_has('File', 'Schedule with CCPM...')
+
         captured: dict[str, str] = {}
 
         def fake_showinfo(_title, message, **_kwargs):
