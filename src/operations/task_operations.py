@@ -11,7 +11,7 @@ from src.model.task_resource_model import (
     CCPM_METHODS,
     DEFAULT_CCPM_METHOD,
 )
-from src.utils.tk_helpers import add_resize_handle
+from src.utils.tk_helpers import add_resize_handle, mnemonic
 
 
 class FloatEntryDialog(simpledialog.Dialog):
@@ -1302,23 +1302,30 @@ class TaskOperations:
         details_frame = tk.Frame(resource_management_frame)
         details_frame.pack(fill=tk.X, pady=10)
 
-        # Inside the resource details section, add:
-        weekend_frame = tk.Frame(details_frame)
-        weekend_frame.grid(row=1, column=0, columnspan=2, sticky='w', pady=5)
-
-        works_weekends_var = tk.BooleanVar(value=True)
-        works_weekends_cb = tk.Checkbutton(
-            weekend_frame, text='Works on weekends', variable=works_weekends_var
-        )
-        works_weekends_cb.pack(side=tk.LEFT)
-
-        # Resource name editing
+        # Resource name editing - created first (before the weekend
+        # checkbox below) so keyboard Tab order starts here, matching its
+        # row=0 position: Tk's default Tab traversal follows widget
+        # *creation* order among siblings, not grid row, so with the
+        # checkbox created first it used to be visited before this field
+        # despite sitting below it on screen.
         tk.Label(details_frame, text='Resource Name:').grid(
             row=0, column=0, sticky='w', padx=5, pady=5
         )
         resource_name_var = tk.StringVar()
         name_entry = tk.Entry(details_frame, textvariable=resource_name_var, width=30)
         name_entry.grid(row=0, column=1, sticky='w', padx=5, pady=5)
+
+        weekend_frame = tk.Frame(details_frame)
+        weekend_frame.grid(row=1, column=0, columnspan=2, sticky='w', pady=5)
+
+        works_weekends_var = tk.BooleanVar(value=True)
+        works_weekends_cb = tk.Checkbutton(
+            weekend_frame,
+            text='Works on weekends',
+            variable=works_weekends_var,
+            underline=mnemonic('Works on weekends', 'Works'),
+        )
+        works_weekends_cb.pack(side=tk.LEFT)
 
         # Resource URL editing
         tk.Label(details_frame, text='Resource URL:').grid(
@@ -1545,15 +1552,27 @@ class TaskOperations:
         # Bind selection event
         resource_listbox.bind('<<ListboxSelect>>', on_resource_select)
 
-        # Add buttons for resource management
+        # Add buttons for resource management - underline= alone is only
+        # the visual cue for a tk.Button (unlike a menu command, it
+        # doesn't bind the key itself), so each also needs the Alt-<letter>
+        # binding below to actually be invokable from the keyboard.
         tk.Button(
-            button_frame, text='Add Resource', command=add_resource_from_dialog
+            button_frame,
+            text='Add Resource',
+            underline=mnemonic('Add Resource', 'Add'),
+            command=add_resource_from_dialog,
         ).pack(side=tk.LEFT, padx=5)
         tk.Button(
-            button_frame, text='Update Resource', command=update_selected_resource
+            button_frame,
+            text='Update Resource',
+            underline=mnemonic('Update Resource', 'Update'),
+            command=update_selected_resource,
         ).pack(side=tk.LEFT, padx=5)
         tk.Button(
-            button_frame, text='Remove Resource', command=remove_selected_resource
+            button_frame,
+            text='Remove Resource',
+            underline=mnemonic('Remove Resource', 'Remove'),
+            command=remove_selected_resource,
         ).pack(side=tk.LEFT, padx=5)
 
         # Create the dropdown for resource selection
@@ -1597,12 +1616,30 @@ class TaskOperations:
 
         # Get a reference to the Close button
         close_button = tk.Button(
-            close_button_frame, text='Close', command=on_dialog_close, width=10
+            close_button_frame,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=on_dialog_close,
+            width=10,
         )
         close_button.pack(side=tk.RIGHT)
 
         # Bind the Return/Enter key to the dialog globally
         dialog.bind('<Return>', lambda event: handle_enter_key(event))
+
+        # Alt-<letter> shortcuts for every action in this dialog, so it's
+        # fully operable from the keyboard alone: Tab already reaches
+        # every field/button/list (now in the right order, see above) and
+        # arrow keys navigate the listbox and toggle the checkbox once
+        # focused, but a tk.Button's underline= is cosmetic only - it
+        # doesn't bind the key the way a menu command's does.
+        dialog.bind('<Alt-a>', lambda e: add_resource_from_dialog())
+        dialog.bind('<Alt-u>', lambda e: update_selected_resource())
+        dialog.bind('<Alt-r>', lambda e: remove_selected_resource())
+        dialog.bind('<Alt-c>', lambda e: on_dialog_close())
+        dialog.bind(
+            '<Alt-w>', lambda e: works_weekends_var.set(not works_weekends_var.get())
+        )
 
         # Function to handle Enter key press
         def handle_enter_key(event):
