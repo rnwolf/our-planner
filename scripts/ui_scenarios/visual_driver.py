@@ -89,21 +89,23 @@ class VisualDriver(ScenarioDriver):
         self.root.after(delay_ms, answer)
 
     def _dismiss_lingering_dialogs(self):
-        """Closes any Toplevel left open (e.g. edit_task_resources/
-        edit_task_tags, which pop non-modally and don't block like
-        simpledialog does) - the way a user skipping them for now would.
+        """Closes any Toplevel left open after task creation (e.g.
+        edit_task_resources, which pops non-modally and doesn't block like
+        simpledialog does) - the way a user skipping it for now would.
 
         Calls .destroy() directly rather than simulating an <Escape>
-        keypress: with two+ stacked grab_set() dialogs open (both
-        edit_task_resources and edit_task_tags call it), Tk's local grab
-        doesn't nest - the second grab_set() shadows the first, and
-        destroying the second leaves *no* window holding a grab at all
-        rather than reverting to the first. In that state a synthetic
-        <Escape> reliably fires on whichever dialog is still holding the
-        grab, but not on one that used to hold it - simulating the keypress
-        isn't the point here (these popups aren't part of what a scenario
-        is narrating), so just closing them directly sidesteps that
-        entirely.
+        keypress: task creation used to pop edit_task_resources AND
+        edit_task_tags together, and with two+ stacked grab_set() dialogs
+        open, Tk's local grab doesn't nest - the second grab_set() shadows
+        the first, and destroying the second leaves *no* window holding a
+        grab at all rather than reverting to the first. In that state a
+        synthetic <Escape> reliably fires on whichever dialog is still
+        holding the grab, but not on one that used to hold it. Task
+        creation only pops one dialog now, but this stays generic (and
+        keeps using .destroy()) in case a future dialog stacks another one
+        the same way - simulating the keypress was never the point here
+        anyway, since these popups aren't part of what a scenario is
+        narrating.
         """
         for dialog in [
             w for w in self.root.winfo_children() if isinstance(w, tk.Toplevel)
@@ -152,13 +154,26 @@ class VisualDriver(ScenarioDriver):
         self._beat()
 
         dialog = self._find_toplevel('Edit Task Resources')
-        entries = self._find_widgets(dialog, tk.Entry)
-        index = self.model.resources.index(resource)
-        entry = entries[index]
-        entry.focus_set()
+        search_entry, allocation_entry = self._find_widgets(dialog, tk.Entry)
+        _assigned_listbox, available_listbox = self._find_widgets(dialog, tk.Listbox)
+
+        search_entry.focus_set()
         self._beat(self.pace / 2)
-        self._type_into(entry, str(allocation))
+        self._type_into(search_entry, resource['name'])
         self._beat(self.pace / 2)
+
+        available_listbox.selection_clear(0, tk.END)
+        available_listbox.selection_set(0)
+        available_listbox.event_generate('<<ListboxSelect>>')
+        self._beat(self.pace / 2)
+
+        allocation_entry.focus_set()
+        self._beat(self.pace / 3)
+        self._type_into(allocation_entry, str(allocation))
+        self._beat(self.pace / 2)
+        self._find_button(dialog, 'Add / Update').invoke()
+        self._beat()
+
         self._find_button(dialog, 'Save').invoke()
         self._beat()
 

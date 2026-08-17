@@ -120,8 +120,8 @@ class ScenarioDriver:
     def create_task(self, row: int, col: int, duration: int, name: str):
         """Drag-create a task on the real canvas, the same gesture a user
         performs (press on empty grid, drag to the end column, release) -
-        then answer the three dialogs that follow release (name, resources,
-        tags) the way a scenario wants them answered."""
+        then answer the two dialogs that follow release (name, resources)
+        the way a scenario wants them answered."""
         start_x, y = self._canvas_xy(row, col)
         end_x, _ = self._canvas_xy(row, col + duration - 1)
 
@@ -135,7 +135,6 @@ class ScenarioDriver:
             patch.object(
                 self.app.task_ops, 'edit_task_resources', lambda *_a, **_k: None
             ),
-            patch.object(self.app.tag_ops, 'edit_task_tags', lambda *_a, **_k: None),
         ):
             self.app.task_ops.on_task_press(SyntheticEvent(start_x, y))
             self.app.task_ops.on_task_release(SyntheticEvent(end_x, y))
@@ -159,17 +158,30 @@ class ScenarioDriver:
 
     def assign_resource(self, task, resource, allocation: float = 1.0):
         """Right-click task -> Edit Task Resources: a hand-built Toplevel
-        with one Entry per known resource (in model.resources order) and a
-        Save button, not a simpledialog - driven by finding those real
-        widgets and using them, rather than patching a single call."""
+        (search box -> filtered results list -> allocation -> Add/Update),
+        not a simpledialog - driven by finding those real widgets and
+        using them, rather than patching a single call."""
         self.app.task_ops.edit_task_resources(task)
         self.pump()
 
         dialog = self._find_toplevel('Edit Task Resources')
-        entries = self._find_widgets(dialog, tk.Entry)
-        index = self.model.resources.index(resource)
-        entries[index].delete(0, tk.END)
-        entries[index].insert(0, str(allocation))
+        search_entry, allocation_entry = self._find_widgets(dialog, tk.Entry)
+        _assigned_listbox, available_listbox = self._find_widgets(dialog, tk.Listbox)
+
+        search_entry.delete(0, tk.END)
+        search_entry.insert(0, resource['name'])
+        self.pump()
+        assert available_listbox.size() > 0, (
+            f'no match for resource {resource["name"]!r} in the search results'
+        )
+        available_listbox.selection_clear(0, tk.END)
+        available_listbox.selection_set(0)
+        available_listbox.event_generate('<<ListboxSelect>>')
+        self.pump()
+
+        allocation_entry.delete(0, tk.END)
+        allocation_entry.insert(0, str(allocation))
+        self._find_button(dialog, 'Add / Update').invoke()
         self._find_button(dialog, 'Save').invoke()
         self.pump()
 

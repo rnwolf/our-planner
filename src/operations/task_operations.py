@@ -1073,132 +1073,251 @@ class TaskOperations:
         )
 
     def edit_task_resources(self, task=None):
-        """Edit resources for the selected task with fractional allocations"""
+        """Add/remove/adjust this task's resource allocations.
+
+        A search-and-add list against the resource pool, rather than one
+        row per resource in the whole system: that older layout (a fixed-
+        width Label per row in a fixed-width canvas, no horizontal
+        scroll) silently truncated any name past ~15 characters, and
+        doesn't scale - most tasks only ever need a handful of resources
+        even when the pool has dozens. Nothing is written back to the
+        task until Save; Cancel discards the whole editing session
+        (working is a separate copy of task['resources'])."""
         if task is None:
             task = self.controller.selected_task
+        if not task:
+            return
 
-        if task:
-            # Create a dialog for resource selection
-            dialog = tk.Toplevel(self.controller.root)
-            dialog.title('Edit Task Resources')
-            dialog.geometry('300x400')
-            dialog.transient(self.controller.root)
-            dialog.grab_set()
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Edit Task Resources')
+        dialog.geometry('480x580')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+        dialog.focus_set()
+        dialog.wait_visibility()
 
-            # Bind ESC key to close dialog
-            dialog.bind('<Escape>', lambda e: dialog.destroy())
+        working: dict[int, float] = dict(task['resources'])
+        assigned_order: list[int] = []
+        available_order: list[int] = []
 
-            # Ensure the dialog gets focus when opened
-            dialog.focus_set()
+        main_frame = tk.Frame(dialog)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-            # Wait for the dialog to be visible before setting focus
-            dialog.wait_visibility()
+        tk.Label(
+            main_frame,
+            text=f"Resources for '{task['description']}'",
+            font=('Helvetica', 10, 'bold'),
+        ).pack(anchor='w', pady=(0, 10))
 
-            # Create a frame with scrollbar for the resource list
-            resource_frame = tk.Frame(dialog)
-            resource_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # --- Assigned ---------------------------------------------------
+        tk.Label(main_frame, text='Assigned:').pack(anchor='w')
+        assigned_container = tk.Frame(main_frame)
+        assigned_container.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
+        assigned_scroll = tk.Scrollbar(assigned_container, takefocus=0)
+        assigned_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        assigned_listbox = tk.Listbox(
+            assigned_container,
+            yscrollcommand=assigned_scroll.set,
+            exportselection=False,
+            width=50,
+            height=8,
+        )
+        assigned_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        assigned_scroll.config(command=assigned_listbox.yview)
 
-            # Add scrollbar - takefocus=0: no visible focus ring
-            # (highlightthickness=0) but still a real Tab stop otherwise.
-            scrollbar = tk.Scrollbar(resource_frame, takefocus=0)
-            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        remove_button = tk.Button(
+            main_frame,
+            text='Remove Selected',
+            underline=mnemonic('Remove Selected', 'Remove'),
+        )
+        remove_button.pack(anchor='e', pady=(0, 10))
 
-            # Create a canvas to hold the resource list (explicit size: a
-            # default canvas requests ~380px width, which would drive the
-            # measured minsize past this dialog's width)
-            canvas = tk.Canvas(
-                resource_frame, yscrollcommand=scrollbar.set, width=260, height=300
-            )
-            canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            scrollbar.config(command=canvas.yview)
+        # --- Add / update -------------------------------------------------
+        tk.Label(main_frame, text='Add or update resource:').pack(
+            anchor='w', pady=(5, 0)
+        )
 
-            # Frame inside canvas for resources
-            inner_frame = tk.Frame(canvas)
-            canvas.create_window((0, 0), window=inner_frame, anchor='nw')
+        search_frame = tk.Frame(main_frame)
+        search_frame.pack(fill=tk.X, pady=(2, 2))
+        tk.Label(search_frame, text='Search:').pack(side=tk.LEFT)
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(search_frame, textvariable=search_var)
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
 
-            # Label for the dialog
-            tk.Label(
-                inner_frame,
-                text='Specify resource allocations:',
-                font=('Helvetica', 10, 'bold'),
-            ).pack(pady=5)
+        available_container = tk.Frame(main_frame)
+        available_container.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
+        available_scroll = tk.Scrollbar(available_container, takefocus=0)
+        available_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        available_listbox = tk.Listbox(
+            available_container,
+            yscrollcommand=available_scroll.set,
+            exportselection=False,
+            width=50,
+            height=6,
+        )
+        available_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        available_scroll.config(command=available_listbox.yview)
 
-            # Dictionary to store resource allocation entries
-            resource_entries = {}
+        alloc_frame = tk.Frame(main_frame)
+        alloc_frame.pack(fill=tk.X, pady=(0, 10))
+        tk.Label(alloc_frame, text='Allocation:').pack(side=tk.LEFT)
+        allocation_var = tk.StringVar(value='1.0')
+        allocation_entry = tk.Entry(alloc_frame, textvariable=allocation_var, width=8)
+        allocation_entry.pack(side=tk.LEFT, padx=5)
+        add_button = tk.Button(
+            alloc_frame, text='Add / Update', underline=mnemonic('Add / Update', 'Add')
+        )
+        add_button.pack(side=tk.LEFT, padx=5)
 
-            # Create entry fields for each resource
-            for resource in self.model.resources:
-                resource_id = resource['id']
-                resource_name = resource['name']
+        def refresh_assigned():
+            assigned_listbox.delete(0, tk.END)
+            assigned_order.clear()
+            for resource in sorted(
+                self.model.resources, key=lambda r: r['name'].lower()
+            ):
+                rid = resource['id']
+                if rid in working:
+                    assigned_order.append(rid)
+                    assigned_listbox.insert(
+                        tk.END, f'{resource["name"]}  —  {working[rid]}'
+                    )
 
-                # Create a frame for each resource
-                resource_row = tk.Frame(inner_frame)
-                resource_row.pack(fill=tk.X, padx=5, pady=2)
+        def refresh_available():
+            available_listbox.delete(0, tk.END)
+            available_order.clear()
+            query = search_var.get().strip().lower()
+            for resource in sorted(
+                self.model.resources, key=lambda r: r['name'].lower()
+            ):
+                if query and query not in resource['name'].lower():
+                    continue
+                rid = resource['id']
+                available_order.append(rid)
+                label = resource['name']
+                if rid in working:
+                    label += f'  (assigned: {working[rid]})'
+                available_listbox.insert(tk.END, label)
 
-                # Resource name label
-                tk.Label(resource_row, text=resource_name, width=15, anchor='w').pack(
-                    side=tk.LEFT
+        def add_or_update_selected(event=None):
+            selection = available_listbox.curselection()
+            if not selection:
+                messagebox.showwarning(
+                    'No Selection', 'Select a resource to add.', parent=dialog
                 )
+                return 'break'
+            rid = available_order[selection[0]]
+            try:
+                allocation = float(allocation_var.get())
+            except ValueError:
+                messagebox.showwarning(
+                    'Invalid Allocation', 'Enter a number.', parent=dialog
+                )
+                return 'break'
+            if allocation <= 0:
+                working.pop(rid, None)
+            else:
+                working[rid] = allocation
+            refresh_assigned()
+            refresh_available()
+            return 'break'
 
-                # Resource allocation entry
-                allocation = task['resources'].get(resource_id, 0.0)
-                var = tk.StringVar(value=str(allocation) if allocation > 0 else '')
-                entry = tk.Entry(resource_row, textvariable=var, width=8)
-                entry.pack(side=tk.LEFT, padx=5)
+        def remove_selected(event=None):
+            selection = assigned_listbox.curselection()
+            if not selection:
+                messagebox.showwarning(
+                    'No Selection',
+                    'Select an assigned resource to remove.',
+                    parent=dialog,
+                )
+                return 'break'
+            rid = assigned_order[selection[0]]
+            working.pop(rid, None)
+            refresh_assigned()
+            refresh_available()
+            return 'break'
 
-                resource_entries[resource_id] = var
+        def on_available_select(event=None):
+            selection = available_listbox.curselection()
+            if selection:
+                rid = available_order[selection[0]]
+                allocation_var.set(str(working.get(rid, 1.0)))
 
-            # Function to save resource allocations and close dialog
-            def save_resources():
-                # Clear existing resources
-                task['resources'] = {}
+        def on_assigned_select(event=None):
+            selection = assigned_listbox.curselection()
+            if not selection:
+                return
+            rid = assigned_order[selection[0]]
+            allocation_var.set(str(working.get(rid, 1.0)))
+            # Keep the available list's selection in sync too, if this
+            # resource is currently visible there (it usually is - the
+            # search box is empty by default).
+            if rid in available_order:
+                available_listbox.selection_clear(0, tk.END)
+                available_listbox.selection_set(available_order.index(rid))
 
-                # Add new resource allocations
-                for resource_id, var in resource_entries.items():
-                    try:
-                        value = var.get().strip()
-                        if value:  # Only process non-empty entries
-                            allocation = float(value)
-                            if allocation > 0:
-                                task['resources'][resource_id] = allocation
-                    except ValueError:
-                        # Skip invalid entries
-                        messagebox.showwarning(
-                            'Warning',
-                            f'Invalid allocation for resource {self.model.get_resource_by_id(resource_id)["name"]}. Skipping.',
-                        )
+        available_listbox.bind('<<ListboxSelect>>', on_available_select)
+        assigned_listbox.bind('<<ListboxSelect>>', on_assigned_select)
+        available_listbox.bind('<Double-Button-1>', add_or_update_selected)
+        available_listbox.bind('<Return>', add_or_update_selected)
+        assigned_listbox.bind('<Double-Button-1>', remove_selected)
+        assigned_listbox.bind('<Delete>', remove_selected)
+        add_button.config(command=add_or_update_selected)
+        remove_button.config(command=remove_selected)
 
-                dialog.destroy()
-                self.controller.update_resource_loading()
+        search_var.trace_add('write', lambda *args: refresh_available())
 
-            # Add buttons
-            button_frame = tk.Frame(dialog)
-            button_frame.pack(fill=tk.X, pady=10)
+        def jump_to_results(event):
+            """Search box Return/Down -> select the first match and move
+            focus into the results list, so "type a name, press Enter"
+            reaches an addable resource without ever touching the mouse."""
+            if available_listbox.size() > 0:
+                available_listbox.selection_clear(0, tk.END)
+                available_listbox.selection_set(0)
+                available_listbox.activate(0)
+                available_listbox.focus_set()
+                on_available_select()
+            return 'break'
 
-            tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
-                side=tk.RIGHT, padx=5
-            )
-            tk.Button(button_frame, text='Save', command=save_resources).pack(
-                side=tk.RIGHT, padx=5
-            )
+        search_entry.bind('<Return>', jump_to_results)
+        search_entry.bind('<Down>', jump_to_results)
 
-            # Configure the canvas scrolling
-            inner_frame.update_idletasks()
-            canvas.config(scrollregion=canvas.bbox('all'))
+        # --- Save / Cancel ------------------------------------------------
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=10)
 
-            # Center the dialog on the main window
-            dialog.update_idletasks()
-            x = (
-                self.controller.root.winfo_x()
-                + (self.controller.root.winfo_width() - dialog.winfo_width()) // 2
-            )
-            y = (
-                self.controller.root.winfo_y()
-                + (self.controller.root.winfo_height() - dialog.winfo_height()) // 2
-            )
-            dialog.geometry(f'+{x}+{y}')
+        def save_resources():
+            task['resources'] = dict(working)
+            dialog.destroy()
+            self.controller.update_resource_loading()
 
-            add_resize_handle(dialog)
+        cancel_button = tk.Button(
+            button_frame,
+            text='Cancel',
+            underline=mnemonic('Cancel', 'Cancel'),
+            command=dialog.destroy,
+        )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        save_button = tk.Button(
+            button_frame,
+            text='Save',
+            underline=mnemonic('Save', 'Save'),
+            command=save_resources,
+        )
+        save_button.pack(side=tk.RIGHT, padx=5)
+
+        # Alt-<letter> shortcuts for every action - own dialog, own
+        # binding table, so no collision risk with any other dialog's.
+        dialog.bind('<Alt-a>', lambda e: add_or_update_selected())
+        dialog.bind('<Alt-r>', lambda e: remove_selected())
+        dialog.bind('<Alt-s>', lambda e: save_resources())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+
+        refresh_assigned()
+        refresh_available()
+        search_entry.focus_set()
+
+        add_resize_handle(dialog)
 
     def _delete_task_and_ui(self, task_id):
         """Remove a task from the model and clean up its canvas elements."""
@@ -3591,11 +3710,12 @@ class TaskOperations:
                     # Draw the new task
                     self.controller.ui.draw_task(new_task)
 
-                    # Prompt for resources
+                    # Prompt for resources - required for CCPM scheduling
+                    # to identify contention/critical chain, unlike tags,
+                    # which used to also be prompted for here on every
+                    # single task creation regardless of whether the task
+                    # needed any.
                     self.edit_task_resources(new_task)
-
-                    # Optionally prompt for tags
-                    self.controller.tag_ops.edit_task_tags(new_task)
 
                     # Select the newly created task
                     self.controller.selected_task = new_task
