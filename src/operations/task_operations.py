@@ -3233,7 +3233,9 @@ class TaskOperations:
             self.controller.marquee_start = None
             return
 
-        if self.controller.selected_task:  # Existing task manipulation
+        if (
+            self.controller.selected_task and not self.controller.new_task_in_progress
+        ):  # Existing task manipulation
             task = self.controller.selected_task
             task_id = task['task_id']
             ui_elements = self.controller.ui.task_ui_elements.get(task_id)
