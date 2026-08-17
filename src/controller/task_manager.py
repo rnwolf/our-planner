@@ -4,6 +4,7 @@ from tkinter import font as tkfont
 from typing import Optional
 
 from src.model import TaskResourceModel
+from src.utils.app_settings import load_settings, save_settings
 from src.view import UIComponents
 
 # from src.view.menus import HelpMenu, NetworkMenu
@@ -68,11 +69,35 @@ class TaskResourceManager:
         # Add an attribute to track if the window has been resized to accommodate the notes panel
         self.window_adjusted_for_notes = False
 
-        # Base font sizes (at zoom level 1.0)
-        self.base_task_font_size = 9  # Base font size for task text
-        self.base_tag_font_size = 7  # Base font size for tag text
-        self.base_timeline_font_size = 8  # Base font size for timeline text
-        self.base_resource_font_size = 8  # Base font size for resource labels
+        # Base font sizes (at zoom level 1.0). The task size is a
+        # persisted app-level preference (Project Settings > Base Font
+        # Size) rather than a hardcoded constant - a display's actual
+        # pixel density isn't something this app can detect, so a user on
+        # a high-DPI screen needs a way to compensate that survives
+        # restarts, unlike zoom which always resets to 1.0. Tag/timeline/
+        # resource keep their original ratio to the historical default of
+        # 9, so this one setting scales every label together - and cell/
+        # row/label-column geometry scales by the same ratio too, since
+        # resource/tag/timeline font sizes are clamped to fit within the
+        # current row height (see _clamp_*_font_size/apply_base_font_size)
+        # - a bigger persisted font with no more room to render in would
+        # just get clamped straight back down on the very next launch.
+        saved_base_font_size = load_settings()['base_font_size']
+        base_font_scale = saved_base_font_size / 9
+
+        self.base_task_font_size = saved_base_font_size
+        self.base_tag_font_size = round(saved_base_font_size * 7 / 9)
+        self.base_timeline_font_size = round(saved_base_font_size * 8 / 9)
+        self.base_resource_font_size = round(saved_base_font_size * 8 / 9)
+
+        self.base_cell_width = round(self.base_cell_width * base_font_scale)
+        self.base_task_height = round(self.base_task_height * base_font_scale)
+        self.base_label_column_width = round(
+            self.base_label_column_width * base_font_scale
+        )
+        self.cell_width = self.base_cell_width
+        self.task_height = self.base_task_height
+        self.label_column_width = self.base_label_column_width
 
         # Current font sizes (will be scaled with zoom). Clamped the same
         # way on_zoom/reset_zoom do - this is the app's initial state,
@@ -784,6 +809,90 @@ class TaskResourceManager:
 
         # Update window title
         self.update_window_title(self.model.current_file_path)
+
+    def apply_base_font_size(self, base_task_font_size: int) -> None:
+        """Set a new base task font size (Project Settings > Base Font
+        Size), re-derive tag/timeline/resource proportionally at their
+        existing ratio to the previous base, redraw, and persist - this
+        is a display preference, not project data, so it's saved to the
+        app-level settings file rather than the project JSON, and
+        survives restarts unlike zoom.
+
+        Also scales base_cell_width/base_task_height/
+        base_label_column_width by the same ratio as the font change:
+        resource/tag/timeline font sizes are clamped to fit within the
+        current row height (see _clamp_*_font_size), so a bigger base
+        font with no more room to render in just gets clamped straight
+        back down to the same size as before - asking for bigger text
+        has to make the rows bigger too, the same way zooming in already
+        keeps fonts and cell geometry proportional to each other."""
+        # Every widget below is always real by the time this can be
+        # called - it's only reachable via the Project Settings dialog,
+        # built well after __init__ finishes.
+        assert self.task_canvas is not None
+        assert self.timeline_canvas is not None
+        assert self.resource_canvas is not None
+        assert self.task_label_canvas is not None
+        assert self.resource_label_canvas is not None
+        assert self.timeline_label_frame is not None
+        assert self.timeline_label_canvas is not None
+        assert self.task_label_frame is not None
+        assert self.resource_label_frame is not None
+
+        scale = base_task_font_size / self.base_task_font_size
+
+        ratio_tag = self.base_tag_font_size / self.base_task_font_size
+        ratio_timeline = self.base_timeline_font_size / self.base_task_font_size
+        ratio_resource = self.base_resource_font_size / self.base_task_font_size
+
+        self.base_task_font_size = base_task_font_size
+        self.base_tag_font_size = round(base_task_font_size * ratio_tag)
+        self.base_timeline_font_size = round(base_task_font_size * ratio_timeline)
+        self.base_resource_font_size = round(base_task_font_size * ratio_resource)
+
+        self.base_cell_width = round(self.base_cell_width * scale)
+        self.base_task_height = round(self.base_task_height * scale)
+        self.base_label_column_width = round(self.base_label_column_width * scale)
+
+        old_cell_width = self.cell_width
+        old_task_height = self.task_height
+        task_x_view = self.task_canvas.xview()
+        task_y_view = self.task_canvas.yview()
+
+        self.cell_width = round(self.base_cell_width * self.zoom_level)
+        self.task_height = round(self.base_task_height * self.zoom_level)
+        self.label_column_width = round(self.base_label_column_width * self.zoom_level)
+
+        font_scale_factor = max(1.0, self.zoom_level * 0.8)
+        self.task_font_size = max(7, int(self.base_task_font_size * font_scale_factor))
+        self.tag_font_size = self._clamp_tag_font_size(
+            max(6, int(self.base_tag_font_size * font_scale_factor))
+        )
+        self.timeline_font_size = self._clamp_timeline_font_size(
+            max(6, int(self.base_timeline_font_size * font_scale_factor))
+        )
+        self.resource_font_size = self._clamp_resource_font_size(
+            max(6, int(self.base_resource_font_size * font_scale_factor))
+        )
+
+        self.timeline_label_frame.config(width=self.label_column_width)
+        self.timeline_label_canvas.config(width=self.label_column_width)
+        self.task_label_frame.config(width=self.label_column_width)
+        self.task_label_canvas.config(width=self.label_column_width)
+        self.resource_label_frame.config(width=self.label_column_width)
+        self.resource_label_canvas.config(width=self.label_column_width)
+
+        self.update_all_scrollregions()
+        save_settings({'base_font_size': base_task_font_size})
+        self.update_view()
+
+        new_x_fraction = task_x_view[0] * (old_cell_width / self.cell_width)
+        new_y_fraction = task_y_view[0] * (old_task_height / self.task_height)
+        self.task_canvas.xview_moveto(new_x_fraction)
+        self.timeline_canvas.xview_moveto(new_x_fraction)
+        self.resource_canvas.xview_moveto(new_x_fraction)
+        self.task_canvas.yview_moveto(new_y_fraction)
+        self.task_label_canvas.yview_moveto(new_y_fraction)
 
     def scroll_to_task(self, task):
         """Scroll the task grid so the given task sits centered in the

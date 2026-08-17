@@ -2903,6 +2903,20 @@ class TaskOperations:
         )
         manage_chains_button.grid(row=4, column=1, sticky='w', pady=5)
 
+        # Base font size - a display preference (compensates for however
+        # dense the user's actual monitor is, which this app has no way
+        # to detect), not project data, so it's persisted separately (see
+        # TaskResourceManager.apply_base_font_size) rather than saved into
+        # the project file, and survives restarts unlike zoom.
+        tk.Label(settings_frame, text='Base Font Size:').grid(
+            row=5, column=0, sticky='w', pady=5
+        )
+        base_font_size_var = tk.IntVar(value=self.controller.base_task_font_size)
+        base_font_size_entry = tk.Entry(
+            settings_frame, textvariable=base_font_size_var, width=10
+        )
+        base_font_size_entry.grid(row=5, column=1, sticky='w', pady=5)
+
         # Button frame
         button_frame = tk.Frame(dialog)
         button_frame.pack(fill=tk.X, pady=10)
@@ -2913,6 +2927,7 @@ class TaskOperations:
                 # Get values from the dialog
                 new_days = int(days_var.get())
                 new_max_rows = int(max_rows_var.get())
+                new_base_font_size = int(base_font_size_var.get())
                 year = int(year_var.get())
                 month = int(month_var.get())
                 day = int(day_var.get())
@@ -2922,6 +2937,14 @@ class TaskOperations:
                     messagebox.showerror(
                         'Invalid Values',
                         'Number of days and max rows must be positive.',
+                        parent=dialog,
+                    )
+                    return
+
+                if not 6 <= new_base_font_size <= 72:
+                    messagebox.showerror(
+                        'Invalid Values',
+                        'Base font size must be between 6 and 72.',
                         parent=dialog,
                     )
                     return
@@ -2971,6 +2994,9 @@ class TaskOperations:
                     elif len(resource['capacity']) > new_days:
                         # Truncate capacities
                         resource['capacity'] = resource['capacity'][:new_days]
+
+                if new_base_font_size != self.controller.base_task_font_size:
+                    self.controller.apply_base_font_size(new_base_font_size)
 
                 # Update view
                 self.controller.update_view()
