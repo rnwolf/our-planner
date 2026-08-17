@@ -27,7 +27,7 @@ This module is the fast half only.
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, ttk
 from unittest.mock import patch
 
 from src.controller.task_manager import TaskResourceManager
@@ -100,8 +100,12 @@ class ScenarioDriver:
             found.extend(self._find_widgets(child, cls))
         return found
 
-    def _find_button(self, parent, text: str) -> tk.Button:
-        for button in self._find_widgets(parent, tk.Button):
+    def _find_button(self, parent, text: str):
+        # tk.Button and ttk.Button are unrelated classes (ttk.Button does
+        # not subclass tk.Button) - Tk's own messagebox dialogs use
+        # ttk.Button on this build, hand-built dialogs elsewhere in this
+        # app use plain tk.Button, so both need checking.
+        for button in self._find_widgets(parent, (tk.Button, ttk.Button)):
             if button.cget('text') == text:
                 return button
         raise AssertionError(f'no button labeled {text!r} found')
