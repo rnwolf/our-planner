@@ -2,7 +2,6 @@ from tkinter import filedialog, messagebox, simpledialog
 import csv
 import os
 import re
-from datetime import datetime
 from typing import Dict, List, Optional, TypedDict, cast
 from src.model.dependency_notation import VALID_LINK_TYPES, parse_predecessor_notation
 from src.model.entities import PredecessorLink
@@ -74,19 +73,14 @@ class FileOperations:
         self.model = model
 
     def new_project(self):
-        """Create a new project, clearing all current tasks"""
+        """Create a new project, clearing all current tasks, resources,
+        and tags back to the same blank-slate state a freshly started app
+        begins with (see TaskResourceModel.reset)."""
         if messagebox.askyesno(
             'New Project',
             'Are you sure you want to create a new project? All unsaved changes will be lost.',
         ):
-            # Reset model data
-            self.model.tasks = []
-            self.model.current_file_path = None
-
-            # Reset setdate to today
-            self.model.setdate = datetime.now().replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            self.model.reset()
 
             # Update UI
             self.controller.update_window_title()

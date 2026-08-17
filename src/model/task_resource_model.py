@@ -103,6 +103,9 @@ def fever_chart_display_point(
 
 class TaskResourceModel:
     def __init__(self):
+        self._initialize_state()
+
+    def _initialize_state(self) -> None:
         # Configuration
         self.days = 100
         self.max_rows = 50
@@ -225,6 +228,22 @@ class TaskResourceModel:
         self.add_chain('Critical', CRITICAL_CHAIN_COLOR, is_critical=True)
         for i, color in enumerate(FEEDING_CHAIN_COLORS, start=1):
             self.add_chain(f'Feeding-{i:02d}', color)
+
+    def reset(self) -> None:
+        """Back to the exact same blank-slate state a fresh
+        TaskResourceModel() starts in - no tasks, the 10 default
+        resources, no tags, one default 'Sample Project', and the
+        standard chain palette. Used by File > New so it's a single
+        source of truth for "what does blank look like", rather than a
+        second, hand-maintained list of fields to clear that could drift
+        out of sync with __init__ as new state gets added later.
+
+        Calls the same _initialize_state() __init__ itself calls, rather
+        than self.__init__() directly - re-invoking __init__ on an
+        already-constructed instance is legal Python, but confuses ty's
+        reachability analysis (spurious "unreachable code" at unrelated
+        lines throughout the file)."""
+        self._initialize_state()
 
     def _get_next_resource_id(self) -> int:
         """Generate a unique resource ID."""
