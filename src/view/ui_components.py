@@ -133,6 +133,7 @@ class UIComponents:
             cal_dialog.title('Set Current Date')
             cal_dialog.transient(self.controller.root)
             cal_dialog.grab_set()
+            cal_dialog.bind('<Escape>', lambda e: cal_dialog.destroy())
 
             # Center dialog on parent window
             x = self.controller.root.winfo_rootx() + 50
@@ -147,14 +148,41 @@ class UIComponents:
                 month=self.model.setdate.month,
                 day=self.model.setdate.day,
             )
-            cal.pack(padx=10, pady=10)
+            cal.pack(padx=10, pady=(10, 5))
+
+            # Keyboard-friendly alternative to clicking a day on the
+            # calendar: tkcalendar.Calendar only ever binds <1> (mouse
+            # click) on its day cells, nothing keyboard-driven at all
+            # (confirmed directly against its source) - so this entry is
+            # the only way to pick or confirm a date without a mouse.
+            # Clicking the calendar keeps it in sync (below), and Set
+            # Date/Enter always reads from here, not the calendar
+            # directly, so either input method ends up in the same place.
+            entry_frame = tk.Frame(cal_dialog)
+            entry_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+            tk.Label(entry_frame, text='Date (YYYY-MM-DD):').pack(side=tk.LEFT)
+            date_var = tk.StringVar(value=self.model.setdate.strftime('%Y-%m-%d'))
+            date_entry = tk.Entry(entry_frame, textvariable=date_var, width=12)
+            date_entry.pack(side=tk.LEFT, padx=5)
+
+            def on_calendar_selected(event=None):
+                date_var.set(cal.selection_get().strftime('%Y-%m-%d'))
+
+            cal.bind('<<CalendarSelected>>', on_calendar_selected)
 
             def set_date():
-                selected_date = cal.selection_get()
+                try:
+                    year, month, day = map(int, date_var.get().strip().split('-'))
+                    new_date = datetime(year, month, day)
+                except (ValueError, IndexError):
+                    messagebox.showerror(
+                        'Invalid Date Format',
+                        'Please enter a valid date in YYYY-MM-DD format.',
+                        parent=cal_dialog,
+                    )
+                    return
                 # Update model setdate
-                self.model.setdate = datetime(
-                    selected_date.year, selected_date.month, selected_date.day
-                )
+                self.model.setdate = new_date
                 # Update display
                 self.update_setdate_display()
                 # Update timeline view to highlight the date if in range
@@ -163,14 +191,37 @@ class UIComponents:
 
             # Add buttons
             button_frame = tk.Frame(cal_dialog)
-            button_frame.pack(pady=10)
+            button_frame.pack(pady=(0, 10))
 
-            tk.Button(button_frame, text='Set Date', command=set_date).pack(
-                side=tk.LEFT, padx=5
+            set_button = tk.Button(
+                button_frame,
+                text='Set Date',
+                underline=mnemonic('Set Date', 'Set'),
+                command=set_date,
             )
-            tk.Button(button_frame, text='Cancel', command=cal_dialog.destroy).pack(
-                side=tk.LEFT, padx=5
+            set_button.pack(side=tk.LEFT, padx=5)
+            cancel_button = tk.Button(
+                button_frame,
+                text='Cancel',
+                underline=mnemonic('Cancel', 'Cancel'),
+                command=cal_dialog.destroy,
             )
+            cancel_button.pack(side=tk.LEFT, padx=5)
+
+            # Alt-<letter> shortcuts, and <Return> bound directly on each
+            # button since a plain tk.Button only binds <space> to invoke
+            # itself by default, not <Return> (see e.g.
+            # task_operations.edit_task_resources for the same fix).
+            cal_dialog.bind('<Alt-s>', lambda e: set_date())
+            cal_dialog.bind('<Alt-c>', lambda e: cal_dialog.destroy())
+            for button in (set_button, cancel_button):
+                button.bind('<Return>', lambda e, b=button: b.invoke())
+            date_entry.bind('<Return>', lambda e: set_date())
+
+            date_entry.focus_set()
+            date_entry.select_range(0, tk.END)
+
+            add_resize_handle(cal_dialog)
 
         except ImportError:
             # If tkcalendar is not available, use a simple date entry dialog
@@ -182,6 +233,7 @@ class UIComponents:
         dialog.title('Set Current Date')
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
 
         # Center dialog on parent window
         x = self.controller.root.winfo_rootx() + 50
@@ -228,15 +280,28 @@ class UIComponents:
         button_frame = tk.Frame(frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
-        tk.Button(button_frame, text='Set Date', command=set_date).pack(
-            side=tk.RIGHT, padx=5
+        set_button = tk.Button(
+            button_frame,
+            text='Set Date',
+            underline=mnemonic('Set Date', 'Set'),
+            command=set_date,
         )
-        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
-            side=tk.RIGHT, padx=5
+        set_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button = tk.Button(
+            button_frame,
+            text='Cancel',
+            underline=mnemonic('Cancel', 'Cancel'),
+            command=dialog.destroy,
         )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
 
-        # Bind Enter key
+        # Bind Enter key - a dialog-wide catch is enough here (unlike
+        # dialogs with more than one meaningful action) since a plain
+        # tk.Button doesn't consume <Return> itself by default, so it
+        # still bubbles up to this binding even when a button has focus.
         dialog.bind('<Return>', lambda e: set_date())
+        dialog.bind('<Alt-s>', lambda e: set_date())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 
         add_resize_handle(dialog)
 
