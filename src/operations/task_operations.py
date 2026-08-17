@@ -10,6 +10,7 @@ from src.model.task_resource_model import (
     BUFFER_TASK_TYPES,
     CCPM_METHODS,
     DEFAULT_CCPM_METHOD,
+    REMAINING_DURATION_REASONS,
 )
 from src.utils.tk_helpers import add_resize_handle, mnemonic
 
@@ -4858,6 +4859,103 @@ class TaskOperations:
         dialog.wait_visibility()
         id_entry.focus_set()
 
+    def _ask_remaining_duration_update(self, prompt, current_remaining):
+        """Dialog for Record Remaining Duration: the remaining-days number
+        plus a primary reason (defaulted to 'On Time' - the expected most
+        common case, so an unremarkable update costs no extra clicks) and
+        an optional free-text note. Returns (remaining_duration, reason,
+        note) or None if cancelled."""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Remaining Duration')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+        x = self.controller.root.winfo_rootx() + 50
+        y = self.controller.root.winfo_rooty() + 50
+        dialog.geometry(f'+{x}+{y}')
+
+        frame = tk.Frame(dialog, padx=15, pady=15)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(frame, text=prompt, wraplength=360, justify=tk.LEFT).grid(
+            row=0, column=0, columnspan=2, sticky='w', pady=(0, 10)
+        )
+
+        tk.Label(frame, text='Remaining Duration (days):').grid(
+            row=1, column=0, sticky='w', pady=5
+        )
+        remaining_var = tk.StringVar(value=str(current_remaining))
+        remaining_entry = tk.Entry(frame, textvariable=remaining_var, width=10)
+        remaining_entry.grid(row=1, column=1, sticky='w', pady=5, padx=(5, 0))
+
+        tk.Label(frame, text='Reason:').grid(row=2, column=0, sticky='w', pady=5)
+        reason_var = tk.StringVar(value=REMAINING_DURATION_REASONS[0])
+        reason_dropdown = ttk.Combobox(
+            frame,
+            textvariable=reason_var,
+            values=REMAINING_DURATION_REASONS,
+            state='readonly',
+            width=22,
+        )
+        reason_dropdown.grid(row=2, column=1, sticky='w', pady=5, padx=(5, 0))
+
+        tk.Label(frame, text='Note (optional):').grid(
+            row=3, column=0, sticky='w', pady=5
+        )
+        note_var = tk.StringVar()
+        note_entry = tk.Entry(frame, textvariable=note_var, width=30)
+        note_entry.grid(row=3, column=1, sticky='w', pady=5, padx=(5, 0))
+
+        result: list = [None]
+
+        def on_ok(event=None):
+            try:
+                remaining = int(remaining_var.get().strip())
+            except ValueError:
+                messagebox.showerror(
+                    'Invalid Duration',
+                    'Remaining duration must be a whole number of days.',
+                    parent=dialog,
+                )
+                return
+            if remaining < 0:
+                messagebox.showerror(
+                    'Invalid Duration',
+                    'Remaining duration cannot be negative.',
+                    parent=dialog,
+                )
+                return
+            result[0] = (remaining, reason_var.get(), note_var.get().strip())
+            dialog.destroy()
+
+        button_frame = tk.Frame(frame)
+        button_frame.grid(row=4, column=0, columnspan=2, sticky='e', pady=(10, 0))
+
+        ok_button = tk.Button(
+            button_frame, text='OK', underline=mnemonic('OK', 'OK'), command=on_ok
+        )
+        ok_button.pack(side=tk.LEFT, padx=5)
+        cancel_button = tk.Button(
+            button_frame,
+            text='Cancel',
+            underline=mnemonic('Cancel', 'Cancel'),
+            command=dialog.destroy,
+        )
+        cancel_button.pack(side=tk.LEFT, padx=5)
+
+        dialog.bind('<Alt-o>', on_ok)
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+        for button in (ok_button, cancel_button):
+            button.bind('<Return>', lambda e, b=button: b.invoke())
+
+        remaining_entry.focus_set()
+        remaining_entry.select_range(0, tk.END)
+
+        add_resize_handle(dialog)
+        dialog.wait_window()
+        return result[0]
+
     def record_remaining_duration(self, task=None):
         """Record the remaining duration for a task."""
         if task is None:
@@ -4909,18 +5007,17 @@ class TaskOperations:
                     f'Enter remaining duration (days) as of {setdate_text}:'
                 )
 
-            # Ask for new remaining duration
-            new_remaining = simpledialog.askinteger(
-                'Remaining Duration',
-                prompt,
-                initialvalue=current_remaining,
-                minvalue=0,  # Allow 0 for completed tasks
-                parent=self.controller.root,
-            )
+            # Ask for the new remaining duration, plus the primary reason
+            # for this update and an optional note - the point of
+            # capturing these isn't the individual update, it's letting a
+            # team spot patterns ("most of our buffer consumption is
+            # Waiting for Resource") at periodic review.
+            result = self._ask_remaining_duration_update(prompt, current_remaining)
 
-            if new_remaining is not None:
+            if result is not None:
+                new_remaining, reason, note = result
                 self.controller.model.record_remaining_duration(
-                    task['task_id'], new_remaining
+                    task['task_id'], new_remaining, reason=reason, note=note
                 )
 
                 # The task's col/duration may have just been anchored/re-estimated
@@ -5003,9 +5100,10 @@ class TaskOperations:
             dialog.title(f'Duration History: {task["description"]}')
             dialog.transient(self.controller.root)
             dialog.grab_set()
+            dialog.bind('<Escape>', lambda e: dialog.destroy())
 
             # Set size and position
-            dialog.geometry('400x400')
+            dialog.geometry('420x480')
 
             # Create scrollable frame for history items
             frame = tk.Frame(dialog, padx=10, pady=10)
@@ -5092,23 +5190,60 @@ class TaskOperations:
             scrollbar = ttk.Scrollbar(history_frame)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-            history_list = tk.Listbox(history_frame, yscrollcommand=scrollbar.set)
+            history_list = tk.Listbox(
+                history_frame, yscrollcommand=scrollbar.set, exportselection=False
+            )
             history_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
             scrollbar.config(command=history_list.yview)
+
+            # Note can be arbitrarily long free text, so it gets its own
+            # detail area below the list (populated per selected entry)
+            # rather than being crammed onto the list line itself - reason
+            # is short enough to show inline.
+            note_label = tk.Label(
+                frame, text='Note:', font=('Arial', 9, 'bold'), anchor='w'
+            )
+            note_text = tk.Label(
+                frame, text='', anchor='w', justify=tk.LEFT, wraplength=380
+            )
+
+            sorted_history = sorted(history, key=lambda x: x['date'])
+
+            def on_history_select(event=None):
+                selected = history_list.curselection()
+                if not selected:
+                    return
+                record = sorted_history[selected[0]]
+                note_text.config(text=record.get('note') or '(no note)')
 
             if not history:
                 history_list.insert(tk.END, 'No remaining duration records found')
             else:
-                # Sort history by date
-                sorted_history = sorted(history, key=lambda x: x['date'])
-
                 for record in sorted_history:
                     date = datetime.fromisoformat(record['date']).strftime('%Y-%m-%d')
                     remaining = record['remaining_duration']
-                    history_list.insert(tk.END, f'{date}: {remaining} days remaining')
+                    line = f'{date}: {remaining} days remaining'
+                    reason = record.get('reason')
+                    if reason:
+                        line += f' — {reason}'
+                    history_list.insert(tk.END, line)
+
+                history_list.bind('<<ListboxSelect>>', on_history_select)
+                note_label.pack(anchor='w', pady=(10, 0))
+                note_text.pack(anchor='w', fill=tk.X)
+                history_list.selection_set(tk.END)
+                on_history_select()
 
             # Close button
-            tk.Button(frame, text='Close', command=dialog.destroy).pack(pady=(10, 0))
+            close_button = tk.Button(
+                frame,
+                text='Close',
+                underline=mnemonic('Close', 'Close'),
+                command=dialog.destroy,
+            )
+            close_button.pack(pady=(10, 0))
+            close_button.bind('<Return>', lambda e: dialog.destroy())
+            dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 
             add_resize_handle(dialog)
 

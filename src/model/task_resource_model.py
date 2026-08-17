@@ -33,6 +33,26 @@ PROJECT_PHASES = ['planning', 'execution']
 CCPM_METHODS = ['cap', 'hchain', 'rsem']
 DEFAULT_CCPM_METHOD = 'cap'
 
+# Primary reason offered alongside a Record Remaining Duration update -
+# the point isn't the number alone, it's letting a team spot patterns
+# ("most of our buffer consumption is Waiting for Resource") at periodic
+# review. 'On Time' is deliberately first/default: it's expected to be
+# the single most common case in a well-run project, and defaulting to it
+# means an unremarkable update costs no extra clicks, while anything that
+# actually needs explaining still requires picking a different reason.
+REMAINING_DURATION_REASONS = [
+    'On Time',
+    'Task Variability',
+    'Waiting for Full Kit',
+    'Waiting for Resource',
+    'No Early Start',
+    "Parkinson's Law",
+    'Multitasking',
+    'Waiting in Backlog',
+    'Unplanned Events',
+    'Other / Unexplained',
+]
+
 CRITICAL_CHAIN_COLOR = '#E34948'  # red
 # Default colors for the seeded Feeding-01..07 chains - an 8-hue categorical
 # set (this + CRITICAL_CHAIN_COLOR) validated for mutual distinguishability,
@@ -1871,7 +1891,13 @@ class TaskResourceModel:
         # Sort all notes by timestamp, newest first
         return sorted(all_notes, key=lambda note: note['timestamp'], reverse=True)
 
-    def record_remaining_duration(self, task_id: int, remaining_duration: int) -> bool:
+    def record_remaining_duration(
+        self,
+        task_id: int,
+        remaining_duration: int,
+        reason: Optional[str] = None,
+        note: Optional[str] = None,
+    ) -> bool:
         """Record a new remaining duration estimate for a task on the current setdate.
 
         Also anchors and re-estimates the task's visual position:
@@ -1889,6 +1915,12 @@ class TaskResourceModel:
         Args:
             task_id: ID of the task
             remaining_duration: Estimated remaining duration in days
+            reason: Primary reason for this update, expected to be one of
+                REMAINING_DURATION_REASONS - not enforced here (a hand-
+                edited save file, or an older entry, may have neither),
+                so root-cause reports need to handle a missing/unknown
+                value gracefully rather than assume it's always present.
+            note: Optional free-text detail alongside reason.
 
         Returns:
             bool: True if successful, False if task not found
@@ -1902,6 +1934,10 @@ class TaskResourceModel:
             'date': self.setdate.isoformat(),
             'remaining_duration': remaining_duration,
         }
+        if reason:
+            record['reason'] = reason
+        if note:
+            record['note'] = note
 
         # Initialize the history list if not present (for backward compatibility)
         if 'remaining_duration_history' not in task:

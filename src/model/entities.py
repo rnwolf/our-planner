@@ -57,10 +57,21 @@ class FeverChartHistoryEntry(FeverChartPoint):
 
 
 class RemainingDurationHistoryEntry(TypedDict):
-    """One remaining-duration estimate, logged by record_remaining_duration."""
+    """One remaining-duration estimate, logged by record_remaining_duration.
+
+    reason/note are NotRequired: entries logged before this field existed
+    (or written by a caller that doesn't pass one, e.g. existing tests)
+    simply don't have the key, same pattern as ResourceDict.works_weekends.
+    reason is expected to be one of REMAINING_DURATION_REASONS, but isn't
+    typed as a Literal - it's user-facing text read back into a Combobox,
+    not branched on in code, so a stricter type wouldn't buy correctness
+    and would make loading an older or hand-edited save file needlessly
+    fragile."""
 
     date: str
     remaining_duration: int
+    reason: NotRequired[str]
+    note: NotRequired[str]
 
 
 class SuccessorLink(TypedDict):
