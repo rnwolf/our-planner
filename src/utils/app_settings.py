@@ -1,9 +1,9 @@
 """Small persisted app-level preferences.
 
-For things like base font size - a characteristic of the user's own
-screen, not of any particular plan's data, so it doesn't belong in a
-saved project file, and shouldn't need re-entering every time the app
-launches the way zoom currently does.
+For things like base font size and zoom level - characteristics of the
+user's own screen/viewing preference, not of any particular plan's data,
+so they don't belong in a saved project file, and shouldn't need
+re-entering every time the app launches.
 """
 
 import json
@@ -14,6 +14,7 @@ SETTINGS_PATH = Path.home() / '.our-planner' / 'settings.json'
 
 DEFAULTS: dict[str, Any] = {
     'base_font_size': 9,
+    'zoom_level': 1.0,
 }
 
 

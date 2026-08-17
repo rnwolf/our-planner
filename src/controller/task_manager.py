@@ -52,8 +52,13 @@ class TaskResourceManager:
         self.resource_loading = {}
         self.resource_utilization = {}
 
-        # Zoom and scaling properties
-        self.zoom_level = 1.0  # Default zoom level (no zoom)
+        # Zoom and scaling properties. zoom_level is a persisted app-level
+        # preference too (every scroll-wheel/keyboard zoom action saves
+        # it, see on_zoom/reset_zoom) - restoring it here means the view
+        # a user left the app in is the view they get back, instead of
+        # always starting at 100% and needing to re-zoom every launch.
+        settings = load_settings()
+        self.zoom_level = settings['zoom_level']
         self.min_zoom = 0.5  # Minimum zoom level (zoomed out)
         self.max_zoom = 3.0  # Maximum zoom level (zoomed in)
         self.zoom_step = 0.1  # Zoom increment/decrement per scroll
@@ -63,9 +68,6 @@ class TaskResourceManager:
         self.base_label_column_width = (
             150  # Base width for left column at zoom level 1.0 (increased from 100)
         )
-        self.label_column_width = (
-            self.base_label_column_width
-        )  # Current width (will be scaled with zoom)
 
         # Add an attribute to track if the window has been resized to accommodate the notes panel
         self.window_adjusted_for_notes = False
@@ -75,15 +77,15 @@ class TaskResourceManager:
         # Size) rather than a hardcoded constant - a display's actual
         # pixel density isn't something this app can detect, so a user on
         # a high-DPI screen needs a way to compensate that survives
-        # restarts, unlike zoom which always resets to 1.0. Tag/timeline/
-        # resource keep their original ratio to the historical default of
-        # 9, so this one setting scales every label together - and cell/
-        # row/label-column geometry scales by the same ratio too, since
-        # resource/tag/timeline font sizes are clamped to fit within the
-        # current row height (see _clamp_*_font_size/apply_base_font_size)
-        # - a bigger persisted font with no more room to render in would
-        # just get clamped straight back down on the very next launch.
-        saved_base_font_size = load_settings()['base_font_size']
+        # restarts. Tag/timeline/resource keep their original ratio to
+        # the historical default of 9, so this one setting scales every
+        # label together - and cell/row/label-column geometry scales by
+        # the same ratio too, since resource/tag/timeline font sizes are
+        # clamped to fit within the current row height (see
+        # _clamp_*_font_size/apply_base_font_size) - a bigger persisted
+        # font with no more room to render in would just get clamped
+        # straight back down on the very next launch.
+        saved_base_font_size = settings['base_font_size']
         base_font_scale = saved_base_font_size / 9
 
         self.base_task_font_size = saved_base_font_size
@@ -97,23 +99,37 @@ class TaskResourceManager:
         self.base_label_column_width = round(
             self.base_label_column_width * base_font_scale
         )
-        self.cell_width = self.base_cell_width
-        self.task_height = self.base_task_height
-        self.timeline_height = self.base_timeline_height
-        self.label_column_width = self.base_label_column_width
 
-        # Current font sizes (will be scaled with zoom). Clamped the same
-        # way on_zoom/reset_zoom do - this is the app's initial state,
-        # before any zoom action has ever run, so without this the raw
-        # (unclamped) base values would be what's actually on screen at
-        # startup, regardless of any zoom-time fix.
-        self.task_font_size = self.base_task_font_size
-        self.tag_font_size = self._clamp_tag_font_size(self.base_tag_font_size)
+        # Apply the persisted zoom level on top of the (possibly already
+        # font-size-scaled) base geometry - the same combination on_zoom
+        # produces, and what create_*_frame() below will build the actual
+        # widgets at, so unlike apply_base_font_size/on_zoom (which run
+        # after the widgets already exist) no separate reconfigure-after-
+        # creation step is needed here.
+        # int(), not round(), for the zoom multiplication specifically -
+        # matches on_zoom's own truncation exactly, so switching between
+        # this and a live Ctrl-scroll zoom at the same base/zoom_level
+        # combination can never land on a different pixel value.
+        self.cell_width = int(self.base_cell_width * self.zoom_level)
+        self.task_height = int(self.base_task_height * self.zoom_level)
+        self.timeline_height = int(self.base_timeline_height * self.zoom_level)
+        self.label_column_width = int(self.base_label_column_width * self.zoom_level)
+
+        # Current font sizes. Clamped the same way on_zoom/reset_zoom do -
+        # this is the app's initial state, before any zoom action has run
+        # this session, so without this the raw (unclamped) base values
+        # would be what's actually on screen at startup, regardless of
+        # the persisted zoom level.
+        font_scale_factor = max(1.0, self.zoom_level * 0.8)
+        self.task_font_size = max(7, int(self.base_task_font_size * font_scale_factor))
+        self.tag_font_size = self._clamp_tag_font_size(
+            max(6, int(self.base_tag_font_size * font_scale_factor))
+        )
         self.timeline_font_size = self._clamp_timeline_font_size(
-            self.base_timeline_font_size
+            max(6, int(self.base_timeline_font_size * font_scale_factor))
         )
         self.resource_font_size = self._clamp_resource_font_size(
-            self.base_resource_font_size
+            max(6, int(self.base_resource_font_size * font_scale_factor))
         )
 
         # Dragging state for resizing panes
@@ -716,6 +732,12 @@ class TaskResourceManager:
             # Update title to show current zoom level
             self.update_window_title(self.model.current_file_path, show_zoom=True)
 
+            # Persist so the next launch restores this view instead of
+            # always starting back at 100% - a display/viewing preference,
+            # not project data, same as base font size (see
+            # src/utils/app_settings).
+            save_settings({'zoom_level': self.zoom_level})
+
     def zoom_via_keyboard(self, direction):
         """Zoom in/out via a keyboard shortcut (`Ctrl-+`/`Ctrl-=`/`Ctrl--`),
         reusing `on_zoom`'s exact logic through a synthetic event - the same
@@ -813,13 +835,16 @@ class TaskResourceManager:
         # Update window title
         self.update_window_title(self.model.current_file_path)
 
+        # Persist, same as on_zoom - reset counts as a deliberate zoom
+        # change too, and should stick across restarts like any other.
+        save_settings({'zoom_level': self.zoom_level})
+
     def apply_base_font_size(self, base_task_font_size: int) -> None:
         """Set a new base task font size (Project Settings > Base Font
         Size), re-derive tag/timeline/resource proportionally at their
         existing ratio to the previous base, redraw, and persist - this
         is a display preference, not project data, so it's saved to the
-        app-level settings file rather than the project JSON, and
-        survives restarts unlike zoom.
+        app-level settings file rather than the project JSON.
 
         Also scales base_cell_width/base_task_height/
         base_timeline_height/base_label_column_width by the same ratio as
@@ -869,10 +894,14 @@ class TaskResourceManager:
         task_x_view = self.task_canvas.xview()
         task_y_view = self.task_canvas.yview()
 
-        self.cell_width = round(self.base_cell_width * self.zoom_level)
-        self.task_height = round(self.base_task_height * self.zoom_level)
-        self.timeline_height = round(self.base_timeline_height * self.zoom_level)
-        self.label_column_width = round(self.base_label_column_width * self.zoom_level)
+        # int(), not round(), for the zoom multiplication specifically -
+        # matches on_zoom's own truncation exactly, so switching between
+        # this and a live Ctrl-scroll zoom at the same base/zoom_level
+        # combination can never land on a different pixel value.
+        self.cell_width = int(self.base_cell_width * self.zoom_level)
+        self.task_height = int(self.base_task_height * self.zoom_level)
+        self.timeline_height = int(self.base_timeline_height * self.zoom_level)
+        self.label_column_width = int(self.base_label_column_width * self.zoom_level)
 
         font_scale_factor = max(1.0, self.zoom_level * 0.8)
         self.task_font_size = max(7, int(self.base_task_font_size * font_scale_factor))
