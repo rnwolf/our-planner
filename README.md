@@ -211,6 +211,32 @@ or
 python run_test.py
 ```
 
+### UI scenario walkthroughs
+
+`scripts/ui_scenarios/` drives the real, running app end to end (real
+canvas drags, real menus, real dialogs) to confirm a feature chain
+actually works through the UI, not just at the model layer, and to
+produce narrated walkthrough videos. It's a separate, on-demand tool, not
+part of the pytest suite.
+
+```bash
+# Fast mode: drives the app instantly, dialogs auto-answered - for
+# quick feature-verification / regression checks
+uv run python -m scripts.ui_scenarios.core_workflow_scenario
+
+# Visual mode: same steps, but paced and with real (unpatched) dialogs
+# for a watchable walkthrough. Start your own screen recorder (e.g.
+# GNOME's Ctrl+Alt+Shift+R) when prompted, then let it run.
+uv run python -m scripts.ui_scenarios.core_workflow_scenario --visual
+
+# --pace sets the seconds between steps in visual mode (default 0.6) -
+# lower for a quick sanity check, higher to comfortably narrate over
+uv run python -m scripts.ui_scenarios.core_workflow_scenario --visual --pace 1.2
+```
+
+Visual mode doesn't control screen recording itself - it just pauses for
+you to start one before it begins.
+
 ### Pre-commit checks
 
 The repository uses [`ruff`](https://github.com/astral-sh/ruff) for linting and
