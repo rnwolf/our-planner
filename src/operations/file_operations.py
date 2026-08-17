@@ -75,12 +75,17 @@ class FileOperations:
     def new_project(self):
         """Create a new project, clearing all current tasks, resources,
         and tags back to the same blank-slate state a freshly started app
-        begins with (see TaskResourceModel.reset)."""
+        begins with (see TaskResourceModel.reset), then trims the default
+        resource pool down to just the first one - the other 9
+        (Resource B..J) are startup sample data for a first-time user to
+        explore, not something a genuine new project needs pre-seeded."""
         if messagebox.askyesno(
             'New Project',
             'Are you sure you want to create a new project? All unsaved changes will be lost.',
         ):
             self.model.reset()
+            for resource in list(self.model.resources[1:]):
+                self.model.remove_resource(resource['id'])
 
             # Update UI
             self.controller.update_window_title()
