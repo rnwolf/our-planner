@@ -59,6 +59,7 @@ class TaskResourceManager:
         self.zoom_step = 0.1  # Zoom increment/decrement per scroll
         self.base_cell_width = 45  # Store the original cell width for scaling
         self.base_task_height = 30  # Base height for rows at zoom level 1.0
+        self.base_timeline_height = 60  # Base timeline row height at zoom level 1.0
         self.base_label_column_width = (
             150  # Base width for left column at zoom level 1.0 (increased from 100)
         )
@@ -92,11 +93,13 @@ class TaskResourceManager:
 
         self.base_cell_width = round(self.base_cell_width * base_font_scale)
         self.base_task_height = round(self.base_task_height * base_font_scale)
+        self.base_timeline_height = round(self.base_timeline_height * base_font_scale)
         self.base_label_column_width = round(
             self.base_label_column_width * base_font_scale
         )
         self.cell_width = self.base_cell_width
         self.task_height = self.base_task_height
+        self.timeline_height = self.base_timeline_height
         self.label_column_width = self.base_label_column_width
 
         # Current font sizes (will be scaled with zoom). Clamped the same
@@ -819,13 +822,19 @@ class TaskResourceManager:
         survives restarts unlike zoom.
 
         Also scales base_cell_width/base_task_height/
-        base_label_column_width by the same ratio as the font change:
-        resource/tag/timeline font sizes are clamped to fit within the
-        current row height (see _clamp_*_font_size), so a bigger base
-        font with no more room to render in just gets clamped straight
-        back down to the same size as before - asking for bigger text
-        has to make the rows bigger too, the same way zooming in already
-        keeps fonts and cell geometry proportional to each other."""
+        base_timeline_height/base_label_column_width by the same ratio as
+        the font change: resource/tag/timeline font sizes are clamped to
+        fit within the current row height (see _clamp_*_font_size), so a
+        bigger base font with no more room to render in just gets clamped
+        straight back down to the same size as before - asking for
+        bigger text has to make the rows bigger too, the same way zooming
+        in already keeps fonts and cell geometry proportional to each
+        other. timeline_height in particular is never touched by zoom
+        either (on_zoom/reset_zoom don't scale it) - its two canvases
+        only ever get their height set once, at creation, so unlike
+        every width= adjusted below, both need height= reconfigured here
+        explicitly or the timeline heading font stays permanently capped
+        regardless of how high the base goes."""
         # Every widget below is always real by the time this can be
         # called - it's only reachable via the Project Settings dialog,
         # built well after __init__ finishes.
@@ -852,6 +861,7 @@ class TaskResourceManager:
 
         self.base_cell_width = round(self.base_cell_width * scale)
         self.base_task_height = round(self.base_task_height * scale)
+        self.base_timeline_height = round(self.base_timeline_height * scale)
         self.base_label_column_width = round(self.base_label_column_width * scale)
 
         old_cell_width = self.cell_width
@@ -861,6 +871,7 @@ class TaskResourceManager:
 
         self.cell_width = round(self.base_cell_width * self.zoom_level)
         self.task_height = round(self.base_task_height * self.zoom_level)
+        self.timeline_height = round(self.base_timeline_height * self.zoom_level)
         self.label_column_width = round(self.base_label_column_width * self.zoom_level)
 
         font_scale_factor = max(1.0, self.zoom_level * 0.8)
@@ -876,7 +887,10 @@ class TaskResourceManager:
         )
 
         self.timeline_label_frame.config(width=self.label_column_width)
-        self.timeline_label_canvas.config(width=self.label_column_width)
+        self.timeline_label_canvas.config(
+            width=self.label_column_width, height=self.timeline_height
+        )
+        self.timeline_canvas.config(height=self.timeline_height)
         self.task_label_frame.config(width=self.label_column_width)
         self.task_label_canvas.config(width=self.label_column_width)
         self.resource_label_frame.config(width=self.label_column_width)

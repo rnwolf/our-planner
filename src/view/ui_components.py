@@ -77,6 +77,15 @@ class UIComponents:
 
     def update_setdate_display(self):
         """Update the setdate display in the top-left corner with wider column"""
+        # Update the "Current Date" label's font too - it's otherwise only
+        # ever set once, at creation, so without this it stayed frozen at
+        # its original size regardless of later font/zoom/base-font-size
+        # changes, unlike the date text right below it.
+        self.controller.timeline_label_canvas.itemconfig(
+            self.setdate_label,
+            font=('Arial', self.controller.timeline_font_size, 'bold'),
+        )
+
         # Update the text with dynamic font size
         self.controller.timeline_label_canvas.itemconfig(
             self.setdate_text,
@@ -97,6 +106,20 @@ class UIComponents:
             0,
             self.controller.label_column_width,
             self.controller.timeline_height,
+        )
+
+        # Re-center both text items too - their position is also derived
+        # from label_column_width/timeline_height, which can change
+        # independently of this method being called.
+        self.controller.timeline_label_canvas.coords(
+            self.setdate_label,
+            self.controller.label_column_width / 2,
+            self.controller.timeline_height / 3,
+        )
+        self.controller.timeline_label_canvas.coords(
+            self.setdate_text,
+            self.controller.label_column_width / 2,
+            self.controller.timeline_height * 2 / 3,
         )
 
     def edit_setdate(self):
@@ -671,7 +694,7 @@ class UIComponents:
         )
 
         # Add "Current Date" label with dynamic font size
-        self.controller.timeline_label_canvas.create_text(
+        self.setdate_label = self.controller.timeline_label_canvas.create_text(
             self.controller.label_column_width / 2,
             self.controller.timeline_height / 3,
             text='Current Date',
