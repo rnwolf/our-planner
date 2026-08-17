@@ -2147,25 +2147,72 @@ class TaskOperations:
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=10)
 
-        tk.Button(button_frame, text='Add', command=add_project_from_dialog).pack(
-            side=tk.LEFT, padx=5
+        add_button = tk.Button(
+            button_frame,
+            text='Add',
+            underline=mnemonic('Add', 'Add'),
+            command=add_project_from_dialog,
         )
-        tk.Button(button_frame, text='Update', command=update_selected_project).pack(
-            side=tk.LEFT, padx=5
+        add_button.pack(side=tk.LEFT, padx=5)
+        update_button = tk.Button(
+            button_frame,
+            text='Update',
+            underline=mnemonic('Update', 'Update'),
+            command=update_selected_project,
         )
-        tk.Button(button_frame, text='Remove', command=remove_selected_project).pack(
-            side=tk.LEFT, padx=5
+        update_button.pack(side=tk.LEFT, padx=5)
+        remove_button = tk.Button(
+            button_frame,
+            text='Remove',
+            underline=mnemonic('Remove', 'Remove'),
+            command=remove_selected_project,
         )
-        tk.Button(
-            button_frame, text='Set as Default', command=set_selected_as_default
-        ).pack(side=tk.LEFT, padx=5)
-        tk.Button(
-            button_frame, text='Toggle Phase', command=toggle_selected_project_phase
-        ).pack(side=tk.LEFT, padx=5)
+        remove_button.pack(side=tk.LEFT, padx=5)
+        default_button = tk.Button(
+            button_frame,
+            text='Set as Default',
+            underline=mnemonic('Set as Default', 'Set'),
+            command=set_selected_as_default,
+        )
+        default_button.pack(side=tk.LEFT, padx=5)
+        toggle_phase_button = tk.Button(
+            button_frame,
+            text='Toggle Phase',
+            underline=mnemonic('Toggle Phase', 'Toggle'),
+            command=toggle_selected_project_phase,
+        )
+        toggle_phase_button.pack(side=tk.LEFT, padx=5)
 
-        tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(
-            side=tk.RIGHT, padx=10, pady=10
+        close_button = tk.Button(
+            dialog,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=dialog.destroy,
+            width=10,
         )
+        close_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+        # Alt-<letter> shortcuts for every action, own dialog/binding
+        # table. Plus: a plain tk.Button only binds <space> to invoke
+        # itself by default, not <Return> - every platform's convention
+        # is that Enter activates whichever button has focus, so each
+        # needs it bound explicitly too (see edit_task_resources for the
+        # same fix and why).
+        dialog.bind('<Alt-a>', lambda e: add_project_from_dialog())
+        dialog.bind('<Alt-u>', lambda e: update_selected_project())
+        dialog.bind('<Alt-r>', lambda e: remove_selected_project())
+        dialog.bind('<Alt-s>', lambda e: set_selected_as_default())
+        dialog.bind('<Alt-t>', lambda e: toggle_selected_project_phase())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+        for button in (
+            add_button,
+            update_button,
+            remove_button,
+            default_button,
+            toggle_phase_button,
+            close_button,
+        ):
+            button.bind('<Return>', lambda e, b=button: b.invoke())
 
         add_resize_handle(dialog)
 
@@ -2246,9 +2293,13 @@ class TaskOperations:
             if hex_color:
                 chain_color_var.set(hex_color)
 
-        tk.Button(details_frame, text='Choose Color...', command=choose_color).grid(
-            row=1, column=2, sticky='w', padx=5, pady=5
+        choose_color_button = tk.Button(
+            details_frame,
+            text='Choose Color...',
+            underline=mnemonic('Choose Color...', 'Choose'),
+            command=choose_color,
         )
+        choose_color_button.grid(row=1, column=2, sticky='w', padx=5, pady=5)
 
         def format_chain_label(chain):
             marker = ' (critical)' if chain['is_critical'] else ''
@@ -2357,22 +2408,64 @@ class TaskOperations:
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=10)
 
-        tk.Button(button_frame, text='Add', command=add_chain_from_dialog).pack(
-            side=tk.LEFT, padx=5
+        add_button = tk.Button(
+            button_frame,
+            text='Add',
+            underline=mnemonic('Add', 'Add'),
+            command=add_chain_from_dialog,
         )
-        tk.Button(button_frame, text='Update', command=update_selected_chain).pack(
-            side=tk.LEFT, padx=5
+        add_button.pack(side=tk.LEFT, padx=5)
+        update_button = tk.Button(
+            button_frame,
+            text='Update',
+            underline=mnemonic('Update', 'Update'),
+            command=update_selected_chain,
         )
-        tk.Button(button_frame, text='Remove', command=remove_selected_chain).pack(
-            side=tk.LEFT, padx=5
+        update_button.pack(side=tk.LEFT, padx=5)
+        remove_button = tk.Button(
+            button_frame,
+            text='Remove',
+            underline=mnemonic('Remove', 'Remove'),
+            command=remove_selected_chain,
         )
-        tk.Button(
-            button_frame, text='Set as Critical', command=set_selected_as_critical
-        ).pack(side=tk.LEFT, padx=5)
+        remove_button.pack(side=tk.LEFT, padx=5)
+        critical_button = tk.Button(
+            button_frame,
+            text='Set as Critical',
+            underline=mnemonic('Set as Critical', 'Set'),
+            command=set_selected_as_critical,
+        )
+        critical_button.pack(side=tk.LEFT, padx=5)
 
-        tk.Button(dialog, text='Close', command=dialog.destroy, width=10).pack(
-            side=tk.RIGHT, padx=10, pady=10
+        close_button = tk.Button(
+            dialog,
+            text='Close',
+            # 'L' - 'C' is Choose Color's mnemonic above
+            underline=mnemonic('Close', 'Close', 'l'),
+            command=dialog.destroy,
+            width=10,
         )
+        close_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+        # Alt-<letter> shortcuts for every action, own dialog/binding
+        # table. Plus: a plain tk.Button only binds <space> to invoke
+        # itself by default, not <Return> - see edit_task_resources for
+        # the same fix and why each button needs it bound explicitly too.
+        dialog.bind('<Alt-a>', lambda e: add_chain_from_dialog())
+        dialog.bind('<Alt-u>', lambda e: update_selected_chain())
+        dialog.bind('<Alt-r>', lambda e: remove_selected_chain())
+        dialog.bind('<Alt-c>', lambda e: choose_color())
+        dialog.bind('<Alt-s>', lambda e: set_selected_as_critical())
+        dialog.bind('<Alt-l>', lambda e: dialog.destroy())
+        for button in (
+            add_button,
+            update_button,
+            remove_button,
+            choose_color_button,
+            critical_button,
+            close_button,
+        ):
+            button.bind('<Return>', lambda e, b=button: b.invoke())
 
         add_resize_handle(dialog)
 
