@@ -2785,6 +2785,9 @@ class TaskOperations:
         dialog.geometry(f'+{x}+{y}')
         dialog.transient(parent)
         dialog.grab_set()  # Prevent interaction with the main window
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+        dialog.focus_set()
+        dialog.wait_visibility()
 
         # Create form fields
         settings_frame = tk.Frame(dialog)
@@ -2847,6 +2850,10 @@ class TaskOperations:
                 )
                 cal_dialog.transient(dialog)
                 cal_dialog.grab_set()
+                # Every other popup in this dialog can be dismissed with
+                # Escape - this one couldn't, the only way out was picking
+                # a date and clicking Select.
+                cal_dialog.bind('<Escape>', lambda e: cal_dialog.destroy())
 
                 # Create calendar widget initialized with current start date
                 cal = Calendar(
@@ -2866,6 +2873,7 @@ class TaskOperations:
                     cal_dialog.destroy()
 
                 tk.Button(cal_dialog, text='Select', command=set_date).pack(pady=10)
+                cal_dialog.bind('<Return>', lambda e: set_date())
             except ImportError:
                 messagebox.showwarning(
                     'Calendar Not Available',
@@ -2873,9 +2881,13 @@ class TaskOperations:
                     parent=dialog,
                 )
 
-        tk.Button(
-            settings_frame, text='Pick Date...', command=open_calendar_dialog
-        ).grid(row=2, column=2, padx=5, pady=5, sticky='w')
+        pick_date_button = tk.Button(
+            settings_frame,
+            text='Pick Date...',
+            underline=mnemonic('Pick Date...', 'Pick'),
+            command=open_calendar_dialog,
+        )
+        pick_date_button.grid(row=2, column=2, padx=5, pady=5, sticky='w')
 
         # Chains (critical chain + feeding chains) - lives here rather than
         # its own top-level menu since it's project-level configuration, the
@@ -2883,11 +2895,13 @@ class TaskOperations:
         tk.Label(settings_frame, text='Chains:').grid(
             row=4, column=0, sticky='w', pady=5
         )
-        tk.Button(
+        manage_chains_button = tk.Button(
             settings_frame,
             text='Manage Chains...',
+            underline=mnemonic('Manage Chains...', 'Manage'),
             command=lambda: self.manage_chains_dialog(parent=dialog),
-        ).grid(row=4, column=1, sticky='w', pady=5)
+        )
+        manage_chains_button.grid(row=4, column=1, sticky='w', pady=5)
 
         # Button frame
         button_frame = tk.Frame(dialog)
@@ -2968,12 +2982,36 @@ class TaskOperations:
                 )
 
         # Add buttons
-        tk.Button(button_frame, text='Cancel', command=dialog.destroy).pack(
-            side=tk.RIGHT, padx=5
+        cancel_button = tk.Button(
+            button_frame,
+            text='Cancel',
+            underline=mnemonic('Cancel', 'Cancel'),
+            command=dialog.destroy,
         )
-        tk.Button(button_frame, text='Save', command=apply_date_change).pack(
-            side=tk.RIGHT, padx=5
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        save_button = tk.Button(
+            button_frame,
+            text='Save',
+            underline=mnemonic('Save', 'Save'),
+            command=apply_date_change,
         )
+        save_button.pack(side=tk.RIGHT, padx=5)
+
+        # Alt-<letter> shortcuts for every action, own dialog/binding
+        # table. Plus: a plain tk.Button only binds <space> to invoke
+        # itself by default, not <Return> - see edit_task_resources for
+        # the same fix and why each button needs it bound explicitly too.
+        dialog.bind('<Alt-p>', lambda e: open_calendar_dialog())
+        dialog.bind('<Alt-m>', lambda e: self.manage_chains_dialog(parent=dialog))
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-s>', lambda e: apply_date_change())
+        for button in (
+            pick_date_button,
+            manage_chains_button,
+            cancel_button,
+            save_button,
+        ):
+            button.bind('<Return>', lambda e, b=button: b.invoke())
 
         add_resize_handle(dialog)
 
