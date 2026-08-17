@@ -639,9 +639,16 @@ class TaskOperations:
         capacity_entry = tk.Entry(capacity_frame, textvariable=capacity_var, width=5)
         capacity_entry.pack(side=tk.LEFT, padx=5)
 
-        # Update button
+        # Update button - underlines the 'i' in "Capacity" (Alt-I, "by
+        # Index") rather than a leading letter: this label text is
+        # identical to the by-date Update button below, so the two need
+        # distinct underlined letters picked from *within* the shared
+        # text rather than the usual first-letter-of-the-label default.
         update_button = tk.Button(
-            index_frame, text='Update Capacity', command=lambda: update_capacity()
+            index_frame,
+            text='Update Capacity',
+            underline=mnemonic('Update Capacity', 'Capacity', 'i'),
+            command=lambda: update_capacity(),
         )
         update_button.pack(anchor='e', pady=(5, 0))
 
@@ -682,6 +689,12 @@ class TaskOperations:
             cal_dialog.title('Select Date')
             cal_dialog.transient(capacity_tab.winfo_toplevel())
             cal_dialog.grab_set()
+            # Every other popup in this dialog can be dismissed with
+            # Escape - this one previously couldn't, the only way out was
+            # picking a date and clicking Select (or the window manager's
+            # own close button, not guaranteed reachable from the
+            # keyboard).
+            cal_dialog.bind('<Escape>', lambda e: cal_dialog.destroy())
 
             cal = Calendar(
                 cal_dialog,
@@ -698,6 +711,7 @@ class TaskOperations:
                 cal_dialog.destroy()
 
             tk.Button(cal_dialog, text='Select', command=set_date).pack(pady=10)
+            cal_dialog.bind('<Return>', lambda e: set_date())
 
         # Start date
         start_date_frame = tk.Frame(date_frame)
@@ -711,9 +725,14 @@ class TaskOperations:
         )
         start_date_entry.pack(side=tk.LEFT, padx=5)
         tk.Label(start_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT, padx=(0, 5))
+        # "Pick Start..."/"Pick End..." rather than plain "Pick...", which
+        # both date pickers used to say identically - impossible to tell
+        # apart by keyboard shortcut (or by a screen reader) with no text
+        # to distinguish them, only their position on screen.
         tk.Button(
             start_date_frame,
-            text='Pick...',
+            text='Pick Start...',
+            underline=mnemonic('Pick Start...', 'Start'),
             command=lambda: pick_date_into(start_date_var),
         ).pack(side=tk.LEFT)
 
@@ -729,7 +748,8 @@ class TaskOperations:
         tk.Label(end_date_frame, text='(YYYY-MM-DD)').pack(side=tk.LEFT, padx=(0, 5))
         tk.Button(
             end_date_frame,
-            text='Pick...',
+            text='Pick End...',
+            underline=mnemonic('Pick End...', 'End'),
             command=lambda: pick_date_into(end_date_var),
         ).pack(side=tk.LEFT)
 
@@ -744,10 +764,13 @@ class TaskOperations:
         )
         date_capacity_entry.pack(side=tk.LEFT, padx=5)
 
-        # Update button for date range
+        # Update button for date range - the 'd' in "Update" (Alt-D, "by
+        # Date"), see the by-index Update button's comment above for why
+        # this isn't just the label's first letter.
         update_date_button = tk.Button(
             date_frame,
             text='Update Capacity',
+            underline=mnemonic('Update Capacity', 'Update', 'd'),
             command=lambda: update_capacity_by_date(),
         )
         update_date_button.pack(anchor='e', pady=(5, 0))
@@ -1025,6 +1048,20 @@ class TaskOperations:
             if selected:
                 resource_id = int(selected.split(' - ')[0])
                 draw_capacity_list(resource_id)
+
+        # Alt-<letter> shortcuts for this tab's actions, same reasoning as
+        # the Resources tab's (see edit_resources) - a tk.Button's
+        # underline= alone is cosmetic. Bound via the shared dialog
+        # (winfo_toplevel(), the same lookup update_capacity/
+        # update_capacity_by_date already use) since edit_resources - not
+        # this method - owns the Toplevel; letters chosen to avoid the
+        # Resources tab's A/U/R/C/W (both tabs' shortcuts live on the same
+        # dialog-wide binding table regardless of which tab is visible).
+        dialog = capacity_tab.winfo_toplevel()
+        dialog.bind('<Alt-i>', lambda e: update_capacity())
+        dialog.bind('<Alt-d>', lambda e: update_capacity_by_date())
+        dialog.bind('<Alt-s>', lambda e: pick_date_into(start_date_var))
+        dialog.bind('<Alt-e>', lambda e: pick_date_into(end_date_var))
 
         return (
             capacity_frame,
