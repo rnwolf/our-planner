@@ -74,6 +74,21 @@ class RemainingDurationHistoryEntry(TypedDict):
     note: NotRequired[str]
 
 
+class BufferUpdateReasonEntry(TypedDict):
+    """One status update carrying a reason and/or note, attributed back to
+    the task it was recorded against - as returned by
+    get_buffer_update_reasons for display alongside a buffer's fever
+    chart. Not itself stored on any task; assembled on read from the
+    protected chain's remaining_duration_history entries."""
+
+    date: str
+    task_id: int
+    task_description: str
+    remaining_duration: int
+    reason: NotRequired[str]
+    note: NotRequired[str]
+
+
 class SuccessorLink(TypedDict):
     """One outgoing link derived from a successor's predecessor entry, as
     returned by get_successor_links. Mirrors PredecessorLink but keyed by

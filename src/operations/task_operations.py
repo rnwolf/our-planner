@@ -5448,7 +5448,17 @@ class TaskOperations:
         dialog.title(f'Project Fever Charts: {project["name"]}')
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
         dialog.geometry('560x600')
+
+        show_reasons_var = tk.BooleanVar(value=False)
+        toggle = tk.Checkbutton(
+            dialog,
+            text='Show Status Update Reasons/Notes',
+            variable=show_reasons_var,
+            underline=mnemonic('Show Status Update Reasons/Notes', 'Show'),
+        )
+        toggle.pack(anchor='w', padx=10, pady=(10, 0))
 
         outer = tk.Frame(dialog)
         outer.pack(fill=tk.BOTH, expand=True)
@@ -5466,21 +5476,26 @@ class TaskOperations:
             lambda e: scroll_canvas.configure(scrollregion=scroll_canvas.bbox('all')),
         )
 
-        if not buffers:
-            tk.Label(
-                content,
-                text=(
-                    f"'{project['name']}' has no tasks with type 'Project "
-                    "Buffer' or 'Feeding Buffer' assigned to it yet."
-                ),
-                wraplength=520,
-                padx=10,
-                pady=10,
-            ).pack()
-        else:
+        def build_content():
+            for child in content.winfo_children():
+                child.destroy()
+
+            if not buffers:
+                tk.Label(
+                    content,
+                    text=(
+                        f"'{project['name']}' has no tasks with type 'Project "
+                        "Buffer' or 'Feeding Buffer' assigned to it yet."
+                    ),
+                    wraplength=520,
+                    padx=10,
+                    pady=10,
+                ).pack()
+                return
+
             for buffer_task in buffers:
                 chart_canvas = tk.Canvas(content, bg='white', width=520, height=380)
-                chart_canvas.pack(padx=10, pady=10)
+                chart_canvas.pack(padx=10, pady=(10, 0))
                 self.controller.ui.draw_fever_chart(
                     chart_canvas,
                     buffer_task,
@@ -5490,29 +5505,127 @@ class TaskOperations:
                     width=500,
                     height=360,
                 )
+                if show_reasons_var.get():
+                    self._build_buffer_reason_panel(content, buffer_task)
+
+        toggle.config(command=build_content)
+        dialog.bind(
+            '<Alt-s>',
+            lambda e: (
+                show_reasons_var.set(not show_reasons_var.get()),
+                build_content(),
+            ),
+        )
+        build_content()
 
         button_frame = tk.Frame(dialog)
         button_frame.pack(pady=(0, 10))
         if buffers:
-            tk.Button(
+            download_png_button = tk.Button(
                 button_frame,
                 text='Download All (High-Res PNG)...',
+                # 'P' from "PNG" - both buttons start "Download", which
+                # would collide on 'D' with the CSV button below otherwise.
+                underline=mnemonic('Download All (High-Res PNG)...', 'PNG'),
                 command=lambda: self.controller.export_ops.export_fever_charts(
                     project=project
                 ),
-            ).pack(side=tk.LEFT, padx=5)
-            tk.Button(
+            )
+            download_png_button.pack(side=tk.LEFT, padx=5)
+            download_csv_button = tk.Button(
                 button_frame,
                 text='Download Data (CSV)...',
+                underline=mnemonic('Download Data (CSV)...', 'Data'),
                 command=lambda: self.controller.export_ops.export_fever_chart_data(
                     project=project
                 ),
-            ).pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text='Close', command=dialog.destroy).pack(
-            side=tk.LEFT, padx=5
+            )
+            download_csv_button.pack(side=tk.LEFT, padx=5)
+            dialog.bind(
+                '<Alt-p>',
+                lambda e: self.controller.export_ops.export_fever_charts(
+                    project=project
+                ),
+            )
+            dialog.bind(
+                '<Alt-d>',
+                lambda e: self.controller.export_ops.export_fever_chart_data(
+                    project=project
+                ),
+            )
+            download_png_button.bind('<Return>', lambda e: download_png_button.invoke())
+            download_csv_button.bind('<Return>', lambda e: download_csv_button.invoke())
+
+        close_button = tk.Button(
+            button_frame,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=dialog.destroy,
         )
+        close_button.pack(side=tk.LEFT, padx=5)
+        close_button.bind('<Return>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 
         add_resize_handle(dialog)
+
+    def _build_buffer_reason_panel(self, parent, buffer_task):
+        """A compact list + detail panel of get_buffer_update_reasons for
+        one buffer, packed directly below its fever chart - own local
+        closures per call, so building several of these in a loop (one
+        per buffer) can't suffer the classic shared-loop-variable
+        late-binding bug."""
+        reasons = self.model.get_buffer_update_reasons(buffer_task['task_id'])
+
+        panel = tk.Frame(parent)
+        panel.pack(fill=tk.X, padx=10, pady=(0, 10))
+        tk.Label(
+            panel,
+            text=f'Status Update Reasons — {buffer_task["description"]}:',
+            font=('Arial', 9, 'bold'),
+        ).pack(anchor='w')
+
+        if not reasons:
+            tk.Label(panel, text='(no reasons/notes recorded yet)', fg='gray').pack(
+                anchor='w'
+            )
+            return
+
+        list_frame = tk.Frame(panel)
+        list_frame.pack(fill=tk.X)
+        scrollbar = tk.Scrollbar(list_frame, takefocus=0)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        reason_list = tk.Listbox(
+            list_frame,
+            yscrollcommand=scrollbar.set,
+            exportselection=False,
+            height=min(5, len(reasons)),
+        )
+        reason_list.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        scrollbar.config(command=reason_list.yview)
+
+        note_text = tk.Label(
+            panel, text='', anchor='w', justify=tk.LEFT, wraplength=500
+        )
+        note_text.pack(anchor='w', fill=tk.X)
+
+        def on_select(event=None):
+            selected = reason_list.curselection()
+            if not selected:
+                return
+            entry = reasons[selected[0]]
+            note_text.config(text=entry.get('note') or '(no note)')
+
+        for entry in reasons:
+            date = datetime.fromisoformat(entry['date']).strftime('%Y-%m-%d')
+            line = f'{date}  {entry["task_description"]}: {entry["remaining_duration"]}d remaining'
+            reason = entry.get('reason')
+            if reason:
+                line += f'  —  {reason}'
+            reason_list.insert(tk.END, line)
+
+        reason_list.bind('<<ListboxSelect>>', on_select)
+        reason_list.selection_set(tk.END)
+        on_select()
 
     def _update_resource_capacities_for_date_change(self, delta_days):
         """Update resource capacities when the start date changes."""

@@ -9,6 +9,7 @@ from src.model.dependency_notation import (
     normalize_predecessor_entries,
 )
 from src.model.entities import (
+    BufferUpdateReasonEntry,
     ChainDict,
     FeverChartHistoryEntry,
     FeverChartPoint,
@@ -2125,6 +2126,52 @@ class TaskResourceModel:
             if successor and successor.get('type') not in BUFFER_TASK_TYPES:
                 merge_tasks.append(successor)
         return merge_tasks[0] if len(merge_tasks) == 1 else None
+
+    def get_buffer_update_reasons(
+        self, buffer_task_id: int
+    ) -> List[BufferUpdateReasonEntry]:
+        """Every status update carrying a reason and/or note, across a
+        buffer's protected chain (the same chain compute_fever_chart_point
+        uses), sorted by date - the root-cause context behind that
+        buffer's fever chart movement, for periodic team review.
+
+        Deliberately not matched point-for-point to one specific
+        fever_chart_history entry: capture_fever_chart_snapshot stamps
+        every buffer in a project with the same date on every status
+        update project-wide, so more than one reason can legitimately
+        share a date, or a date on the chart may have no update on this
+        particular chain at all. A plain chronological list read
+        alongside the (date-labeled) chart points is more honest than
+        forcing a one-to-one mapping that isn't really there.
+        """
+        terminal_task = self.get_buffer_terminal_task(buffer_task_id)
+        if not terminal_task:
+            return []
+
+        chain_tasks = self.get_chain_tasks(
+            terminal_task.get('chain_id'), terminal_task.get('project_id')
+        )
+
+        entries: List[BufferUpdateReasonEntry] = []
+        for task in chain_tasks:
+            for record in task.get('remaining_duration_history', []):
+                reason = record.get('reason')
+                note = record.get('note')
+                if not reason and not note:
+                    continue
+                entry: BufferUpdateReasonEntry = {
+                    'date': record['date'],
+                    'task_id': task['task_id'],
+                    'task_description': task['description'],
+                    'remaining_duration': record['remaining_duration'],
+                }
+                if reason:
+                    entry['reason'] = reason
+                if note:
+                    entry['note'] = note
+                entries.append(entry)
+
+        return sorted(entries, key=lambda e: e['date'])
 
     def compute_fever_chart_point(
         self, buffer_task_id: int
