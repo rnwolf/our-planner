@@ -578,7 +578,10 @@ class TaskOperations:
         list_container = tk.Frame(list_frame)
         list_container.pack(fill=tk.BOTH, expand=True)
 
-        capacity_scroll = tk.Scrollbar(list_container, orient='vertical')
+        # takefocus=0 - a plain tk.Scrollbar has no visible focus ring
+        # (highlightthickness=0) but is still a real Tab stop otherwise,
+        # an invisible pause easily mistaken for Tab doing nothing.
+        capacity_scroll = tk.Scrollbar(list_container, orient='vertical', takefocus=0)
         capacity_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
         capacity_canvas = tk.Canvas(
@@ -1058,8 +1061,9 @@ class TaskOperations:
             resource_frame = tk.Frame(dialog)
             resource_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-            # Add scrollbar
-            scrollbar = tk.Scrollbar(resource_frame)
+            # Add scrollbar - takefocus=0: no visible focus ring
+            # (highlightthickness=0) but still a real Tab stop otherwise.
+            scrollbar = tk.Scrollbar(resource_frame, takefocus=0)
             scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
             # Create a canvas to hold the resource list (explicit size: a
@@ -1282,7 +1286,14 @@ class TaskOperations:
         listbox_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
         # Scrollbar for the listbox
-        scrollbar = tk.Scrollbar(listbox_frame)
+        # takefocus=0: a plain tk.Scrollbar renders no visible focus ring
+        # (highlightthickness=0 by default) but is still a real Tab stop -
+        # without this it's an invisible pause between the listbox and
+        # whatever follows it, easily mistaken for Tab silently doing
+        # nothing. The listbox itself already handles Up/Down/PageUp/
+        # PageDown once focused, so the scrollbar isn't a useful keyboard
+        # target anyway.
+        scrollbar = tk.Scrollbar(listbox_frame, takefocus=0)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Create a listbox to display resources
@@ -1704,7 +1715,14 @@ class TaskOperations:
         listbox_frame = tk.Frame(main_frame)
         listbox_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-        scrollbar = tk.Scrollbar(listbox_frame)
+        # takefocus=0: a plain tk.Scrollbar renders no visible focus ring
+        # (highlightthickness=0 by default) but is still a real Tab stop -
+        # without this it's an invisible pause between the listbox and
+        # whatever follows it, easily mistaken for Tab silently doing
+        # nothing. The listbox itself already handles Up/Down/PageUp/
+        # PageDown once focused, so the scrollbar isn't a useful keyboard
+        # target anyway.
+        scrollbar = tk.Scrollbar(listbox_frame, takefocus=0)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # exportselection=False: by default a Listbox ties its selection to
@@ -2017,7 +2035,14 @@ class TaskOperations:
         listbox_frame = tk.Frame(main_frame)
         listbox_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-        scrollbar = tk.Scrollbar(listbox_frame)
+        # takefocus=0: a plain tk.Scrollbar renders no visible focus ring
+        # (highlightthickness=0 by default) but is still a real Tab stop -
+        # without this it's an invisible pause between the listbox and
+        # whatever follows it, easily mistaken for Tab silently doing
+        # nothing. The listbox itself already handles Up/Down/PageUp/
+        # PageDown once focused, so the scrollbar isn't a useful keyboard
+        # target anyway.
+        scrollbar = tk.Scrollbar(listbox_frame, takefocus=0)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # exportselection=False - see project_listbox: editing a field must
