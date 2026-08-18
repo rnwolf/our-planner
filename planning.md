@@ -1647,6 +1647,57 @@ overloaded day" — cheap once the summary exists); "follow task filter" resourc
 visible-rows-only canvas drawing if 60-resource redraw hurts; persisting sort/filter choices in
 the save file (existing filters are session-only — stay consistent until asked otherwise).
 
+### Stage 22 — UI Scenarios end-to-end walkthrough script, as a friction-finding method (position captured, not yet planned)
+
+**Goal, in Rudiger's words:** use the UI Scenarios framework to identify friction *while* creating
+a script that drives the application end to end, so the result is both (a) a discovery method for
+UX friction and (b) an actual walkthrough script of how the application can be used - the act of
+scripting a real, complete usage flow is itself expected to surface papercuts a code read wouldn't,
+the same way this session's fixes did.
+
+**What already exists to build on** (`scripts/ui_scenarios/`, documented in the README's "UI
+scenario walkthroughs" section):
+
+- `driver.py`'s `ScenarioDriver` - drives the real, running `TaskResourceManager` app (real canvas
+  drags, real context menus, real menu wiring) with modal dialogs (`simpledialog`/`messagebox`/
+  custom Toplevels like the CCPM result dialog) patched or read-and-closed programmatically, so a
+  scenario runs instantly with no human in the loop. This is the workhorse used throughout this
+  session's own verification scripts.
+- `visual_driver.py`'s `VisualDriver` - the same step sequence, paced and with real (unpatched)
+  dialogs, for a narrated, watchable walkthrough (screen-recorder-friendly; doesn't control
+  recording itself).
+- One committed scenario so far: `core_workflow_scenario.py` - create 3 tasks by drag, wire them
+  FS, assign one resource, `File > Schedule with CCPM...`, inspect the resulting project. Narrow by
+  design (a regression pilot for the driver itself), not an end-to-end tour of the app.
+
+**Evidence the approach works, from this session alone** (all found by actually driving the app,
+not by reading code): the entire keyboard-accessibility sweep (mnemonics/Tab-order/Enter-on-
+buttons across every menu and dialog), Base Font Size not scaling the timeline row height or the
+Current Date label, the drag-create dispatch-order bug, `File > New` not clearing resources/tags,
+the `Save`/`Schedule with CCPM...` mnemonic collision, and the CCPM result dialog's messagebox
+being unreadably tall-and-thin with ids instead of names. Several - the mnemonic collision and the
+CCPM dialog readability fix - were found through ordinary hands-on use of the app for its own
+sake (building/scheduling a real project), not through a scripted scenario at all, which is
+exactly the dynamic Stage 22 is trying to capture deliberately and repeatably via a script instead
+of leaving it to chance.
+
+**Not yet scoped - open for the next planning conversation:**
+
+- What "end to end" should actually cover: task/resource/dependency creation through to CCPM
+  scheduling and reporting (Fever Charts, Full-Kit Readiness, Status Update Log)? Multi-project
+  rolling-wave (Stage 20's own scenario)? Record Remaining Duration + reason codes? Import/export
+  round trips?
+  - A companion candidate: with `visual_driver.py` already recordable, the "end to end walkthrough"
+    Rudiger wants may double as demo/onboarding material, not just a friction-finding tool - worth
+    deciding explicitly rather than by accident.
+- New script(s) vs. extending `core_workflow_scenario.py` - the existing one is deliberately narrow
+  (a driver regression pilot); a comprehensive walkthrough is a different kind of artifact and
+  probably wants its own file(s).
+- Workflow for friction found while building it: fix inline as found (this session's pattern) vs.
+  log everything first and triage as a batch.
+- Whether this becomes a recurring practice (a new scenario per feature area, kept as regression
+  coverage going forward) or a one-off exercise.
+
 ## UI polish backlog (not CCPM-specific, but worth fixing)
 
 Small, unrelated-to-CCPM items flagged during this session's testing — not urgent enough to stop
