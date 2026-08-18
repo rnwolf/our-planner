@@ -1,4 +1,38 @@
 
+    ## [0.1.24] - 2026-08-18
+    ### Added
+    - Keyboard-only accessibility across the whole app: Alt-mnemonics and Ctrl accelerators on
+      every menu, Enter now activates a focused button in every dialog (Tk doesn't bind this by
+      default), fixed tab order and invisible-scrollbar Tab stops in Edit Resources and related
+      dialogs, keyboard shortcuts throughout Manage Projects, Manage Chains, and Project
+      Settings, Edit Task Resources redesigned as search-and-add, and Set Current Date made
+      fully keyboard-operable (tkcalendar has no keyboard support of its own).
+    - A persisted Base Font Size setting (Project Settings) and a persisted zoom level, both
+      stored in a new `~/.our-planner/settings.json` alongside the app rather than in project
+      files - viewing preferences, not plan data.
+    - Reason codes for status updates: Record Remaining Duration... now captures a primary
+      reason (a fixed vocabulary - On Time, Task Variability, Waiting for Full Kit, Waiting for
+      Resource, No Early Start, Parkinson's Law, Multitasking, Waiting in Backlog, Unplanned
+      Events, Other / Unexplained) and an optional multi-line note alongside the remaining-
+      duration number. Surfaced in View Duration History..., a new "Show Status Update
+      Reasons/Notes" toggle on Fever Charts, and a new Reports > Status Update Log... report -
+      every recorded update for a project, with a Task URL column linking back to each task's
+      own page, an "only annotated" filter, and CSV export - intended for periodic team review
+      of root-cause patterns to improve delivery performance, not just a per-task log.
+    - File > Recent: the 5 most recently opened/saved files, numbered 1-5 (most recent first)
+      so the whole flow is reachable by keyboard - open the submenu and press the digit.
+    - A new UI scenario testing framework (`scripts/ui_scenarios`): a fast in-process
+      `ScenarioDriver` for driving the real app in tests, and a paced `VisualDriver` for
+      narrated walkthroughs - documented in the README.
+    ### Fixed
+    - Base Font Size wasn't affecting the timeline row height or the "Current Date" label's
+      font.
+    - A silent drag-create failure immediately after creating another task.
+    - File > New wasn't clearing resources or tags, and reseeded all 10 sample resources
+      instead of trimming down to just the first one.
+    ### Changed
+    - The user guide and in-app Help > Documentation now cover all of the above.
+
     ## [0.1.21] - 2026-07-27
     ### Fixed
     - Project Settings no longer corrupts resource capacity arrays when changing the
