@@ -102,6 +102,7 @@ class StatusUpdateLogEntry(TypedDict):
     task_id: int
     task_description: str
     remaining_duration: int
+    task_url: NotRequired[str]
     reason: NotRequired[str]
     note: NotRequired[str]
 

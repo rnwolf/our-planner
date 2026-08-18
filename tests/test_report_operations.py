@@ -138,6 +138,34 @@ class TestStatusUpdateLogReport:
         assert entries[1]['task_description'] == 'C1'
         assert entries[1]['remaining_duration'] == 2
 
+    def test_task_url_included_when_set_omitted_when_blank(self):
+        """The task's URL is where a reader is meant to navigate to
+        collaborate on interventions - included when the task has one,
+        left out (not an empty string) otherwise, same convention as
+        reason/note."""
+        project = self.model.add_project('Alpha')
+        with_url = self.model.add_task(
+            row=0, col=0, duration=5, description='Has URL', project_id=project['id']
+        )
+        with_url['url'] = 'https://wiki.example.com/tasks/has-url'
+        without_url = self.model.add_task(
+            row=1, col=0, duration=5, description='No URL', project_id=project['id']
+        )
+
+        self.model.record_remaining_duration(with_url['task_id'], 3, reason='On Time')
+        self.model.record_remaining_duration(
+            without_url['task_id'], 3, reason='On Time'
+        )
+
+        entries, _ = self.report_ops.compute_status_update_log(project)
+
+        by_description = {e['task_description']: e for e in entries}
+        assert (
+            by_description['Has URL']['task_url']
+            == 'https://wiki.example.com/tasks/has-url'
+        )
+        assert 'task_url' not in by_description['No URL']
+
     def test_scoped_to_project(self):
         p1 = self.model.add_project('Alpha')
         p2 = self.model.add_project('Beta')

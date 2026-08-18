@@ -173,6 +173,9 @@ class ReportOperations:
                     'task_description': task['description'],
                     'remaining_duration': record['remaining_duration'],
                 }
+                task_url = task.get('url')
+                if task_url and isinstance(task_url, str) and task_url.strip():
+                    entry['task_url'] = task_url
                 if record.get('reason'):
                     entry['reason'] = record['reason']
                 if record.get('note'):
@@ -248,6 +251,19 @@ class ReportOperations:
 
         detail = tk.Label(frame, text='', anchor='w', justify=tk.LEFT, wraplength=520)
 
+        # The task's URL - the link to wherever that task's team is meant to
+        # collaborate on interventions - is shown here rather than crammed
+        # onto the list line: it's per-task (not per-update), so most
+        # consecutive entries for the same task would repeat it verbatim.
+        task_url_label = tk.Label(
+            frame, text='', anchor='w', justify=tk.LEFT, wraplength=520, fg='gray'
+        )
+        current_task_url: dict = {'value': None}
+
+        def open_task_page():
+            if current_task_url['value']:
+                webbrowser.open(current_task_url['value'])
+
         # Rebuilt on toggle rather than filtered in place, matching the
         # Fever Charts "Show Status Update Reasons/Notes" toggle's pattern
         # - the list contents shown here always mirror `visible` exactly,
@@ -260,6 +276,14 @@ class ReportOperations:
                 return
             entry = visible[selected[0]]
             detail.config(text=entry.get('note') or '(no note)')
+            task_url = entry.get('task_url')
+            current_task_url['value'] = task_url
+            if task_url:
+                task_url_label.config(text=f'Task page: {task_url}', fg='blue')
+                open_page_button.config(state=tk.NORMAL)
+            else:
+                task_url_label.config(text='Task page: (none)', fg='gray')
+                open_page_button.config(state=tk.DISABLED)
 
         def rebuild():
             visible.clear()
@@ -272,6 +296,9 @@ class ReportOperations:
             if not visible:
                 listbox.insert(tk.END, 'No matching status updates.')
                 detail.config(text='')
+                task_url_label.config(text='')
+                current_task_url['value'] = None
+                open_page_button.config(state=tk.DISABLED)
                 return
             for entry in visible:
                 date = datetime.datetime.fromisoformat(entry['date']).strftime(
@@ -306,8 +333,7 @@ class ReportOperations:
         )
 
         detail.pack(anchor='w', fill=tk.X, pady=(5, 0))
-
-        rebuild()
+        task_url_label.pack(anchor='w', fill=tk.X, pady=(0, 5))
 
         button_frame = tk.Frame(frame)
         button_frame.pack(pady=(10, 0))
@@ -329,6 +355,24 @@ class ReportOperations:
             ),
         )
 
+        open_page_button = tk.Button(
+            button_frame,
+            text='Open Task Page',
+            underline=mnemonic('Open Task Page', 'Page'),
+            command=open_task_page,
+            state=tk.DISABLED,
+        )
+        open_page_button.pack(side=tk.LEFT, padx=5)
+        open_page_button.bind(
+            '<Return>',
+            lambda e: (
+                open_page_button.invoke()
+                if str(open_page_button['state']) != tk.DISABLED
+                else None
+            ),
+        )
+        dialog.bind('<Alt-p>', lambda e: open_task_page())
+
         close_button = tk.Button(
             button_frame,
             text='Close',
@@ -338,6 +382,8 @@ class ReportOperations:
         close_button.pack(side=tk.LEFT, padx=5)
         close_button.bind('<Return>', lambda e: dialog.destroy())
         dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+
+        rebuild()
 
         add_resize_handle(dialog)
 
