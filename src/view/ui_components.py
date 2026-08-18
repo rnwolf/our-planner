@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import textwrap
@@ -9,6 +10,7 @@ import webbrowser
 from datetime import datetime, timedelta
 from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
+from src.utils.app_settings import load_settings
 from src.utils.colors import (
     COLOR_NAMES,
     get_resource_load_color,
@@ -337,6 +339,19 @@ class UIComponents:
             accelerator='Ctrl+O',
             command=self.controller.file_ops.open_file,
         )
+
+        # Rebuilt just before it's shown (postcommand) rather than kept in
+        # sync from every open/save call site - so it can never drift out
+        # of date with ~/.our-planner/settings.json's recent_files list.
+        self.recent_files_menu = tk.Menu(
+            self.file_menu, tearoff=0, postcommand=self.refresh_recent_files_menu
+        )
+        self.file_menu.add_cascade(
+            label='Recent',
+            menu=self.recent_files_menu,
+            underline=mnemonic('Recent', 'Recent'),
+        )
+
         self.file_menu.add_command(
             label='Save',
             underline=mnemonic('Save', 'Save'),
@@ -733,6 +748,28 @@ class UIComponents:
 
         # Add Help menu
         self.help_menu = HelpMenu(self.controller, self.controller.root, self.menu_bar)
+
+    def refresh_recent_files_menu(self):
+        """File > Recent's postcommand: rebuild its entries from
+        ~/.our-planner/settings.json right before the submenu is shown, so
+        it always reflects the latest open/save regardless of how it
+        changed (this session, or a previous one). Each entry is labeled
+        with its position ('1 plan.json', '2 other.json', ...) and
+        underlined on that digit, so once the submenu is open, the digit
+        key alone opens that file - no mouse needed."""
+        self.recent_files_menu.delete(0, 'end')
+        recent_files = load_settings()['recent_files']
+        if not recent_files:
+            self.recent_files_menu.add_command(
+                label='(No recent files)', state=tk.DISABLED
+            )
+            return
+        for index, path in enumerate(recent_files, start=1):
+            self.recent_files_menu.add_command(
+                label=f'{index} {os.path.basename(path)}',
+                underline=0,
+                command=lambda p=path: self.controller.file_ops.open_recent_file(p),
+            )
 
     def create_timeline_frame(self):
         """Create the timeline canvas with horizontal scrolling and wider label column"""

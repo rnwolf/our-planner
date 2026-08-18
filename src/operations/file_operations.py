@@ -10,6 +10,7 @@ from src.model.resource_notation import (
     parse_resource_tokens as _parse_resource_tokens_str_keyed,
 )
 from src.model.task_resource_model import CRITICAL_CHAIN_COLOR, FEEDING_CHAIN_COLORS
+from src.utils.app_settings import add_recent_file, remove_recent_file
 
 # Matches a single predecessor token from a CCPM schedule.csv, e.g. 'K2',
 # 'W3:FB', 'R6:SS+2' - alphanumeric ids (not our own model's plain-integer
@@ -106,7 +107,28 @@ class FileOperations:
         if not file_path:
             return
 
-        # Use model method to load data
+        self._load_file(file_path)
+
+    def open_recent_file(self, file_path):
+        """File > Recent > <n> <filename>: reopen a file from the recently
+        opened/saved list. A file that's been moved or deleted since it was
+        listed is dropped from the list rather than left to fail the same
+        way again next time."""
+        if not os.path.isfile(file_path):
+            messagebox.showerror(
+                'File Not Found',
+                f'{file_path}\n\nThis file no longer exists and has been '
+                'removed from the Recent list.',
+            )
+            remove_recent_file(file_path)
+            return
+
+        self._load_file(file_path)
+
+    def _load_file(self, file_path):
+        """Shared by open_file (via the file picker) and open_recent_file
+        (via File > Recent) - load `file_path` into the model, refresh the
+        UI, and record it as the most recently used file."""
         if self.model.load_from_file(file_path):
             # Update UI
             self.controller.update_window_title(file_path)
@@ -115,6 +137,8 @@ class FileOperations:
             # Update notes panel if it exists
             if hasattr(self.controller.ui, 'update_notes_panel'):
                 self.controller.ui.update_notes_panel()
+
+            add_recent_file(file_path)
 
             messagebox.showinfo(
                 'Project Loaded', f'Project loaded from {os.path.basename(file_path)}'
@@ -128,6 +152,7 @@ class FileOperations:
         """Save the current tasks to a file"""
         if self.model.current_file_path:
             if self.model.save_to_file(self.model.current_file_path):
+                add_recent_file(self.model.current_file_path)
                 messagebox.showinfo(
                     'Save Successful',
                     f'Project saved to {os.path.basename(self.model.current_file_path)}',
@@ -150,6 +175,7 @@ class FileOperations:
 
         if self.model.save_to_file(file_path):
             self.controller.update_window_title(file_path)
+            add_recent_file(file_path)
             messagebox.showinfo(
                 'Save Successful', f'Project saved to {os.path.basename(file_path)}'
             )
