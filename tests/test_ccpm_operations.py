@@ -722,3 +722,50 @@ class TestStage20BufferMethod:
             ops.export_ccpm_network()
         assert info.called
         assert '--buffer-method hchain' in info.call_args[0][1]
+
+
+class TestAnnotateIssue:
+    """ccpm_scheduler's own Issue.message references tasks/resources by
+    the raw id they were exported under (e.g. "resource 5"), not
+    actionable without cross-referencing that id back to a name by hand.
+    _annotate_issue appends what those ids actually are, using the
+    issue's own structured task_ids/resource_ids (see ccpm_scheduler.
+    model.Issue) rather than guessing at the message's wording."""
+
+    def test_appends_resolved_task_and_resource_names(self):
+        model, project_id, ids, ops = make_worked_example()
+        issue = {
+            'code': 'E_ALLOCATION_EXCEEDS_CAPACITY',
+            'message': f'task {ids["A"]}: allocation 2 of resource 1 exceeds '
+            f"that resource's own capacity (1)",
+            'task_ids': [str(ids['A'])],
+            'resource_ids': ['1'],
+        }
+        annotated = ops._annotate_issue(issue)
+        assert annotated.startswith(issue['message'])
+        assert f"task {ids['A']} = 'Spec'" in annotated
+        assert "resource 1 = 'Resource A'" in annotated
+
+    def test_unresolvable_ids_leave_message_unchanged(self):
+        """An id that doesn't resolve to a real task/resource (shouldn't
+        happen given these ids came from our own export, but the ids are
+        untrusted free-form strings from the caller's perspective) is
+        skipped rather than appending a broken lookup."""
+        model, project_id, ids, ops = make_worked_example()
+        issue = {
+            'code': 'E_CYCLE',
+            'message': 'circular dependency: 999 -> 998',
+            'task_ids': ['999', '998'],
+            'resource_ids': [],
+        }
+        assert ops._annotate_issue(issue) == issue['message']
+
+    def test_no_ids_leaves_message_unchanged(self):
+        model, project_id, ids, ops = make_worked_example()
+        issue = {
+            'code': 'E_EMPTY_PROJECT',
+            'message': 'no schedulable tasks in this project',
+            'task_ids': [],
+            'resource_ids': [],
+        }
+        assert ops._annotate_issue(issue) == issue['message']

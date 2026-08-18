@@ -27,7 +27,7 @@ This module is the fast half only.
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import scrolledtext, simpledialog, ttk
 from unittest.mock import patch
 
 from src.controller.task_manager import TaskResourceManager
@@ -259,27 +259,36 @@ class ScenarioDriver:
     def schedule_with_ccpm(self) -> str:
         """File -> Schedule with CCPM... against whatever single project
         exists (only one project means CcpmOperations._pick_project
-        auto-selects it, no list dialog to answer). Returns the info
-        messagebox's text (or raises with the error box's text on
-        failure) instead of letting either block on a real popup."""
+        auto-selects it, no list dialog to answer). Returns the result
+        dialog's text (raises with it on failure) - schedule_with_ccpm
+        shows its own scrollable Toplevel (CcpmOperations.
+        _show_result_dialog) rather than a plain messagebox, so this reads
+        that dialog's ScrolledText and closes it instead of patching
+        messagebox like the driver's other assertions do."""
         self.assert_menu_path_has('File', 'Schedule with CCPM...')
 
-        captured: dict[str, str] = {}
-
-        def fake_showinfo(_title, message, **_kwargs):
-            captured['info'] = message
-
-        def fake_showerror(title, message, **_kwargs):
-            captured['error'] = f'{title}: {message}'
-
-        with (
-            patch.object(messagebox, 'showinfo', side_effect=fake_showinfo),
-            patch.object(messagebox, 'showerror', side_effect=fake_showerror),
-        ):
-            self.app.ccpm_ops.schedule_with_ccpm()
+        self.app.ccpm_ops.schedule_with_ccpm()
         self.pump()
 
-        if 'error' in captured:
-            raise AssertionError(f'Schedule with CCPM failed: {captured["error"]}')
-        assert 'info' in captured, 'Schedule with CCPM produced no confirmation dialog'
-        return captured['info']
+        toplevels = {
+            w.title(): w
+            for w in self.root.winfo_children()
+            if isinstance(w, tk.Toplevel)
+        }
+
+        def read_and_close(dialog):
+            text = self._find_widgets(dialog, scrolledtext.ScrolledText)[0].get(
+                '1.0', 'end-1c'
+            )
+            dialog.destroy()
+            return text
+
+        for title in ('CCPM Error', 'CCPM Validation Failed'):
+            if title in toplevels:
+                text = read_and_close(toplevels[title])
+                raise AssertionError(f'Schedule with CCPM failed: {title}: {text}')
+
+        assert 'CCPM Schedule Created' in toplevels, (
+            'Schedule with CCPM produced no result dialog'
+        )
+        return read_and_close(toplevels['CCPM Schedule Created'])

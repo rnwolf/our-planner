@@ -39,11 +39,12 @@ import csv
 import os
 import tkinter as tk
 from collections import Counter
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, scrolledtext
 
 from src.model.resource_notation import resource_token
 from src.model.task_resource_model import BUFFER_TASK_TYPES
 from src.operations.file_operations import FileOperations
+from src.utils.tk_helpers import add_resize_handle, mnemonic
 
 
 class CcpmOperations:
@@ -480,12 +481,12 @@ class CcpmOperations:
         try:
             result = self.schedule_project_core(project['id'])
         except Exception as e:
-            messagebox.showerror('CCPM Error', f'Scheduling failed: {e}')
+            self._show_result_dialog('CCPM Error', f'Scheduling failed: {e}')
             return
 
         if not result['ok']:
-            lines = [f'- {i["message"]}' for i in result['issues']]
-            messagebox.showerror(
+            lines = [f'- {self._annotate_issue(i)}' for i in result['issues']]
+            self._show_result_dialog(
                 'CCPM Validation Failed',
                 f"'{project['name']}' cannot be scheduled yet:\n\n"
                 + '\n'.join(lines)
@@ -497,15 +498,12 @@ class CcpmOperations:
         stats = result['stats']
         note = ''
         if result['warnings']:
-            # Cap the notes so the messagebox can't outgrow the screen and
-            # hide its OK button (the export flow writes notes.txt instead,
-            # but this in-process flow has no output folder).
-            shown = result['warnings'][:10]
-            note = '\n\nNotes:\n' + '\n'.join(f'- {w}' for w in shown)
-            remaining = len(result['warnings']) - len(shown)
-            if remaining:
-                note += f'\n... and {remaining} more'
-        messagebox.showinfo(
+            # No length cap here - unlike a messagebox, _show_result_dialog
+            # scrolls, so every note can be shown without hiding the Close
+            # button (the export flow still writes notes.txt instead, since
+            # that flow has no dialog at all to show them in).
+            note = '\n\nNotes:\n' + '\n'.join(f'- {w}' for w in result['warnings'])
+        self._show_result_dialog(
             'CCPM Schedule Created',
             f"Created project '{result['project']['name']}' with "
             f"{result['task_count']} rows (tagged 'ccpm'), anchored at "
@@ -516,6 +514,73 @@ class CcpmOperations:
             f'Promised completion: timeline day '
             f'{result["anchor"] + stats.promise_day}' + note,
         )
+
+    def _annotate_issue(self, issue):
+        """ccpm_scheduler's issue messages reference tasks/resources by the
+        raw id we exported them under (e.g. "resource 5"), which isn't
+        actionable without cross-referencing that id back to a name by
+        hand. Each issue also carries structured task_ids/resource_ids
+        (see ccpm_scheduler.model.Issue) alongside the free-text message -
+        append what those ids actually are, rather than trying to rewrite
+        the message text itself (which would mean guessing at exact
+        wording that isn't this app's to control)."""
+        lookups = []
+        for tid in issue.get('task_ids', []):
+            task = self.model.get_task(int(tid)) if str(tid).isdigit() else None
+            if task:
+                lookups.append(f"task {tid} = '{task['description']}'")
+        for rid in issue.get('resource_ids', []):
+            resource = (
+                self.model.get_resource_by_id(int(rid)) if str(rid).isdigit() else None
+            )
+            if resource:
+                lookups.append(f"resource {rid} = '{resource['name']}'")
+        message = issue['message']
+        if lookups:
+            message += '  [' + '; '.join(lookups) + ']'
+        return message
+
+    def _show_result_dialog(self, title, message):
+        """A scrollable, reasonably wide dialog for CCPM scheduling
+        results - messagebox's default width wraps validation/error text
+        (which can be many lines, one per issue) into a tall, narrow
+        column that's hard to read, and Tk truncates a long title in a
+        narrow title bar besides."""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title(title)
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.geometry('640x420')
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+
+        frame = tk.Frame(dialog, padx=15, pady=15)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(
+            frame,
+            text=title,
+            font=('Arial', 11, 'bold'),
+            wraplength=600,
+            justify=tk.LEFT,
+        ).pack(anchor='w', pady=(0, 10))
+
+        text_area = scrolledtext.ScrolledText(frame, wrap=tk.WORD, font=('Arial', 10))
+        text_area.pack(fill=tk.BOTH, expand=True)
+        text_area.insert('1.0', message)
+        text_area.config(state=tk.DISABLED)
+
+        close_button = tk.Button(
+            frame,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=dialog.destroy,
+        )
+        close_button.pack(pady=(10, 0))
+        close_button.bind('<Return>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+        close_button.focus_set()
+
+        add_resize_handle(dialog)
 
     def _pick_project(self, title):
         """Choose a project: the only one silently, else a list dialog."""
