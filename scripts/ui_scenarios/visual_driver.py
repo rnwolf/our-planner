@@ -42,7 +42,7 @@ from __future__ import annotations
 
 import time
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext, ttk
 from unittest.mock import patch
 
 from scripts.ui_scenarios.driver import ScenarioDriver, SyntheticEvent
@@ -207,6 +207,71 @@ class VisualDriver(ScenarioDriver):
         self._beat()
 
         self._find_button(dialog, 'Save').invoke()
+        self._beat()
+
+    def set_resource_capacities(self, capacities: dict[str, float]):
+        """Same flow as driver.ScenarioDriver.set_resource_capacities
+        (Edit -> Edit Resources... -> Capacity tab -> Set Capacity by
+        Index for each resource, in one dialog session), paced and via
+        real widgets - except the Update Capacity button's messagebox.
+        showinfo confirmation, patched away like new_project's askyesno
+        (see this module's docstring: messagebox.* isn't a discoverable
+        Toplevel on this system, so it can't be driven for real)."""
+        self.app.task_ops.edit_resources(parent=self.app.root)
+        self._beat()
+
+        dialog = self._find_toplevel('Edit Resources')
+        notebook = self._find_widgets(dialog, ttk.Notebook)[0]
+        notebook.select(1)  # the Capacity tab
+        self._beat()
+        capacity_tab = notebook.nametowidget(notebook.tabs()[1])
+
+        dropdown = self._find_widgets(capacity_tab, ttk.Combobox)[0]
+        # ttk.Combobox is a subclass of tk.Entry - see driver.py's
+        # set_resource_capacities for why this filters to the exact type
+        # rather than the usual isinstance-based _find_widgets() call.
+        entries = [
+            w for w in self._find_widgets(capacity_tab, tk.Entry) if type(w) is tk.Entry
+        ]
+        day_entry, end_day_entry, capacity_entry, *_date_entries = entries
+        update_button = self._find_button(capacity_tab, 'Update Capacity')
+        last_day = self.model.days - 1
+
+        for name, capacity in capacities.items():
+            resource = next(
+                (r for r in self.model.resources if r['name'] == name), None
+            )
+            assert resource is not None, (
+                f'set_resource_capacities: no resource named {name!r}'
+            )
+
+            # No <<ComboboxSelected>> event here - see
+            # driver.ScenarioDriver.set_resource_capacities for why
+            # (update_capacity() only ever reads dropdown.get(), and
+            # firing the event synthetically hangs on this Tk build
+            # starting with the third resource in one session).
+            dropdown.set(f'{resource["id"]} - {resource["name"]}')
+            self._beat(self.pace / 2)
+
+            day_entry.focus_set()
+            self._type_into(day_entry, '0')
+            self._beat(self.pace / 3)
+            end_day_entry.focus_set()
+            self._type_into(end_day_entry, str(last_day))
+            self._beat(self.pace / 3)
+            capacity_entry.focus_set()
+            self._type_into(capacity_entry, str(capacity))
+            self._beat(self.pace / 2)
+
+            with patch.object(messagebox, 'showinfo', lambda *_a, **_k: None):
+                update_button.invoke()
+            self._beat()
+
+            assert resource['capacity'][0] == capacity, (
+                f'set_resource_capacities({name!r}, {capacity}) did not apply'
+            )
+
+        self._find_button(dialog, 'Close').invoke()
         self._beat()
 
     # -- projects ------------------------------------------------------

@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Core workflow scenario: create tasks, wire dependencies, schedule with
+"""Core workflow scenario: new project, role resources with capacity, a
+small SDLC task network with multiple development chains, schedule with
 CCPM - runnable against either UI driver.
 
 Fast mode (default) proves out driver.ScenarioDriver against the real,
 running TaskResourceManager app - real canvas drags, real context-menu
 wiring, real dialogs (auto-answered) - rather than the model/operations-
 only style tests/test_scenarios.py and scripts/stage12_walkthrough.py
-already use. If this passes, the feature chain it exercises (drag-create
-a task -> right-click-wire a predecessor -> File > Schedule with CCPM...)
-genuinely works end to end in the UI, not just at the model layer.
+already use. If this passes, the feature chain it exercises (File > New
+-> add a project -> add resources and set their capacity -> drag-create
+a task network with a merge point -> wire predecessors -> File > Schedule
+with CCPM...) genuinely works end to end in the UI, not just at the model
+layer. The task network's three parallel development chains merging at
+one task also exercises CCPM's feeding-buffer placement, not just its
+project buffer.
 
 --visual mode runs the identical steps against visual_driver.VisualDriver
 instead - same real app, but paced and with real (unpatched) dialogs, for
@@ -44,51 +49,88 @@ def run_scenario(driver):
         f"  created '{demo_project['name']}' (id={demo_project['id']}), set as default"
     )
 
-    step('3. Create three tasks on the real task grid (drag-to-create)')
-    # A 1-column gap is left between tasks - starting a new task's drag
-    # exactly on a neighboring task's right edge (its resize hit zone,
-    # +/-8px) grabs that edge instead of creating a new task.
-    c1 = driver.create_task(row=0, col=0, duration=5, name='C1')
-    c2 = driver.create_task(row=0, col=6, duration=5, name='C2')
-    c3 = driver.create_task(row=0, col=12, duration=5, name='C3')
-    for t in (c1, c2, c3):
+    step(
+        '3. Add role resources and set their capacity '
+        '(Edit > Add Resource..., Edit > Edit Resources... > Capacity)'
+    )
+    capacities = {
+        'Designer': 1.0,
+        'Developer': 3.0,
+        'Tester': 1.0,
+        'Operations': 2.0,
+    }
+    resources = {name: driver.add_resource(name) for name in capacities}
+    driver.set_resource_capacities(capacities)
+    for name, capacity in capacities.items():
+        print(f'  {name}: capacity/day={capacity}')
+
+    step(
+        '4. Create a small SDLC task network on the real task grid '
+        '(drag-to-create) - three parallel development chains that merge '
+        'back at Integration, so CCPM has more than one chain to insert '
+        'feeding buffers for'
+    )
+    # A 1-column gap is left between same-row tasks - starting a new
+    # task's drag exactly on a neighboring task's right edge (its resize
+    # hit zone, +/-8px) grabs that edge instead of creating a new task.
+    # The three Dev-* tasks run in parallel, so each gets its own row.
+    design = driver.create_task(row=0, col=0, duration=3, name='Design')
+    dev_backend = driver.create_task(row=0, col=4, duration=8, name='Dev-Backend')
+    dev_frontend = driver.create_task(row=1, col=4, duration=5, name='Dev-Frontend')
+    dev_infra = driver.create_task(row=2, col=4, duration=4, name='Dev-Infra')
+    integration = driver.create_task(row=0, col=13, duration=3, name='Integration')
+    test = driver.create_task(row=0, col=17, duration=4, name='Test')
+    deploy = driver.create_task(row=0, col=22, duration=2, name='Deploy')
+    tasks = (design, dev_backend, dev_frontend, dev_infra, integration, test, deploy)
+    for t in tasks:
         print(
             f"  created '{t['description']}' (task_id={t['task_id']}, "
             f'col={t["col"]}, duration={t["duration"]})'
         )
 
     step(
-        '4. Wire C1 -> C2 -> C3 as Finish-to-Start dependencies '
-        '(right-click context menu -> Add Predecessor...)'
+        '5. Wire dependencies: Design fans out to three parallel '
+        'development chains, which merge back at Integration -> Test -> '
+        'Deploy (right-click context menu -> Add Predecessor...)'
     )
-    driver.add_predecessor(c2, c1)
-    driver.add_predecessor(c3, c2)
-    print(f'  C2 predecessors: {c2["predecessors"]}')
-    print(f'  C3 predecessors: {c3["predecessors"]}')
-    assert any(p['id'] == c1['task_id'] for p in c2['predecessors'])
-    assert any(p['id'] == c2['task_id'] for p in c3['predecessors'])
-
-    step(
-        '5. Add a resource and assign it to every task '
-        '(CCPM needs contention to identify a critical chain)'
+    for dev_task in (dev_backend, dev_frontend, dev_infra):
+        driver.add_predecessor(dev_task, design)
+        driver.add_predecessor(integration, dev_task)
+    driver.add_predecessor(test, integration)
+    driver.add_predecessor(deploy, test)
+    print(f'  Integration predecessors: {integration["predecessors"]}')
+    assert len(integration['predecessors']) == 3, (
+        'expected Dev-Backend/Dev-Frontend/Dev-Infra to all merge at Integration'
     )
-    dev = driver.add_resource('Dev')
-    for t in (c1, c2, c3):
-        driver.assign_resource(t, dev, allocation=1.0)
-        print(f'  {t["description"]}: resources={t["resources"]}')
 
-    step('6. File > Schedule with CCPM...')
+    step('6. Assign each task to its role resource')
+    role_assignments = (
+        (design, 'Designer'),
+        (dev_backend, 'Developer'),
+        (dev_frontend, 'Developer'),
+        (dev_infra, 'Developer'),
+        (integration, 'Developer'),
+        (test, 'Tester'),
+        (deploy, 'Operations'),
+    )
+    for task, role in role_assignments:
+        driver.assign_resource(task, resources[role], allocation=1.0)
+        print(f'  {task["description"]}: {role} ({task["resources"]})')
+
+    step('8. File > Schedule with CCPM...')
     # Two projects exist by this point (the 'Sample Project' File > New
     # leaves behind, and 'Core Workflow Demo') - capture every id that
     # exists right before scheduling so the lookup below can't mistake
-    # 'Sample Project' for the CCPM output, the way checking against just
-    # c1['project_id'] alone would.
+    # 'Sample Project' for the CCPM output.
     original_ids = {p['id'] for p in driver.model.projects}
     confirmation = driver.schedule_with_ccpm('Core Workflow Demo')
     if confirmation:
         print(f'  {confirmation}')
 
-    step('7. Inspect the resulting CCPM project')
+    step(
+        '9. Inspect the resulting CCPM project - project buffer plus a '
+        'feeding buffer for each non-critical development chain'
+    )
     ccpm_project = next(p for p in driver.model.projects if p['id'] not in original_ids)
     ccpm_tasks = [
         t for t in driver.model.tasks if t['project_id'] == ccpm_project['id']
@@ -100,8 +142,15 @@ def run_scenario(driver):
             f'duration={t["duration"]:>3} type={t.get("type", "task")}'
         )
     buffer_tasks = [t for t in ccpm_tasks if t.get('type') == 'project_buffer']
+    feeding_buffers = [t for t in ccpm_tasks if t.get('type') == 'feeding_buffer']
     assert buffer_tasks, 'expected a project_buffer task in the CCPM output'
+    assert len(feeding_buffers) >= 2, (
+        'expected a feeding buffer for each of the two non-critical '
+        f'development chains, got {len(feeding_buffers)}'
+    )
     print(f'  Project buffer: {buffer_tasks[0]["duration"]} days')
+    for fb in feeding_buffers:
+        print(f'  Feeding buffer: {fb["description"]} ({fb["duration"]} days)')
 
 
 def main():

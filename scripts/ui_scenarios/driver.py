@@ -113,8 +113,21 @@ class ScenarioDriver:
     # -- task grid -----------------------------------------------------
 
     def _canvas_xy(self, row: int, col: int) -> tuple[float, float]:
-        x = col * self.app.cell_width
-        y = row * self.app.task_height + self.app.task_height / 2
+        """Viewport-relative (x, y) for a grid cell, for use as a
+        SyntheticEvent's own .x/.y - on_task_press/drag/release convert
+        those to canvas coordinates themselves via canvasx()/canvasy()
+        (see SyntheticEvent's docstring), so this has to subtract the
+        canvas's *current* scroll offset to stay viewport-relative once
+        anything has scrolled. Confirmed live: VisualDriver.create_task
+        (unlike the fast path) fires real on_task_drag events, which can
+        auto-scroll the canvas mid-scenario - a task created past that
+        point, computed without this offset, silently lands on whatever
+        real task now sits at that stale viewport position (mistaken for
+        a body-click, not creating anything new)."""
+        canvas = self.app.task_canvas
+        assert canvas is not None  # real by the time the app is built
+        x = col * self.app.cell_width - canvas.canvasx(0)
+        y = row * self.app.task_height + self.app.task_height / 2 - canvas.canvasy(0)
         return x, y
 
     def create_task(self, row: int, col: int, duration: int, name: str):
@@ -183,6 +196,90 @@ class ScenarioDriver:
         allocation_entry.insert(0, str(allocation))
         self._find_button(dialog, 'Add / Update').invoke()
         self._find_button(dialog, 'Save').invoke()
+        self.pump()
+
+    def set_resource_capacities(self, capacities: dict[str, float]):
+        """Edit -> Edit Resources... -> Capacity tab -> Set Capacity by
+        Index: the only UI path to a resource's per-day capacity (the
+        resource grid only ever displays load/capacity, it isn't
+        editable). `capacities` maps resource name -> capacity, applied
+        across the model's entire day range (0..model.days-1) so it holds
+        for however long the scenario runs. Opens the dialog once and
+        drives all of `capacities` in that one session rather than
+        reopening per resource, the way a real user would.
+
+        Both 'Set Capacity by Index' and 'Set Capacity by Date' share the
+        literal button text 'Update Capacity' (see create_capacity_tab's
+        own comment on this) - scoping every widget lookup to the
+        Capacity tab's frame, not the whole dialog, still leaves two
+        matches, but the index-based controls are built first so
+        _find_button's first-match-wins search reliably finds them, not
+        the date-based ones.
+
+        Clicking Update Capacity pops a messagebox.showinfo confirmation -
+        patched away like every other messagebox.* call this driver
+        answers (see driver.new_project), since it's a real modal, not a
+        hand-built Toplevel this driver could instead find and close."""
+        self.app.task_ops.edit_resources(parent=self.app.root)
+        self.pump()
+
+        dialog = self._find_toplevel('Edit Resources')
+        notebook = self._find_widgets(dialog, ttk.Notebook)[0]
+        notebook.select(1)  # the Capacity tab
+        self.pump()
+        capacity_tab = notebook.nametowidget(notebook.tabs()[1])
+
+        dropdown = self._find_widgets(capacity_tab, ttk.Combobox)[0]
+        # ttk.Combobox is a subclass of tk.Entry, so _find_widgets(...,
+        # tk.Entry)'s isinstance check also matches `dropdown` itself -
+        # without filtering it out here it lands as entries[0], shifting
+        # every entry after it by one (confirmed live: day/end_day/
+        # capacity each got the next field's value, and the leftover
+        # value spilled into a date-range field that can't parse it,
+        # producing a real "Please enter valid numbers" warning).
+        entries = [
+            w for w in self._find_widgets(capacity_tab, tk.Entry) if type(w) is tk.Entry
+        ]
+        day_entry, end_day_entry, capacity_entry, *_date_entries = entries
+        update_button = self._find_button(capacity_tab, 'Update Capacity')
+        last_day = self.model.days - 1
+
+        for name, capacity in capacities.items():
+            resource = next(
+                (r for r in self.model.resources if r['name'] == name), None
+            )
+            assert resource is not None, (
+                f'set_resource_capacities: no resource named {name!r}'
+            )
+
+            # dropdown.set() alone is enough: update_capacity() below only
+            # ever reads dropdown.get() directly, never listens for
+            # <<ComboboxSelected>>. Firing that event synthetically is not
+            # just unneeded here - confirmed live to hang on this Tk build
+            # starting with the third resource in one dialog session,
+            # almost certainly the readonly Combobox's own popdown
+            # Toplevel finally realizing/grabbing on repeated synthetic
+            # firings, a real Tk quirk unrelated to anything this driver
+            # is trying to test.
+            dropdown.set(f'{resource["id"]} - {resource["name"]}')
+            self.pump()
+
+            day_entry.delete(0, tk.END)
+            day_entry.insert(0, '0')
+            end_day_entry.delete(0, tk.END)
+            end_day_entry.insert(0, str(last_day))
+            capacity_entry.delete(0, tk.END)
+            capacity_entry.insert(0, str(capacity))
+
+            with patch.object(messagebox, 'showinfo', lambda *_a, **_k: None):
+                update_button.invoke()
+            self.pump()
+
+            assert resource['capacity'][0] == capacity, (
+                f'set_resource_capacities({name!r}, {capacity}) did not apply'
+            )
+
+        self._find_button(dialog, 'Close').invoke()
         self.pump()
 
     # -- menu wiring checks ----------------------------------------------

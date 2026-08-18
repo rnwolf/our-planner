@@ -3299,7 +3299,19 @@ class TaskOperations:
             if abs(dx) < 1 and abs(dy) < 1:
                 return
 
-            if self.controller.selected_task:  # Existing task manipulation
+            if (
+                self.controller.selected_task
+                and not self.controller.new_task_in_progress
+            ):  # Existing task manipulation - guarded the same way
+                # on_task_release's own dispatch is below, since
+                # selected_task keeps pointing at whatever task was last
+                # created/clicked (on_task_press's empty-grid branch never
+                # clears it) - without also checking new_task_in_progress,
+                # dragging out a brand new task here would instead nudge
+                # that stale selected_task's on-screen position (silently,
+                # since nothing later reverts or commits it - the new-task
+                # release path deliberately skips "existing task" handling
+                # via this same guard, leaving the corrupted visual as-is).
                 task = self.controller.selected_task
                 task_id = task['task_id']
                 ui_elements = self.controller.ui.task_ui_elements.get(task_id)
