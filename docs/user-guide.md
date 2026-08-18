@@ -28,6 +28,25 @@ It currently follows what I consider normal practice for desktop GUI application
 
 Each project has a **CCPM Method** (Projects → Manage Projects...) that selects how the scheduler sizes its project and feeding buffers: `cap` (Cut & Paste — buffer = the safety removed from the chain; the default and the most explainable), `hchain` (50% of chain length), or `rsem` (root-squared error). Both **Schedule with CCPM...** and the **Export CCPM Network...** command hint use the project's method. Buffers can always be resized by hand before the project enters execution mode. Formulas and trade-offs are documented in the ccpm-scheduler package's `docs/buffer-sizing.md`.
 
+## Recording status updates and reason codes
+
+While a task is under way, its remaining-duration estimate is expected to change as work progresses. **Record Remaining Duration...** (right-click a task, or Tasks menu) captures each update together with:
+
+- **Reason** — a primary reason picked from a fixed list: `On Time`, `Task Variability`, `Waiting for Full Kit`, `Waiting for Resource`, `No Early Start`, `Parkinson's Law`, `Multitasking`, `Waiting in Backlog`, `Unplanned Events`, `Other / Unexplained`. `On Time` is the default, so an unremarkable update costs no extra clicks — anything that actually needs explaining just means picking a different reason.
+- **Note** *(optional)* — free text for whatever detail doesn't fit the reason alone, captured in a multi-line box.
+
+This is deliberately quick to record in the moment, but it's the raw material for a more valuable exercise: **periodically reviewing the recorded reasons as a team to find root-cause patterns** — e.g. spotting that most of a project's buffer consumption is "Waiting for Resource" — and acting on them. That review is the actual point of capturing this data, not the remaining-duration number alone. This is an essential input into investigations into improving team and delivery performance.
+
+Where it shows up:
+
+- **View Duration History...** (task right-click menu) — the full history for one task, reason and note included.
+- **Fever Chart** — toggle **Show Status Update Reasons/Notes** to see the annotated updates for a buffer's protected chain alongside its fever chart.
+- **Reports → Status Update Log...** — every recorded update for a project (not just the annotated ones), scoped by whatever's active on the Filter menu. Includes a **Task URL** column linking straight back to that task's own page — wherever the team collaborates on interventions — and a checkbox to narrow the list down to only the updates that carry a reason or note. **Download Data (CSV)...** exports exactly what's on screen, for a pivot table or feeding it into whatever reporting the team already uses to track delivery performance.
+
+## Recent files
+
+**File → Recent** lists the 5 most recently opened/saved files, most recent first and numbered `1`–`5`. Open the submenu and press the number key to reopen one without going through the file picker again.
+
 ## Keyboard shortcuts
 
 - **Ctrl+A**: Select all visible tasks

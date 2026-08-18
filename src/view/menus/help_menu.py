@@ -227,6 +227,35 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
     Network above)
   - HTML: Interactive web report
 
+## Recording Status Updates & Reason Codes
+
+- Record Remaining Duration... (task right-click menu, or Tasks menu)
+  captures a task's updated remaining-duration estimate together with:
+  - Reason - a primary reason from a fixed list (On Time, Task
+    Variability, Waiting for Full Kit, Waiting for Resource, No Early
+    Start, Parkinson's Law, Multitasking, Waiting in Backlog, Unplanned
+    Events, Other / Unexplained). On Time is the default.
+  - Note (optional) - free text detail, in a multi-line box.
+- The point isn't just the number - it's letting the team periodically
+  review recorded reasons together to spot root-cause patterns (e.g.
+  "most of our buffer consumption is Waiting for Resource") and improve
+  delivery performance.
+- Where to see it:
+  - View Duration History... (task right-click menu) - one task's full
+    history, reason and note included.
+  - Fever Chart's "Show Status Update Reasons/Notes" toggle - the
+    annotated updates for a buffer's protected chain.
+  - Reports > Status Update Log... - every recorded update for a
+    project, with a Task URL column linking back to that task's own
+    page, an "only annotated" filter, and a Download Data (CSV)...
+    export.
+
+## Recent Files
+
+- File > Recent lists the 5 most recently opened/saved files, numbered
+  1-5, most recent first - open the submenu and press the number key
+  to reopen one without using the file picker.
+
 ## Keyboard Shortcuts
 
 - Ctrl+0: Reset zoom
