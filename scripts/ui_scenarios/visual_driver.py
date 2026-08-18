@@ -20,19 +20,30 @@ triggered in-process rather than via a physically-moving OS cursor. Start
 your own screen recorder (e.g. GNOME's Ctrl+Alt+Shift+R) before running a
 scenario against this driver; it doesn't control recording itself.
 
-A blocking modal (simpledialog.askstring, messagebox.*) still runs its
-own nested Tk loop via wait_window() - but that loop still services
-root.after() timers, so a callback armed with root.after() *before*
-triggering the action that opens the dialog can find the real dialog,
-type into it, and click its real OK button, all while it's genuinely on
-screen - no patching needed, unlike driver.ScenarioDriver's fast path.
+A blocking modal (simpledialog.askstring, a hand-built Toplevel with its
+own wait_window()) still runs its own nested Tk loop - but that loop
+still services root.after() timers, so a callback armed with
+root.after() *before* triggering the action that opens the dialog can
+find the real dialog, type into it, and click its real OK button, all
+while it's genuinely on screen - no patching needed, unlike
+driver.ScenarioDriver's fast path.
+
+tkinter.messagebox.* (askyesno/showinfo/showerror) is the one exception:
+confirmed by direct test that it never becomes discoverable via
+winfo_children() on this system at all, meaning this Tk build renders it
+as a native (GTK-integrated) dialog rather than a plain Tk Toplevel -
+outside what Tk's own widget introspection can find or drive. Every
+messagebox.* call this driver needs answered is patched instead, same as
+driver.ScenarioDriver's fast path - the "no patching" rule above is
+specifically about simpledialog and hand-built Toplevels.
 """
 
 from __future__ import annotations
 
 import time
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import messagebox, scrolledtext
+from unittest.mock import patch
 
 from scripts.ui_scenarios.driver import ScenarioDriver, SyntheticEvent
 
@@ -82,6 +93,28 @@ class VisualDriver(ScenarioDriver):
             entry = self._find_widgets(dialog, tk.Entry)[0]
             entry.focus_set()
             self._type_into(entry, text)
+            time.sleep(self.pace / 2)
+            self._find_button(dialog, 'OK').invoke()
+
+        self.root.after(delay_ms, answer)
+
+    def _arm_project_picker(
+        self, expected_title: str, project_name: str | None, delay_ms: int = 350
+    ):
+        """Same idea as _arm_askstring, for
+        CcpmOperations._pick_project's hand-built Toplevel (project
+        listbox + OK/Cancel) - only shown when more than one project
+        exists. Selects `project_name`'s row if given, otherwise leaves
+        whatever's pre-selected (the model's default project) alone, then
+        clicks OK."""
+
+        def answer():
+            dialog = self._find_toplevel(expected_title)
+            if project_name is not None:
+                listbox = self._find_widgets(dialog, tk.Listbox)[0]
+                names = list(listbox.get(0, tk.END))
+                listbox.selection_clear(0, tk.END)
+                listbox.selection_set(names.index(project_name))
             time.sleep(self.pace / 2)
             self._find_button(dialog, 'OK').invoke()
 
@@ -176,6 +209,67 @@ class VisualDriver(ScenarioDriver):
         self._find_button(dialog, 'Save').invoke()
         self._beat()
 
+    # -- projects ------------------------------------------------------
+
+    def new_project(self):
+        self.assert_menu_path_has('File', 'New')
+
+        menu = self.app.ui.file_menu
+        x, y = self.root.winfo_rootx() + 20, self.root.winfo_rooty() + 20
+        menu.tk_popup(x, y)
+        self._beat()
+
+        # messagebox.askyesno's confirmation isn't a discoverable Toplevel
+        # on this system (see module docstring) - patched, not driven for
+        # real, unlike everything else in this method.
+        with patch.object(messagebox, 'askyesno', return_value=True):
+            menu.invoke('New')
+        menu.unpost()
+        self._beat()
+
+    def add_project(self, name: str, url: str = '', set_as_default: bool = False):
+        self.assert_menu_path_has('Projects', 'Manage Projects...')
+
+        menu = self.app.ui.projects_menu
+        x, y = self.root.winfo_rootx() + 20, self.root.winfo_rooty() + 20
+        menu.tk_popup(x, y)
+        self._beat()
+        menu.invoke('Manage Projects...')
+        menu.unpost()
+        self._beat()
+
+        dialog = self._find_toplevel('Manage Projects')
+        name_entry, url_entry, *_fever_entries = self._find_widgets(dialog, tk.Entry)
+
+        name_entry.focus_set()
+        self._beat(self.pace / 2)
+        self._type_into(name_entry, name)
+        self._beat(self.pace / 2)
+
+        if url:
+            url_entry.focus_set()
+            self._type_into(url_entry, url)
+            self._beat(self.pace / 2)
+
+        self._find_button(dialog, 'Add').invoke()
+        self._beat()
+
+        project = next((p for p in self.model.projects if p['name'] == name), None)
+        assert project is not None, f'add_project({name!r}) did not add a project'
+
+        if set_as_default:
+            listbox = self._find_widgets(dialog, tk.Listbox)[0]
+            listbox.selection_clear(0, tk.END)
+            listbox.selection_set(tk.END)
+            listbox.event_generate('<<ListboxSelect>>')
+            self._beat(self.pace / 2)
+            self._find_button(dialog, 'Set as Default').invoke()
+            self._beat()
+
+        self._find_button(dialog, 'Close').invoke()
+        self._beat()
+        return project
+
     # -- dependencies ------------------------------------------------------
 
     def add_predecessor(
@@ -212,7 +306,7 @@ class VisualDriver(ScenarioDriver):
 
     # -- CCPM --------------------------------------------------------------
 
-    def schedule_with_ccpm(self) -> str:
+    def schedule_with_ccpm(self, project_name: str | None = None) -> str:
         """File -> Schedule with CCPM..., via a real, visible menu popup.
         The result is CcpmOperations._show_result_dialog - a hand-built
         Toplevel with grab_set() but no wait_window(), so the call returns
@@ -222,13 +316,21 @@ class VisualDriver(ScenarioDriver):
         no messagebox call left in this path to patch (see driver.py's
         schedule_with_ccpm docstring for why: the result dialog used to be
         a messagebox, replaced by this scrollable Toplevel so long
-        validation/error text isn't squeezed into a tall, narrow column)."""
+        validation/error text isn't squeezed into a tall, narrow column).
+
+        With more than one project, _pick_project pops its own real,
+        blocking (wait_window()) chooser first - menu.invoke() below won't
+        return until that's answered, so arm it before invoking, the same
+        as every other real dialog this driver drives."""
         self.assert_menu_path_has('File', 'Schedule with CCPM...')
 
         menu = self.app.ui.file_menu
         x, y = self.root.winfo_rootx() + 20, self.root.winfo_rooty() + 20
         menu.tk_popup(x, y)
         self._beat()
+
+        if len(self.model.projects) > 1:
+            self._arm_project_picker('Schedule with CCPM', project_name)
 
         menu.invoke('Schedule with CCPM...')
         menu.unpost()

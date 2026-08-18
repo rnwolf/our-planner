@@ -229,8 +229,11 @@ uv run python -m scripts.ui_scenarios.core_workflow_scenario --visual
 uv run python -m scripts.ui_scenarios.core_workflow_scenario --visual --pace 1.2
 ```
 
-Visual mode doesn't control screen recording itself - it just pauses for
-you to start one before it begins.
+Visual mode doesn't control screen recording itself, or window placement
+- it pauses twice before any step runs: once right after the app window
+appears, so you can maximize it and move it to whichever monitor you're
+recording, then again to let you start your screen recorder before the
+walkthrough begins.
 
 ### Pre-commit checks
 

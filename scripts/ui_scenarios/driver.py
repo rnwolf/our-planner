@@ -27,7 +27,7 @@ This module is the fast half only.
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import scrolledtext, simpledialog, ttk
+from tkinter import messagebox, scrolledtext, simpledialog, ttk
 from unittest.mock import patch
 
 from src.controller.task_manager import TaskResourceManager
@@ -234,6 +234,63 @@ class ScenarioDriver:
         self.assert_menu_has(menu, path[-1])
         return menu
 
+    # -- projects ----------------------------------------------------------
+
+    def new_project(self):
+        """File -> New: TaskResourceManager.file_ops.new_project() resets
+        the model to a single, blank default project ('Sample Project', no
+        tasks, resources trimmed to just the first one) - but only after
+        confirming via a Yes/No messagebox, which this patches rather than
+        shows (same technique as create_task's simpledialog patch, just for
+        messagebox.askyesno instead)."""
+        self.assert_menu_path_has('File', 'New')
+        with patch.object(messagebox, 'askyesno', return_value=True):
+            self.app.file_ops.new_project()
+        self.pump()
+
+    def add_project(self, name: str, url: str = '', set_as_default: bool = False):
+        """Projects -> Manage Projects... -> Add: a hand-built Toplevel
+        (project list -> name/URL/CCPM-method/fever-chart fields -> Add/
+        Update/Remove/Set as Default/Toggle Phase/Close), driven the same
+        way assign_resource drives Edit Task Resources - find the real
+        widgets and use them, not a single call to patch. Only the Name
+        and URL entries matter for adding a project (the fever-chart/CCPM-
+        method fields only feed Update on an already-selected project).
+        With set_as_default=True, also selects the newly added row in the
+        project list and clicks Set as Default before closing - a second
+        project doesn't become default on its own (only the very first
+        project ever added does), so task creation would otherwise keep
+        landing in whatever project already was default."""
+        self.assert_menu_path_has('Projects', 'Manage Projects...')
+        self.app.task_ops.manage_projects_dialog(parent=self.app.root)
+        self.pump()
+
+        dialog = self._find_toplevel('Manage Projects')
+        name_entry, url_entry, *_fever_entries = self._find_widgets(dialog, tk.Entry)
+
+        name_entry.delete(0, tk.END)
+        name_entry.insert(0, name)
+        url_entry.delete(0, tk.END)
+        url_entry.insert(0, url)
+        self._find_button(dialog, 'Add').invoke()
+        self.pump()
+
+        project = next((p for p in self.model.projects if p['name'] == name), None)
+        assert project is not None, f'add_project({name!r}) did not add a project'
+
+        if set_as_default:
+            listbox = self._find_widgets(dialog, tk.Listbox)[0]
+            listbox.selection_clear(0, tk.END)
+            listbox.selection_set(tk.END)
+            listbox.event_generate('<<ListboxSelect>>')
+            self.pump()
+            self._find_button(dialog, 'Set as Default').invoke()
+            self.pump()
+
+        self._find_button(dialog, 'Close').invoke()
+        self.pump()
+        return project
+
     # -- dependencies ----------------------------------------------------
 
     def add_predecessor(
@@ -256,16 +313,38 @@ class ScenarioDriver:
 
     # -- CCPM --------------------------------------------------------------
 
-    def schedule_with_ccpm(self) -> str:
-        """File -> Schedule with CCPM... against whatever single project
-        exists (only one project means CcpmOperations._pick_project
-        auto-selects it, no list dialog to answer). Returns the result
-        dialog's text (raises with it on failure) - schedule_with_ccpm
-        shows its own scrollable Toplevel (CcpmOperations.
-        _show_result_dialog) rather than a plain messagebox, so this reads
-        that dialog's ScrolledText and closes it instead of patching
-        messagebox like the driver's other assertions do."""
+    def schedule_with_ccpm(self, project_name: str | None = None) -> str:
+        """File -> Schedule with CCPM.... Returns the result dialog's text
+        (raises with it on failure) - schedule_with_ccpm shows its own
+        scrollable Toplevel (CcpmOperations._show_result_dialog) rather
+        than a plain messagebox, so this reads that dialog's ScrolledText
+        and closes it instead of patching messagebox like the driver's
+        other assertions do.
+
+        With exactly one project, CcpmOperations._pick_project
+        auto-selects it and no chooser ever appears. With more than one,
+        it pops its own hand-built Toplevel (project listbox + OK/Cancel)
+        and blocks via wait_window() - a real modal like messagebox/
+        simpledialog, but not a single call this driver can patch away.
+        wait_window()'s nested loop still services root.after() timers
+        (confirmed working the same way in visual_driver.py's dialogs), so
+        arm an answer that way rather than trying to patch it. Pass
+        `project_name` to pick a specific row; left as None, whatever's
+        already selected (the model's default project) is accepted as-is."""
         self.assert_menu_path_has('File', 'Schedule with CCPM...')
+
+        if len(self.model.projects) > 1:
+
+            def answer_picker():
+                dialog = self._find_toplevel('Schedule with CCPM')
+                if project_name is not None:
+                    listbox = self._find_widgets(dialog, tk.Listbox)[0]
+                    names = list(listbox.get(0, tk.END))
+                    listbox.selection_clear(0, tk.END)
+                    listbox.selection_set(names.index(project_name))
+                self._find_button(dialog, 'OK').invoke()
+
+            self.root.after(10, answer_picker)
 
         self.app.ccpm_ops.schedule_with_ccpm()
         self.pump()
