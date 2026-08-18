@@ -32,8 +32,7 @@ from __future__ import annotations
 
 import time
 import tkinter as tk
-from tkinter import messagebox
-from unittest.mock import patch
+from tkinter import scrolledtext
 
 from scripts.ui_scenarios.driver import ScenarioDriver, SyntheticEvent
 
@@ -214,15 +213,16 @@ class VisualDriver(ScenarioDriver):
     # -- CCPM --------------------------------------------------------------
 
     def schedule_with_ccpm(self) -> str:
-        """File -> Schedule with CCPM..., via a real, visible menu popup -
-        only the resulting messagebox is patched rather than shown for
-        real (unlike every other dialog this driver drives): confirmed by
-        direct test that tkinter.messagebox.* never becomes discoverable
-        via winfo_children() on this system at all, in or out of CCPM,
-        meaning this Tk build likely renders it as a native (GTK-
-        integrated) dialog rather than a plain Tk Toplevel - outside what
-        Tk's own widget introspection can find or drive, unlike
-        simpledialog/hand-built dialogs which are provably fine."""
+        """File -> Schedule with CCPM..., via a real, visible menu popup.
+        The result is CcpmOperations._show_result_dialog - a hand-built
+        Toplevel with grab_set() but no wait_window(), so the call returns
+        as soon as it's built, not once it's closed - reads its real
+        ScrolledText and clicks its real Close button, the same way
+        assign_resource drives Edit Task Resources' real widgets. There's
+        no messagebox call left in this path to patch (see driver.py's
+        schedule_with_ccpm docstring for why: the result dialog used to be
+        a messagebox, replaced by this scrollable Toplevel so long
+        validation/error text isn't squeezed into a tall, narrow column)."""
         self.assert_menu_path_has('File', 'Schedule with CCPM...')
 
         menu = self.app.ui.file_menu
@@ -230,23 +230,31 @@ class VisualDriver(ScenarioDriver):
         menu.tk_popup(x, y)
         self._beat()
 
-        captured: dict[str, str] = {}
-
-        def fake_showinfo(_title, message, **_kwargs):
-            captured['info'] = message
-
-        def fake_showerror(title, message, **_kwargs):
-            captured['error'] = f'{title}: {message}'
-
-        with (
-            patch.object(messagebox, 'showinfo', side_effect=fake_showinfo),
-            patch.object(messagebox, 'showerror', side_effect=fake_showerror),
-        ):
-            menu.invoke('Schedule with CCPM...')
+        menu.invoke('Schedule with CCPM...')
         menu.unpost()
         self._beat()
 
-        if 'error' in captured:
-            raise AssertionError(f'Schedule with CCPM failed: {captured["error"]}')
-        assert 'info' in captured, 'Schedule with CCPM produced no confirmation dialog'
-        return captured['info']
+        toplevels = {
+            w.title(): w
+            for w in self.root.winfo_children()
+            if isinstance(w, tk.Toplevel) and w.winfo_exists()
+        }
+
+        def read_and_close(dialog):
+            text = self._find_widgets(dialog, scrolledtext.ScrolledText)[0].get(
+                '1.0', 'end-1c'
+            )
+            self._beat()
+            self._find_button(dialog, 'Close').invoke()
+            self._beat()
+            return text
+
+        for title in ('CCPM Error', 'CCPM Validation Failed'):
+            if title in toplevels:
+                text = read_and_close(toplevels[title])
+                raise AssertionError(f'Schedule with CCPM failed: {title}: {text}')
+
+        assert 'CCPM Schedule Created' in toplevels, (
+            'Schedule with CCPM produced no result dialog'
+        )
+        return read_and_close(toplevels['CCPM Schedule Created'])
