@@ -4901,11 +4901,22 @@ class TaskOperations:
         reason_dropdown.grid(row=2, column=1, sticky='w', pady=5, padx=(5, 0))
 
         tk.Label(frame, text='Note (optional):').grid(
-            row=3, column=0, sticky='w', pady=5
+            row=3, column=0, columnspan=2, sticky='w', pady=(5, 0)
         )
-        note_var = tk.StringVar()
-        note_entry = tk.Entry(frame, textvariable=note_var, width=30)
-        note_entry.grid(row=3, column=1, sticky='w', pady=5, padx=(5, 0))
+
+        # Multi-line, matching the existing Add Note dialog's Text-plus-
+        # scrollbar pattern rather than a single-line Entry, since remaining-
+        # duration notes are the same kind of free-text detail.
+        note_frame = tk.Frame(frame, height=100)
+        note_frame.grid(row=4, column=0, columnspan=2, sticky='ew', pady=(0, 5))
+        note_frame.pack_propagate(False)
+
+        note_scrollbar = ttk.Scrollbar(note_frame)
+        note_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        note_text = tk.Text(note_frame, wrap=tk.WORD, yscrollcommand=note_scrollbar.set)
+        note_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        note_scrollbar.config(command=note_text.yview)
 
         result: list = [None]
 
@@ -4926,11 +4937,12 @@ class TaskOperations:
                     parent=dialog,
                 )
                 return
-            result[0] = (remaining, reason_var.get(), note_var.get().strip())
+            note = note_text.get('1.0', 'end-1c').strip()
+            result[0] = (remaining, reason_var.get(), note)
             dialog.destroy()
 
         button_frame = tk.Frame(frame)
-        button_frame.grid(row=4, column=0, columnspan=2, sticky='e', pady=(10, 0))
+        button_frame.grid(row=5, column=0, columnspan=2, sticky='e', pady=(10, 0))
 
         ok_button = tk.Button(
             button_frame, text='OK', underline=mnemonic('OK', 'OK'), command=on_ok
