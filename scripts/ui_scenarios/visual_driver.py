@@ -28,12 +28,13 @@ find the real dialog, type into it, and click its real OK button, all
 while it's genuinely on screen - no patching needed, unlike
 driver.ScenarioDriver's fast path.
 
-tkinter.messagebox.* (askyesno/showinfo/showerror) is the one exception:
-confirmed by direct test that it never becomes discoverable via
-winfo_children() on this system at all, meaning this Tk build renders it
-as a native (GTK-integrated) dialog rather than a plain Tk Toplevel -
-outside what Tk's own widget introspection can find or drive. Every
-messagebox.* call this driver needs answered is patched instead, same as
+tkinter.messagebox.* (askyesno/showinfo/showerror) and tkinter.filedialog.*
+(asksaveasfilename/askopenfilename) are the exceptions: confirmed by
+direct test that neither ever becomes discoverable via winfo_children()
+on this system at all, meaning this Tk build renders both as native
+(GTK-integrated) dialogs rather than plain Tk Toplevels - outside what
+Tk's own widget introspection can find or drive. Every messagebox.*/
+filedialog.* call this driver needs answered is patched instead, same as
 driver.ScenarioDriver's fast path - the "no patching" rule above is
 specifically about simpledialog and hand-built Toplevels.
 """
@@ -42,7 +43,7 @@ from __future__ import annotations
 
 import time
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, ttk
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 from unittest.mock import patch
 
 from scripts.ui_scenarios.driver import ScenarioDriver, SyntheticEvent
@@ -425,3 +426,25 @@ class VisualDriver(ScenarioDriver):
             'Schedule with CCPM produced no result dialog'
         )
         return read_and_close(toplevels['CCPM Schedule Created'])
+
+    # -- file ----------------------------------------------------------
+
+    def save_as(self, file_path: str) -> str:
+        """Same as driver.ScenarioDriver.save_as - filedialog.
+        asksaveasfilename is a native OS file picker, not a discoverable
+        Toplevel (see this module's docstring), so it's patched here too
+        rather than driven for real, along with the save-result
+        messagebox that follows it."""
+        self.assert_menu_path_has('File', 'Save As...')
+        with (
+            patch.object(filedialog, 'asksaveasfilename', return_value=file_path),
+            patch.object(messagebox, 'showinfo'),
+            patch.object(messagebox, 'showerror'),
+        ):
+            self.app.file_ops.save_file_as()
+        self._beat()
+
+        assert self.model.current_file_path == file_path, (
+            f'save_as({file_path!r}) did not update current_file_path'
+        )
+        return file_path

@@ -27,7 +27,7 @@ This module is the fast half only.
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, simpledialog, ttk
+from tkinter import filedialog, messagebox, scrolledtext, simpledialog, ttk
 from unittest.mock import patch
 
 from src.controller.task_manager import TaskResourceManager
@@ -468,3 +468,29 @@ class ScenarioDriver:
             'Schedule with CCPM produced no result dialog'
         )
         return read_and_close(toplevels['CCPM Schedule Created'])
+
+    # -- file ----------------------------------------------------------
+
+    def save_as(self, file_path: str) -> str:
+        """File -> Save As...: filedialog.asksaveasfilename is a native
+        OS file picker, not a Tk widget at all - same category as
+        messagebox.* (see schedule_with_ccpm's own docstring history: the
+        CCPM result dialog used to be a messagebox and got replaced
+        specifically because messagebox.* never becomes discoverable via
+        winfo_children() on this system) - so this patches it rather than
+        trying to find/drive it, the only way to answer it from the same
+        thread. The success/error messagebox that follows a save is
+        patched for the same reason."""
+        self.assert_menu_path_has('File', 'Save As...')
+        with (
+            patch.object(filedialog, 'asksaveasfilename', return_value=file_path),
+            patch.object(messagebox, 'showinfo'),
+            patch.object(messagebox, 'showerror'),
+        ):
+            self.app.file_ops.save_file_as()
+        self.pump()
+
+        assert self.model.current_file_path == file_path, (
+            f'save_as({file_path!r}) did not update current_file_path'
+        )
+        return file_path

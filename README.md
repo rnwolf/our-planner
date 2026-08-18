@@ -233,7 +233,9 @@ Visual mode doesn't control screen recording itself, or window placement
 - it pauses twice before any step runs: once right after the app window
 appears, so you can maximize it and move it to whichever monitor you're
 recording, then again to let you start your screen recorder before the
-walkthrough begins.
+walkthrough begins. Once the walkthrough finishes, visual mode leaves the
+app window open (fast mode still closes it) so you can pick up right
+where the script left off - close the window by hand when you're done.
 
 ### Pre-commit checks
 

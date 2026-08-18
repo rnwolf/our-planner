@@ -10,10 +10,10 @@ only style tests/test_scenarios.py and scripts/stage12_walkthrough.py
 already use. If this passes, the feature chain it exercises (File > New
 -> add a project -> add resources and set their capacity -> drag-create
 a task network with a merge point -> wire predecessors -> File > Schedule
-with CCPM...) genuinely works end to end in the UI, not just at the model
-layer. The task network's three parallel development chains merging at
-one task also exercises CCPM's feeding-buffer placement, not just its
-project buffer.
+with CCPM... -> File > Save As...) genuinely works end to end in the UI,
+not just at the model layer. The task network's three parallel
+development chains merging at one task also exercises CCPM's
+feeding-buffer placement, not just its project buffer.
 
 --visual mode runs the identical steps against visual_driver.VisualDriver
 instead - same real app, but paced and with real (unpatched) dialogs, for
@@ -27,7 +27,9 @@ Usage:
 """
 
 import argparse
+import os
 import sys
+import tempfile
 
 from scripts.ui_scenarios.driver import ScenarioDriver
 
@@ -127,8 +129,15 @@ def run_scenario(driver):
     if confirmation:
         print(f'  {confirmation}')
 
+    step('9. File > Save As... (persist the finished CCPM schedule)')
+    save_dir = tempfile.mkdtemp(prefix='core_workflow_scenario_')
+    save_path = os.path.join(save_dir, 'core-workflow-demo.json')
+    driver.save_as(save_path)
+    assert os.path.exists(save_path), f'Save As did not write {save_path}'
+    print(f'  saved to {save_path}')
+
     step(
-        '9. Inspect the resulting CCPM project - project buffer plus a '
+        '10. Inspect the resulting CCPM project - project buffer plus a '
         'feeding buffer for each non-critical development chain'
     )
     ccpm_project = next(p for p in driver.model.projects if p['id'] not in original_ids)
@@ -175,7 +184,8 @@ def main():
     else:
         driver_factory = ScenarioDriver
 
-    with driver_factory() as driver:
+    driver = driver_factory()
+    try:
         if args.visual:
             # The window appears wherever Tk defaults to (primary monitor,
             # default size) - pause here, before anything is recorded or
@@ -193,8 +203,27 @@ def main():
             )
             input()
         run_scenario(driver)
+    except BaseException:
+        # Close on any failure, same as the plain `with driver_factory() as
+        # driver:` this replaced - the "stay open" behavior below only
+        # applies once the scenario has actually finished cleanly.
+        driver.close()
+        raise
 
     print('\nPASS - core workflow scenario completed against the real app.')
+
+    if args.visual:
+        # Left open on purpose, not closed - visual mode's whole point is a
+        # human picking up right where the script left off (finishing the
+        # recording, making manual follow-on edits), so the window has to
+        # survive past the script's own exit instead of being torn down the
+        # instant run_scenario returns. mainloop() hands off to the real Tk
+        # event loop and blocks here until the window is closed by hand.
+        print("Leaving the app open - close its window when you're done.")
+        driver.root.mainloop()
+    else:
+        driver.close()
+
     return 0
 
 
