@@ -34,9 +34,6 @@ jobs:
       - name: Install dependencies
         run: uv sync --only-group dev
 
-      - name: Sync docs/CHANGELOG.md with the repo root
-        run: cp CHANGELOG.md docs/CHANGELOG.md
-
       - name: Build documentation
         run: uv run zensical build --clean --strict
 

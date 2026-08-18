@@ -28,15 +28,10 @@ Thus this app is written in Python, which is the data analysts' tool of choice, 
 - Export tasks to PDF, PNG, CSV, and HTML formats
 - Select tasks for Critical Path analysis
 
-### Todo
+### Roadmap
 
-- ~~Capture Multi-point estimates, for **safe** and **optimistic/aggessive** estimates~~
-- ~~Adding **dated notes** to tasks~~
-- ~~**Remaining** days estimate for tasks (Updates duration and pushes or pulls in dependent tasks)~~
-- ~~Shift the timeframe on i.e. drop dates in the past and add dates in the future to planning timeline~~
-- CCPM features such as buffer creation and feverchart reporting
-   - Load a sub-set of tasks
-- Reporting for resource, working on now and next tasks, with buffer status to help prioritise which tasks should get focus
+See [planning.md](planning.md) for the current design/work plan - what's built, what's in
+progress ("Remaining work"), the UI polish backlog, and what's explicitly out of scope.
 
 ## Installation
 
@@ -277,7 +272,7 @@ git commit -am "Describe the change"
 # 2. Bump the version (updates pyproject.toml and uv.lock)
 uv version --bump patch        # or: minor / major
 
-# 3. Update CHANGELOG.md with a section for the new version, and keep
+# 3. Update docs/CHANGELOG.md with a section for the new version, and keep
 #    requirements.txt in sync for non-uv users
 uv pip compile pyproject.toml -o requirements.txt
 
@@ -309,4 +304,5 @@ is GPLv3-licensed; our-planner's own code is MIT.)
 
 ## Changelog
 
-See [CHANGELOG.md](https://github.com/rnwolf/our-planner/blob/main/CHANGELOG.md) on GitHub.
+See [CHANGELOG.md](https://github.com/rnwolf/our-planner/blob/main/docs/CHANGELOG.md) on GitHub,
+or the [published Changelog page](https://rnwolf.github.io/our-planner/CHANGELOG/).
