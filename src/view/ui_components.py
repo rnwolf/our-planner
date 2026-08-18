@@ -407,7 +407,9 @@ class UIComponents:
         )
         self.file_menu.add_command(
             label='Schedule with CCPM...',
-            underline=mnemonic('Schedule with CCPM...', 'Schedule'),
+            # 'S' is Save's mnemonic above - use 'h' instead so File's
+            # underlines don't collide.
+            underline=mnemonic('Schedule with CCPM...', 'Schedule', 'h'),
             command=self.controller.ccpm_ops.schedule_with_ccpm,
         )
         self.file_menu.add_separator()
