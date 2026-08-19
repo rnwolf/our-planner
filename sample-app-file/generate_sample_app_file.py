@@ -1,0 +1,629 @@
+#!/usr/bin/env python3
+"""Generate a large, realistic sample save file for our-planner.
+
+Builds a ~30-person organisation's project portfolio directly at the
+model/operations layer (no Tk at all - the same style tests/
+test_scenarios.py and scripts/stage12_walkthrough.py already use), then
+writes it out via TaskResourceModel.save_to_file() so it can be opened
+in the real app with File > Open.
+
+The operating model this simulates, per the brief: most work is
+triaged into small, CCPM-scheduled "mini-projects" with a team kept
+constant for the life of the project; the rest sits in a prioritised
+backlog and gets pulled off ad hoc (roughly a quarter of all work at
+any point in time). The data spans roughly three months in the past
+through one month in the future from today, so the file exercises a
+realistic mix of completed, in-progress, and not-yet-started work
+simultaneously - exactly the shape a real user's file would have.
+
+Mini-projects are built as an ordinary rolling-wave task network first,
+then scheduled for real via CcpmOperations.schedule_project_core() (the
+same core the UI's File > Schedule with CCPM... calls) so buffer sizes
+and the critical chain are genuine scheduler output, not hand-faked
+numbers. The rolling-wave draft is then deleted, leaving only the
+scheduled "<name> (CCPM)" project.
+
+Usage:
+    uv run python sample-app-file/generate_sample_app_file.py
+"""
+
+from __future__ import annotations
+
+import random
+import sys
+from collections import defaultdict
+from datetime import datetime, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from unittest.mock import MagicMock
+
+from src.model.task_resource_model import (
+    REMAINING_DURATION_REASONS,
+    TaskResourceModel,
+)
+from src.operations.ccpm_operations import CcpmOperations
+
+RNG_SEED = 20260819
+OUTPUT_PATH = Path(__file__).resolve().parent / 'realistic-portfolio.json'
+
+PAST_DAYS = 90
+FUTURE_DAYS = 30
+DAYS_MARGIN = 25  # headroom past the window for buffers/slippage
+
+# -- organisation roster -----------------------------------------------
+# (name, role) - 30 people. Only dev/qa/designer/ba/devops are drawn on
+# by the mini-project task shapes below; lead/architect/data mostly pick
+# up backlog work, the way senior/specialist roles often do in practice.
+ROSTER = [
+    ('Priya Nair', 'dev'),
+    ('Tom Whitfield', 'dev'),
+    ('Aisha Rahman', 'dev'),
+    ('Ben Carter', 'dev'),
+    ('Yuki Tanaka', 'dev'),
+    ('Liam O’Connor', 'dev'),
+    ('Fatima Al-Sayed', 'dev'),
+    ('Marcus Webb', 'dev'),
+    ('Elena Popescu', 'qa'),
+    ('Noah Fischer', 'qa'),
+    ('Grace Okafor', 'qa'),
+    ('Ravi Deshmukh', 'qa'),
+    ('Sofia Rossi', 'designer'),
+    ('Owen Bennett', 'designer'),
+    ('Mei Lin', 'designer'),
+    ('Hassan Farouk', 'devops'),
+    ('Ingrid Larsen', 'devops'),
+    ('Cody Nguyen', 'devops'),
+    ('Dana Kowalski', 'ba'),
+    ('Ahmed Siddiqui', 'ba'),
+    ('Rosa Martinez', 'ba'),
+    ('Jack Sullivan', 'ba'),
+    ('Helen Zhao', 'lead'),
+    ('Victor Adeyemi', 'lead'),
+    ('Claire Dubois', 'lead'),
+    ('Samuel Osei', 'architect'),
+    ('Nina Petrova', 'architect'),
+    ('Leo Fontaine', 'data'),
+    ('Amara Chukwu', 'data'),
+    ('Piotr Nowak', 'data'),
+]
+assert len(ROSTER) == 30
+
+# Ops/on-call style roles keep weekend capacity; everyone else is a
+# standard Mon-Fri office worker.
+WEEKEND_ROLES = {'devops'}
+
+ROLE_COLOR = {
+    'dev': 'LightBlue',
+    'qa': 'LightGreen',
+    'designer': 'MediumOrchid',
+    'ba': 'Khaki',
+    'devops': 'Orange',
+    'lead': 'Gold',
+    'architect': 'CornflowerBlue',
+    'data': 'LightSalmon',
+}
+BACKLOG_COLOR = 'LightYellow'
+
+# -- mini-project shapes -------------------------------------------------
+# (task name, role, [predecessor names], (min_duration, max_duration), lane)
+# `lane` is the task's swimlane *within its own project* (0 = the main
+# sequential thread; 1/2 = a parallel branch that needs its own row so it
+# doesn't overlap the thread it's running alongside) - not a row number
+# itself. assign_project_rows() below turns a project's lane count into
+# a compact, reusable block of real rows. Every shape has at least one
+# merge point, so every scheduled project contributes at least one
+# feeding buffer, not just a project buffer.
+PROJECT_SHAPES = {
+    'small': [
+        ('Analysis', 'ba', [], (2, 4), 0),
+        ('Build', 'dev', ['Analysis'], (3, 6), 0),
+        ('Review', 'qa', ['Analysis'], (1, 2), 1),
+        ('Test', 'qa', ['Build', 'Review'], (2, 3), 0),
+        ('Deploy', 'devops', ['Test'], (1, 2), 0),
+    ],
+    'medium': [
+        ('Design', 'designer', [], (2, 4), 0),
+        ('Build-A', 'dev', ['Design'], (4, 7), 0),
+        ('Build-B', 'dev', ['Design'], (3, 6), 1),
+        ('Integration', 'dev', ['Build-A', 'Build-B'], (2, 4), 0),
+        ('Test', 'qa', ['Integration'], (2, 4), 0),
+        ('UAT', 'ba', ['Test'], (2, 3), 0),
+        ('Deploy', 'devops', ['UAT'], (1, 2), 0),
+    ],
+    'large': [
+        ('Discovery', 'ba', [], (2, 4), 0),
+        ('Design', 'designer', ['Discovery'], (3, 5), 0),
+        ('Build-A', 'dev', ['Design'], (5, 8), 0),
+        ('Build-B', 'dev', ['Design'], (4, 7), 1),
+        ('Build-C', 'dev', ['Design'], (4, 7), 2),
+        ('Integration', 'dev', ['Build-A', 'Build-B', 'Build-C'], (2, 4), 0),
+        ('Security Review', 'qa', ['Integration'], (2, 3), 1),
+        ('Test', 'qa', ['Integration'], (3, 5), 0),
+        ('UAT', 'ba', ['Security Review', 'Test'], (2, 4), 0),
+        ('Deploy', 'devops', ['UAT'], (1, 2), 0),
+    ],
+}
+TEAM_REQS = {
+    'small': {'ba': 1, 'dev': 1, 'qa': 1, 'devops': 1},
+    'medium': {'designer': 1, 'dev': 2, 'qa': 1, 'ba': 1, 'devops': 1},
+    'large': {'ba': 1, 'designer': 1, 'dev': 3, 'qa': 2, 'devops': 1},
+}
+
+PROJECT_NAMES = [
+    'Customer Portal Refresh',
+    'Invoice Automation',
+    'Warehouse Mobile App',
+    'Payments Gateway Upgrade',
+    'Onboarding Redesign',
+    'Fleet Tracking Rollout',
+    'Supplier Data Migration',
+    'Loyalty Programme Revamp',
+    'Returns Workflow',
+    'Store Inventory Sync',
+    'HR Self-Service Portal',
+    'Contract Renewal Tool',
+    'Pricing Engine Update',
+    'Field Service App',
+    'Compliance Reporting Suite',
+    'Order Tracking Redesign',
+    'Vendor Onboarding Flow',
+    'Analytics Dashboard V2',
+]
+
+
+def working_capacity(role: str) -> bool:
+    return role in WEEKEND_ROLES
+
+
+def build_roster(model: TaskResourceModel) -> dict[str, list[int]]:
+    """Adds all 30 resources, returns role -> [resource_id, ...]."""
+    by_role: dict[str, list[int]] = {}
+    for name, role in ROSTER:
+        resource = model.add_resource(name, works_weekends=working_capacity(role))
+        assert resource is not None, f'duplicate resource name {name!r}'
+        resource['tags'] = [role]
+        by_role.setdefault(role, []).append(resource['id'])
+    return by_role
+
+
+def pick_team(by_role: dict[str, list[int]], shape_name: str, rng: random.Random):
+    """Samples a fixed team for one project - same people for every task
+    in it wherever a role needs more than one person, drawn without
+    replacement so e.g. Build-A/Build-B in 'medium' land on two
+    different developers, matching a team that stays constant."""
+    team: dict[str, list[int]] = {}
+    for role, count in TEAM_REQS[shape_name].items():
+        pool = by_role[role]
+        team[role] = rng.sample(pool, k=min(count, len(pool)))
+    return team
+
+
+def build_draft_network(
+    model: TaskResourceModel,
+    project_id: int,
+    shape_name: str,
+    team: dict[str, list[int]],
+    start_col: int,
+    rng: random.Random,
+) -> list[int]:
+    """Creates one rolling-wave draft network for `shape_name`, wired
+    with real predecessor links and resource assignments. Returns the
+    created task ids in shape order (topological, since every shape
+    lists a task after all of its own predecessors). `row` is a
+    placeholder (0) throughout - the draft is deleted right after
+    scheduling, see assign_project_rows() for the rows that matter."""
+    name_to_id: dict[str, int] = {}
+    role_cursor: dict[str, int] = {}
+    task_ids = []
+    col = start_col
+    for task_name, role, preds, (dmin, dmax), _lane in PROJECT_SHAPES[shape_name]:
+        duration = rng.randint(dmin, dmax)
+        pool = team[role]
+        idx = role_cursor.get(role, 0) % len(pool)
+        role_cursor[role] = role_cursor.get(role, 0) + 1
+        resource_id = pool[idx]
+
+        task = model.add_task(
+            row=0,
+            col=col,
+            duration=duration,
+            description=task_name,
+            resources={resource_id: 1.0},
+            predecessors=[{'id': name_to_id[p], 'type': 'FS', 'lag': 0} for p in preds],
+            color=ROLE_COLOR[role],
+            project_id=project_id,
+        )
+        name_to_id[task_name] = task['task_id']
+        task_ids.append(task['task_id'])
+        col += duration + 1
+
+    return task_ids
+
+
+# At least this many blank rows between two projects that are actually
+# concurrent (their blocks would otherwise sit directly against each
+# other) - room to add a task or two mid-execution without immediately
+# encroaching on whichever project happens to be stacked next to it, and
+# a clearer visual break when a team's own project needs picking out
+# from neighbours that are also currently in execution.
+ROW_GAP = 3
+
+
+def pack_rows(
+    row_occupied: dict[int, list[tuple[int, int]]],
+    lanes_needed: int,
+    span_start: int,
+    span_end: int,
+) -> list[int]:
+    """First-fit packing: finds `lanes_needed` consecutive rows all free
+    across [span_start, span_end), reusing rows once an earlier
+    project's block has finished there rather than growing the row
+    count with every new project - keeps every project's own footprint
+    compact *and* keeps the whole mini-project region reasonably small,
+    since the backlog's own rows start right below wherever this ends up
+    finishing (see main()'s backlog_row_start).
+
+    Reserves ROW_GAP rows of padding above and below the block, for the
+    same span, so a *concurrent* project's own search skips straight
+    past them - the gap only ever costs real row space between projects
+    that overlap in time; a later, non-overlapping project is still
+    free to reuse exactly these rows once this span has passed."""
+    row = 0
+    while True:
+        candidate = range(row, row + lanes_needed)
+        if all(
+            all(
+                not (span_start < end and start < span_end)
+                for start, end in row_occupied[r]
+            )
+            for r in candidate
+        ):
+            padded = range(max(0, row - ROW_GAP), row + lanes_needed + ROW_GAP)
+            for r in padded:
+                row_occupied[r].append((span_start, span_end))
+            return list(candidate)
+        row += 1
+
+
+def assign_project_rows(
+    model: TaskResourceModel,
+    project_id: int,
+    shape_name: str,
+    row_occupied: dict[int, list[tuple[int, int]]],
+    start_col_actual: int,
+    end_col_actual: int,
+):
+    """Places a just-scheduled project's tasks - including its buffers -
+    on a compact, adjacent block of rows, instead of the scheduler's own
+    _place_beside_source placement (which stacks each newly-scheduled
+    project fresh at the bottom of the whole grid, scattering feeding
+    buffers far from the chain they protect once several projects have
+    been through it). Each buffer is put on the same row as the one
+    task it directly follows (every buffer has exactly one predecessor -
+    confirmed against real scheduler output), so a project's whole
+    picture - main thread, parallel branches, and their buffers - reads
+    as one contiguous group."""
+    lane_by_name = {
+        name: lane for name, _role, _preds, _dur, lane in PROJECT_SHAPES[shape_name]
+    }
+    lanes_needed = max(lane_by_name.values()) + 1
+    block = pack_rows(row_occupied, lanes_needed, start_col_actual, end_col_actual)
+
+    tasks = [t for t in model.tasks if t['project_id'] == project_id]
+    row_by_task_id: dict[int, int] = {}
+    for task in tasks:
+        if task['type'] == 'task':
+            row = block[lane_by_name[task['description']]]
+            task['row'] = row
+            row_by_task_id[task['task_id']] = row
+    for task in tasks:
+        if task['type'] != 'task':
+            predecessor_id = task['predecessors'][0]['id']
+            task['row'] = row_by_task_id[predecessor_id]
+
+
+def simulate_progress(
+    model: TaskResourceModel, task, today_day: int, rng: random.Random
+):
+    """Backdates a task's own start/finish against `model.setdate` so it
+    looks genuinely worked on rather than just sitting in 'planning'.
+    Only ordinary tasks are touched - buffers are left to the scheduler's
+    own output, see the module docstring's stated scope."""
+    if task.get('type') != 'task':
+        return
+
+    start_day = task['col']
+    end_day = task['col'] + task['duration']
+
+    if end_day <= today_day:
+        # Finished entirely in the past.
+        model.setdate = model.get_date_for_day(start_day)
+        model.record_remaining_duration(task['task_id'], task['duration'], 'On Time')
+        model.setdate = model.get_date_for_day(end_day)
+        reason = rng.choices(
+            REMAINING_DURATION_REASONS,
+            weights=[6, 2, 1, 1, 1, 1, 1, 1, 1, 1],
+            k=1,
+        )[0]
+        model.record_remaining_duration(task['task_id'], 0, reason)
+    elif start_day < today_day < end_day:
+        # Genuinely in progress right now.
+        model.setdate = model.get_date_for_day(start_day)
+        model.record_remaining_duration(task['task_id'], task['duration'], 'On Time')
+        model.setdate = model.get_date_for_day(today_day)
+        remaining = max(1, end_day - today_day)
+        reason = rng.choice(REMAINING_DURATION_REASONS)
+        model.record_remaining_duration(task['task_id'], remaining, reason)
+    # else: starts in the future - stays untouched in 'planning'.
+
+
+def build_mini_project(
+    model: TaskResourceModel,
+    ccpm_ops: CcpmOperations,
+    name: str,
+    shape_name: str,
+    by_role: dict[str, list[int]],
+    row_occupied: dict[int, list[tuple[int, int]]],
+    start_col: int,
+    today_day: int,
+    rng: random.Random,
+) -> str:
+    """Builds, schedules, and (if its timing calls for it) backdates one
+    mini-project. Returns a one-line classification for the summary
+    printed at the end."""
+    draft_name = f'{name} (draft)'
+    draft = model.add_project(draft_name)
+    assert draft is not None, f'duplicate project name {draft_name!r}'
+    team = pick_team(by_role, shape_name, rng)
+    draft_task_ids = build_draft_network(
+        model, draft['id'], shape_name, team, start_col, rng
+    )
+
+    result = ccpm_ops.schedule_project_core(draft['id'], new_project_name=name)
+    assert result['ok'], f'{name}: CCPM scheduling failed: {result["issues"]}'
+
+    for task_id in draft_task_ids:
+        model.delete_task(task_id)
+    model.remove_project(draft['id'])
+
+    scheduled = result['project']
+    scheduled_tasks = [t for t in model.tasks if t['project_id'] == scheduled['id']]
+    start_col_actual = min(t['col'] for t in scheduled_tasks)
+    end_col_actual = max(t['col'] + t['duration'] for t in scheduled_tasks)
+    assign_project_rows(
+        model,
+        scheduled['id'],
+        shape_name,
+        row_occupied,
+        start_col_actual,
+        end_col_actual,
+    )
+
+    if end_col_actual <= today_day:
+        status = 'completed'
+    elif start_col_actual > today_day:
+        status = 'future'
+    else:
+        status = 'ongoing'
+
+    if status != 'future':
+        model.setdate = model.get_date_for_day(max(0, start_col_actual - 1))
+        model.capture_project_baseline(scheduled['id'])
+        model.set_project_phase(scheduled['id'], 'execution')
+        for task in scheduled_tasks:
+            simulate_progress(model, task, today_day, rng)
+
+    span_days = end_col_actual - start_col_actual
+    stats = result['stats']
+    print(
+        f'  [{status:>9}] {name:<28} shape={shape_name:<6} '
+        f'{len(scheduled_tasks):>2} rows  span={span_days:>3}d  '
+        f'critical_chain={stats.critical_chain_length}d  '
+        f'buffer={stats.project_buffer}d'
+    )
+    return status
+
+
+BACKLOG_TASK_NAMES = [
+    'Fix broken report export',
+    'Update supplier price list',
+    'Investigate slow query',
+    'Patch security advisory',
+    'Rebuild stale cache',
+    'Draft Q3 status update',
+    'Reconcile ledger discrepancy',
+    'Answer customer escalation',
+    'Rotate API keys',
+    'Clean up test data',
+    'Review access request',
+    'Update runbook',
+    'Triage incoming defects',
+    'Refresh dashboard widget',
+    'Archive old records',
+    'Validate backup restore',
+    'Adjust alert thresholds',
+    'Prepare audit evidence',
+    'Onboard new vendor feed',
+    'Correct mislabeled SKUs',
+    'Tune batch job schedule',
+    'Respond to compliance query',
+    'Update training material',
+    'Retire legacy endpoint',
+    'Investigate payment mismatch',
+    'Support store rollout',
+    'Clarify requirements',
+    'Review pull request backlog',
+    'Update data dictionary',
+    'Handle GDPR request',
+]
+BACKLOG_PRIORITIES = ['P1', 'P2', 'P3']
+
+
+def build_backlog(
+    model: TaskResourceModel,
+    by_role: dict[str, list[int]],
+    row_by_resource: dict[int, int],
+    backlog_row_start: int,
+    window_days: int,
+    today_day: int,
+    rng: random.Random,
+    task_count: int,
+) -> int:
+    """One never-CCPM-scheduled project of small, independent tasks -
+    the prioritised backlog work pulled off ad hoc between mini-project
+    commitments (no established convention for this in the codebase, see
+    CLAUDE.md/docs check during research - a plain project that's simply
+    never scheduled is enough)."""
+    project = model.add_project('Ad-hoc / Backlog Work')
+    assert project is not None
+    all_resource_ids = [rid for ids in by_role.values() for rid in ids]
+
+    for i in range(task_count):
+        name = rng.choice(BACKLOG_TASK_NAMES)
+        priority = rng.choices(BACKLOG_PRIORITIES, weights=[2, 5, 3], k=1)[0]
+        duration = rng.randint(1, 3)
+        col = rng.randint(0, max(1, window_days - duration - 1))
+        resource_id = rng.choice(all_resource_ids)
+
+        task = model.add_task(
+            row=backlog_row_start + row_by_resource[resource_id],
+            col=col,
+            duration=duration,
+            description=f'{name} #{i + 1}',
+            resources={resource_id: 1.0},
+            tags=['backlog', priority],
+            color=BACKLOG_COLOR,
+            project_id=project['id'],
+        )
+        simulate_progress(model, task, today_day, rng)
+
+    return len(model.tasks)
+
+
+def main():
+    rng = random.Random(RNG_SEED)
+    model = TaskResourceModel()
+
+    # Strip the model's own seeded defaults (10 default resources, one
+    # default project) - this file builds its own roster from scratch.
+    model.resources = []
+    model.resource_id_counter = 0
+    model.projects = []
+    model.project_id_counter = 0
+    model.default_project_id = None
+
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    window_start = today - timedelta(days=PAST_DAYS)
+    window_days = PAST_DAYS + FUTURE_DAYS + DAYS_MARGIN
+
+    model.start_date = window_start
+    model.days = window_days
+    model.setdate = today
+
+    by_role = build_roster(model)
+    # capacity arrays are sized off model.days at add_resource() time -
+    # re-seed them now that model.days reflects the real window, not the
+    # constructor's default 100.
+    for resource in model.resources:
+        role = resource['tags'][0]
+        weekends = working_capacity(role)
+        capacity = []
+        for day in range(model.days):
+            date = model.get_date_for_day(day)
+            capacity.append(0.0 if (date.weekday() >= 5 and not weekends) else 1.0)
+        resource['capacity'] = capacity
+
+    # Used only for the backlog's per-person lanes below backlog_row_start
+    # - mini-project rows are packed fresh per project, see pack_rows().
+    row_by_resource = {
+        rid: i for i, rid in enumerate(rid for ids in by_role.values() for rid in ids)
+    }
+    row_occupied: dict[int, list[tuple[int, int]]] = defaultdict(list)
+
+    today_day = model.get_day_for_date(today)
+    print(
+        f'Window: {window_start.date()} .. {(window_start + timedelta(days=window_days)).date()}'
+        f'  (today = day {today_day} of {model.days})'
+    )
+
+    controller = MagicMock()
+    controller.model = model
+    ccpm_ops = CcpmOperations(controller, model)
+
+    # Stagger project starts across the window, evenly spaced with
+    # jitter, so several are in flight (and overlapping in team members)
+    # at any given point, the way a ~30-person org actually runs.
+    n_projects = len(PROJECT_NAMES)
+    span = PAST_DAYS + FUTURE_DAYS - 10
+    step = span / n_projects
+    shape_choices = ['small'] * 6 + ['medium'] * 8 + ['large'] * 4
+    rng.shuffle(shape_choices)
+
+    print(f'\nBuilding {n_projects} mini-projects...')
+    counts = {'completed': 0, 'ongoing': 0, 'future': 0}
+    for i, name in enumerate(PROJECT_NAMES):
+        start_col = int(i * step + rng.randint(-3, 3))
+        start_col = max(0, start_col)
+        status = build_mini_project(
+            model,
+            ccpm_ops,
+            name,
+            shape_choices[i],
+            by_role,
+            row_occupied,
+            start_col,
+            today_day,
+            rng,
+        )
+        counts[status] += 1
+
+    # row_occupied's own keys already include each project's trailing
+    # ROW_GAP padding (pack_rows reserves it on both sides of every
+    # block), so starting the backlog lanes right after the highest
+    # occupied row keeps the same >= ROW_GAP separation from mini-project
+    # work without stacking a second gap on top of it.
+    max_project_row = max(row_occupied) if row_occupied else -1
+    backlog_row_start = max_project_row + 1
+    print(
+        f'Mini-project rows used: 0..{max_project_row} (backlog starts at {backlog_row_start})'
+    )
+
+    print(f'\nMini-projects: {counts}')
+
+    # Roughly a quarter of all work at any point in time is ad hoc -
+    # sized relative to the mini-project task volume just built.
+    mini_project_task_count = sum(1 for t in model.tasks if t.get('type') == 'task')
+    backlog_target = max(40, mini_project_task_count // 3)
+    print(f'\nBuilding {backlog_target} backlog tasks...')
+    build_backlog(
+        model,
+        by_role,
+        row_by_resource,
+        backlog_row_start,
+        window_days,
+        today_day,
+        rng,
+        backlog_target,
+    )
+
+    # The app's own simulated "today" - reset after all the backdating
+    # above, which moved model.setdate around a lot.
+    model.setdate = today
+
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    ok = model.save_to_file(str(OUTPUT_PATH))
+    assert ok, 'save_to_file failed'
+
+    task_count = len(model.tasks)
+    buffer_count = sum(1 for t in model.tasks if t.get('type') != 'task')
+    print(
+        f'\nSaved {OUTPUT_PATH} - {len(model.projects)} projects, '
+        f'{task_count} tasks ({buffer_count} buffers), '
+        f'{len(model.resources)} resources.'
+    )
+
+
+if __name__ == '__main__':
+    main()
