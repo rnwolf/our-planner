@@ -49,7 +49,7 @@
     {
       "task_id": 7,
       "row": 1,
-      "col": 4,
+      "col": 2,
       "duration": 1,
       "description": "Review",
       "url": "",
@@ -74,17 +74,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-05-25T00:00:00",
-      "actual_end_date": "2026-05-26T00:00:00",
+      "actual_start_date": "2026-05-23T00:00:00",
+      "actual_end_date": "2026-05-24T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-05-25T00:00:00",
+          "date": "2026-05-23T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-05-26T00:00:00",
+          "date": "2026-05-24T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -101,7 +101,7 @@
     {
       "task_id": 8,
       "row": 0,
-      "col": 4,
+      "col": 2,
       "duration": 2,
       "description": "Build",
       "url": "",
@@ -126,17 +126,17 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-05-25T00:00:00",
-      "actual_end_date": "2026-05-27T00:00:00",
+      "actual_start_date": "2026-05-23T00:00:00",
+      "actual_end_date": "2026-05-25T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-05-25T00:00:00",
+          "date": "2026-05-23T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-05-27T00:00:00",
+          "date": "2026-05-25T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Full Kit"
         }
@@ -153,7 +153,7 @@
     {
       "task_id": 9,
       "row": 0,
-      "col": 6,
+      "col": 4,
       "duration": 1,
       "description": "Test",
       "url": "",
@@ -183,17 +183,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-05-27T00:00:00",
-      "actual_end_date": "2026-05-28T00:00:00",
+      "actual_start_date": "2026-05-25T00:00:00",
+      "actual_end_date": "2026-05-26T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-05-27T00:00:00",
+          "date": "2026-05-25T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-05-28T00:00:00",
+          "date": "2026-05-26T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -210,7 +210,7 @@
     {
       "task_id": 10,
       "row": 0,
-      "col": 7,
+      "col": 5,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -235,17 +235,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-05-28T00:00:00",
-      "actual_end_date": "2026-05-29T00:00:00",
+      "actual_start_date": "2026-05-26T00:00:00",
+      "actual_end_date": "2026-05-27T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-05-28T00:00:00",
+          "date": "2026-05-26T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-05-29T00:00:00",
+          "date": "2026-05-27T00:00:00",
           "remaining_duration": 0,
           "reason": "No Early Start"
         }
@@ -262,7 +262,7 @@
     {
       "task_id": 11,
       "row": 1,
-      "col": 5,
+      "col": 3,
       "duration": 1,
       "description": "Feeding buffer 1",
       "url": "",
@@ -296,7 +296,68 @@
         "captured_at": "2026-05-21T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-05-21T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-23T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-23T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-24T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-23T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-26T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-26T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-27T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 12,
@@ -335,7 +396,68 @@
         "captured_at": "2026-05-21T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-05-21T00:00:00",
+          "cpsl": 6,
+          "ppf": 0,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-23T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-23T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-24T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-23T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-25T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-25T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-26T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-26T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-05-27T00:00:00",
+          "cpsl": 6,
+          "ppf": 6,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 20,
@@ -547,7 +669,7 @@
     {
       "task_id": 24,
       "row": 5,
-      "col": 18,
+      "col": 16,
       "duration": 2,
       "description": "Test",
       "url": "",
@@ -572,17 +694,17 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-08T00:00:00",
-      "actual_end_date": "2026-06-10T00:00:00",
+      "actual_start_date": "2026-06-06T00:00:00",
+      "actual_end_date": "2026-06-08T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-08T00:00:00",
+          "date": "2026-06-06T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-10T00:00:00",
+          "date": "2026-06-08T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -599,7 +721,7 @@
     {
       "task_id": 25,
       "row": 5,
-      "col": 20,
+      "col": 18,
       "duration": 1,
       "description": "UAT",
       "url": "",
@@ -624,17 +746,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-10T00:00:00",
-      "actual_end_date": "2026-06-11T00:00:00",
+      "actual_start_date": "2026-06-08T00:00:00",
+      "actual_end_date": "2026-06-09T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-10T00:00:00",
+          "date": "2026-06-08T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-11T00:00:00",
+          "date": "2026-06-09T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting in Backlog"
         }
@@ -651,7 +773,7 @@
     {
       "task_id": 26,
       "row": 5,
-      "col": 21,
+      "col": 19,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -676,17 +798,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-11T00:00:00",
-      "actual_end_date": "2026-06-12T00:00:00",
+      "actual_start_date": "2026-06-09T00:00:00",
+      "actual_end_date": "2026-06-10T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-11T00:00:00",
+          "date": "2026-06-09T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-12T00:00:00",
+          "date": "2026-06-10T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -737,7 +859,92 @@
         "captured_at": "2026-05-26T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-05-27T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-29T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-01T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-04T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-02T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-05T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-05T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-06T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-06T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-09T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-09T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 8,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 28,
@@ -776,7 +983,92 @@
         "captured_at": "2026-05-26T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-05-27T00:00:00",
+          "cpsl": 8,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-29T00:00:00",
+          "cpsl": 8,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-01T00:00:00",
+          "cpsl": 8,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-04T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-02T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-05T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-05T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-06T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-06T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-09T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-09T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 29,
@@ -815,7 +1107,92 @@
         "captured_at": "2026-05-26T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-05-27T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-05-29T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-01T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-04T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-02T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-05T00:00:00",
+          "cpsl": 10,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-05T00:00:00",
+          "cpsl": 8,
+          "ppf": 3,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-06T00:00:00",
+          "cpsl": 8,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-06T00:00:00",
+          "cpsl": 8,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 8,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 8,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-09T00:00:00",
+          "cpsl": 8,
+          "ppf": 7,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-09T00:00:00",
+          "cpsl": 8,
+          "ppf": 7,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 40,
@@ -1188,7 +1565,7 @@
     {
       "task_id": 47,
       "row": 11,
-      "col": 36,
+      "col": 35,
       "duration": 1,
       "description": "Security Review",
       "url": "",
@@ -1213,17 +1590,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-26T00:00:00",
-      "actual_end_date": "2026-06-27T00:00:00",
+      "actual_start_date": "2026-06-25T00:00:00",
+      "actual_end_date": "2026-06-26T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-26T00:00:00",
+          "date": "2026-06-25T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-27T00:00:00",
+          "date": "2026-06-26T00:00:00",
           "remaining_duration": 0,
           "reason": "Task Variability"
         }
@@ -1240,7 +1617,7 @@
     {
       "task_id": 48,
       "row": 10,
-      "col": 39,
+      "col": 37,
       "duration": 2,
       "description": "UAT",
       "url": "",
@@ -1270,17 +1647,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-29T00:00:00",
-      "actual_end_date": "2026-07-01T00:00:00",
+      "actual_start_date": "2026-06-27T00:00:00",
+      "actual_end_date": "2026-06-29T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-29T00:00:00",
+          "date": "2026-06-27T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-01T00:00:00",
+          "date": "2026-06-29T00:00:00",
           "remaining_duration": 0,
           "reason": "No Early Start"
         }
@@ -1297,7 +1674,7 @@
     {
       "task_id": 49,
       "row": 10,
-      "col": 41,
+      "col": 39,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -1322,17 +1699,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-01T00:00:00",
-      "actual_end_date": "2026-07-02T00:00:00",
+      "actual_start_date": "2026-06-29T00:00:00",
+      "actual_end_date": "2026-06-30T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-01T00:00:00",
+          "date": "2026-06-29T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-02T00:00:00",
+          "date": "2026-06-30T00:00:00",
           "remaining_duration": 0,
           "reason": "Parkinson's Law"
         }
@@ -1383,7 +1760,128 @@
         "captured_at": "2026-06-07T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 12,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 12,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 12,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 12,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 12,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 12,
+          "ppf": 12,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 51,
@@ -1422,7 +1920,128 @@
         "captured_at": "2026-06-07T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 52,
@@ -1461,13 +2080,134 @@
         "captured_at": "2026-06-07T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 53,
       "row": 11,
-      "col": 37,
-      "duration": 2,
+      "col": 36,
+      "duration": 1,
       "description": "Feeding buffer 4",
       "url": "",
       "resources": {},
@@ -1499,8 +2239,136 @@
         "realistic_duration": 2,
         "captured_at": "2026-06-07T00:00:00"
       },
-      "buffer_size_history": [],
-      "fever_chart_history": []
+      "buffer_size_history": [
+        {
+          "date": "2026-06-25T00:00:00",
+          "duration": 1,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 48
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        }
+      ]
     },
     {
       "task_id": 54,
@@ -1539,7 +2407,128 @@
         "captured_at": "2026-06-07T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-08T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 7,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 7,
+          "ppf": 7,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 65,
@@ -1642,7 +2631,7 @@
     {
       "task_id": 67,
       "row": 17,
-      "col": 25,
+      "col": 23,
       "duration": 2,
       "description": "Build-B",
       "url": "",
@@ -1667,17 +2656,17 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-15T00:00:00",
-      "actual_end_date": "2026-06-17T00:00:00",
+      "actual_start_date": "2026-06-13T00:00:00",
+      "actual_end_date": "2026-06-15T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-15T00:00:00",
+          "date": "2026-06-13T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-17T00:00:00",
+          "date": "2026-06-15T00:00:00",
           "remaining_duration": 0,
           "reason": "No Early Start"
         }
@@ -1694,7 +2683,7 @@
     {
       "task_id": 68,
       "row": 16,
-      "col": 25,
+      "col": 23,
       "duration": 3,
       "description": "Build-A",
       "url": "",
@@ -1719,17 +2708,17 @@
       "state": "done",
       "realistic_duration": 5,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-15T00:00:00",
-      "actual_end_date": "2026-06-18T00:00:00",
+      "actual_start_date": "2026-06-13T00:00:00",
+      "actual_end_date": "2026-06-16T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-15T00:00:00",
+          "date": "2026-06-13T00:00:00",
           "remaining_duration": 3,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-18T00:00:00",
+          "date": "2026-06-16T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -1746,7 +2735,7 @@
     {
       "task_id": 69,
       "row": 18,
-      "col": 25,
+      "col": 23,
       "duration": 3,
       "description": "Build-C",
       "url": "",
@@ -1771,17 +2760,17 @@
       "state": "done",
       "realistic_duration": 6,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-15T00:00:00",
-      "actual_end_date": "2026-06-18T00:00:00",
+      "actual_start_date": "2026-06-13T00:00:00",
+      "actual_end_date": "2026-06-16T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-15T00:00:00",
+          "date": "2026-06-13T00:00:00",
           "remaining_duration": 3,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-18T00:00:00",
+          "date": "2026-06-16T00:00:00",
           "remaining_duration": 0,
           "reason": "Parkinson's Law"
         }
@@ -1798,7 +2787,7 @@
     {
       "task_id": 70,
       "row": 16,
-      "col": 28,
+      "col": 26,
       "duration": 2,
       "description": "Integration",
       "url": "",
@@ -1833,17 +2822,17 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-18T00:00:00",
-      "actual_end_date": "2026-06-20T00:00:00",
+      "actual_start_date": "2026-06-16T00:00:00",
+      "actual_end_date": "2026-06-18T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-18T00:00:00",
+          "date": "2026-06-16T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-20T00:00:00",
+          "date": "2026-06-18T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting in Backlog"
         }
@@ -1860,7 +2849,7 @@
     {
       "task_id": 71,
       "row": 17,
-      "col": 32,
+      "col": 28,
       "duration": 2,
       "description": "Security Review",
       "url": "",
@@ -1885,17 +2874,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-22T00:00:00",
-      "actual_end_date": "2026-06-24T00:00:00",
+      "actual_start_date": "2026-06-18T00:00:00",
+      "actual_end_date": "2026-06-20T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-22T00:00:00",
+          "date": "2026-06-18T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-24T00:00:00",
+          "date": "2026-06-20T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting in Backlog"
         }
@@ -1912,7 +2901,7 @@
     {
       "task_id": 72,
       "row": 16,
-      "col": 32,
+      "col": 28,
       "duration": 3,
       "description": "Test",
       "url": "",
@@ -1937,17 +2926,17 @@
       "state": "done",
       "realistic_duration": 5,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-22T00:00:00",
-      "actual_end_date": "2026-06-25T00:00:00",
+      "actual_start_date": "2026-06-18T00:00:00",
+      "actual_end_date": "2026-06-21T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-22T00:00:00",
+          "date": "2026-06-18T00:00:00",
           "remaining_duration": 3,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-25T00:00:00",
+          "date": "2026-06-21T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Full Kit"
         }
@@ -1964,7 +2953,7 @@
     {
       "task_id": 73,
       "row": 16,
-      "col": 35,
+      "col": 31,
       "duration": 1,
       "description": "UAT",
       "url": "",
@@ -1994,17 +2983,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-25T00:00:00",
-      "actual_end_date": "2026-06-26T00:00:00",
+      "actual_start_date": "2026-06-21T00:00:00",
+      "actual_end_date": "2026-06-22T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-25T00:00:00",
+          "date": "2026-06-21T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-26T00:00:00",
+          "date": "2026-06-22T00:00:00",
           "remaining_duration": 0,
           "reason": "Multitasking"
         }
@@ -2021,7 +3010,7 @@
     {
       "task_id": 74,
       "row": 16,
-      "col": 36,
+      "col": 32,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -2046,17 +3035,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-06-26T00:00:00",
-      "actual_end_date": "2026-06-27T00:00:00",
+      "actual_start_date": "2026-06-22T00:00:00",
+      "actual_end_date": "2026-06-23T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-06-26T00:00:00",
+          "date": "2026-06-22T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-06-27T00:00:00",
+          "date": "2026-06-23T00:00:00",
           "remaining_duration": 0,
           "reason": "Other / Unexplained"
         }
@@ -2073,7 +3062,7 @@
     {
       "task_id": 75,
       "row": 17,
-      "col": 27,
+      "col": 25,
       "duration": 1,
       "description": "Feeding buffer 1",
       "url": "",
@@ -2107,12 +3096,133 @@
         "captured_at": "2026-06-09T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-11T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-11T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 76,
       "row": 17,
-      "col": 34,
+      "col": 30,
       "duration": 1,
       "description": "Feeding buffer 2",
       "url": "",
@@ -2146,7 +3256,128 @@
         "captured_at": "2026-06-09T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-11T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-11T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 77,
@@ -2185,7 +3416,128 @@
         "captured_at": "2026-06-09T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-10T00:00:00",
+          "cpsl": 17,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-11T00:00:00",
+          "cpsl": 17,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-11T00:00:00",
+          "cpsl": 17,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 17,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 17,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-15T00:00:00",
+          "cpsl": 17,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 13,
+          "ppf": 3,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 13,
+          "ppf": 6,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-13T00:00:00",
+          "cpsl": 13,
+          "ppf": 6,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 13,
+          "ppf": 6,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-16T00:00:00",
+          "cpsl": 13,
+          "ppf": 6,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 13,
+          "ppf": 8,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 13,
+          "ppf": 8,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-20T00:00:00",
+          "cpsl": 13,
+          "ppf": 8,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-18T00:00:00",
+          "cpsl": 13,
+          "ppf": 8,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "cpsl": 13,
+          "ppf": 11,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "cpsl": 13,
+          "ppf": 11,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 13,
+          "ppf": 12,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 13,
+          "ppf": 12,
+          "forecast_lateness": -4
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "cpsl": 13,
+          "ppf": 13,
+          "forecast_lateness": -4
+        }
+      ]
     },
     {
       "task_id": 85,
@@ -2449,7 +3801,7 @@
     {
       "task_id": 90,
       "row": 0,
-      "col": 46,
+      "col": 44,
       "duration": 2,
       "description": "UAT",
       "url": "",
@@ -2474,17 +3826,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-06T00:00:00",
-      "actual_end_date": "2026-07-08T00:00:00",
+      "actual_start_date": "2026-07-04T00:00:00",
+      "actual_end_date": "2026-07-06T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-06T00:00:00",
+          "date": "2026-07-04T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-08T00:00:00",
+          "date": "2026-07-06T00:00:00",
           "remaining_duration": 0,
           "reason": "No Early Start"
         }
@@ -2501,7 +3853,7 @@
     {
       "task_id": 91,
       "row": 0,
-      "col": 48,
+      "col": 46,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -2526,17 +3878,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-08T00:00:00",
-      "actual_end_date": "2026-07-09T00:00:00",
+      "actual_start_date": "2026-07-06T00:00:00",
+      "actual_end_date": "2026-07-07T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-08T00:00:00",
+          "date": "2026-07-06T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-09T00:00:00",
+          "date": "2026-07-07T00:00:00",
           "remaining_duration": 0,
           "reason": "Unplanned Events"
         }
@@ -2587,7 +3939,92 @@
         "captured_at": "2026-06-16T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-19T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-02T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-02T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 93,
@@ -2626,7 +4063,92 @@
         "captured_at": "2026-06-16T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-19T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-02T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-02T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 94,
@@ -2665,7 +4187,92 @@
         "captured_at": "2026-06-16T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-17T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-19T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-25T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-30T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-02T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-02T00:00:00",
+          "cpsl": 7,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 7,
+          "ppf": 7,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 105,
@@ -3038,7 +4645,7 @@
     {
       "task_id": 112,
       "row": 23,
-      "col": 50,
+      "col": 49,
       "duration": 1,
       "description": "Security Review",
       "url": "",
@@ -3063,17 +4670,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-10T00:00:00",
-      "actual_end_date": "2026-07-11T00:00:00",
+      "actual_start_date": "2026-07-09T00:00:00",
+      "actual_end_date": "2026-07-10T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-10T00:00:00",
+          "date": "2026-07-09T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-11T00:00:00",
+          "date": "2026-07-10T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -3090,7 +4697,7 @@
     {
       "task_id": 113,
       "row": 22,
-      "col": 53,
+      "col": 51,
       "duration": 2,
       "description": "UAT",
       "url": "",
@@ -3120,17 +4727,17 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-13T00:00:00",
-      "actual_end_date": "2026-07-15T00:00:00",
+      "actual_start_date": "2026-07-11T00:00:00",
+      "actual_end_date": "2026-07-13T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-13T00:00:00",
+          "date": "2026-07-11T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-15T00:00:00",
+          "date": "2026-07-13T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -3147,7 +4754,7 @@
     {
       "task_id": 114,
       "row": 22,
-      "col": 55,
+      "col": 53,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -3172,17 +4779,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-15T00:00:00",
-      "actual_end_date": "2026-07-16T00:00:00",
+      "actual_start_date": "2026-07-13T00:00:00",
+      "actual_end_date": "2026-07-14T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-15T00:00:00",
+          "date": "2026-07-13T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-16T00:00:00",
+          "date": "2026-07-14T00:00:00",
           "remaining_duration": 0,
           "reason": "Unplanned Events"
         }
@@ -3233,7 +4840,128 @@
         "captured_at": "2026-06-21T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 11,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 11,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 11,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 11,
+          "ppf": 4,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 11,
+          "ppf": 4,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-03T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 116,
@@ -3272,7 +5000,128 @@
         "captured_at": "2026-06-21T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-03T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 117,
@@ -3311,13 +5160,134 @@
         "captured_at": "2026-06-21T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-03T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 118,
       "row": 23,
-      "col": 51,
-      "duration": 2,
+      "col": 50,
+      "duration": 1,
       "description": "Feeding buffer 4",
       "url": "",
       "resources": {},
@@ -3349,8 +5319,136 @@
         "realistic_duration": 2,
         "captured_at": "2026-06-21T00:00:00"
       },
-      "buffer_size_history": [],
-      "fever_chart_history": []
+      "buffer_size_history": [
+        {
+          "date": "2026-07-09T00:00:00",
+          "duration": 1,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 113
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-03T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 1
+        }
+      ]
     },
     {
       "task_id": 119,
@@ -3389,7 +5487,128 @@
         "captured_at": "2026-06-21T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-22T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-24T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-26T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-03T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 7,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 7,
+          "ppf": 7,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 127,
@@ -3544,7 +5763,7 @@
     {
       "task_id": 130,
       "row": 5,
-      "col": 46,
+      "col": 44,
       "duration": 1,
       "description": "Integration",
       "url": "",
@@ -3574,17 +5793,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-06T00:00:00",
-      "actual_end_date": "2026-07-07T00:00:00",
+      "actual_start_date": "2026-07-04T00:00:00",
+      "actual_end_date": "2026-07-05T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-06T00:00:00",
+          "date": "2026-07-04T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-07T00:00:00",
+          "date": "2026-07-05T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -3601,7 +5820,7 @@
     {
       "task_id": 131,
       "row": 5,
-      "col": 47,
+      "col": 45,
       "duration": 2,
       "description": "Test",
       "url": "",
@@ -3626,17 +5845,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-07T00:00:00",
-      "actual_end_date": "2026-07-09T00:00:00",
+      "actual_start_date": "2026-07-05T00:00:00",
+      "actual_end_date": "2026-07-07T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-07T00:00:00",
+          "date": "2026-07-05T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-09T00:00:00",
+          "date": "2026-07-07T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -3653,7 +5872,7 @@
     {
       "task_id": 132,
       "row": 5,
-      "col": 49,
+      "col": 47,
       "duration": 2,
       "description": "UAT",
       "url": "",
@@ -3678,17 +5897,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-09T00:00:00",
-      "actual_end_date": "2026-07-11T00:00:00",
+      "actual_start_date": "2026-07-07T00:00:00",
+      "actual_end_date": "2026-07-09T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-09T00:00:00",
+          "date": "2026-07-07T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-11T00:00:00",
+          "date": "2026-07-09T00:00:00",
           "remaining_duration": 0,
           "reason": "Task Variability"
         }
@@ -3705,7 +5924,7 @@
     {
       "task_id": 133,
       "row": 5,
-      "col": 51,
+      "col": 49,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -3730,17 +5949,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-11T00:00:00",
-      "actual_end_date": "2026-07-12T00:00:00",
+      "actual_start_date": "2026-07-09T00:00:00",
+      "actual_end_date": "2026-07-10T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-11T00:00:00",
+          "date": "2026-07-09T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-12T00:00:00",
+          "date": "2026-07-10T00:00:00",
           "remaining_duration": 0,
           "reason": "Multitasking"
         }
@@ -3758,7 +5977,7 @@
       "task_id": 134,
       "row": 6,
       "col": 44,
-      "duration": 2,
+      "duration": 0,
       "description": "Feeding buffer 1",
       "url": "",
       "resources": {},
@@ -3790,8 +6009,100 @@
         "realistic_duration": 2,
         "captured_at": "2026-06-28T00:00:00"
       },
-      "buffer_size_history": [],
-      "fever_chart_history": []
+      "buffer_size_history": [
+        {
+          "date": "2026-07-01T00:00:00",
+          "duration": 0,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 130
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 3,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-05T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-05T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 3,
+          "ppf": 3,
+          "forecast_lateness": 2
+        }
+      ]
     },
     {
       "task_id": 135,
@@ -3830,7 +6141,92 @@
         "captured_at": "2026-06-28T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-06-29T00:00:00",
+          "cpsl": 13,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 13,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 11,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 11,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-01T00:00:00",
+          "cpsl": 11,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 11,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-04T00:00:00",
+          "cpsl": 11,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-05T00:00:00",
+          "cpsl": 11,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-05T00:00:00",
+          "cpsl": 11,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 11,
+          "ppf": 8,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-07T00:00:00",
+          "cpsl": 11,
+          "ppf": 8,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 11,
+          "ppf": 10,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 11,
+          "ppf": 10,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 11,
+          "ppf": 11,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 141,
@@ -4128,7 +6524,68 @@
         "captured_at": "2026-07-05T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-08T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-08T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-08T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-12T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 147,
@@ -4167,7 +6624,68 @@
         "captured_at": "2026-07-05T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-06T00:00:00",
+          "cpsl": 6,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-08T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-08T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-08T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-10T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-12T00:00:00",
+          "cpsl": 6,
+          "ppf": 6,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 153,
@@ -4218,7 +6736,7 @@
     {
       "task_id": 154,
       "row": 16,
-      "col": 53,
+      "col": 51,
       "duration": 1,
       "description": "Review",
       "url": "",
@@ -4243,17 +6761,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-13T00:00:00",
-      "actual_end_date": "2026-07-14T00:00:00",
+      "actual_start_date": "2026-07-11T00:00:00",
+      "actual_end_date": "2026-07-12T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-13T00:00:00",
+          "date": "2026-07-11T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-14T00:00:00",
+          "date": "2026-07-12T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -4270,7 +6788,7 @@
     {
       "task_id": 155,
       "row": 15,
-      "col": 53,
+      "col": 51,
       "duration": 2,
       "description": "Build",
       "url": "",
@@ -4295,17 +6813,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-13T00:00:00",
-      "actual_end_date": "2026-07-15T00:00:00",
+      "actual_start_date": "2026-07-11T00:00:00",
+      "actual_end_date": "2026-07-13T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-13T00:00:00",
+          "date": "2026-07-11T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-15T00:00:00",
+          "date": "2026-07-13T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Full Kit"
         }
@@ -4322,7 +6840,7 @@
     {
       "task_id": 156,
       "row": 15,
-      "col": 55,
+      "col": 53,
       "duration": 1,
       "description": "Test",
       "url": "",
@@ -4352,17 +6870,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-15T00:00:00",
-      "actual_end_date": "2026-07-16T00:00:00",
+      "actual_start_date": "2026-07-13T00:00:00",
+      "actual_end_date": "2026-07-14T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-15T00:00:00",
+          "date": "2026-07-13T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-16T00:00:00",
+          "date": "2026-07-14T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -4379,7 +6897,7 @@
     {
       "task_id": 157,
       "row": 15,
-      "col": 56,
+      "col": 54,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -4404,17 +6922,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-16T00:00:00",
-      "actual_end_date": "2026-07-17T00:00:00",
+      "actual_start_date": "2026-07-14T00:00:00",
+      "actual_end_date": "2026-07-15T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-16T00:00:00",
+          "date": "2026-07-14T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-17T00:00:00",
+          "date": "2026-07-15T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -4431,7 +6949,7 @@
     {
       "task_id": 158,
       "row": 16,
-      "col": 54,
+      "col": 52,
       "duration": 1,
       "description": "Feeding buffer 1",
       "url": "",
@@ -4465,7 +6983,68 @@
         "captured_at": "2026-07-08T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-12T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-15T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 159,
@@ -4504,7 +7083,68 @@
         "captured_at": "2026-07-08T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-09T00:00:00",
+          "cpsl": 6,
+          "ppf": 0,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-12T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-11T00:00:00",
+          "cpsl": 6,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-14T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-15T00:00:00",
+          "cpsl": 6,
+          "ppf": 6,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 167,
@@ -4659,7 +7299,7 @@
     {
       "task_id": 170,
       "row": 0,
-      "col": 60,
+      "col": 58,
       "duration": 2,
       "description": "Integration",
       "url": "",
@@ -4689,17 +7329,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-20T00:00:00",
-      "actual_end_date": "2026-07-22T00:00:00",
+      "actual_start_date": "2026-07-18T00:00:00",
+      "actual_end_date": "2026-07-20T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-20T00:00:00",
+          "date": "2026-07-18T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-22T00:00:00",
+          "date": "2026-07-20T00:00:00",
           "remaining_duration": 0,
           "reason": "Unplanned Events"
         }
@@ -4716,7 +7356,7 @@
     {
       "task_id": 171,
       "row": 0,
-      "col": 62,
+      "col": 60,
       "duration": 1,
       "description": "Test",
       "url": "",
@@ -4741,17 +7381,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-22T00:00:00",
-      "actual_end_date": "2026-07-23T00:00:00",
+      "actual_start_date": "2026-07-20T00:00:00",
+      "actual_end_date": "2026-07-21T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-22T00:00:00",
+          "date": "2026-07-20T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-23T00:00:00",
+          "date": "2026-07-21T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Full Kit"
         }
@@ -4768,7 +7408,7 @@
     {
       "task_id": 172,
       "row": 0,
-      "col": 63,
+      "col": 61,
       "duration": 1,
       "description": "UAT",
       "url": "",
@@ -4793,17 +7433,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-23T00:00:00",
-      "actual_end_date": "2026-07-24T00:00:00",
+      "actual_start_date": "2026-07-21T00:00:00",
+      "actual_end_date": "2026-07-22T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-23T00:00:00",
+          "date": "2026-07-21T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-24T00:00:00",
+          "date": "2026-07-22T00:00:00",
           "remaining_duration": 0,
           "reason": "Task Variability"
         }
@@ -4820,7 +7460,7 @@
     {
       "task_id": 173,
       "row": 0,
-      "col": 64,
+      "col": 62,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -4845,17 +7485,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-24T00:00:00",
-      "actual_end_date": "2026-07-25T00:00:00",
+      "actual_start_date": "2026-07-22T00:00:00",
+      "actual_end_date": "2026-07-23T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-24T00:00:00",
+          "date": "2026-07-22T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-25T00:00:00",
+          "date": "2026-07-23T00:00:00",
           "remaining_duration": 0,
           "reason": "Multitasking"
         }
@@ -4873,7 +7513,7 @@
       "task_id": 174,
       "row": 1,
       "col": 58,
-      "duration": 2,
+      "duration": 0,
       "description": "Feeding buffer 1",
       "url": "",
       "resources": {},
@@ -4905,8 +7545,100 @@
         "realistic_duration": 2,
         "captured_at": "2026-07-14T00:00:00"
       },
-      "buffer_size_history": [],
-      "fever_chart_history": []
+      "buffer_size_history": [
+        {
+          "date": "2026-07-16T00:00:00",
+          "duration": 0,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 170
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-07-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-20T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-21T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-21T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-22T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-07-23T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        }
+      ]
     },
     {
       "task_id": 175,
@@ -4945,7 +7677,92 @@
         "captured_at": "2026-07-14T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-15T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-16T00:00:00",
+          "cpsl": 10,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-16T00:00:00",
+          "cpsl": 8,
+          "ppf": 1,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "cpsl": 8,
+          "ppf": 3,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-16T00:00:00",
+          "cpsl": 8,
+          "ppf": 3,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "cpsl": 8,
+          "ppf": 3,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "cpsl": 8,
+          "ppf": 3,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-20T00:00:00",
+          "cpsl": 8,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-20T00:00:00",
+          "cpsl": 8,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-21T00:00:00",
+          "cpsl": 8,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-21T00:00:00",
+          "cpsl": 8,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-22T00:00:00",
+          "cpsl": 8,
+          "ppf": 7,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-22T00:00:00",
+          "cpsl": 8,
+          "ppf": 7,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-23T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 181,
@@ -4996,7 +7813,7 @@
     {
       "task_id": 182,
       "row": 5,
-      "col": 67,
+      "col": 65,
       "duration": 3,
       "description": "Build",
       "url": "",
@@ -5021,17 +7838,17 @@
       "state": "done",
       "realistic_duration": 6,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-27T00:00:00",
-      "actual_end_date": "2026-07-30T00:00:00",
+      "actual_start_date": "2026-07-25T00:00:00",
+      "actual_end_date": "2026-07-28T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-27T00:00:00",
+          "date": "2026-07-25T00:00:00",
           "remaining_duration": 3,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-30T00:00:00",
+          "date": "2026-07-28T00:00:00",
           "remaining_duration": 0,
           "reason": "Other / Unexplained"
         }
@@ -5048,7 +7865,7 @@
     {
       "task_id": 183,
       "row": 6,
-      "col": 68,
+      "col": 65,
       "duration": 1,
       "description": "Review",
       "url": "",
@@ -5073,17 +7890,17 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-28T00:00:00",
-      "actual_end_date": "2026-07-29T00:00:00",
+      "actual_start_date": "2026-07-25T00:00:00",
+      "actual_end_date": "2026-07-26T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-28T00:00:00",
+          "date": "2026-07-25T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-29T00:00:00",
+          "date": "2026-07-26T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Resource"
         }
@@ -5100,7 +7917,7 @@
     {
       "task_id": 184,
       "row": 5,
-      "col": 70,
+      "col": 68,
       "duration": 1,
       "description": "Test",
       "url": "",
@@ -5130,17 +7947,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-30T00:00:00",
-      "actual_end_date": "2026-07-31T00:00:00",
+      "actual_start_date": "2026-07-28T00:00:00",
+      "actual_end_date": "2026-07-29T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-30T00:00:00",
+          "date": "2026-07-28T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-31T00:00:00",
+          "date": "2026-07-29T00:00:00",
           "remaining_duration": 0,
           "reason": "Parkinson's Law"
         }
@@ -5157,7 +7974,7 @@
     {
       "task_id": 185,
       "row": 5,
-      "col": 71,
+      "col": 69,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -5182,17 +7999,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-31T00:00:00",
-      "actual_end_date": "2026-08-01T00:00:00",
+      "actual_start_date": "2026-07-29T00:00:00",
+      "actual_end_date": "2026-07-30T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-07-31T00:00:00",
+          "date": "2026-07-29T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-01T00:00:00",
+          "date": "2026-07-30T00:00:00",
           "remaining_duration": 0,
           "reason": "Unplanned Events"
         }
@@ -5209,7 +8026,7 @@
     {
       "task_id": 186,
       "row": 6,
-      "col": 69,
+      "col": 67,
       "duration": 1,
       "description": "Feeding buffer 1",
       "url": "",
@@ -5242,8 +8059,82 @@
         "realistic_duration": 1,
         "captured_at": "2026-07-23T00:00:00"
       },
-      "buffer_size_history": [],
-      "fever_chart_history": []
+      "buffer_size_history": [
+        {
+          "date": "2026-07-24T00:00:00",
+          "duration": 0,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 184
+        },
+        {
+          "date": "2026-07-24T00:00:00",
+          "duration": 1,
+          "reason": "slack_growth",
+          "trigger_task_id": 183
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-07-24T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-26T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-29T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-29T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-30T00:00:00",
+          "cpsl": 1,
+          "ppf": 1,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 187,
@@ -5282,7 +8173,68 @@
         "captured_at": "2026-07-23T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-24T00:00:00",
+          "cpsl": 7,
+          "ppf": 0,
+          "forecast_lateness": -1
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "cpsl": 7,
+          "ppf": 1,
+          "forecast_lateness": -1
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "cpsl": 6,
+          "ppf": 1,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-26T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 6,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-29T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-29T00:00:00",
+          "cpsl": 6,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-07-30T00:00:00",
+          "cpsl": 6,
+          "ppf": 6,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 195,
@@ -5437,7 +8389,7 @@
     {
       "task_id": 198,
       "row": 10,
-      "col": 81,
+      "col": 79,
       "duration": 2,
       "description": "Integration",
       "url": "",
@@ -5467,17 +8419,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-10T00:00:00",
-      "actual_end_date": "2026-08-12T00:00:00",
+      "actual_start_date": "2026-08-08T00:00:00",
+      "actual_end_date": "2026-08-10T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-10T00:00:00",
+          "date": "2026-08-08T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-12T00:00:00",
+          "date": "2026-08-10T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Full Kit"
         }
@@ -5494,7 +8446,7 @@
     {
       "task_id": 199,
       "row": 10,
-      "col": 83,
+      "col": 81,
       "duration": 2,
       "description": "Test",
       "url": "",
@@ -5519,17 +8471,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-12T00:00:00",
-      "actual_end_date": "2026-08-14T00:00:00",
+      "actual_start_date": "2026-08-10T00:00:00",
+      "actual_end_date": "2026-08-12T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-12T00:00:00",
+          "date": "2026-08-10T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-14T00:00:00",
+          "date": "2026-08-12T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting in Backlog"
         }
@@ -5546,7 +8498,7 @@
     {
       "task_id": 200,
       "row": 10,
-      "col": 85,
+      "col": 83,
       "duration": 1,
       "description": "UAT",
       "url": "",
@@ -5571,17 +8523,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-14T00:00:00",
-      "actual_end_date": "2026-08-15T00:00:00",
+      "actual_start_date": "2026-08-12T00:00:00",
+      "actual_end_date": "2026-08-13T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-14T00:00:00",
+          "date": "2026-08-12T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-15T00:00:00",
+          "date": "2026-08-13T00:00:00",
           "remaining_duration": 0,
           "reason": "Other / Unexplained"
         }
@@ -5598,7 +8550,7 @@
     {
       "task_id": 201,
       "row": 10,
-      "col": 86,
+      "col": 84,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -5623,17 +8575,17 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-15T00:00:00",
-      "actual_end_date": "2026-08-16T00:00:00",
+      "actual_start_date": "2026-08-13T00:00:00",
+      "actual_end_date": "2026-08-14T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-15T00:00:00",
+          "date": "2026-08-13T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-16T00:00:00",
+          "date": "2026-08-14T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
@@ -5684,13 +8636,98 @@
         "captured_at": "2026-07-27T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-30T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-03T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-04T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-10T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-12T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-12T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-14T00:00:00",
+          "cpsl": 2,
+          "ppf": 9,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 203,
       "row": 11,
       "col": 77,
-      "duration": 4,
+      "duration": 2,
       "description": "Feeding buffer 2",
       "url": "",
       "resources": {},
@@ -5722,8 +8759,100 @@
         "realistic_duration": 4,
         "captured_at": "2026-07-27T00:00:00"
       },
-      "buffer_size_history": [],
-      "fever_chart_history": []
+      "buffer_size_history": [
+        {
+          "date": "2026-08-04T00:00:00",
+          "duration": 2,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 198
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-30T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-03T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-04T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-10T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-10T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-12T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-12T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-14T00:00:00",
+          "cpsl": 9,
+          "ppf": 9,
+          "forecast_lateness": 2
+        }
+      ]
     },
     {
       "task_id": 204,
@@ -5762,7 +8891,92 @@
         "captured_at": "2026-07-27T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-07-28T00:00:00",
+          "cpsl": 12,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-07-30T00:00:00",
+          "cpsl": 12,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-03T00:00:00",
+          "cpsl": 12,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "cpsl": 12,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-04T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 10,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 10,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-10T00:00:00",
+          "cpsl": 10,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-10T00:00:00",
+          "cpsl": 10,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-12T00:00:00",
+          "cpsl": 10,
+          "ppf": 8,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-12T00:00:00",
+          "cpsl": 10,
+          "ppf": 8,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 10,
+          "ppf": 9,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 10,
+          "ppf": 9,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-14T00:00:00",
+          "cpsl": 10,
+          "ppf": 10,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 212,
@@ -6026,7 +9240,7 @@
     {
       "task_id": 217,
       "row": 0,
-      "col": 88,
+      "col": 86,
       "duration": 2,
       "description": "UAT",
       "url": "",
@@ -6051,17 +9265,17 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-17T00:00:00",
-      "actual_end_date": "2026-08-19T00:00:00",
+      "actual_start_date": "2026-08-15T00:00:00",
+      "actual_end_date": "2026-08-17T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-17T00:00:00",
+          "date": "2026-08-15T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-19T00:00:00",
+          "date": "2026-08-17T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Full Kit"
         }
@@ -6078,7 +9292,7 @@
     {
       "task_id": 218,
       "row": 0,
-      "col": 90,
+      "col": 88,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -6100,13 +9314,24 @@
       "project_id": 26,
       "chain_id": 1,
       "type": "task",
-      "state": "planning",
+      "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
+      "actual_start_date": "2026-08-17T00:00:00",
+      "actual_end_date": "2026-08-18T00:00:00",
       "fullkit_date": null,
-      "remaining_duration_history": [],
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-17T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "remaining_duration": 0,
+          "reason": "No Early Start"
+        }
+      ],
       "baseline": {
         "col": 90,
         "duration": 1,
@@ -6153,7 +9378,92 @@
         "captured_at": "2026-08-02T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-08-03T00:00:00",
+          "cpsl": 5,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "cpsl": 5,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "cpsl": 5,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-11T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 5,
+          "ppf": 5,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 220,
@@ -6192,7 +9502,92 @@
         "captured_at": "2026-08-02T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-08-03T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-11T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
       "task_id": 221,
@@ -6231,17 +9626,102 @@
         "captured_at": "2026-08-02T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-08-03T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-08T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-11T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 9,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 7,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 7,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 7,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 7,
+          "ppf": 7,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
       "task_id": 229,
       "row": 5,
-      "col": 81,
+      "col": 82,
       "duration": 2,
       "description": "Design",
       "url": "",
       "resources": {
-        "13": 1.0
+        "15": 1.0
       },
       "predecessors": [],
       "tags": [
@@ -6255,26 +9735,26 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-10T00:00:00",
-      "actual_end_date": "2026-08-12T00:00:00",
+      "actual_start_date": "2026-08-11T00:00:00",
+      "actual_end_date": "2026-08-13T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-10T00:00:00",
+          "date": "2026-08-11T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-12T00:00:00",
+          "date": "2026-08-13T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
       ],
       "baseline": {
-        "col": 81,
+        "col": 82,
         "duration": 2,
         "realistic_duration": 4,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
@@ -6282,7 +9762,7 @@
     {
       "task_id": 230,
       "row": 5,
-      "col": 83,
+      "col": 84,
       "duration": 2,
       "description": "Build-A",
       "url": "",
@@ -6307,26 +9787,26 @@
       "state": "done",
       "realistic_duration": 4,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-12T00:00:00",
-      "actual_end_date": "2026-08-14T00:00:00",
+      "actual_start_date": "2026-08-13T00:00:00",
+      "actual_end_date": "2026-08-15T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-12T00:00:00",
+          "date": "2026-08-13T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-14T00:00:00",
+          "date": "2026-08-15T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
       ],
       "baseline": {
-        "col": 83,
+        "col": 84,
         "duration": 2,
         "realistic_duration": 4,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
@@ -6334,7 +9814,7 @@
     {
       "task_id": 231,
       "row": 6,
-      "col": 83,
+      "col": 84,
       "duration": 2,
       "description": "Build-B",
       "url": "",
@@ -6359,26 +9839,26 @@
       "state": "done",
       "realistic_duration": 3,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-12T00:00:00",
-      "actual_end_date": "2026-08-14T00:00:00",
+      "actual_start_date": "2026-08-13T00:00:00",
+      "actual_end_date": "2026-08-15T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-12T00:00:00",
+          "date": "2026-08-13T00:00:00",
           "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-14T00:00:00",
+          "date": "2026-08-15T00:00:00",
           "remaining_duration": 0,
           "reason": "Multitasking"
         }
       ],
       "baseline": {
-        "col": 83,
+        "col": 84,
         "duration": 2,
         "realistic_duration": 3,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
@@ -6386,7 +9866,7 @@
     {
       "task_id": 232,
       "row": 5,
-      "col": 85,
+      "col": 86,
       "duration": 1,
       "description": "Integration",
       "url": "",
@@ -6400,8 +9880,8 @@
           "lag": 0
         },
         {
-          "id": 231,
-          "type": "FS",
+          "id": 236,
+          "type": "FB",
           "lag": 0
         }
       ],
@@ -6416,26 +9896,26 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-14T00:00:00",
-      "actual_end_date": "2026-08-15T00:00:00",
+      "actual_start_date": "2026-08-15T00:00:00",
+      "actual_end_date": "2026-08-16T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-14T00:00:00",
+          "date": "2026-08-15T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-15T00:00:00",
+          "date": "2026-08-16T00:00:00",
           "remaining_duration": 0,
           "reason": "On Time"
         }
       ],
       "baseline": {
-        "col": 85,
+        "col": 88,
         "duration": 1,
         "realistic_duration": 2,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
@@ -6443,7 +9923,7 @@
     {
       "task_id": 233,
       "row": 5,
-      "col": 88,
+      "col": 87,
       "duration": 1,
       "description": "Test",
       "url": "",
@@ -6468,26 +9948,26 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-17T00:00:00",
-      "actual_end_date": "2026-08-18T00:00:00",
+      "actual_start_date": "2026-08-16T00:00:00",
+      "actual_end_date": "2026-08-17T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-17T00:00:00",
+          "date": "2026-08-16T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-18T00:00:00",
+          "date": "2026-08-17T00:00:00",
           "remaining_duration": 0,
           "reason": "Waiting for Resource"
         }
       ],
       "baseline": {
-        "col": 88,
+        "col": 89,
         "duration": 1,
         "realistic_duration": 2,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
@@ -6495,7 +9975,7 @@
     {
       "task_id": 234,
       "row": 5,
-      "col": 89,
+      "col": 88,
       "duration": 1,
       "description": "UAT",
       "url": "",
@@ -6520,26 +10000,26 @@
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-18T00:00:00",
-      "actual_end_date": "2026-08-19T00:00:00",
+      "actual_start_date": "2026-08-17T00:00:00",
+      "actual_end_date": "2026-08-18T00:00:00",
       "fullkit_date": null,
       "remaining_duration_history": [
         {
-          "date": "2026-08-18T00:00:00",
+          "date": "2026-08-17T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-19T00:00:00",
+          "date": "2026-08-18T00:00:00",
           "remaining_duration": 0,
           "reason": "Multitasking"
         }
       ],
       "baseline": {
-        "col": 89,
+        "col": 90,
         "duration": 1,
         "realistic_duration": 2,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
@@ -6547,7 +10027,7 @@
     {
       "task_id": 235,
       "row": 5,
-      "col": 90,
+      "col": 89,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -6569,26 +10049,168 @@
       "project_id": 28,
       "chain_id": 1,
       "type": "task",
-      "state": "planning",
+      "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
+      "actual_start_date": "2026-08-18T00:00:00",
+      "actual_end_date": "2026-08-19T00:00:00",
       "fullkit_date": null,
-      "remaining_duration_history": [],
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-18T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-19T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Task Variability"
+        }
+      ],
       "baseline": {
-        "col": 90,
+        "col": 91,
         "duration": 1,
         "realistic_duration": 1,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
     },
     {
       "task_id": 236,
+      "row": 6,
+      "col": 86,
+      "duration": 0,
+      "description": "Feeding buffer 1",
+      "url": "",
+      "resources": {},
+      "predecessors": [
+        {
+          "id": 231,
+          "type": "FB",
+          "lag": 0
+        }
+      ],
+      "tags": [
+        "ccpm"
+      ],
+      "color": "Cyan",
+      "notes": [],
+      "project_id": 28,
+      "chain_id": 2,
+      "type": "feeding_buffer",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": {
+        "col": 86,
+        "duration": 2,
+        "realistic_duration": 2,
+        "captured_at": "2026-08-10T00:00:00"
+      },
+      "buffer_size_history": [
+        {
+          "date": "2026-08-13T00:00:00",
+          "duration": 0,
+          "reason": "merge_pulled_earlier",
+          "trigger_task_id": 232
+        }
+      ],
+      "fever_chart_history": [
+        {
+          "date": "2026-08-11T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 2,
+          "ppf": 0,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-16T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        },
+        {
+          "date": "2026-08-19T00:00:00",
+          "cpsl": 2,
+          "ppf": 2,
+          "forecast_lateness": 2
+        }
+      ]
+    },
+    {
+      "task_id": 237,
       "row": 5,
-      "col": 91,
+      "col": 92,
       "duration": 7,
       "description": "Project buffer",
       "url": "",
@@ -6616,18 +10238,103 @@
       "fullkit_date": null,
       "remaining_duration_history": [],
       "baseline": {
-        "col": 91,
+        "col": 92,
         "duration": 7,
         "realistic_duration": 7,
-        "captured_at": "2026-08-09T00:00:00"
+        "captured_at": "2026-08-10T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-08-11T00:00:00",
+          "cpsl": 10,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 10,
+          "ppf": 2,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 8,
+          "ppf": 2,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 8,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-13T00:00:00",
+          "cpsl": 8,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 8,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-15T00:00:00",
+          "cpsl": 8,
+          "ppf": 4,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-16T00:00:00",
+          "cpsl": 8,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-16T00:00:00",
+          "cpsl": 8,
+          "ppf": 5,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 8,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-17T00:00:00",
+          "cpsl": 8,
+          "ppf": 6,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 8,
+          "ppf": 7,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 8,
+          "ppf": 7,
+          "forecast_lateness": -2
+        },
+        {
+          "date": "2026-08-19T00:00:00",
+          "cpsl": 8,
+          "ppf": 8,
+          "forecast_lateness": -2
+        }
+      ]
     },
     {
-      "task_id": 242,
+      "task_id": 243,
       "row": 15,
-      "col": 85,
+      "col": 89,
       "duration": 1,
       "description": "Analysis",
       "url": "",
@@ -6645,110 +10352,6 @@
       "type": "task",
       "state": "done",
       "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-14T00:00:00",
-      "actual_end_date": "2026-08-15T00:00:00",
-      "fullkit_date": null,
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-14T00:00:00",
-          "remaining_duration": 1,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-15T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Other / Unexplained"
-        }
-      ],
-      "baseline": {
-        "col": 85,
-        "duration": 1,
-        "realistic_duration": 2,
-        "captured_at": "2026-08-13T00:00:00"
-      },
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 243,
-      "row": 15,
-      "col": 88,
-      "duration": 3,
-      "description": "Build",
-      "url": "",
-      "resources": {
-        "6": 1.0
-      },
-      "predecessors": [
-        {
-          "id": 242,
-          "type": "FS",
-          "lag": 0
-        }
-      ],
-      "tags": [
-        "ccpm"
-      ],
-      "color": "LightBlue",
-      "notes": [],
-      "project_id": 30,
-      "chain_id": 1,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 6,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-17T00:00:00",
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-17T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-19T00:00:00",
-          "remaining_duration": 1,
-          "reason": "Waiting for Full Kit"
-        }
-      ],
-      "baseline": {
-        "col": 88,
-        "duration": 3,
-        "realistic_duration": 6,
-        "captured_at": "2026-08-13T00:00:00"
-      },
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 244,
-      "row": 16,
-      "col": 89,
-      "duration": 1,
-      "description": "Review",
-      "url": "",
-      "resources": {
-        "9": 1.0
-      },
-      "predecessors": [
-        {
-          "id": 242,
-          "type": "FS",
-          "lag": 0
-        }
-      ],
-      "tags": [
-        "ccpm"
-      ],
-      "color": "LightGreen",
-      "notes": [],
-      "project_id": 30,
-      "chain_id": 2,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 1,
       "optimal_duration": null,
       "actual_start_date": "2026-08-18T00:00:00",
       "actual_end_date": "2026-08-19T00:00:00",
@@ -6768,18 +10371,59 @@
       "baseline": {
         "col": 89,
         "duration": 1,
-        "realistic_duration": 1,
-        "captured_at": "2026-08-13T00:00:00"
+        "realistic_duration": 2,
+        "captured_at": "2026-08-17T00:00:00"
+      },
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 244,
+      "row": 15,
+      "col": 90,
+      "duration": 3,
+      "description": "Build",
+      "url": "",
+      "resources": {
+        "6": 1.0
+      },
+      "predecessors": [
+        {
+          "id": 243,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "tags": [
+        "ccpm"
+      ],
+      "color": "LightBlue",
+      "notes": [],
+      "project_id": 30,
+      "chain_id": 1,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 6,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": {
+        "col": 90,
+        "duration": 3,
+        "realistic_duration": 6,
+        "captured_at": "2026-08-17T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
     },
     {
       "task_id": 245,
-      "row": 15,
-      "col": 91,
-      "duration": 2,
-      "description": "Test",
+      "row": 16,
+      "col": 90,
+      "duration": 1,
+      "description": "Review",
       "url": "",
       "resources": {
         "9": 1.0
@@ -6789,9 +10433,50 @@
           "id": 243,
           "type": "FS",
           "lag": 0
+        }
+      ],
+      "tags": [
+        "ccpm"
+      ],
+      "color": "LightGreen",
+      "notes": [],
+      "project_id": 30,
+      "chain_id": 2,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": {
+        "col": 92,
+        "duration": 1,
+        "realistic_duration": 1,
+        "captured_at": "2026-08-17T00:00:00"
+      },
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 246,
+      "row": 15,
+      "col": 95,
+      "duration": 2,
+      "description": "Test",
+      "url": "",
+      "resources": {
+        "9": 1.0
+      },
+      "predecessors": [
+        {
+          "id": 244,
+          "type": "FS",
+          "lag": 0
         },
         {
-          "id": 247,
+          "id": 248,
           "type": "FB",
           "lag": 0
         }
@@ -6812,18 +10497,18 @@
       "fullkit_date": null,
       "remaining_duration_history": [],
       "baseline": {
-        "col": 91,
+        "col": 95,
         "duration": 2,
         "realistic_duration": 3,
-        "captured_at": "2026-08-13T00:00:00"
+        "captured_at": "2026-08-17T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
     },
     {
-      "task_id": 246,
+      "task_id": 247,
       "row": 15,
-      "col": 93,
+      "col": 97,
       "duration": 1,
       "description": "Deploy",
       "url": "",
@@ -6832,7 +10517,7 @@
       },
       "predecessors": [
         {
-          "id": 245,
+          "id": 246,
           "type": "FS",
           "lag": 0
         }
@@ -6853,25 +10538,25 @@
       "fullkit_date": null,
       "remaining_duration_history": [],
       "baseline": {
-        "col": 93,
+        "col": 97,
         "duration": 1,
         "realistic_duration": 1,
-        "captured_at": "2026-08-13T00:00:00"
+        "captured_at": "2026-08-17T00:00:00"
       },
       "buffer_size_history": [],
       "fever_chart_history": []
     },
     {
-      "task_id": 247,
+      "task_id": 248,
       "row": 16,
-      "col": 90,
-      "duration": 1,
+      "col": 93,
+      "duration": 2,
       "description": "Feeding buffer 1",
       "url": "",
       "resources": {},
       "predecessors": [
         {
-          "id": 244,
+          "id": 245,
           "type": "FB",
           "lag": 0
         }
@@ -6885,32 +10570,45 @@
       "chain_id": 2,
       "type": "feeding_buffer",
       "state": "planning",
-      "realistic_duration": 1,
+      "realistic_duration": 2,
       "optimal_duration": null,
       "actual_start_date": null,
       "actual_end_date": null,
       "fullkit_date": null,
       "remaining_duration_history": [],
       "baseline": {
-        "col": 90,
-        "duration": 1,
-        "realistic_duration": 1,
-        "captured_at": "2026-08-13T00:00:00"
+        "col": 93,
+        "duration": 2,
+        "realistic_duration": 2,
+        "captured_at": "2026-08-17T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-19T00:00:00",
+          "cpsl": 1,
+          "ppf": 0,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
-      "task_id": 248,
+      "task_id": 249,
       "row": 15,
-      "col": 94,
+      "col": 98,
       "duration": 5,
       "description": "Project buffer",
       "url": "",
       "resources": {},
       "predecessors": [
         {
-          "id": 246,
+          "id": 247,
           "type": "PB",
           "lag": 0
         }
@@ -6931,23 +10629,36 @@
       "fullkit_date": null,
       "remaining_duration_history": [],
       "baseline": {
-        "col": 94,
+        "col": 98,
         "duration": 5,
         "realistic_duration": 5,
-        "captured_at": "2026-08-13T00:00:00"
+        "captured_at": "2026-08-17T00:00:00"
       },
       "buffer_size_history": [],
-      "fever_chart_history": []
+      "fever_chart_history": [
+        {
+          "date": "2026-08-18T00:00:00",
+          "cpsl": 9,
+          "ppf": 0,
+          "forecast_lateness": 0
+        },
+        {
+          "date": "2026-08-19T00:00:00",
+          "cpsl": 9,
+          "ppf": 1,
+          "forecast_lateness": 0
+        }
+      ]
     },
     {
-      "task_id": 254,
+      "task_id": 255,
       "row": 10,
       "col": 95,
       "duration": 2,
       "description": "Analysis",
       "url": "",
       "resources": {
-        "19": 1.0
+        "20": 1.0
       },
       "predecessors": [],
       "tags": [
@@ -6970,18 +10681,54 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 255,
-      "row": 11,
+      "task_id": 256,
+      "row": 10,
       "col": 97,
+      "duration": 3,
+      "description": "Build",
+      "url": "",
+      "resources": {
+        "1": 1.0
+      },
+      "predecessors": [
+        {
+          "id": 255,
+          "type": "FS",
+          "lag": 0
+        }
+      ],
+      "tags": [
+        "ccpm"
+      ],
+      "color": "LightBlue",
+      "notes": [],
+      "project_id": 32,
+      "chain_id": 1,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 6,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 257,
+      "row": 11,
+      "col": 99,
       "duration": 1,
       "description": "Review",
       "url": "",
       "resources": {
-        "11": 1.0
+        "9": 1.0
       },
       "predecessors": [
         {
-          "id": 254,
+          "id": 255,
           "type": "FS",
           "lag": 0
         }
@@ -7006,50 +10753,14 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 256,
+      "task_id": 258,
       "row": 10,
-      "col": 97,
-      "duration": 2,
-      "description": "Build",
-      "url": "",
-      "resources": {
-        "1": 1.0
-      },
-      "predecessors": [
-        {
-          "id": 254,
-          "type": "FS",
-          "lag": 0
-        }
-      ],
-      "tags": [
-        "ccpm"
-      ],
-      "color": "LightBlue",
-      "notes": [],
-      "project_id": 32,
-      "chain_id": 1,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 257,
-      "row": 10,
-      "col": 99,
+      "col": 102,
       "duration": 1,
       "description": "Test",
       "url": "",
       "resources": {
-        "11": 1.0
+        "9": 1.0
       },
       "predecessors": [
         {
@@ -7058,7 +10769,7 @@
           "lag": 0
         },
         {
-          "id": 259,
+          "id": 260,
           "type": "FB",
           "lag": 0
         }
@@ -7067,42 +10778,6 @@
         "ccpm"
       ],
       "color": "LightGreen",
-      "notes": [],
-      "project_id": 32,
-      "chain_id": 1,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 258,
-      "row": 10,
-      "col": 100,
-      "duration": 1,
-      "description": "Deploy",
-      "url": "",
-      "resources": {
-        "17": 1.0
-      },
-      "predecessors": [
-        {
-          "id": 257,
-          "type": "FS",
-          "lag": 0
-        }
-      ],
-      "tags": [
-        "ccpm"
-      ],
-      "color": "Orange",
       "notes": [],
       "project_id": 32,
       "chain_id": 1,
@@ -7120,27 +10795,29 @@
     },
     {
       "task_id": 259,
-      "row": 11,
-      "col": 98,
+      "row": 10,
+      "col": 103,
       "duration": 1,
-      "description": "Feeding buffer 1",
+      "description": "Deploy",
       "url": "",
-      "resources": {},
+      "resources": {
+        "17": 1.0
+      },
       "predecessors": [
         {
-          "id": 255,
-          "type": "FB",
+          "id": 258,
+          "type": "FS",
           "lag": 0
         }
       ],
       "tags": [
         "ccpm"
       ],
-      "color": "Cyan",
+      "color": "Orange",
       "notes": [],
       "project_id": 32,
-      "chain_id": 2,
-      "type": "feeding_buffer",
+      "chain_id": 1,
+      "type": "task",
       "state": "planning",
       "realistic_duration": 1,
       "optimal_duration": null,
@@ -7154,15 +10831,49 @@
     },
     {
       "task_id": 260,
+      "row": 11,
+      "col": 100,
+      "duration": 2,
+      "description": "Feeding buffer 1",
+      "url": "",
+      "resources": {},
+      "predecessors": [
+        {
+          "id": 257,
+          "type": "FB",
+          "lag": 0
+        }
+      ],
+      "tags": [
+        "ccpm"
+      ],
+      "color": "Cyan",
+      "notes": [],
+      "project_id": 32,
+      "chain_id": 2,
+      "type": "feeding_buffer",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 261,
       "row": 10,
-      "col": 101,
-      "duration": 4,
+      "col": 104,
+      "duration": 5,
       "description": "Project buffer",
       "url": "",
       "resources": {},
       "predecessors": [
         {
-          "id": 258,
+          "id": 259,
           "type": "PB",
           "lag": 0
         }
@@ -7176,37 +10887,7 @@
       "chain_id": 1,
       "type": "project_buffer",
       "state": "planning",
-      "realistic_duration": 4,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 268,
-      "row": 0,
-      "col": 97,
-      "duration": 2,
-      "description": "Design",
-      "url": "",
-      "resources": {
-        "15": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "ccpm"
-      ],
-      "color": "MediumOrchid",
-      "notes": [],
-      "project_id": 34,
-      "chain_id": 2,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 4,
+      "realistic_duration": 5,
       "optimal_duration": null,
       "actual_start_date": null,
       "actual_end_date": null,
@@ -7219,16 +10900,46 @@
     {
       "task_id": 269,
       "row": 0,
-      "col": 102,
+      "col": 104,
+      "duration": 2,
+      "description": "Design",
+      "url": "",
+      "resources": {
+        "14": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "ccpm"
+      ],
+      "color": "MediumOrchid",
+      "notes": [],
+      "project_id": 34,
+      "chain_id": 2,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 270,
+      "row": 0,
+      "col": 109,
       "duration": 4,
       "description": "Build-A",
       "url": "",
       "resources": {
-        "8": 1.0
+        "1": 1.0
       },
       "predecessors": [
         {
-          "id": 268,
+          "id": 269,
           "type": "FS",
           "lag": 0
         }
@@ -7253,18 +10964,18 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 270,
+      "task_id": 271,
       "row": 1,
-      "col": 105,
+      "col": 112,
       "duration": 2,
       "description": "Build-B",
       "url": "",
       "resources": {
-        "3": 1.0
+        "7": 1.0
       },
       "predecessors": [
         {
-          "id": 268,
+          "id": 269,
           "type": "FS",
           "lag": 0
         }
@@ -7289,23 +11000,23 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 271,
+      "task_id": 272,
       "row": 0,
-      "col": 110,
+      "col": 117,
       "duration": 2,
       "description": "Integration",
       "url": "",
       "resources": {
-        "8": 1.0
+        "1": 1.0
       },
       "predecessors": [
         {
-          "id": 275,
+          "id": 276,
           "type": "FB",
           "lag": 0
         },
         {
-          "id": 276,
+          "id": 277,
           "type": "FB",
           "lag": 0
         }
@@ -7330,18 +11041,18 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 272,
+      "task_id": 273,
       "row": 0,
-      "col": 112,
+      "col": 119,
       "duration": 2,
       "description": "Test",
       "url": "",
       "resources": {
-        "9": 1.0
+        "12": 1.0
       },
       "predecessors": [
         {
-          "id": 271,
+          "id": 272,
           "type": "FS",
           "lag": 0
         }
@@ -7366,18 +11077,18 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 273,
+      "task_id": 274,
       "row": 0,
-      "col": 116,
+      "col": 123,
       "duration": 2,
       "description": "UAT",
       "url": "",
       "resources": {
-        "22": 1.0
+        "21": 1.0
       },
       "predecessors": [
         {
-          "id": 272,
+          "id": 273,
           "type": "FS",
           "lag": 0
         }
@@ -7402,18 +11113,18 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 274,
+      "task_id": 275,
       "row": 0,
-      "col": 118,
+      "col": 125,
       "duration": 1,
       "description": "Deploy",
       "url": "",
       "resources": {
-        "18": 1.0
+        "16": 1.0
       },
       "predecessors": [
         {
-          "id": 273,
+          "id": 274,
           "type": "FS",
           "lag": 0
         }
@@ -7438,16 +11149,16 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 275,
+      "task_id": 276,
       "row": 0,
-      "col": 106,
+      "col": 113,
       "duration": 4,
       "description": "Feeding buffer 1",
       "url": "",
       "resources": {},
       "predecessors": [
         {
-          "id": 269,
+          "id": 270,
           "type": "FB",
           "lag": 0
         }
@@ -7472,16 +11183,16 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 276,
+      "task_id": 277,
       "row": 1,
-      "col": 107,
+      "col": 114,
       "duration": 3,
       "description": "Feeding buffer 2",
       "url": "",
       "resources": {},
       "predecessors": [
         {
-          "id": 270,
+          "id": 271,
           "type": "FB",
           "lag": 0
         }
@@ -7506,16 +11217,16 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 277,
+      "task_id": 278,
       "row": 0,
-      "col": 119,
+      "col": 126,
       "duration": 5,
       "description": "Project buffer",
       "url": "",
       "resources": {},
       "predecessors": [
         {
-          "id": 274,
+          "id": 275,
           "type": "PB",
           "lag": 0
         }
@@ -7540,8 +11251,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 288,
-      "row": 15,
+      "task_id": 289,
+      "row": 20,
       "col": 102,
       "duration": 2,
       "description": "Discovery",
@@ -7570,8 +11281,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 289,
-      "row": 15,
+      "task_id": 290,
+      "row": 20,
       "col": 104,
       "duration": 2,
       "description": "Design",
@@ -7581,7 +11292,7 @@
       },
       "predecessors": [
         {
-          "id": 288,
+          "id": 289,
           "type": "FS",
           "lag": 0
         }
@@ -7606,8 +11317,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 290,
-      "row": 16,
+      "task_id": 291,
+      "row": 21,
       "col": 109,
       "duration": 3,
       "description": "Build-B",
@@ -7617,7 +11328,7 @@
       },
       "predecessors": [
         {
-          "id": 289,
+          "id": 290,
           "type": "FS",
           "lag": 0
         }
@@ -7642,8 +11353,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 291,
-      "row": 17,
+      "task_id": 292,
+      "row": 22,
       "col": 109,
       "duration": 3,
       "description": "Build-C",
@@ -7653,7 +11364,7 @@
       },
       "predecessors": [
         {
-          "id": 289,
+          "id": 290,
           "type": "FS",
           "lag": 0
         }
@@ -7678,8 +11389,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 292,
-      "row": 15,
+      "task_id": 293,
+      "row": 20,
       "col": 110,
       "duration": 3,
       "description": "Build-A",
@@ -7689,7 +11400,7 @@
       },
       "predecessors": [
         {
-          "id": 298,
+          "id": 299,
           "type": "FB",
           "lag": 0
         }
@@ -7714,8 +11425,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 293,
-      "row": 15,
+      "task_id": 294,
+      "row": 20,
       "col": 113,
       "duration": 1,
       "description": "Integration",
@@ -7725,17 +11436,17 @@
       },
       "predecessors": [
         {
-          "id": 292,
+          "id": 293,
           "type": "FS",
           "lag": 0
         },
         {
-          "id": 299,
+          "id": 300,
           "type": "FB",
           "lag": 0
         },
         {
-          "id": 300,
+          "id": 301,
           "type": "FB",
           "lag": 0
         }
@@ -7760,8 +11471,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 294,
-      "row": 16,
+      "task_id": 295,
+      "row": 21,
       "col": 116,
       "duration": 2,
       "description": "Security Review",
@@ -7771,7 +11482,7 @@
       },
       "predecessors": [
         {
-          "id": 293,
+          "id": 294,
           "type": "FS",
           "lag": 0
         }
@@ -7796,8 +11507,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 295,
-      "row": 15,
+      "task_id": 296,
+      "row": 20,
       "col": 116,
       "duration": 3,
       "description": "Test",
@@ -7807,7 +11518,7 @@
       },
       "predecessors": [
         {
-          "id": 293,
+          "id": 294,
           "type": "FS",
           "lag": 0
         }
@@ -7832,8 +11543,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 296,
-      "row": 15,
+      "task_id": 297,
+      "row": 20,
       "col": 119,
       "duration": 1,
       "description": "UAT",
@@ -7843,12 +11554,12 @@
       },
       "predecessors": [
         {
-          "id": 295,
+          "id": 296,
           "type": "FS",
           "lag": 0
         },
         {
-          "id": 301,
+          "id": 302,
           "type": "FB",
           "lag": 0
         }
@@ -7873,8 +11584,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 297,
-      "row": 15,
+      "task_id": 298,
+      "row": 20,
       "col": 120,
       "duration": 1,
       "description": "Deploy",
@@ -7884,7 +11595,7 @@
       },
       "predecessors": [
         {
-          "id": 296,
+          "id": 297,
           "type": "FS",
           "lag": 0
         }
@@ -7909,8 +11620,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 298,
-      "row": 15,
+      "task_id": 299,
+      "row": 20,
       "col": 106,
       "duration": 4,
       "description": "Feeding buffer 1",
@@ -7918,7 +11629,7 @@
       "resources": {},
       "predecessors": [
         {
-          "id": 289,
+          "id": 290,
           "type": "FB",
           "lag": 0
         }
@@ -7943,8 +11654,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 299,
-      "row": 16,
+      "task_id": 300,
+      "row": 21,
       "col": 112,
       "duration": 1,
       "description": "Feeding buffer 2",
@@ -7952,7 +11663,7 @@
       "resources": {},
       "predecessors": [
         {
-          "id": 290,
+          "id": 291,
           "type": "FB",
           "lag": 0
         }
@@ -7977,8 +11688,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 300,
-      "row": 17,
+      "task_id": 301,
+      "row": 22,
       "col": 112,
       "duration": 1,
       "description": "Feeding buffer 3",
@@ -7986,7 +11697,7 @@
       "resources": {},
       "predecessors": [
         {
-          "id": 291,
+          "id": 292,
           "type": "FB",
           "lag": 0
         }
@@ -8011,8 +11722,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 301,
-      "row": 16,
+      "task_id": 302,
+      "row": 21,
       "col": 118,
       "duration": 1,
       "description": "Feeding buffer 4",
@@ -8020,7 +11731,7 @@
       "resources": {},
       "predecessors": [
         {
-          "id": 294,
+          "id": 295,
           "type": "FB",
           "lag": 0
         }
@@ -8045,8 +11756,8 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 302,
-      "row": 15,
+      "task_id": 303,
+      "row": 20,
       "col": 121,
       "duration": 8,
       "description": "Project buffer",
@@ -8054,7 +11765,7 @@
       "resources": {},
       "predecessors": [
         {
-          "id": 297,
+          "id": 298,
           "type": "PB",
           "lag": 0
         }
@@ -8079,7 +11790,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 303,
+      "task_id": 304,
       "row": 56,
       "col": 102,
       "duration": 3,
@@ -8110,7 +11821,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 304,
+      "task_id": 305,
       "row": 38,
       "col": 45,
       "duration": 1,
@@ -8152,7 +11863,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 305,
+      "task_id": 306,
       "row": 56,
       "col": 64,
       "duration": 3,
@@ -8194,7 +11905,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 306,
+      "task_id": 307,
       "row": 50,
       "col": 76,
       "duration": 2,
@@ -8236,7 +11947,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 307,
+      "task_id": 308,
       "row": 49,
       "col": 75,
       "duration": 2,
@@ -8278,7 +11989,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 308,
+      "task_id": 309,
       "row": 48,
       "col": 124,
       "duration": 2,
@@ -8309,7 +12020,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 309,
+      "task_id": 310,
       "row": 39,
       "col": 32,
       "duration": 2,
@@ -8351,7 +12062,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 310,
+      "task_id": 311,
       "row": 28,
       "col": 111,
       "duration": 2,
@@ -8382,7 +12093,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 311,
+      "task_id": 312,
       "row": 33,
       "col": 74,
       "duration": 2,
@@ -8424,7 +12135,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 312,
+      "task_id": 313,
       "row": 53,
       "col": 89,
       "duration": 2,
@@ -8466,7 +12177,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 313,
+      "task_id": 314,
       "row": 51,
       "col": 14,
       "duration": 2,
@@ -8508,7 +12219,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 314,
+      "task_id": 315,
       "row": 35,
       "col": 13,
       "duration": 2,
@@ -8550,7 +12261,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 315,
+      "task_id": 316,
       "row": 44,
       "col": 81,
       "duration": 1,
@@ -8592,7 +12303,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 316,
+      "task_id": 317,
       "row": 52,
       "col": 138,
       "duration": 1,
@@ -8623,7 +12334,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 317,
+      "task_id": 318,
       "row": 38,
       "col": 31,
       "duration": 1,
@@ -8665,7 +12376,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 318,
+      "task_id": 319,
       "row": 54,
       "col": 131,
       "duration": 2,
@@ -8696,7 +12407,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 319,
+      "task_id": 320,
       "row": 43,
       "col": 60,
       "duration": 1,
@@ -8738,7 +12449,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 320,
+      "task_id": 321,
       "row": 55,
       "col": 101,
       "duration": 3,
@@ -8769,7 +12480,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 321,
+      "task_id": 322,
       "row": 43,
       "col": 121,
       "duration": 2,
@@ -8800,7 +12511,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 322,
+      "task_id": 323,
       "row": 33,
       "col": 12,
       "duration": 3,
@@ -8842,7 +12553,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 323,
+      "task_id": 324,
       "row": 34,
       "col": 44,
       "duration": 1,
@@ -8884,7 +12595,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 324,
+      "task_id": 325,
       "row": 50,
       "col": 118,
       "duration": 3,
@@ -8915,7 +12626,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 325,
+      "task_id": 326,
       "row": 29,
       "col": 38,
       "duration": 1,
@@ -8957,7 +12668,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 326,
+      "task_id": 327,
       "row": 29,
       "col": 15,
       "duration": 2,
@@ -8999,7 +12710,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 327,
+      "task_id": 328,
       "row": 35,
       "col": 130,
       "duration": 1,
@@ -9030,7 +12741,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 328,
+      "task_id": 329,
       "row": 39,
       "col": 54,
       "duration": 2,
@@ -9072,7 +12783,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 329,
+      "task_id": 330,
       "row": 30,
       "col": 48,
       "duration": 1,
@@ -9114,7 +12825,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 330,
+      "task_id": 331,
       "row": 33,
       "col": 139,
       "duration": 1,
@@ -9145,7 +12856,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 331,
+      "task_id": 332,
       "row": 39,
       "col": 94,
       "duration": 2,
@@ -9176,7 +12887,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 332,
+      "task_id": 333,
       "row": 44,
       "col": 62,
       "duration": 1,
@@ -9218,7 +12929,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 333,
+      "task_id": 334,
       "row": 52,
       "col": 76,
       "duration": 2,
@@ -9260,7 +12971,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 334,
+      "task_id": 335,
       "row": 47,
       "col": 38,
       "duration": 2,
@@ -9302,7 +13013,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 335,
+      "task_id": 336,
       "row": 51,
       "col": 54,
       "duration": 2,
@@ -9344,7 +13055,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 336,
+      "task_id": 337,
       "row": 39,
       "col": 11,
       "duration": 3,
@@ -9386,7 +13097,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 337,
+      "task_id": 338,
       "row": 37,
       "col": 81,
       "duration": 3,
@@ -9428,7 +13139,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 338,
+      "task_id": 339,
       "row": 47,
       "col": 142,
       "duration": 2,
@@ -9459,7 +13170,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 339,
+      "task_id": 340,
       "row": 38,
       "col": 14,
       "duration": 2,
@@ -9501,7 +13212,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 340,
+      "task_id": 341,
       "row": 35,
       "col": 139,
       "duration": 2,
@@ -9532,7 +13243,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 341,
+      "task_id": 342,
       "row": 47,
       "col": 108,
       "duration": 3,
@@ -9563,7 +13274,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 342,
+      "task_id": 343,
       "row": 28,
       "col": 103,
       "duration": 2,
@@ -9594,7 +13305,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 343,
+      "task_id": 344,
       "row": 48,
       "col": 56,
       "duration": 1,
@@ -9636,7 +13347,7 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 344,
+      "task_id": 345,
       "row": 41,
       "col": 36,
       "duration": 1,

@@ -44,6 +44,7 @@ from src.model.task_resource_model import (
     TaskResourceModel,
 )
 from src.operations.ccpm_operations import CcpmOperations
+from src.operations.task_operations import TaskOperations
 
 RNG_SEED = 20260819
 OUTPUT_PATH = Path(__file__).resolve().parent / 'realistic-portfolio.json'
@@ -324,13 +325,41 @@ def assign_project_rows(
             task['row'] = row_by_task_id[predecessor_id]
 
 
+def record_status(
+    model: TaskResourceModel,
+    task_ops: TaskOperations,
+    task,
+    remaining: int,
+    reason: str,
+):
+    """One status-update event: record, cascade, snapshot - mirrors
+    TaskOperations.record_remaining_duration's own real flow (task_
+    operations.py) minus the dialog, so every recorded remaining-duration
+    change also logs a real fever_chart_history point for its project's
+    buffers, computed by the same compute_fever_chart_point() the Fever
+    Charts report reads - not hand-faked cpsl/ppf/forecast_lateness
+    numbers. apply_dependency_cascade must run before the snapshot:
+    compute_fever_chart_point reads col/duration off the whole chain, so
+    a snapshot taken against pre-cascade positions would be stale."""
+    model.record_remaining_duration(task['task_id'], remaining, reason)
+    task_ops.apply_dependency_cascade(task)
+    model.capture_fever_chart_snapshot(project_id=task['project_id'])
+
+
 def simulate_progress(
-    model: TaskResourceModel, task, today_day: int, rng: random.Random
+    model: TaskResourceModel,
+    task_ops: TaskOperations,
+    task,
+    today_day: int,
+    rng: random.Random,
 ):
     """Backdates a task's own start/finish against `model.setdate` so it
-    looks genuinely worked on rather than just sitting in 'planning'.
-    Only ordinary tasks are touched - buffers are left to the scheduler's
-    own output, see the module docstring's stated scope."""
+    looks genuinely worked on rather than just sitting in 'planning',
+    logging a fever chart point at each status update along the way (see
+    record_status). Only ordinary tasks are touched - fever_chart_history
+    lives on buffer tasks, but capture_fever_chart_snapshot() finds and
+    updates those on its own; there's nothing to backdate on a buffer
+    task directly."""
     if task.get('type') != 'task':
         return
 
@@ -340,28 +369,29 @@ def simulate_progress(
     if end_day <= today_day:
         # Finished entirely in the past.
         model.setdate = model.get_date_for_day(start_day)
-        model.record_remaining_duration(task['task_id'], task['duration'], 'On Time')
+        record_status(model, task_ops, task, task['duration'], 'On Time')
         model.setdate = model.get_date_for_day(end_day)
         reason = rng.choices(
             REMAINING_DURATION_REASONS,
             weights=[6, 2, 1, 1, 1, 1, 1, 1, 1, 1],
             k=1,
         )[0]
-        model.record_remaining_duration(task['task_id'], 0, reason)
+        record_status(model, task_ops, task, 0, reason)
     elif start_day < today_day < end_day:
         # Genuinely in progress right now.
         model.setdate = model.get_date_for_day(start_day)
-        model.record_remaining_duration(task['task_id'], task['duration'], 'On Time')
+        record_status(model, task_ops, task, task['duration'], 'On Time')
         model.setdate = model.get_date_for_day(today_day)
         remaining = max(1, end_day - today_day)
         reason = rng.choice(REMAINING_DURATION_REASONS)
-        model.record_remaining_duration(task['task_id'], remaining, reason)
+        record_status(model, task_ops, task, remaining, reason)
     # else: starts in the future - stays untouched in 'planning'.
 
 
 def build_mini_project(
     model: TaskResourceModel,
     ccpm_ops: CcpmOperations,
+    task_ops: TaskOperations,
     name: str,
     shape_name: str,
     by_role: dict[str, list[int]],
@@ -413,7 +443,7 @@ def build_mini_project(
         model.capture_project_baseline(scheduled['id'])
         model.set_project_phase(scheduled['id'], 'execution')
         for task in scheduled_tasks:
-            simulate_progress(model, task, today_day, rng)
+            simulate_progress(model, task_ops, task, today_day, rng)
 
     span_days = end_col_actual - start_col_actual
     stats = result['stats']
@@ -463,6 +493,7 @@ BACKLOG_PRIORITIES = ['P1', 'P2', 'P3']
 
 def build_backlog(
     model: TaskResourceModel,
+    task_ops: TaskOperations,
     by_role: dict[str, list[int]],
     row_by_resource: dict[int, int],
     backlog_row_start: int,
@@ -497,7 +528,7 @@ def build_backlog(
             color=BACKLOG_COLOR,
             project_id=project['id'],
         )
-        simulate_progress(model, task, today_day, rng)
+        simulate_progress(model, task_ops, task, today_day, rng)
 
     return len(model.tasks)
 
@@ -551,6 +582,7 @@ def main():
     controller = MagicMock()
     controller.model = model
     ccpm_ops = CcpmOperations(controller, model)
+    task_ops = TaskOperations(controller, model)
 
     # Stagger project starts across the window, evenly spaced with
     # jitter, so several are in flight (and overlapping in team members)
@@ -569,6 +601,7 @@ def main():
         status = build_mini_project(
             model,
             ccpm_ops,
+            task_ops,
             name,
             shape_choices[i],
             by_role,
@@ -599,6 +632,7 @@ def main():
     print(f'\nBuilding {backlog_target} backlog tasks...')
     build_backlog(
         model,
+        task_ops,
         by_role,
         row_by_resource,
         backlog_row_start,
