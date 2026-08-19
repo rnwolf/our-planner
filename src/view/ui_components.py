@@ -961,6 +961,13 @@ class UIComponents:
         self.controller.root.bind(
             '<Down>', lambda e: self.controller.scroll_task_grid(dy_rows=1)
         )
+        # Home: re-center on "today" (setdate) - the arrow keys above only
+        # move one cell/row at a time, tedious for finding today again once
+        # scrolled far away. Page Up/Page Down: half a viewport's worth of
+        # rows at once, a bigger jump than Up/Down's single row.
+        self.controller.root.bind('<Home>', lambda e: self.controller.center_on_today())
+        self.controller.root.bind('<Prior>', lambda e: self.controller.scroll_page(-1))
+        self.controller.root.bind('<Next>', lambda e: self.controller.scroll_page(1))
 
         # Create a resizer between task and resource grids
         self.grid_resizer_frame = tk.Frame(

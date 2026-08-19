@@ -977,6 +977,28 @@ class TaskResourceManager:
             new_fraction = max(0, min(1.0, new_top / total_height))
             self.ui.sync_vertical_scroll('moveto', new_fraction)
 
+    def center_on_today(self):
+        """Home: re-center the timeline horizontally on the current-date
+        (model.setdate) column - the same column highlighted green in the
+        timeline header. Only scrolls horizontally, since "today" is a
+        date/column concept, not a row one; vertical position is left
+        wherever it already was."""
+        assert self.task_canvas is not None
+        total_width = self.cell_width * self.model.days
+        visible_width = max(1, self.task_canvas.winfo_width())
+        today_col = self.model.get_day_for_date(self.model.setdate)
+        today_center_x = (today_col + 0.5) * self.cell_width
+        left = max(0.0, min(1.0, (today_center_x - visible_width / 2) / total_width))
+        self.ui.sync_horizontal_scroll('moveto', left)
+
+    def scroll_page(self, direction: int):
+        """Page Up/Page Down: scroll the task grid vertically by half a
+        viewport's worth of rows (`direction` -1 for up, 1 for down) - a
+        bigger jump than scroll_task_grid's one-row-at-a-time arrow keys."""
+        assert self.task_canvas is not None
+        rows_visible = max(1, self.task_canvas.winfo_height()) / self.task_height
+        self.scroll_task_grid(dy_rows=direction * rows_visible / 2)
+
     def update_all_scrollregions(self):
         """Update scrollregions for all canvases based on the current zoom level and row height"""
         assert self.timeline_canvas is not None
