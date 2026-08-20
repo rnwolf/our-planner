@@ -346,6 +346,29 @@ def record_status(
     model.capture_fever_chart_snapshot(project_id=task['project_id'])
 
 
+def resource_working(model: TaskResourceModel, task, day: int) -> bool:
+    """True only if every resource assigned to `task` has capacity on
+    `day` - a task needs everyone it's assigned to actually available,
+    not just one of them."""
+    for resource_id_str in task['resources']:
+        resource = model.get_resource_by_id(int(resource_id_str))
+        if resource is None:
+            continue
+        if day >= len(resource['capacity']) or resource['capacity'][day] <= 0:
+            return False
+    return True
+
+
+def next_working_day(model: TaskResourceModel, task, day: int) -> int:
+    """First day >= `day` every resource assigned to `task` actually
+    works - a plain forward scan, since this file's resources are never
+    out for more than a weekend at a time."""
+    d = day
+    while d < model.days and not resource_working(model, task, d):
+        d += 1
+    return d
+
+
 def simulate_progress(
     model: TaskResourceModel,
     task_ops: TaskOperations,
@@ -359,30 +382,62 @@ def simulate_progress(
     record_status). Only ordinary tasks are touched - fever_chart_history
     lives on buffer tasks, but capture_fever_chart_snapshot() finds and
     updates those on its own; there's nothing to backdate on a buffer
-    task directly."""
+    task directly.
+
+    `task['col']` here is wherever the relay-runner cascade last pulled
+    or pushed it to (task_operations.py's apply_dependency_cascade,
+    deliberately left as-is - pulling the next task forward the instant
+    a predecessor finishes early is exactly the intended behaviour) -
+    that day isn't guaranteed to be one every assigned resource actually
+    works. Rather than always start right on that cascaded day
+    regardless, this splits it: about half the time the resource works
+    it anyway (expediting a critical task, or just incentivised to), the
+    other half they wait for their own next working day instead - which
+    is what actually opens a gap in an otherwise tight chain, and (via
+    record_status's real apply_dependency_cascade call) ripples forward
+    onto whatever comes next, the same way a real delayed status update
+    would."""
     if task.get('type') != 'task':
         return
 
-    start_day = task['col']
-    end_day = task['col'] + task['duration']
+    planned_start = task['col']
+    actual_start = planned_start
+    if not resource_working(model, task, planned_start) and rng.random() < 0.5:
+        actual_start = next_working_day(model, task, planned_start)
+    delayed = actual_start != planned_start
 
-    if end_day <= today_day:
+    duration = task['duration']
+    actual_end = actual_start + duration
+
+    if actual_end <= today_day:
         # Finished entirely in the past.
-        model.setdate = model.get_date_for_day(start_day)
-        record_status(model, task_ops, task, task['duration'], 'On Time')
-        model.setdate = model.get_date_for_day(end_day)
+        model.setdate = model.get_date_for_day(actual_start)
+        record_status(
+            model,
+            task_ops,
+            task,
+            duration,
+            'Waiting for Resource' if delayed else 'On Time',
+        )
+        model.setdate = model.get_date_for_day(actual_end)
         reason = rng.choices(
             REMAINING_DURATION_REASONS,
             weights=[6, 2, 1, 1, 1, 1, 1, 1, 1, 1],
             k=1,
         )[0]
         record_status(model, task_ops, task, 0, reason)
-    elif start_day < today_day < end_day:
+    elif actual_start < today_day < actual_end:
         # Genuinely in progress right now.
-        model.setdate = model.get_date_for_day(start_day)
-        record_status(model, task_ops, task, task['duration'], 'On Time')
+        model.setdate = model.get_date_for_day(actual_start)
+        record_status(
+            model,
+            task_ops,
+            task,
+            duration,
+            'Waiting for Resource' if delayed else 'On Time',
+        )
         model.setdate = model.get_date_for_day(today_day)
-        remaining = max(1, end_day - today_day)
+        remaining = max(1, actual_end - today_day)
         reason = rng.choice(REMAINING_DURATION_REASONS)
         record_status(model, task_ops, task, remaining, reason)
     # else: starts in the future - stays untouched in 'planning'.
