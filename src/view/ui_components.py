@@ -727,6 +727,13 @@ class UIComponents:
             underline=mnemonic('Status Update Log...', 'Status'),
             command=lambda: self.controller.report_ops.view_status_update_log(),
         )
+        self.reports_menu.add_command(
+            label='Resource Over-Allocation...',
+            underline=mnemonic('Resource Over-Allocation...', 'Over-Allocation'),
+            command=lambda: (
+                self.controller.report_ops.view_resource_overallocation_report()
+            ),
+        )
 
         # Network Graph (Stage 18) - the interactive dependency-graph view
         # from the external ccpm-scheduler, for any set of tasks

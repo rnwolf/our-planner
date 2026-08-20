@@ -3,6 +3,7 @@ import os
 import tempfile
 import tkinter as tk
 import webbrowser
+from tkinter import font as tkfont
 from tkinter import ttk, messagebox
 
 from src.model.dependency_notation import format_predecessor_notation
@@ -380,6 +381,271 @@ class ReportOperations:
             command=dialog.destroy,
         )
         close_button.pack(side=tk.LEFT, padx=5)
+        close_button.bind('<Return>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+
+        rebuild()
+
+        add_resize_handle(dialog)
+
+    # ---- Resource Over-Allocation report ---------------------------------
+    # Unlike Full-Kit Readiness/Status Update Log, this is deliberately NOT
+    # project-scoped - a resource's real demand sums every project plus any
+    # never-CCPM-scheduled backlog work. Scoped instead by the resource
+    # grid's own Load Scope control (All tasks / Filtered tasks), the same
+    # question the grid itself is already answering.
+
+    def compute_resource_overallocations(self):
+        """The extractor half of the By Resource view - see
+        compute_tag_overallocations for the By Tag/role counterpart."""
+        tasks = None
+        if self.controller.tag_ops.resource_load_scope == 'filtered':
+            tasks = self.controller.tag_ops.get_filtered_tasks()
+        return self.model.find_resource_overallocations(tasks=tasks)
+
+    def compute_tag_overallocations(self):
+        """The extractor half of the By Tag/role view."""
+        tasks = None
+        if self.controller.tag_ops.resource_load_scope == 'filtered':
+            tasks = self.controller.tag_ops.get_filtered_tasks()
+        return self.model.find_tag_overallocations(tasks=tasks)
+
+    def _merge_overallocation_runs(self, findings):
+        """Collapse consecutive overloaded days for the same (kind, key)
+        into one display row - a pure rendering concern, the model layer
+        keeps one finding per exact day. Each merged row reports the
+        single worst (highest overload_pct) day in its run, since load/
+        capacity can vary day to day within a run. Sorted worst-first."""
+        by_key: dict[tuple, list] = {}
+        for finding in findings:
+            by_key.setdefault((finding['kind'], finding['key']), []).append(finding)
+
+        rows = []
+        for (kind, key), items in by_key.items():
+            items.sort(key=lambda f: f['day'])
+            run = [items[0]]
+            for finding in items[1:]:
+                if finding['day'] == run[-1]['day'] + 1:
+                    run.append(finding)
+                else:
+                    rows.append(self._summarize_overallocation_run(kind, key, run))
+                    run = [finding]
+            rows.append(self._summarize_overallocation_run(kind, key, run))
+
+        rows.sort(key=lambda r: r['overload_pct'], reverse=True)
+        return rows
+
+    def _summarize_overallocation_run(self, kind, key, run):
+        peak = max(run, key=lambda f: f['overload_pct'])
+        start_date = run[0]['date'][:10]
+        end_date = run[-1]['date'][:10]
+        date_range = (
+            start_date if start_date == end_date else f'{start_date} to {end_date}'
+        )
+        return {
+            'kind': kind,
+            'key': key,
+            'label': peak['label'],
+            'date_range': date_range,
+            'peak_day': peak['day'],
+            'load': peak['load'],
+            'capacity': peak['capacity'],
+            'overload_pct': peak['overload_pct'],
+        }
+
+    def view_resource_overallocation_report(self):
+        """Findings the resource grid's own colors can't scale to
+        spotting once there are 20-30 rows to scan, plus a role/tag
+        aggregate view no single resource row can show at all (three
+        developers each individually under capacity, but the role as a
+        whole isn't). Selecting a finding drills down to the specific
+        tasks causing it, each flagged Critical/Non-Critical/Unscheduled
+        (its chain's is_critical, or "no chain yet" for work never run
+        through CCPM scheduling) - a non-critical/feeding-chain task
+        already has buffer slack to absorb an overload; a critical one
+        doesn't."""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Resource Over-Allocation')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+        # No fixed pixel geometry (a guessed width/height, like rowheight
+        # and the column widths above, goes stale the moment the font
+        # doesn't match what was guessed for) - width comes from the
+        # Treeview's own measured column widths below, height from its
+        # `height=` (a row COUNT, already font-scale-safe) plus
+        # add_resize_handle's measured minsize at the end of this method.
+
+        frame = tk.Frame(dialog, padx=10, pady=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(
+            frame,
+            text='Resource Over-Allocation',
+            font=('Arial', 10, 'bold'),
+        ).pack(fill=tk.X, pady=(0, 10))
+
+        if self.controller.tag_ops.resource_load_scope == 'filtered':
+            tk.Label(
+                frame,
+                text='(Scoped to Filtered tasks - matching the resource '
+                "grid's Load Scope control)",
+                font=('Arial', 8, 'italic'),
+                fg='gray',
+            ).pack(anchor='w', pady=(0, 5))
+
+        mode_frame = tk.Frame(frame)
+        mode_frame.pack(fill=tk.X, pady=(0, 5))
+        tk.Label(mode_frame, text='View:').pack(side=tk.LEFT)
+        mode_var = tk.StringVar(value='By Resource')
+        mode_combo = ttk.Combobox(
+            mode_frame,
+            textvariable=mode_var,
+            state='readonly',
+            width=14,
+            values=['By Resource', 'By Tag'],
+        )
+        mode_combo.pack(side=tk.LEFT, padx=5)
+
+        summary_label = tk.Label(frame, text='')
+        summary_label.pack(anchor='w', pady=(5, 5))
+
+        tree_frame = tk.Frame(frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True)
+        scrollbar = ttk.Scrollbar(tree_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # ttk.Treeview's built-in row height is a small theme default that
+        # has no idea what font it's actually about to render (unlike
+        # tk.Listbox, which always sizes its own rows off its own font) -
+        # on a system with a large TkDefaultFont (HiDPI/accessibility
+        # scaling), that leaves each row shorter than the text inside it,
+        # so consecutive rows visually overlap. Measured off the real font
+        # in use, not a guessed constant, so it stays correct regardless of
+        # this system's font/DPI settings - the same "measured, so font/
+        # theme-proof" approach add_resize_handle already uses.
+        row_height = tkfont.nametofont('TkDefaultFont').metrics('linespace') + 6
+        style = ttk.Style()
+        style.configure('ResourceOverallocation.Treeview', rowheight=row_height)
+
+        tree = ttk.Treeview(
+            tree_frame,
+            columns=('detail', 'load_capacity', 'overload'),
+            yscrollcommand=scrollbar.set,
+            style='ResourceOverallocation.Treeview',
+            height=14,  # rows, not pixels - already font-scale-safe
+        )
+        tree.heading('#0', text='Resource / Task')
+        tree.heading('detail', text='Detail')
+        tree.heading('load_capacity', text='Load / Capacity')
+        tree.heading('overload', text='Overload %')
+
+        # Same font-measurement problem as rowheight above, sideways:
+        # fixed pixel column widths guessed for a small font truncate
+        # both headers and content on a large one. Measured against
+        # realistic sample text (the longest a column normally holds)
+        # instead of guessed, for the same reason.
+        default_font = tkfont.nametofont('TkDefaultFont')
+
+        def col_width(*sample_texts):
+            return max(default_font.measure(t) for t in sample_texts) + 20
+
+        tree_col_width = col_width(
+            'Resource / Task', 'Customer Portal Refresh', '  ↳ Prepare audit evidence'
+        )
+        detail_col_width = col_width(
+            'Detail', 'Non-Critical · alloc 1.0 · Fatima Al-Sayed'
+        )
+        load_capacity_col_width = col_width('Load / Capacity', '99.9 / 99.9')
+        overload_col_width = col_width('Overload %', '999%')
+
+        tree.column('#0', width=tree_col_width)
+        tree.column('detail', width=detail_col_width)
+        tree.column('load_capacity', width=load_capacity_col_width, anchor='e')
+        tree.column('overload', width=overload_col_width, anchor='e')
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=tree.yview)
+
+        # item id -> the merged row dict, for the lazy drill-down below.
+        row_by_item: dict[str, dict] = {}
+        # Every row starts with one empty placeholder child (below) so it
+        # shows an expand arrow before being drilled into - that means
+        # tree.get_children(item_id) is truthy even when unpopulated, so
+        # "already populated" has to be tracked separately.
+        populated_items: set[str] = set()
+
+        def populate_children(item_id):
+            if item_id in populated_items:
+                return
+            populated_items.add(item_id)
+            tree.delete(*tree.get_children(item_id))  # drop the placeholder
+            row = row_by_item[item_id]
+            contributing = self.model.get_contributing_tasks(
+                row['kind'], row['key'], row['peak_day']
+            )
+            for task_info in contributing:
+                if task_info['is_critical'] is True:
+                    status = 'Critical'
+                elif task_info['is_critical'] is False:
+                    status = 'Non-Critical'
+                else:
+                    status = 'Unscheduled'
+                detail = f'{status} · alloc {task_info["allocation"]}'
+                if row['kind'] == 'tag':
+                    detail += f' · {task_info["resource_name"]}'
+                tree.insert(
+                    item_id,
+                    tk.END,
+                    text=f'  ↳ {task_info["description"]}',
+                    values=(detail, '', ''),
+                )
+
+        def on_open(event=None):
+            item_id = tree.focus()
+            if item_id:
+                populate_children(item_id)
+
+        tree.bind('<<TreeviewOpen>>', on_open)
+
+        def rebuild():
+            tree.delete(*tree.get_children())
+            row_by_item.clear()
+            populated_items.clear()
+            findings = (
+                self.compute_resource_overallocations()
+                if mode_var.get() == 'By Resource'
+                else self.compute_tag_overallocations()
+            )
+            rows = self._merge_overallocation_runs(findings)
+            noun = (
+                'resource(s)' if mode_var.get() == 'By Resource' else 'tag(s)/role(s)'
+            )
+            summary_label.config(text=f'{len(rows)} {noun} over capacity')
+            for row in rows:
+                item_id = tree.insert(
+                    '',
+                    tk.END,
+                    text=row['label'],
+                    values=(
+                        row['date_range'],
+                        f'{row["load"]:.1f} / {row["capacity"]:.1f}',
+                        f'{row["overload_pct"] * 100:.0f}%'
+                        if row['overload_pct'] != float('inf')
+                        else '∞',
+                    ),
+                )
+                row_by_item[item_id] = row
+                tree.insert(item_id, tk.END, text='')  # placeholder so it's expandable
+
+        mode_combo.bind('<<ComboboxSelected>>', lambda e: rebuild())
+
+        close_button = tk.Button(
+            frame,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=dialog.destroy,
+        )
+        close_button.pack(pady=(10, 0))
         close_button.bind('<Return>', lambda e: dialog.destroy())
         dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 

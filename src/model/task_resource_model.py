@@ -11,10 +11,12 @@ from src.model.dependency_notation import (
 from src.model.entities import (
     BufferUpdateReasonEntry,
     ChainDict,
+    ContributingTaskInfo,
     FeverChartHistoryEntry,
     FeverChartPoint,
     NoteDict,
     NoteWithTaskInfo,
+    OverallocationFinding,
     PredecessorLink,
     ProjectDict,
     RemainingDurationHistoryEntry,
@@ -22,6 +24,7 @@ from src.model.entities import (
     SuccessorLink,
     TaskDict,
 )
+from src.utils.colors import LOAD_TOLERANCE
 
 TASK_TYPES = ['task', 'project_buffer', 'feeding_buffer']
 BUFFER_TASK_TYPES = {'project_buffer', 'feeding_buffer'}
@@ -1185,6 +1188,152 @@ class TaskResourceModel:
             else:
                 utilization[resource_id] = float('inf') if total_load > 0 else 0.0
         return utilization
+
+    def calculate_tag_loading(
+        self, tasks: Optional[List[TaskDict]] = None
+    ) -> Dict[str, List[float]]:
+        """Per-tag, per-day summed load - the role-aggregate view of
+        calculate_resource_loading. A resource carrying several tags fans
+        its full load out to every one of them independently (there's no
+        "primary role" concept in this model) - a resource tagged both
+        'dev' and 'senior' counts fully toward both tags' totals, not
+        split between them."""
+        resource_loading = self.calculate_resource_loading(tasks)
+        tag_loading: Dict[str, List[float]] = {}
+        for resource in self.resources:
+            loading = resource_loading.get(resource['id'])
+            if not loading:
+                continue
+            for tag in resource.get('tags', []):
+                totals = tag_loading.setdefault(tag, [0.0] * self.days)
+                for day in range(self.days):
+                    totals[day] += loading[day]
+        return tag_loading
+
+    def calculate_tag_capacity(self) -> Dict[str, List[float]]:
+        """Per-tag, per-day summed capacity across every resource carrying
+        that tag - same fan-out rule as calculate_tag_loading. Nothing
+        stores a tag's capacity directly; it's always derived from which
+        resources currently carry that tag."""
+        tag_capacity: Dict[str, List[float]] = {}
+        for resource in self.resources:
+            for tag in resource.get('tags', []):
+                totals = tag_capacity.setdefault(tag, [0.0] * self.days)
+                for day in range(self.days):
+                    totals[day] += resource['capacity'][day]
+        return tag_capacity
+
+    def find_resource_overallocations(
+        self, tasks: Optional[List[TaskDict]] = None
+    ) -> List[OverallocationFinding]:
+        """One finding per (resource, day) where load exceeds capacity -
+        the same LOAD_TOLERANCE-guarded threshold that turns a resource
+        grid cell red (get_resource_load_color), so this list and the
+        grid's own colors can never disagree about what counts as "over
+        capacity"."""
+        resource_loading = self.calculate_resource_loading(tasks)
+        findings: List[OverallocationFinding] = []
+        for resource in self.resources:
+            loading = resource_loading.get(resource['id'], [])
+            capacity_by_day = resource['capacity']
+            for day in range(self.days):
+                load = loading[day] if day < len(loading) else 0.0
+                capacity = capacity_by_day[day] if day < len(capacity_by_day) else 0.0
+                if load <= capacity * (1 + LOAD_TOLERANCE):
+                    continue
+                findings.append(
+                    {
+                        'kind': 'resource',
+                        'key': resource['id'],
+                        'label': resource['name'],
+                        'day': day,
+                        'date': self.get_date_for_day(day).isoformat(),
+                        'load': load,
+                        'capacity': capacity,
+                        'overload_pct': (load / capacity)
+                        if capacity > 0
+                        else float('inf'),
+                    }
+                )
+        return findings
+
+    def find_tag_overallocations(
+        self, tasks: Optional[List[TaskDict]] = None
+    ) -> List[OverallocationFinding]:
+        """Same as find_resource_overallocations, aggregated by tag/role
+        instead of by individual resource - catches a saturated role pool
+        that no single resource's own row would show as overloaded (e.g.
+        three developers each individually under capacity, but the role
+        as a whole is not)."""
+        tag_loading = self.calculate_tag_loading(tasks)
+        tag_capacity = self.calculate_tag_capacity()
+        findings: List[OverallocationFinding] = []
+        for tag, loading in tag_loading.items():
+            capacity_by_day = tag_capacity.get(tag, [0.0] * self.days)
+            for day in range(self.days):
+                load = loading[day]
+                capacity = capacity_by_day[day]
+                if load <= capacity * (1 + LOAD_TOLERANCE):
+                    continue
+                findings.append(
+                    {
+                        'kind': 'tag',
+                        'key': tag,
+                        'label': tag,
+                        'day': day,
+                        'date': self.get_date_for_day(day).isoformat(),
+                        'load': load,
+                        'capacity': capacity,
+                        'overload_pct': (load / capacity)
+                        if capacity > 0
+                        else float('inf'),
+                    }
+                )
+        return findings
+
+    def get_contributing_tasks(
+        self,
+        kind: str,
+        key: int | str,
+        day: int,
+        tasks: Optional[List[TaskDict]] = None,
+    ) -> List[ContributingTaskInfo]:
+        """Every task allocating to `key` on `day` - the resource itself
+        for kind='resource', or any resource carrying that tag for
+        kind='tag' (several may each contribute independently). Powers an
+        OverallocationFinding's drill-down in the Resource Over-Allocation
+        report."""
+        if kind == 'resource':
+            resource_ids = {int(key)}
+        else:
+            resource_ids = {r['id'] for r in self.resources if key in r.get('tags', [])}
+
+        contributing: List[ContributingTaskInfo] = []
+        for task in self.tasks if tasks is None else tasks:
+            col = task['col']
+            if not (col <= day < col + task['duration']):
+                continue
+            for resource_id_str, allocation in task['resources'].items():
+                resource_id = int(resource_id_str)
+                if resource_id not in resource_ids:
+                    continue
+                resource = self.get_resource_by_id(resource_id)
+                chain_id = task.get('chain_id')
+                chain = self.get_chain_by_id(chain_id) if chain_id else None
+                contributing.append(
+                    {
+                        'task_id': task['task_id'],
+                        'description': task['description'],
+                        'allocation': allocation,
+                        'resource_id': resource_id,
+                        'resource_name': resource['name']
+                        if resource
+                        else f'#{resource_id}',
+                        'is_critical': chain['is_critical'] if chain else None,
+                        'chain_name': chain['name'] if chain else None,
+                    }
+                )
+        return contributing
 
     def get_assigned_resource_ids(self, project_ids) -> set:
         """Resource ids assigned to at least one task of the given projects.

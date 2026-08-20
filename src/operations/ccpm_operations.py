@@ -29,10 +29,14 @@ Export mapping decisions (Stage 16's open questions, resolved):
   exactly as it falls relative to the project — and the in-process flow
   shifts the imported schedule back to the timeline (+anchor). The CSV
   export uses the same anchor-relative days; its day 0 = the anchor day.
-- fractional resource allocations cannot be represented (the engine
-  schedules whole resources in v1): the in-process flow surfaces the
-  engine's E_FRACTIONAL_ALLOCATION error; the CSV export warns and exports
-  the assignment as a whole resource.
+- resource allocations are passed through as-is: fractional (a task
+  sharing part of one resource's time) and >1 ("pool draws" against a
+  resource whose own capacity is >1) are both fully supported by the
+  pinned ccpm-scheduler>=0.12.0 engine, which resource-levels pooled
+  capacity for real (see tests/test_resource_capacity.py's
+  TestPooledResourceOverload). A task's allocation exceeding its
+  resource's own capacity is still a validation error
+  (E_ALLOCATION_EXCEEDS_CAPACITY), just not "fractional/>1 at all."
 """
 
 import csv

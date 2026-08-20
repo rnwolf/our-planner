@@ -1146,6 +1146,27 @@ class TaskOperations:
         search_entry = tk.Entry(search_frame, textvariable=search_var)
         search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
 
+        # Tag filter, inline rather than the modal TagFilterDialog the
+        # resource grid's own 'Tags...' button uses (tag_operations.py) -
+        # this dialog is already a popup, a second one on top of it for
+        # something this quick would be worse, not better. Resource-only
+        # tags, not model.get_all_tags() (which mixes in task tags too and
+        # would let a tag no resource actually has silently zero the list).
+        ANY_TAG = '(Any tag)'
+        resource_tags = sorted(
+            {t for r in self.model.resources for t in r.get('tags', [])}
+        )
+        tk.Label(search_frame, text='Tag:').pack(side=tk.LEFT, padx=(8, 0))
+        tag_filter_var = tk.StringVar(value=ANY_TAG)
+        tag_filter_combo = ttk.Combobox(
+            search_frame,
+            textvariable=tag_filter_var,
+            state='readonly',
+            width=14,
+            values=[ANY_TAG] + resource_tags,
+        )
+        tag_filter_combo.pack(side=tk.LEFT, padx=(5, 0))
+
         available_container = tk.Frame(main_frame)
         available_container.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
         available_scroll = tk.Scrollbar(available_container, takefocus=0)
@@ -1188,10 +1209,13 @@ class TaskOperations:
             available_listbox.delete(0, tk.END)
             available_order.clear()
             query = search_var.get().strip().lower()
+            tag_filter = tag_filter_var.get()
             for resource in sorted(
                 self.model.resources, key=lambda r: r['name'].lower()
             ):
                 if query and query not in resource['name'].lower():
+                    continue
+                if tag_filter != ANY_TAG and tag_filter not in resource.get('tags', []):
                     continue
                 rid = resource['id']
                 available_order.append(rid)
@@ -1267,6 +1291,7 @@ class TaskOperations:
         remove_button.config(command=remove_selected)
 
         search_var.trace_add('write', lambda *args: refresh_available())
+        tag_filter_combo.bind('<<ComboboxSelected>>', lambda e: refresh_available())
 
         def jump_to_results(event):
             """Search box Return/Down -> select the first match and move

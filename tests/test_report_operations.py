@@ -226,3 +226,123 @@ class TestStatusUpdateLogReport:
         )
         assert entries == []
         assert with_reason_or_note == 0
+
+
+class TestResourceOverallocationReport:
+    """Unlike Full-Kit Readiness/Status Update Log, this report is
+    deliberately NOT project-scoped - a resource's real demand sums every
+    project. Only the extractor half (compute_resource_overallocations/
+    compute_tag_overallocations) is exercised here, same rationale as the
+    other report classes in this file."""
+
+    def setup_method(self):
+        self.model = TaskResourceModel()
+        self.controller = MagicMock()
+        self.controller.model = self.model
+        self.tag_ops = TagOperations(self.controller, self.model)
+        self.controller.tag_ops = self.tag_ops
+        self.report_ops = ReportOperations(self.controller, self.model)
+
+    def test_cross_project_aggregation_is_one_combined_finding(self):
+        """The one deliberate architectural difference from Full-Kit
+        Readiness: two projects both loading the same resource the same
+        day must produce ONE finding, not two."""
+        resource = self.model.resources[0]
+        p1 = self.model.add_project('Alpha')
+        p2 = self.model.add_project('Beta')
+        self.model.add_task(
+            row=0,
+            col=0,
+            duration=1,
+            description='A',
+            project_id=p1['id'],
+            resources={resource['id']: 0.6},
+        )
+        self.model.add_task(
+            row=1,
+            col=0,
+            duration=1,
+            description='B',
+            project_id=p2['id'],
+            resources={resource['id']: 0.9},
+        )
+
+        findings = self.report_ops.compute_resource_overallocations()
+
+        assert len(findings) == 1
+        assert findings[0]['key'] == resource['id']
+        assert findings[0]['load'] == 1.5
+
+    def test_respects_resource_load_scope_filtered(self):
+        """resource_load_scope == 'filtered' narrows to the currently
+        filtered tasks - the same wiring update_resource_loading() itself
+        uses (task_manager.py) - not every task in the model."""
+        resource = self.model.resources[0]
+        p1 = self.model.add_project('Alpha')
+        p2 = self.model.add_project('Beta')
+        self.model.add_task(
+            row=0,
+            col=0,
+            duration=1,
+            description='A',
+            project_id=p1['id'],
+            resources={resource['id']: 1.5},
+        )
+        self.model.add_task(
+            row=1,
+            col=0,
+            duration=1,
+            description='B',
+            project_id=p2['id'],
+            resources={resource['id']: 1.5},
+        )
+
+        # Unfiltered (the 'all' default): both tasks count.
+        findings = self.report_ops.compute_resource_overallocations()
+        assert findings[0]['load'] == 3.0
+
+        # Filtered to just project Alpha.
+        self.tag_ops.resource_load_scope = 'filtered'
+        self.tag_ops.task_project_filters = [p1['id']]
+        findings = self.report_ops.compute_resource_overallocations()
+        assert findings[0]['load'] == 1.5
+
+    def test_by_tag_view_aggregates_across_resources(self):
+        self.model.resources = [
+            {
+                'id': 1,
+                'name': 'Alice',
+                'capacity': [1.0] * self.model.days,
+                'tags': ['dev'],
+            },
+            {
+                'id': 2,
+                'name': 'Bob',
+                'capacity': [1.0] * self.model.days,
+                'tags': ['dev'],
+            },
+        ]
+        project = self.model.add_project('Alpha')
+        self.model.add_task(
+            row=0,
+            col=0,
+            duration=1,
+            description='A',
+            project_id=project['id'],
+            resources={1: 1.0},
+        )
+        self.model.add_task(
+            row=1,
+            col=0,
+            duration=1,
+            description='B',
+            project_id=project['id'],
+            resources={2: 1.5},
+        )
+
+        findings = self.report_ops.compute_tag_overallocations()
+
+        assert len(findings) == 1
+        assert findings[0]['kind'] == 'tag'
+        assert findings[0]['key'] == 'dev'
+        assert findings[0]['load'] == 2.5

@@ -184,3 +184,35 @@ class ChainDict(TypedDict):
     name: str
     color: str
     is_critical: bool
+
+
+class OverallocationFinding(TypedDict):
+    """One (resource-or-tag, day) where load exceeds capacity - see
+    TaskResourceModel.find_resource_overallocations/find_tag_overallocations."""
+
+    kind: str  # 'resource' | 'tag'
+    key: int | str  # resource id for kind='resource', tag string for kind='tag'
+    label: str  # resource name, or the tag string
+    day: int
+    date: str  # ISO date, model.get_date_for_day(day).isoformat()
+    load: float
+    capacity: float
+    overload_pct: float  # load / capacity; inf if capacity == 0
+
+
+class ContributingTaskInfo(TypedDict):
+    """One task contributing to an OverallocationFinding - see
+    TaskResourceModel.get_contributing_tasks."""
+
+    task_id: int
+    description: str
+    allocation: float
+    resource_id: int  # which specific resource this allocation is against -
+    # relevant for kind='tag' findings, where several resources may each
+    # contribute independently
+    resource_name: str
+    # True/False from the task's chain, None if the task has no chain_id
+    # (never run through CCPM scheduling, e.g. backlog work) - a real
+    # "unknown", not the same as "confirmed non-critical".
+    is_critical: Optional[bool]
+    chain_name: Optional[str]
