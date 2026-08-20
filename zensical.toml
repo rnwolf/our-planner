@@ -14,6 +14,7 @@ nav = [
     { "Home" = "index.md" },
     { "Getting Started" = "getting-started.md" },
     { "User Guide" = "user-guide.md" },
+    { "Sample Portfolio Walkthrough" = "sample-portfolio-walkthrough.md" },
     { "CCPM File Formats" = "file-structure.md" },
     { "Buffer Management" = "buffer-management.md" },
     { "Improvements" = "improvements.md" },
