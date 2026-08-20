@@ -366,6 +366,119 @@ def next_working_day(model: TaskResourceModel, task, day: int) -> int:
     return d
 
 
+# Full-kit readiness: the rule this models is "a task should only start
+# once everything it needs is actually in hand" - missing-but-predictable
+# dependencies discovered mid-execution are one of the biggest sources of
+# real project delay, which is exactly what the Full-Kit Readiness report
+# exists to surface ahead of time. Some tasks only need information
+# already known at planning time (agreed requirements, environment,
+# deployment runbook) and can - and ideally should - be fully kitted well
+# before the project itself starts; QA/ops prep in particular typically
+# runs in parallel with build, not after it. Design/build work, by
+# contrast, generically needs its own predecessor's actual output (the
+# discovery findings, the agreed design) before it can be kitted for real
+# - that's the "some successors are on the critical path for information,
+# not just for execution" case the report is meant to catch.
+FULLKIT_PLANTIME_ROLES = {'ba', 'qa', 'devops'}
+# Turnaround after a predecessor's output becomes available before its
+# successor's own kit can actually be assembled from it.
+FULLKIT_LEAD_DAYS = (1, 5)
+# Even once a task's kit realistically COULD be ready, it isn't always -
+# the rest are exactly the "still needs more work" tasks a PM needs this
+# report to catch before committing to a start date.
+FULLKIT_READY_PROBABILITY = 0.8
+
+
+def clamp_day(model: TaskResourceModel, day: int) -> int:
+    return max(0, min(day, model.days - 1))
+
+
+def simulate_fullkit_task(
+    model: TaskResourceModel,
+    task,
+    target_day: int,
+    today_day: int,
+    rng: random.Random,
+):
+    """One task's full-kit outcome. A task that has already actually
+    started (see simulate_progress) is retroactively given a fullkit_date
+    on or just before its own actual start - it couldn't genuinely have
+    started otherwise, whatever `target_day` says. A task that hasn't
+    started yet is ready only if `target_day` (the earliest day its kit
+    could realistically be complete - see simulate_fullkit/build_backlog
+    for how callers compute this) has already passed, and even then only
+    with FULLKIT_READY_PROBABILITY."""
+    actual_start_date = task.get('actual_start_date')
+    if actual_start_date:
+        actual_start_day = model.get_day_for_date(
+            datetime.fromisoformat(actual_start_date)
+        )
+        kit_day = clamp_day(model, min(target_day, actual_start_day, today_day))
+        model.setdate = model.get_date_for_day(kit_day)
+        model.set_fullkit_date(task['task_id'])
+        return
+
+    if target_day > today_day:
+        return  # not ready yet - still waiting on predecessor info
+
+    if rng.random() < FULLKIT_READY_PROBABILITY:
+        kit_day = clamp_day(model, min(target_day, today_day))
+        model.setdate = model.get_date_for_day(kit_day)
+        model.set_fullkit_date(task['task_id'])
+
+
+def simulate_fullkit(
+    model: TaskResourceModel,
+    tasks: list,
+    shape_name: str,
+    today_day: int,
+    rng: random.Random,
+):
+    """Simulates full-kit prep across one project's whole task set (any
+    phase - unlike fever charts, full-kit readiness matters during
+    planning too, before a project has even started). See
+    FULLKIT_PLANTIME_ROLES for the plan-time-vs-predecessor-output split
+    that decides each task's own readiness window."""
+    role_by_name = {
+        name: role for name, role, _preds, _dur, _lane in PROJECT_SHAPES[shape_name]
+    }
+    id_to_task = {t['task_id']: t for t in tasks}
+    kickoff_day = min(t['col'] for t in tasks if t.get('type') == 'task')
+
+    for task in tasks:
+        if task.get('type') != 'task':
+            continue
+        role = role_by_name[task['description']]
+
+        if role in FULLKIT_PLANTIME_ROLES or not task['predecessors']:
+            target_day = kickoff_day - rng.randint(3, 15)
+            if target_day > today_day:
+                # Kickoff is too far off for this to be "due" yet by that
+                # countdown, but this kind of task was never actually
+                # gated on the calendar - simulate it having been done at
+                # some point during the normal course of planning
+                # instead, rather than pinning every far-future project's
+                # prep to the same exact today's-date.
+                target_day = rng.randint(max(0, today_day - 45), today_day)
+        else:
+            target_day = 0
+            for link in task['predecessors']:
+                pred = id_to_task.get(link['id'])
+                if pred is None:
+                    continue
+                pred_end_date = pred.get('actual_end_date')
+                if pred_end_date:
+                    pred_end_day = model.get_day_for_date(
+                        datetime.fromisoformat(pred_end_date)
+                    )
+                else:
+                    pred_end_day = pred['col'] + pred['duration']
+                target_day = max(target_day, pred_end_day)
+            target_day += rng.randint(*FULLKIT_LEAD_DAYS)
+
+        simulate_fullkit_task(model, task, target_day, today_day, rng)
+
+
 # CCPM strips safety out of individual task estimates and pools it in the
 # project/feeding buffers instead - task['duration'] here is already that
 # stripped-down, "50% confidence" figure, so a task is BY DESIGN expected
@@ -521,6 +634,8 @@ def build_mini_project(
         for task in scheduled_tasks:
             simulate_progress(model, task_ops, task, today_day, rng)
 
+    simulate_fullkit(model, scheduled_tasks, shape_name, today_day, rng)
+
     span_days = end_col_actual - start_col_actual
     stats = result['stats']
     print(
@@ -605,6 +720,9 @@ def build_backlog(
             project_id=project['id'],
         )
         simulate_progress(model, task_ops, task, today_day, rng)
+        # No dependency chain to gate on for an ad hoc backlog item - it's
+        # available to kit as soon as it's flagged.
+        simulate_fullkit_task(model, task, 0, today_day, rng)
 
     return len(model.tasks)
 
