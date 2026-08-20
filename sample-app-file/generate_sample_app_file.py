@@ -39,10 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from unittest.mock import MagicMock
 
-from src.model.task_resource_model import (
-    REMAINING_DURATION_REASONS,
-    TaskResourceModel,
-)
+from src.model.task_resource_model import TaskResourceModel
 from src.operations.ccpm_operations import CcpmOperations
 from src.operations.task_operations import TaskOperations
 
@@ -369,6 +366,38 @@ def next_working_day(model: TaskResourceModel, task, day: int) -> int:
     return d
 
 
+# CCPM strips safety out of individual task estimates and pools it in the
+# project/feeding buffers instead - task['duration'] here is already that
+# stripped-down, "50% confidence" figure, so a task is BY DESIGN expected
+# to often run past its own estimate (Parkinson's Law/Student Syndrome);
+# that overrun is exactly what the buffers exist to absorb. Weighted
+# outcome buckets, each (weight, duration_factor_range, reason) - reason
+# correlated with the outcome instead of drawn independently, so e.g. a
+# task that ran 80% over doesn't get logged as 'On Time'. Skews right
+# (most weight at/above 1.0x) rather than symmetric around 1.0, matching
+# that skew.
+TASK_OUTCOME_PROFILES = [
+    (12, (0.6, 0.9), 'On Time'),
+    (18, (0.9, 1.05), 'On Time'),
+    (25, (1.05, 1.3), 'Task Variability'),
+    (15, (1.1, 1.4), 'Multitasking'),
+    (12, (1.2, 1.6), 'Waiting for Resource'),
+    (10, (1.3, 1.9), "Parkinson's Law"),
+    (5, (1.5, 2.3), 'Unplanned Events'),
+    (3, (1.2, 2.0), 'Other / Unexplained'),
+]
+
+
+def sample_task_outcome(duration: int, rng: random.Random) -> tuple[int, str]:
+    """How long a task actually takes once real-world variability plays
+    out, plus the reason that goes with it. See TASK_OUTCOME_PROFILES."""
+    weights = [profile[0] for profile in TASK_OUTCOME_PROFILES]
+    _, (lo, hi), reason = rng.choices(TASK_OUTCOME_PROFILES, weights=weights, k=1)[0]
+    factor = rng.uniform(lo, hi)
+    actual_duration = max(1, round(duration * factor))
+    return actual_duration, reason
+
+
 def simulate_progress(
     model: TaskResourceModel,
     task_ops: TaskOperations,
@@ -396,7 +425,15 @@ def simulate_progress(
     is what actually opens a gap in an otherwise tight chain, and (via
     record_status's real apply_dependency_cascade call) ripples forward
     onto whatever comes next, the same way a real delayed status update
-    would."""
+    would.
+
+    The task's own ACTUAL duration (see sample_task_outcome) is likewise
+    deliberately not always task['duration'] itself - that figure is
+    already the CCPM-stripped, safety-free estimate, so realistically
+    simulating "the safety now lives in the buffers, not the tasks"
+    means letting a good fraction of tasks genuinely run long, which then
+    ripples through the same cascade and is exactly what should show up
+    consuming project/feeding buffer in the fever charts."""
     if task.get('type') != 'task':
         return
 
@@ -405,41 +442,25 @@ def simulate_progress(
     if not resource_working(model, task, planned_start) and rng.random() < 0.5:
         actual_start = next_working_day(model, task, planned_start)
     delayed = actual_start != planned_start
+    start_reason = 'Waiting for Resource' if delayed else 'On Time'
 
     duration = task['duration']
-    actual_end = actual_start + duration
+    actual_duration, outcome_reason = sample_task_outcome(duration, rng)
+    actual_end = actual_start + actual_duration
 
     if actual_end <= today_day:
-        # Finished entirely in the past.
+        # Finished (with realistic variance) entirely in the past.
         model.setdate = model.get_date_for_day(actual_start)
-        record_status(
-            model,
-            task_ops,
-            task,
-            duration,
-            'Waiting for Resource' if delayed else 'On Time',
-        )
+        record_status(model, task_ops, task, duration, start_reason)
         model.setdate = model.get_date_for_day(actual_end)
-        reason = rng.choices(
-            REMAINING_DURATION_REASONS,
-            weights=[6, 2, 1, 1, 1, 1, 1, 1, 1, 1],
-            k=1,
-        )[0]
-        record_status(model, task_ops, task, 0, reason)
+        record_status(model, task_ops, task, 0, outcome_reason)
     elif actual_start < today_day < actual_end:
         # Genuinely in progress right now.
         model.setdate = model.get_date_for_day(actual_start)
-        record_status(
-            model,
-            task_ops,
-            task,
-            duration,
-            'Waiting for Resource' if delayed else 'On Time',
-        )
+        record_status(model, task_ops, task, duration, start_reason)
         model.setdate = model.get_date_for_day(today_day)
         remaining = max(1, actual_end - today_day)
-        reason = rng.choice(REMAINING_DURATION_REASONS)
-        record_status(model, task_ops, task, remaining, reason)
+        record_status(model, task_ops, task, remaining, outcome_reason)
     # else: starts in the future - stays untouched in 'planning'.
 
 
