@@ -46,6 +46,55 @@ mini-projects land in the past (already complete), some straddle today
 project phase existing on the canvas simultaneously, exactly like a real
 portfolio.
 
+## Task colours: a team convention, not a status
+
+Every task on the grid is filled with whatever colour this file gave it —
+`color` is a free-form field, and the app never assigns or changes it on its
+own. This sample uses one convention, by role:
+
+```python
+ROLE_COLOR = {
+    'dev': 'LightBlue',
+    'qa': 'LightGreen',
+    'designer': 'MediumOrchid',
+    'ba': 'Khaki',
+    'devops': 'Orange',
+    'lead': 'Gold',
+    'architect': 'CornflowerBlue',
+    'data': 'LightSalmon',
+}
+```
+
+(`sample-app-file/generate_sample_app_file.py`). Every mini-project task is
+coloured by the role of the person assigned to it, and every backlog task is
+a flat `LightYellow` regardless of who's on it — so scanning the grid answers
+"who's doing what kind of work across the whole portfolio right now", the
+same lens a resource manager needs when deciding whether the org has enough
+of a given skill committed versus free.
+
+**This is genuinely a decision your team has to make, not something the app
+assumes for you** — colour-by-role is only one workable convention.
+Colour-by-project (so a team can pick its own work out from a shared,
+multi-project canvas at a glance) or colour-by-priority for a
+backlog-heavy team are just as valid; whichever is chosen, it's worth writing
+down and agreeing once, since nothing enforces consistency automatically -
+**Right-click a task → Edit Task Color** sets it per task, and it's easy for
+a convention to quietly drift once several people are creating tasks.
+
+Two things colour does *not* signal here, worth agreeing on explicitly since
+they're easy to assume by default:
+
+- **Completion isn't a colour.** A `done` task keeps its role colour - the
+  box fill is deliberately left untouched by state. What *does* change is
+  the small background rectangle directly behind the task's id/description
+  text: light green for `done`, dark grey for `buffered`, both easy to miss
+  at a glance next to a bright role colour. The clearer at-a-glance
+  "how much of this is actually finished" signal is the progress stripe
+  along the bottom edge of the box instead.
+- **Chain membership isn't a colour either** - that's the thin stripe along
+  the *top* edge of a task (a chain's own assigned colour, set when it's
+  created), independent of both role colour and state.
+
 ## Fever charts: where the safety actually went
 
 CCPM strips safety out of individual task estimates and pools it into
