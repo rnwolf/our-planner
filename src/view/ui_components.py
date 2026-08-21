@@ -2810,6 +2810,15 @@ class UIComponents:
         # Get task state, default to 'planning' if not set
         task_state = task.get('state', 'planning')
 
+        # A near-zero-duration buffer (Stage 7's fully-consumed case) has
+        # its render width floored (get_task_ui_coordinates), which can
+        # genuinely overlap a neighbouring task's own box in the
+        # timeline - tracked here so hit-testing (on_task_press/
+        # on_right_click/on_task_hover) can give the buffer priority
+        # in that overlap, and so this task's own redraw (below) can
+        # re-raise any already-drawn buffer above it.
+        is_buffer = task.get('type') in ('project_buffer', 'feeding_buffer')
+
         # Calculate position with dynamic row height
         x1, y1, x2, y2 = self.controller.get_task_ui_coordinates(task)
 
@@ -3113,6 +3122,12 @@ class UIComponents:
             'y1': y1,
             'x2': x2,
             'y2': y2,
+            # A string, not a bool: several call sites iterate this dict's
+            # *values* with `isinstance(element_id, int)` to find canvas
+            # item ids to delete/raise - and bool is a subclass of int in
+            # Python, so a stored True/False would be picked up as if it
+            # were itself a real (and likely colliding) canvas item id.
+            'task_type': task.get('type'),
             'connector': connector_id,
             'connector_x': connector_x,
             'connector_y': connector_y,
@@ -3145,6 +3160,28 @@ class UIComponents:
 
         # Add tooltips for all task properties
         self.add_task_tooltips(task)
+
+        # Newly-created canvas items always land on top of the existing
+        # stack, regardless of any positional overlap - so drawing an
+        # ordinary task after an already-drawn buffer (e.g. a drag/resize
+        # release redrawing just the moved task, or simply a later task in
+        # a full grid redraw) would otherwise bury that buffer's box/text
+        # under the new one, hiding it entirely even though nothing about
+        # the buffer itself changed. Re-raise every already-drawn buffer's
+        # items back above whatever was just drawn, every time - cheap
+        # relative to a redraw, and the alternative (finding and fixing
+        # every call site that might redraw a task near a buffer) is far
+        # more fragile.
+        if not is_buffer:
+            for other_id, other_elements in self.task_ui_elements.items():
+                if other_id == task_id or other_elements.get('task_type') not in (
+                    'project_buffer',
+                    'feeding_buffer',
+                ):
+                    continue
+                for element_id in other_elements.values():
+                    if isinstance(element_id, int):
+                        self.controller.task_canvas.tag_raise(element_id)
 
     def update_task_ui(self, task):
         """Updates the UI elements for a specific task."""

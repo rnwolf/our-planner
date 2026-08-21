@@ -94,6 +94,29 @@ class TaskOperations:
         self.selection_start_x = None
         self.selection_start_y = None
 
+    def _ui_elements_buffer_first(self, task_ui_elements):
+        """`task_ui_elements.items()`, buffer tasks (project_buffer/
+        feeding_buffer) ordered first. A fully-consumed buffer's render
+        width is floored to stay clickable (task_manager.
+        get_task_ui_coordinates) and can genuinely overlap a neighbouring
+        task's own box in the timeline - checking buffers first means a
+        hover/click/right-click that lands inside that overlap resolves to
+        the buffer, which has no other pixels to be reached from, rather
+        than the neighbour, which has plenty. Used by on_task_hover,
+        on_task_press and on_right_click so all three agree."""
+        return sorted(
+            task_ui_elements.items(),
+            key=lambda item: (
+                0
+                if item[1].get('task_type')
+                in (
+                    'project_buffer',
+                    'feeding_buffer',
+                )
+                else 1
+            ),
+        )
+
     def on_task_hover(self, event):
         """Handle mouse hover to change cursor"""
         x, y = event.x, event.y
@@ -112,7 +135,7 @@ class TaskOperations:
         # Check if we're over a task edge or body
         task_ui_elements = self.controller.ui.task_ui_elements
 
-        for task_id, ui_elements in task_ui_elements.items():
+        for task_id, ui_elements in self._ui_elements_buffer_first(task_ui_elements):
             x1, y1, x2, y2, connector_x, connector_y = (
                 ui_elements['x1'],
                 ui_elements['y1'],
@@ -3113,7 +3136,7 @@ class TaskOperations:
         task_clicked = False
         task_ui_elements = self.controller.ui.task_ui_elements
 
-        for task_id, ui_elements in task_ui_elements.items():
+        for task_id, ui_elements in self._ui_elements_buffer_first(task_ui_elements):
             x1, y1, x2, y2, connector_x, connector_y = (
                 ui_elements['x1'],
                 ui_elements['y1'],
@@ -3947,7 +3970,7 @@ class TaskOperations:
         # Check if right-clicking on a task
         task_ui_elements = self.controller.ui.task_ui_elements
 
-        for task_id, ui_elements in task_ui_elements.items():
+        for task_id, ui_elements in self._ui_elements_buffer_first(task_ui_elements):
             x1, y1, x2, y2 = (
                 ui_elements['x1'],
                 ui_elements['y1'],
