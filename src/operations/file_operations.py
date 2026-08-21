@@ -87,6 +87,9 @@ class FileOperations:
             self.model.reset()
             for resource in list(self.model.resources[1:]):
                 self.model.remove_resource(resource['id'])
+            # A new blank project is never a versioned workspace, even if
+            # the one just left behind was.
+            self.controller.version_control_ops.detect_workspace(None)
 
             # Update UI
             self.controller.update_window_title()
@@ -130,6 +133,10 @@ class FileOperations:
         (via File > Recent) - load `file_path` into the model, refresh the
         UI, and record it as the most recently used file."""
         if self.model.load_from_file(file_path):
+            # Re-activates versioning if file_path is a versioned
+            # workspace's tracked file, deactivates it otherwise.
+            self.controller.version_control_ops.detect_workspace(file_path)
+
             # Update UI
             self.controller.update_window_title(file_path)
             self.controller.update_view()
@@ -174,6 +181,10 @@ class FileOperations:
             return
 
         if self.model.save_to_file(file_path):
+            # Save As always targets a specific path - re-derive versioning
+            # from it, same rule as opening a file (only its own directory's
+            # marker matters, never wherever the project was versioned before).
+            self.controller.version_control_ops.detect_workspace(file_path)
             self.controller.update_window_title(file_path)
             add_recent_file(file_path)
             messagebox.showinfo(

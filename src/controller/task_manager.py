@@ -15,6 +15,10 @@ from src.operations.task_operations import TaskOperations
 from src.operations.export_operations import ExportOperations
 from src.operations.report_operations import ReportOperations
 from src.operations.ccpm_operations import CcpmOperations
+from src.operations.version_control_operations import (
+    VersionControlOperations,
+    VersionControlState,
+)
 
 
 class TaskResourceManager:
@@ -193,6 +197,11 @@ class TaskResourceManager:
         self.task_label_frame: Optional[tk.Frame] = None
         self.resource_label_frame: Optional[tk.Frame] = None
 
+        # Set only while the open project is a versioned workspace (see
+        # version_control_operations.py) - None for every ordinary project,
+        # which is what keeps that whole feature inert by default.
+        self.version_control: Optional[VersionControlState] = None
+
         # Initialize handlers
         self.task_ops = TaskOperations(self, self.model)
         self.tag_ops = TagOperations(self, self.model)
@@ -202,6 +211,7 @@ class TaskResourceManager:
         self.report_ops = ReportOperations(self, self.model)
         self.network_ops = NetworkOperations(self, self.model)
         self.ccpm_ops = CcpmOperations(self, self.model)
+        self.version_control_ops = VersionControlOperations(self, self.model)
 
         # Create UI elements
         self.ui = UIComponents(self, self.model)
@@ -470,6 +480,9 @@ class TaskResourceManager:
         # Add zoom info if requested or if not at 100%
         if show_zoom or self.zoom_level != 1.0:
             title += f' (Zoom: {int(self.zoom_level * 100)}%)'
+
+        if self.version_control is not None:
+            title += ' [versioned]'
 
         self.root.title(title)
 

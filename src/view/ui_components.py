@@ -369,6 +369,12 @@ class UIComponents:
         )
         self.file_menu.add_separator()
         self.file_menu.add_command(
+            label='New Versioned Project...',
+            underline=mnemonic('New Versioned Project...', 'Versioned'),
+            command=self.controller.version_control_ops.new_versioned_project,
+        )
+        self.file_menu.add_separator()
+        self.file_menu.add_command(
             label='Import CCPM Schedule...',
             underline=mnemonic('Import CCPM Schedule...', 'Import'),
             command=self.controller.file_ops.import_ccpm_schedule,
