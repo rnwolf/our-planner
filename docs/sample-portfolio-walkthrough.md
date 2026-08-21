@@ -51,16 +51,26 @@ portfolio.
 CCPM strips safety out of individual task estimates and pools it into
 project/feeding buffers instead, so a task running long shouldn't show up as
 a blown task date — it should show up as buffer consumption. Open **Reports →
-Fever Chart** on a couple of the completed projects and compare:
+Fever Chart** on a few of the completed projects and compare:
 
 - **Customer Portal Refresh**'s first feeding buffer finishes deep in the red
-  zone (consumption well past 100% of its own baseline) — several tasks
-  feeding into that merge point ran long, and the buffer that was supposed
-  to absorb it wasn't big enough to fully cover the overrun.
-- **Invoice Automation**'s project buffer, by contrast, finishes comfortably
-  in the green (consumption well under 0% — negative consumption, i.e. it
-  finished ahead) — its chain ran close enough to plan that the buffer
-  barely got touched.
+  zone (consumption around 300% of its own baseline) — several tasks feeding
+  into that merge point ran long, and the buffer that was supposed to absorb
+  it wasn't big enough to fully cover the overrun.
+- **Returns Workflow**'s project buffer, by contrast, finishes comfortably in
+  the green (negative consumption — it finished ahead) — its chain ran close
+  enough to plan that the buffer barely got touched.
+- **Loyalty Programme Revamp**'s project buffer is the sharpest story of the
+  three: it tracks green through the first half of the chain, then a run of
+  tasks going badly wrong mid-project drives it straight through yellow into
+  red, finishing with the buffer **completely exhausted** — consumption past
+  100% of baseline, meaning this project would genuinely have missed its
+  promised date without the buffer's early warning prompting an intervention.
+  That sharp green-to-red jump partway across the chart, rather than a
+  gradual drift, is itself worth noticing — it's usually a sign of one
+  correlated cause (the generator models this as a "troubled" project, where
+  most of that project's tasks ran long together) rather than ordinary
+  task-by-task noise.
 
 Same organisation, same estimating discipline, genuinely different outcomes
 — which is the point of tracking it per-project rather than assuming one
@@ -105,17 +115,16 @@ project a resource (or a tag/role) is committed to — not just whatever's
 currently on screen — which is exactly the kind of clash a single project's
 own grid can't show you.
 
-Switch to **By Resource** and look for **Tom Whitfield** — he's
-double-booked at 200% of capacity for two consecutive days in June, drawn
-from two different projects. Expand the finding and the drill-down shows
-why it's not necessarily urgent: one of the two tasks (**Integration**, in
-*Invoice Automation*) is on that project's **Critical** chain, but the other
-(**Build-C**, in *Warehouse Mobile App*) is on a **Feeding** chain — which by
-definition has slack absorbing exactly this kind of clash. This is the
-judgement call the report is built for: a critical-chain/critical-chain
-clash needs a decision (shift a task, reassign a resource); a critical/
-feeding clash usually doesn't, because the feeding buffer is already there
-to absorb it.
+Switch to **By Resource** and look for **Ben Carter** — he's double-booked
+at 200% of capacity for a couple of days in August, drawn from two different
+projects. Expand the finding and the drill-down shows why it's not
+necessarily urgent: one of the two tasks (**Build-A**, in *Pricing Engine
+Update*) is on that project's **Critical** chain, but the other (**Build-B**,
+in *Contract Renewal Tool*) is on a **Feeding** chain — which by definition
+has slack absorbing exactly this kind of clash. This is the judgement call
+the report is built for: a critical-chain/critical-chain clash needs a
+decision (shift a task, reassign a resource); a critical/feeding clash
+usually doesn't, because the feeding buffer is already there to absorb it.
 
 Switch to **By Tag** and you'll typically see the same clashes reappear,
 aggregated by role instead of by name — in this file no *role* is
@@ -148,7 +157,8 @@ still provisional until a CCPM schedule run actually levels them.
 seed keeps the story consistent run to run, but the exact numbers above will
 drift slightly each time it's regenerated, since the three-month lookback
 window is always anchored to whichever day it was generated on. The shape of
-the walkthrough — some projects deep in the red, some comfortably green, a
-few not-yet-started projects with partial full-kit readiness, at least one
-resource double-booked across projects — is what the generator is designed
+the walkthrough — some projects deep in the red (occasionally a project
+buffer completely exhausted), some comfortably green, a few not-yet-started
+projects with partial full-kit readiness, at least one resource
+double-booked across projects — is what the generator is designed
 to reproduce, not the specific numbers quoted here.

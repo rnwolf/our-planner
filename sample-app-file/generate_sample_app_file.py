@@ -500,13 +500,29 @@ TASK_OUTCOME_PROFILES = [
     (3, (1.2, 2.0), 'Other / Unexplained'),
 ]
 
+# A project buffer protects a whole critical chain, so by the law of large
+# numbers its average consumption tends to land well under 100% even with
+# every task individually running long - the averaging effect cancels out
+# most of the noise. Real project buffers DO occasionally get fully
+# exhausted, but that's usually a correlated, project-wide event (a key
+# person got pulled away, requirements churned across the whole scope, a
+# vendor problem hit every downstream task) rather than every task
+# independently rolling bad luck - so a minority of projects are marked
+# "troubled" up front and get every task's outcome factor amplified,
+# instead of uniformly cranking the noise for every project.
+TROUBLED_PROJECT_PROBABILITY = 0.22
+TROUBLED_PROJECT_SEVERITY = 1.35
 
-def sample_task_outcome(duration: int, rng: random.Random) -> tuple[int, str]:
+
+def sample_task_outcome(
+    duration: int, rng: random.Random, severity: float = 1.0
+) -> tuple[int, str]:
     """How long a task actually takes once real-world variability plays
-    out, plus the reason that goes with it. See TASK_OUTCOME_PROFILES."""
+    out, plus the reason that goes with it. See TASK_OUTCOME_PROFILES.
+    `severity` amplifies the sampled factor - see TROUBLED_PROJECT_*."""
     weights = [profile[0] for profile in TASK_OUTCOME_PROFILES]
     _, (lo, hi), reason = rng.choices(TASK_OUTCOME_PROFILES, weights=weights, k=1)[0]
-    factor = rng.uniform(lo, hi)
+    factor = rng.uniform(lo, hi) * severity
     actual_duration = max(1, round(duration * factor))
     return actual_duration, reason
 
@@ -517,6 +533,7 @@ def simulate_progress(
     task,
     today_day: int,
     rng: random.Random,
+    severity: float = 1.0,
 ):
     """Backdates a task's own start/finish against `model.setdate` so it
     looks genuinely worked on rather than just sitting in 'planning',
@@ -558,7 +575,7 @@ def simulate_progress(
     start_reason = 'Waiting for Resource' if delayed else 'On Time'
 
     duration = task['duration']
-    actual_duration, outcome_reason = sample_task_outcome(duration, rng)
+    actual_duration, outcome_reason = sample_task_outcome(duration, rng, severity)
     actual_end = actual_start + actual_duration
 
     if actual_end <= today_day:
@@ -627,22 +644,26 @@ def build_mini_project(
     else:
         status = 'ongoing'
 
+    troubled = status != 'future' and rng.random() < TROUBLED_PROJECT_PROBABILITY
+    severity = TROUBLED_PROJECT_SEVERITY if troubled else 1.0
+
     if status != 'future':
         model.setdate = model.get_date_for_day(max(0, start_col_actual - 1))
         model.capture_project_baseline(scheduled['id'])
         model.set_project_phase(scheduled['id'], 'execution')
         for task in scheduled_tasks:
-            simulate_progress(model, task_ops, task, today_day, rng)
+            simulate_progress(model, task_ops, task, today_day, rng, severity)
 
     simulate_fullkit(model, scheduled_tasks, shape_name, today_day, rng)
 
     span_days = end_col_actual - start_col_actual
     stats = result['stats']
+    flag = ' [troubled]' if troubled else ''
     print(
         f'  [{status:>9}] {name:<28} shape={shape_name:<6} '
         f'{len(scheduled_tasks):>2} rows  span={span_days:>3}d  '
         f'critical_chain={stats.critical_chain_length}d  '
-        f'buffer={stats.project_buffer}d'
+        f'buffer={stats.project_buffer}d{flag}'
     )
     return status
 
