@@ -138,12 +138,6 @@ class HelpMenu:
 - Use the Tags menu to filter tasks and resources by tags
 - Toggle tag display using the View menu
 
-## Critical Path Analysis
-
-- Select tasks using Ctrl+click or enable multi-select mode
-- Use the Network menu to run Critical Path Analysis
-- The critical path shows the shortest possible project duration
-
 ## Scheduling with CCPM
 
 ### Schedule with CCPM...

@@ -7,9 +7,7 @@ from src.model import TaskResourceModel
 from src.utils.app_settings import load_settings, save_settings
 from src.view import UIComponents
 
-# from src.view.menus import HelpMenu, NetworkMenu
 from src.operations.file_operations import FileOperations
-from src.operations.network_operations import NetworkOperations
 from src.operations.tag_operations import TagOperations
 from src.operations.task_operations import TaskOperations
 from src.operations.export_operations import ExportOperations
@@ -209,7 +207,6 @@ class TaskResourceManager:
         self.file_ops = FileOperations(self, self.model)
         self.export_ops = ExportOperations(self, self.model)
         self.report_ops = ReportOperations(self, self.model)
-        self.network_ops = NetworkOperations(self, self.model)
         self.ccpm_ops = CcpmOperations(self, self.model)
         self.version_control_ops = VersionControlOperations(self, self.model)
 

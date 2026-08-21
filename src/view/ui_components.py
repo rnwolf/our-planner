@@ -8,7 +8,6 @@ from tkinter import font as tkfont
 from typing import Optional
 import webbrowser
 from datetime import datetime, timedelta
-from src.view.menus.network_menu import NetworkMenu
 from src.view.menus.help_menu import HelpMenu
 from src.utils.app_settings import load_settings
 from src.utils.colors import (
@@ -71,7 +70,6 @@ class UIComponents:
         self.dependency_link_map = {}  # Maps arrow canvas item id to (predecessor_id, successor_id)
 
         # Reference to network menu
-        self.network_menu = None
         # Reference to help menu
         self.help_menu = None
 
@@ -807,11 +805,6 @@ class UIComponents:
         self.network_graph_menu.add_command(
             label='Project...',
             command=lambda: self.controller.report_ops.view_network_graph_project(),
-        )
-
-        # Add Network menu
-        self.network_menu = NetworkMenu(
-            self.controller, self.controller.root, self.menu_bar
         )
 
         # Add Help menu

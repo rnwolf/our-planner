@@ -26,7 +26,6 @@ Thus this app is written in Python, which is the data analysts' tool of choice, 
 - Tag-based filtering for tasks and resources
 - Multi-select tasks for bulk operations
 - Export tasks to PDF, PNG, CSV, and HTML formats
-- Select tasks for Critical Path analysis
 
 ### Roadmap
 
