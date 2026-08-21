@@ -1,3 +1,4 @@
+import re
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox, colorchooser
 from datetime import datetime
@@ -1097,6 +1098,228 @@ class TaskOperations:
             refresh_capacity_list,
         )
 
+    def create_tags_tab(self, tags_tab, resource_dropdown):
+        """Create the Tags tab of Edit Resources - same resource-dropdown-
+        driven pattern as create_capacity_tab, so a resource's tags can be
+        edited regardless of Show Tags on Tasks or whether it has any tags
+        yet. Previously the *only* way in was the resource grid's own
+        right-click -> Edit Resource Tags, bound to the tag-text canvas
+        item itself - which doesn't exist at all when there's no tag text
+        to right-click (no tags yet, or tag display turned off), making a
+        resource's first tag effectively impossible to add.
+
+        `resource_dropdown` is a second, separate combobox from Capacity's
+        own - a Tk widget can only belong to one parent, so the tabs can't
+        literally share one widget - but edit_resources's
+        update_resource_dropdown/on_resource_select keep both in sync
+        with the Resources tab's listbox selection. Unlike the old
+        Toplevel dialog (stage the edits, only write on Save), each add/
+        remove here applies immediately, matching how Capacity's own
+        "Update Capacity" writes straight through - nothing to lose
+        switching resources or tabs without an explicit save."""
+        tags_frame = tk.Frame(tags_tab)
+        tags_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        tk.Label(tags_frame, text='Select resource:').pack(anchor='w', pady=(0, 5))
+        resource_dropdown.pack(fill=tk.X, pady=(0, 10))
+
+        tk.Label(tags_frame, text='Current Tags:', anchor='w').pack(fill=tk.X)
+
+        tag_scroll_frame = tk.Frame(tags_frame)
+        tag_scroll_frame.pack(fill=tk.X, pady=5, ipady=40)
+
+        tag_scrollbar = ttk.Scrollbar(tag_scroll_frame, orient='vertical')
+        tag_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        tag_canvas = tk.Canvas(
+            tag_scroll_frame,
+            yscrollcommand=tag_scrollbar.set,
+            highlightthickness=1,
+            highlightbackground='gray',
+            height=80,
+        )
+        tag_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tag_scrollbar.config(command=tag_canvas.yview)
+
+        tag_container = tk.Frame(tag_canvas)
+        tag_canvas_window = tag_canvas.create_window(
+            (0, 0), window=tag_container, anchor='nw'
+        )
+        tag_container.bind(
+            '<Configure>',
+            lambda e: tag_canvas.configure(scrollregion=tag_canvas.bbox('all')),
+        )
+        tag_canvas.bind(
+            '<Configure>',
+            lambda e: tag_canvas.itemconfig(tag_canvas_window, width=e.width),
+        )
+
+        input_frame = tk.Frame(tags_frame)
+        input_frame.pack(fill=tk.X, pady=(0, 10))
+
+        tk.Label(input_frame, text='Add Tag:', anchor='w').pack(fill=tk.X)
+        tag_input_var = tk.StringVar()
+        tag_entry = tk.Entry(input_frame, textvariable=tag_input_var)
+        tag_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+
+        suggestions_frame = tk.Frame(tags_frame)
+        suggestions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        tk.Label(suggestions_frame, text='Suggestions:', anchor='w').pack(fill=tk.X)
+
+        suggestion_scroll_frame = tk.Frame(suggestions_frame)
+        suggestion_scroll_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        suggestion_scrollbar = ttk.Scrollbar(suggestion_scroll_frame, orient='vertical')
+        suggestion_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        suggestion_canvas = tk.Canvas(
+            suggestion_scroll_frame,
+            height=120,
+            highlightthickness=1,
+            highlightbackground='gray',
+            yscrollcommand=suggestion_scrollbar.set,
+        )
+        suggestion_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        suggestion_scrollbar.config(command=suggestion_canvas.yview)
+        suggestion_container = tk.Frame(suggestion_canvas)
+        suggestion_canvas.create_window(
+            (0, 0), window=suggestion_container, anchor='nw'
+        )
+        suggestion_canvas.bind(
+            '<Configure>',
+            lambda e: suggestion_container.configure(width=e.width),
+        )
+        suggestion_container.bind(
+            '<Configure>',
+            lambda e: suggestion_canvas.configure(
+                scrollregion=suggestion_canvas.bbox('all')
+            ),
+        )
+
+        def current_resource_id():
+            selected = resource_dropdown.get()
+            if not selected:
+                return None
+            return int(selected.split(' - ')[0])
+
+        def refresh_tags_display():
+            for widget in tag_container.winfo_children():
+                widget.destroy()
+            for widget in suggestion_container.winfo_children():
+                widget.destroy()
+
+            resource_id = current_resource_id()
+            resource = (
+                self.model.get_resource_by_id(resource_id)
+                if resource_id is not None
+                else None
+            )
+            current_tags = list(resource.get('tags', [])) if resource else []
+
+            if not current_tags:
+                tk.Label(tag_container, text='No tags yet', fg='gray').pack(
+                    anchor='w', padx=5, pady=5
+                )
+            else:
+                current_row = tk.Frame(tag_container)
+                current_row.pack(fill=tk.X, pady=2)
+                for i, tag in enumerate(sorted(current_tags)):
+                    if i > 0 and i % 3 == 0:
+                        current_row = tk.Frame(tag_container)
+                        current_row.pack(fill=tk.X, pady=2)
+
+                    tag_frame = tk.Frame(
+                        current_row,
+                        highlightthickness=1,
+                        highlightbackground='gray',
+                        padx=5,
+                        pady=2,
+                    )
+                    tag_frame.pack(side=tk.LEFT, padx=2)
+                    tk.Label(tag_frame, text=tag).pack(side=tk.LEFT, padx=(0, 5))
+                    tk.Button(
+                        tag_frame,
+                        text='×',
+                        width=1,
+                        height=1,
+                        command=lambda t=tag: remove_tag(t),
+                    ).pack(side=tk.LEFT)
+
+            row_frame = tk.Frame(suggestion_container)
+            row_frame.pack(fill=tk.X, pady=2)
+            col_count = 0
+            max_cols = 4
+            for tag in sorted(self.model.get_all_tags()):
+                if tag in current_tags:
+                    continue
+                if col_count >= max_cols:
+                    row_frame = tk.Frame(suggestion_container)
+                    row_frame.pack(fill=tk.X, pady=2)
+                    col_count = 0
+                tk.Button(
+                    row_frame,
+                    text=tag,
+                    command=lambda t=tag: add_tag_from_suggestion(t),
+                ).pack(side=tk.LEFT, padx=2, pady=2, fill=tk.X, expand=True)
+                col_count += 1
+
+            tag_canvas.configure(scrollregion=tag_canvas.bbox('all'))
+            suggestion_canvas.configure(scrollregion=suggestion_canvas.bbox('all'))
+
+        def add_tag(event=None):
+            resource_id = current_resource_id()
+            if resource_id is None:
+                return
+            tag = tag_input_var.get().strip()
+            if not tag:
+                return
+            if not re.match(r'^[\w\-]+$', tag):
+                messagebox.showwarning(
+                    'Invalid Tag',
+                    'Tags can only contain letters, numbers, underscores, and hyphens.',
+                    parent=tags_tab.winfo_toplevel(),
+                )
+                return
+            resource = self.model.get_resource_by_id(resource_id)
+            if resource is None:
+                return
+            tags = list(resource.get('tags', []))
+            if tag not in tags:
+                tags.append(tag)
+                self.controller.tag_ops.save_resource_tags(resource_id, tags)
+            tag_input_var.set('')
+            refresh_tags_display()
+
+        def add_tag_from_suggestion(tag):
+            tag_input_var.set(tag)
+            add_tag()
+
+        def remove_tag(tag):
+            resource_id = current_resource_id()
+            if resource_id is None:
+                return
+            resource = self.model.get_resource_by_id(resource_id)
+            if resource is None:
+                return
+            tags = [t for t in resource.get('tags', []) if t != tag]
+            self.controller.tag_ops.save_resource_tags(resource_id, tags)
+            refresh_tags_display()
+
+        tag_entry.bind('<Return>', add_tag)
+        tk.Button(
+            input_frame,
+            text='Add Tag',
+            underline=mnemonic('Add Tag', 'Tag'),
+            command=add_tag,
+        ).pack(side=tk.LEFT)
+
+        resource_dropdown.bind('<<ComboboxSelected>>', lambda e: refresh_tags_display())
+
+        # 't' - a/u/r/c/w (Resources tab) and i/d/s/e (Capacity tab) are
+        # already taken on this same shared dialog.
+        dialog = tags_tab.winfo_toplevel()
+        dialog.bind('<Alt-t>', lambda e: add_tag())
+
+        return tags_frame, refresh_tags_display
+
     def edit_task_resources(self, task=None):
         """Add/remove/adjust this task's resource allocations.
 
@@ -1448,8 +1671,14 @@ class TaskOperations:
             else:
                 messagebox.showinfo('Information', 'Resource already exists.')
 
-    def edit_resources(self, parent=None):
-        """Edit the list of resources"""
+    def edit_resources(
+        self, parent=None, initial_resource_id=None, initial_tab='Resources'
+    ):
+        """Edit the list of resources.
+
+        `initial_resource_id`/`initial_tab` let a caller land directly on
+        a specific resource's Tags tab - see the resource grid's own
+        Edit Resource Tags command."""
         # Create a dialog for resource editing
         parent = parent or self.controller.root
 
@@ -1482,6 +1711,10 @@ class TaskOperations:
         # Capacity tab
         capacity_tab = tk.Frame(notebook)
         notebook.add(capacity_tab, text='Capacity')
+
+        # Tags tab
+        tags_tab = tk.Frame(notebook)
+        notebook.add(tags_tab, text='Tags')
 
         # ---- Resources Tab ----
         resource_management_frame = tk.Frame(resources_tab)
@@ -1754,11 +1987,11 @@ class TaskOperations:
 
         def on_resource_select(event):
             """When a resource is selected, populate the name entry field
-            and keep the Capacity tab's resource dropdown in sync - it's a
-            separate selection widget from this listbox, so without this
-            the Capacity tab silently kept showing whichever resource it
-            last had selected (e.g. Resource A) regardless of what was
-            picked here."""
+            and keep the Capacity and Tags tabs' own resource dropdowns in
+            sync - both are separate selection widgets from this listbox,
+            so without this they'd silently keep showing whichever
+            resource they last had selected regardless of what was picked
+            here."""
             selected_indices = resource_listbox.curselection()
             if selected_indices:
                 index = selected_indices[0]
@@ -1772,6 +2005,8 @@ class TaskOperations:
                     resource_emails_var.set(resource.get('emails', ''))
                     resource_dropdown.set(resource_text)
                     refresh_capacity_list()
+                    tags_dropdown.set(resource_text)
+                    refresh_tags_display()
 
         # Bind selection event
         resource_listbox.bind('<<ListboxSelect>>', on_resource_select)
@@ -1815,21 +2050,31 @@ class TaskOperations:
             refresh_capacity_list,
         ) = self.create_capacity_tab(capacity_tab, resource_dropdown)
 
+        # A second, separate dropdown for the Tags tab - a Tk widget can
+        # only belong to one parent, so it can't literally be the same
+        # widget as Capacity's own, but update_resource_dropdown and
+        # on_resource_select keep the two in sync.
+        tags_var = tk.StringVar()
+        tags_dropdown = ttk.Combobox(tags_tab, textvariable=tags_var, state='readonly')
+        tags_frame, refresh_tags_display = self.create_tags_tab(tags_tab, tags_dropdown)
+
         # Update dropdown values
         def update_resource_dropdown():
             resources = [f'{r["id"]} - {r["name"]}' for r in self.model.resources]
-            current = resource_dropdown.get()
-            resource_dropdown['values'] = resources
-            # Preserve whatever resource was already selected (e.g. when
-            # re-entering the Capacity tab) instead of always snapping back
-            # to the first resource - that used to just look wrong in the
-            # dropdown text, but now that refresh_capacity_list() redraws
-            # from this value on every tab switch, resetting it here would
-            # silently redraw the wrong resource's capacity.
-            if current in resources:
-                resource_dropdown.set(current)
-            elif resources:
-                resource_dropdown.current(0)
+            for dropdown in (resource_dropdown, tags_dropdown):
+                current = dropdown.get()
+                dropdown['values'] = resources
+                # Preserve whatever resource was already selected (e.g.
+                # when re-entering this tab) instead of always snapping
+                # back to the first resource - that used to just look
+                # wrong in the dropdown text, but now that
+                # refresh_capacity_list()/refresh_tags_display() redraw
+                # from this value on every tab switch, resetting it here
+                # would silently redraw the wrong resource.
+                if current in resources:
+                    dropdown.set(current)
+                elif resources:
+                    dropdown.current(0)
 
         # Initialize the dropdown
         update_resource_dropdown()
@@ -1894,10 +2139,47 @@ class TaskOperations:
                 # the dialog.
                 update_resource_dropdown()
                 refresh_capacity_list()
+            elif tab_text == 'Tags':
+                update_resource_dropdown()
+                refresh_tags_display()
 
         notebook.bind('<<NotebookTabChanged>>', on_tab_changed)
 
         add_resize_handle(dialog)
+
+        def apply_initial_selection():
+            if initial_resource_id is not None:
+                for index, resource in enumerate(self.model.resources):
+                    if resource['id'] == initial_resource_id:
+                        resource_listbox.selection_clear(0, tk.END)
+                        resource_listbox.selection_set(index)
+                        resource_listbox.see(index)
+                        break
+
+            if initial_tab != 'Resources':
+                for tab_id in notebook.tabs():
+                    if notebook.tab(tab_id, 'text') == initial_tab:
+                        notebook.select(tab_id)
+                        break
+
+            # Re-sync last: switching tabs above re-triggers on_tab_changed,
+            # which repopulates the dropdowns from scratch (defaulting to
+            # the first resource) - reapply the target resource once more
+            # so the right one ends up showing, not the first one.
+            if initial_resource_id is not None:
+                on_resource_select(None)
+
+        if initial_resource_id is not None or initial_tab != 'Resources':
+            # Deferred rather than run inline: notebook tab construction
+            # itself can queue a <<NotebookTabChanged>> for asynchronous
+            # dispatch, which would otherwise land after this function
+            # returns and clobber whatever was just selected here. A short
+            # explicit delay - imperceptible for a dialog the user just
+            # triggered - lets the dialog's own construction-time events
+            # settle first, rather than fighting Tk's event queue with a
+            # forced update() (which risks reentrancy) or guessing at
+            # ordering that only happens to work by accident.
+            dialog.after(50, apply_initial_selection)
 
     def manage_projects_dialog(self, parent=None):
         """Open a dialog to add, edit, remove, and set the default project."""

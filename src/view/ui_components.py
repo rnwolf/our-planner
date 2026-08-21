@@ -1625,8 +1625,13 @@ class UIComponents:
         self.resource_context_menu = tk.Menu(self.controller.root, tearoff=0)
         self.resource_context_menu.add_command(
             label='Edit Resource Tags',
-            command=lambda: self.controller.tag_ops.edit_resource_tags(
-                self.selected_resource_id
+            # Opens the Tags tab of Edit Resources, not a standalone
+            # dialog - that tab works even when this resource has no tags
+            # yet to right-click on the grid in the first place (or Show
+            # Tags on Tasks is off), which a canvas-item-bound entry point
+            # never could.
+            command=lambda: self.controller.task_ops.edit_resources(
+                initial_resource_id=self.selected_resource_id, initial_tab='Tags'
             ),
         )
 

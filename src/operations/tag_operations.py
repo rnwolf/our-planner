@@ -882,28 +882,6 @@ class TagOperations:
             # If not using filters, just update resource loading which might be affected by tags
             self.controller.update_resource_loading()
 
-    def edit_resource_tags(self, resource_id):
-        """Edit tags for a resource."""
-        if not resource_id:
-            return
-
-        resource = self.model.get_resource_by_id(resource_id)
-        if not resource:
-            return
-
-        # Ensure resource has a tags field
-        if 'tags' not in resource:
-            resource['tags'] = []
-
-        # Create and show the tags dialog
-        TagsDialog(
-            self.controller.root,
-            f'Edit Resource Tags: {resource["name"]}',
-            current_tags=resource['tags'],
-            all_tags=self.model.get_all_tags(),
-            on_save=lambda tags: self.save_resource_tags(resource_id, tags),
-        )
-
     def save_resource_tags(self, resource_id, tags):
         """Save tags for a resource and update the UI."""
         # Update the model
