@@ -325,7 +325,9 @@ class UIComponents:
         self.controller.root.config(menu=self.menu_bar)
 
         # File menu (Alt+F)
-        self.file_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.file_menu = tk.Menu(
+            self.menu_bar, tearoff=0, postcommand=self.refresh_file_menu_state
+        )
         self.menu_bar.add_cascade(label='File', menu=self.file_menu, underline=0)
 
         # File operations - accelerator= is display-only in Tk, so each of
@@ -370,8 +372,15 @@ class UIComponents:
         self.file_menu.add_separator()
         self.file_menu.add_command(
             label='New Versioned Project...',
-            underline=mnemonic('New Versioned Project...', 'Versioned'),
+            # 'V' is Save Version's mnemonic below - anchor to 'Project'
+            # instead so the two don't collide.
+            underline=mnemonic('New Versioned Project...', 'Project'),
             command=self.controller.version_control_ops.new_versioned_project,
+        )
+        self.file_menu.add_command(
+            label='Save Version...',
+            underline=mnemonic('Save Version...', 'Version'),
+            command=self.controller.version_control_ops.save_version,
         )
         self.file_menu.add_separator()
         self.file_menu.add_command(
@@ -781,6 +790,16 @@ class UIComponents:
 
         # Add Help menu
         self.help_menu = HelpMenu(self.controller, self.controller.root, self.menu_bar)
+
+    def refresh_file_menu_state(self):
+        """File menu's own postcommand: enables Save Version... only while
+        the open project is a versioned workspace - save_version() itself
+        also no-ops when it isn't, but a visibly disabled item is clearer
+        than a silently inert click."""
+        state = (
+            tk.NORMAL if self.controller.version_control is not None else tk.DISABLED
+        )
+        self.file_menu.entryconfig('Save Version...', state=state)
 
     def refresh_recent_files_menu(self):
         """File > Recent's postcommand: rebuild its entries from

@@ -17,7 +17,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 
 from src.utils import git_helper
 
@@ -206,3 +206,55 @@ class VersionControlOperations:
             'Every edit is autosaved to a local "autosave" branch; use '
             'File > Save Version... to checkpoint onto "main".',
         )
+
+    def save_version(self):
+        """File -> Save Version...: squashes every commit on the autosave
+        branch since the last checkpoint into ONE commit on main, then
+        resets autosave back to main's new tip - see this module's
+        docstring for the two-tier branch design. A no-op (with a message)
+        if there's nothing new to checkpoint. Disabled/no-op when the
+        project isn't a versioned workspace."""
+        vc = self.controller.version_control
+        if vc is None:
+            return
+
+        # Captures any edit not yet committed, so it's included in this
+        # checkpoint rather than left stranded on autosave past a reset.
+        self.maybe_autosave_checkpoint()
+
+        autosave_tip = git_helper.log(vc.workspace_dir, vc.autosave_branch)[0].sha
+        main_tip = git_helper.log(vc.workspace_dir, vc.main_branch)[0].sha
+        if autosave_tip == main_tip:
+            messagebox.showinfo(
+                'Nothing to Save', 'No changes since the last saved version.'
+            )
+            return
+
+        message = simpledialog.askstring(
+            'Save Version',
+            'Optional message for this version (leave blank for a default):',
+            parent=self.controller.root,
+        )
+        if message is None:  # Cancel
+            return
+        if not message.strip():
+            message = f'Checkpoint {datetime.now().isoformat(timespec="seconds")}'
+
+        try:
+            git_helper.checkout(vc.workspace_dir, vc.main_branch)
+            git_helper.merge_squash(vc.workspace_dir, vc.autosave_branch)
+            git_helper.commit(vc.workspace_dir, message)
+        except git_helper.GitError as e:
+            # merge_squash's own docstring: a failed --squash never writes
+            # MERGE_HEAD, so `git reset --merge` (not `merge --abort`) is
+            # what actually unwinds it - confirmed live building git_helper.
+            git_helper.merge_abort(vc.workspace_dir)
+            git_helper.checkout(vc.workspace_dir, vc.autosave_branch)
+            messagebox.showerror(
+                'Save Version Failed', f'Could not save this version: {e}'
+            )
+            return
+
+        git_helper.reset_branch(vc.workspace_dir, vc.autosave_branch, vc.main_branch)
+        git_helper.checkout(vc.workspace_dir, vc.autosave_branch)
+        messagebox.showinfo('Version Saved', f'Saved version: {message}')

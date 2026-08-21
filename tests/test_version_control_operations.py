@@ -309,3 +309,92 @@ class TestMaybeAutosaveCheckpoint:
             model.add_task(row=2, col=0, duration=3, description='Task B')
             ops.maybe_autosave_checkpoint()
             assert warn.call_count == 1
+
+
+class TestSaveVersion:
+    def test_noop_when_not_versioned(self):
+        ops, controller, _model = _ops()
+        controller.version_control = None
+
+        ops.save_version()  # must not raise - nothing to do
+
+    def test_nothing_to_save_when_no_changes_since_last_checkpoint(
+        self, real_workspace
+    ):
+        ops, _controller, _model, workspace = real_workspace
+
+        with (
+            patch(
+                'src.operations.version_control_operations.messagebox.showinfo'
+            ) as showinfo,
+            patch(
+                'src.operations.version_control_operations.simpledialog.askstring'
+            ) as askstring,
+        ):
+            ops.save_version()
+
+        showinfo.assert_called_once()
+        assert showinfo.call_args[0][0] == 'Nothing to Save'
+        askstring.assert_not_called()
+        assert git_helper.current_branch(workspace) == DEFAULT_AUTOSAVE_BRANCH
+
+    def test_squashes_autosave_commits_into_one_main_commit(self, real_workspace):
+        ops, _controller, model, workspace = real_workspace
+        model.add_task(row=1, col=0, duration=3, description='Task A')
+        ops.maybe_autosave_checkpoint()
+        model.add_task(row=2, col=0, duration=3, description='Task B')
+        ops.maybe_autosave_checkpoint()
+        assert len(git_helper.log(workspace, DEFAULT_AUTOSAVE_BRANCH)) == 3
+
+        with (
+            patch(
+                'src.operations.version_control_operations.simpledialog.askstring',
+                return_value='End of day one',
+            ),
+            patch('src.operations.version_control_operations.messagebox.showinfo'),
+        ):
+            ops.save_version()
+
+        main_commits = git_helper.log(workspace, DEFAULT_MAIN_BRANCH)
+        assert [c.message for c in main_commits] == [
+            'End of day one',
+            'Initial commit',
+        ]
+        autosave_commits = git_helper.log(workspace, DEFAULT_AUTOSAVE_BRANCH)
+        assert autosave_commits == main_commits  # reset onto main's new tip
+
+        assert git_helper.current_branch(workspace) == DEFAULT_AUTOSAVE_BRANCH
+        assert git_helper.is_clean(workspace)
+        assert len(model.tasks) == 2  # both edits survived the squash
+
+    def test_blank_message_uses_a_generated_default(self, real_workspace):
+        ops, _controller, model, workspace = real_workspace
+        model.add_task(row=1, col=0, duration=3, description='Task A')
+
+        with (
+            patch(
+                'src.operations.version_control_operations.simpledialog.askstring',
+                return_value='   ',
+            ),
+            patch('src.operations.version_control_operations.messagebox.showinfo'),
+        ):
+            ops.save_version()
+
+        main_commits = git_helper.log(workspace, DEFAULT_MAIN_BRANCH)
+        assert main_commits[0].message.startswith('Checkpoint ')
+
+    def test_cancel_leaves_history_untouched(self, real_workspace):
+        ops, _controller, model, workspace = real_workspace
+        model.add_task(row=1, col=0, duration=3, description='Task A')
+        ops.maybe_autosave_checkpoint()
+        before_main = git_helper.log(workspace, DEFAULT_MAIN_BRANCH)
+
+        with patch(
+            'src.operations.version_control_operations.simpledialog.askstring',
+            return_value=None,
+        ):
+            ops.save_version()
+
+        assert git_helper.log(workspace, DEFAULT_MAIN_BRANCH) == before_main
+        assert git_helper.current_branch(workspace) == DEFAULT_AUTOSAVE_BRANCH
+        assert git_helper.is_clean(workspace)
