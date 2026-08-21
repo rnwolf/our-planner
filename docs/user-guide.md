@@ -24,6 +24,14 @@ It currently follows what I consider normal practice for desktop GUI application
 
 **File → Export CCPM Network...** writes the ccpm-scheduler input files (`tasks.csv`, `resources.csv`, `calendar.csv`) plus optional `tags`/`colour` columns; any export notes go to a `notes.txt` alongside them. **File → Import CCPM Schedule...** reads those tags/colours back if the `schedule.csv` carries them, and tags every imported row `ccpm`.
 
+## Scheduling with CCPM
+
+**File → Schedule with CCPM...** validates a project's network, builds a critical-chain schedule in-process, and imports the result as a new project next to the source — the source is left untouched, so a hand-drawn plan and the CCPM-scheduled version can be compared side by side.
+
+Resources are shared globally across every project in a plan file, so a resource being scheduled here may already be committed to tasks in *other* projects over the same days. Before scheduling, a **CCPM Scheduling Options** dialog offers **Account for capacity already committed to other projects**, checked by default: with it on, each resource's exported capacity is reduced by its load from every other project's tasks first, so the new schedule doesn't plan against capacity someone else already has a claim on — any resource actually reduced this way is named in the result dialog's Notes. Unchecking it schedules against each resource's full nominal capacity instead, ignoring other projects entirely (the previous behaviour, still available for when a resource pool genuinely isn't shared, or for comparing against the unconstrained plan). **File → Export CCPM Network...** applies the same reduction unconditionally, since that flow has no dialog step to offer the choice in.
+
+See [Sample Portfolio Walkthrough → Resource Over-Allocation](sample-portfolio-walkthrough.md#resource-over-allocation-is-this-actually-a-problem) for the read-only, whole-portfolio view of the same cross-project contention this option feeds directly into scheduling.
+
 ## CCPM buffer sizing method
 
 Each project has a **CCPM Method** (Projects → Manage Projects...) that selects how the scheduler sizes its project and feeding buffers: `cap` (Cut & Paste — buffer = the safety removed from the chain; the default and the most explainable), `hchain` (50% of chain length), or `rsem` (root-squared error). Both **Schedule with CCPM...** and the **Export CCPM Network...** command hint use the project's method. Buffers can always be resized by hand before the project enters execution mode. Formulas and trade-offs are documented in the ccpm-scheduler package's `docs/buffer-sizing.md`.

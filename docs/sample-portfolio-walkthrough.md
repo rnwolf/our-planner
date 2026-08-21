@@ -183,6 +183,20 @@ case, where three developers are each individually under capacity but the
 role as a whole is genuinely over-committed, something no single resource's
 row would ever show as red.
 
+Ben Carter's double-booking exists here because both mini-projects were
+scheduled independently, each unaware of the other's claim on him — this
+file predates **Account for capacity already committed to other projects**,
+the option now offered by **File → Schedule with CCPM...** (see
+[User Guide → Scheduling with CCPM](user-guide.md#scheduling-with-ccpm)).
+Re-scheduling either project with that option checked would reduce his
+exported capacity by the other project's load over the clashing days,
+pushing the lower-priority task out rather than leaving both projects
+planned against the same person at the same time — the report above still
+matters for judging clashes across projects that were scheduled separately
+(or where a resource's other commitment isn't itself a CCPM-scheduled
+project), but a single project's own scheduling run can now avoid creating
+this particular kind of clash in the first place.
+
 ## Filtering resources by tag when assigning
 
 This file names every resource after a real person (`capacity=1.0`) and

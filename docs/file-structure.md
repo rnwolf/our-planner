@@ -46,6 +46,8 @@ Why half-open? It matches how the schedule itself works: a task with `start=2, f
 
 Days are working-day offsets from day 0 (the same axis as the Gantt chart). `capacity 0` = unavailable (holiday, another project); a higher value models temporary extra capacity (e.g. a contractor). Outside the listed ranges, the resource's default capacity from `resources.csv` applies. Ranges for the same resource must not overlap.
 
+our-planner's own `File → Export CCPM Network...` and `File → Schedule with CCPM...` populate the "another project" case automatically: resources are shared globally across every project in a plan file, so a resource's exported capacity is reduced by its load from every *other* project's tasks over the same days (see [User Guide → Scheduling with CCPM](user-guide.md#scheduling-with-ccpm)) — hand-authoring these rows yourself is only needed for leave/contractor windows a project's own tasks can't already account for.
+
 Tasks run **contiguously** — they never pause across an outage, so a task is scheduled entirely before or entirely after it.
 
 ### `schedule.csv`
