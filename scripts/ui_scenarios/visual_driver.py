@@ -215,7 +215,14 @@ class VisualDriver(ScenarioDriver):
         self._beat()
 
         dialog = self._find_toplevel('Edit Task Resources')
-        search_entry, allocation_entry = self._find_widgets(dialog, tk.Entry)
+        # ttk.Combobox is a subclass of tk.Entry (see driver.
+        # ScenarioDriver.assign_resource and set_resource_capacities below
+        # for the same issue) - filter out the dialog's tag-filter dropdown
+        # rather than unpacking three widgets into two.
+        entries = [
+            w for w in self._find_widgets(dialog, tk.Entry) if type(w) is tk.Entry
+        ]
+        search_entry, allocation_entry = entries
         _assigned_listbox, available_listbox = self._find_widgets(dialog, tk.Listbox)
 
         search_entry.focus_set()
