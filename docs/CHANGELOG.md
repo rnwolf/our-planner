@@ -1,5 +1,5 @@
 
-    ## [0.1.25] - 2026-08-21
+    ## [0.1.26] - 2026-08-21
     ### Added
     - Versioned Project Folders: File > New Versioned Project... creates a git-backed workspace
       with automatic autosave on every meaningful edit (including on app close), Edit >
@@ -41,6 +41,10 @@
     - Generated/imported CCPM schedules no longer force a 'ccpm' tag onto every task.
     - `docs/CHANGELOG.md` (not the repo-root copy) is now the single source of truth, fixing
       drift between the two.
+    - CI's "Publish to PyPI" workflow now runs the test suite under Xvfb - the Jump to
+      Version... dialog's two real-Tk tests had never actually been able to pass on GitHub
+      Actions' headless runner, silently blocking every release since they were added
+      (v0.1.25 was never published because of this).
     ### Removed
     - The legacy Network menu and its classic critical-path analysis - superseded by CCPM
       scheduling and unrelated to CCPM's own critical chain logic.
