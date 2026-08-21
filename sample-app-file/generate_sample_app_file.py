@@ -30,6 +30,7 @@ Usage:
 from __future__ import annotations
 
 import random
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -175,11 +176,32 @@ def working_capacity(role: str) -> bool:
     return role in WEEKEND_ROLES
 
 
+# example.com/.net/.org are IANA-reserved for documentation (RFC 2606) - a
+# real domain that resolves to nothing meaningful, so these URLs are safe
+# placeholders that still exercise the exact same "task/resource text
+# becomes a clickable hyperlink" rendering and click-through path a real
+# tracker/directory link would.
+TRACKER_URL = 'https://tracker.example.com/browse/PORT-{n}'
+DIRECTORY_URL = 'https://directory.example.com/people/{slug}'
+
+
+def slugify_name(name: str) -> str:
+    """A stable, URL-safe slug for a resource's directory-page URL -
+    lowercase, hyphen-joined, punctuation (apostrophes included) stripped
+    rather than percent-encoded, so "Liam O'Connor" reads as liam-oconnor."""
+    cleaned = re.sub(r'[^a-z0-9\s-]', '', name.lower())
+    return re.sub(r'\s+', '-', cleaned.strip())
+
+
 def build_roster(model: TaskResourceModel) -> dict[str, list[int]]:
     """Adds all 30 resources, returns role -> [resource_id, ...]."""
     by_role: dict[str, list[int]] = {}
     for name, role in ROSTER:
-        resource = model.add_resource(name, works_weekends=working_capacity(role))
+        resource = model.add_resource(
+            name,
+            works_weekends=working_capacity(role),
+            url=DIRECTORY_URL.format(slug=slugify_name(name)),
+        )
         assert resource is not None, f'duplicate resource name {name!r}'
         resource['tags'] = [role]
         by_role.setdefault(role, []).append(resource['id'])
@@ -233,6 +255,14 @@ def build_draft_network(
             color=ROLE_COLOR[role],
             project_id=project_id,
         )
+        # Set post-creation (task_id isn't known until add_task returns) -
+        # this url string survives the draft's own delete-and-reschedule
+        # round trip (schedule_project_core exports it to the scheduler's
+        # own tasks.csv format and imports it straight back onto the new
+        # scheduled task), so this is the *only* place a mini-project
+        # task's url needs to be set, even though the object it's set on
+        # here gets thrown away.
+        task['url'] = TRACKER_URL.format(n=task['task_id'])
         name_to_id[task_name] = task['task_id']
         task_ids.append(task['task_id'])
         col += duration + 1
@@ -740,6 +770,11 @@ def build_backlog(
             color=BACKLOG_COLOR,
             project_id=project['id'],
         )
+        # Ad hoc work doesn't always have a ticket raised for it yet - most
+        # does, some doesn't, so the sample file exercises both the
+        # hyperlinked and the plain-text task rendering side by side.
+        if rng.random() < 0.75:
+            task['url'] = TRACKER_URL.format(n=task['task_id'])
         simulate_progress(model, task_ops, task, today_day, rng)
         # No dependency chain to gate on for an ad hoc backlog item - it's
         # available to kit as soon as it's flagged.

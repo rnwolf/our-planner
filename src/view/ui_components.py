@@ -647,6 +647,21 @@ class UIComponents:
             command=self.controller.update_view,
         )
 
+        # A long description routinely overflows a short-duration task's own
+        # box - the box itself stays the click/drag/resize target (see
+        # draw_task), so that overflowing text just looks clickable without
+        # being it. Hiding the description (keeping the id, which is short
+        # enough to always fit) is the direct fix; off by default would
+        # equally direct-fix it but silently drops information most users
+        # want, so this defaults on like Show Tags on Tasks does.
+        self.show_task_names_var = tk.BooleanVar(value=True)
+        self.view_menu.add_checkbutton(
+            label='Show Task Names',
+            underline=mnemonic('Show Task Names', 'Task'),
+            variable=self.show_task_names_var,
+            command=self.controller.update_view,
+        )
+
         # Add notes panel toggle to the View menu
         self.view_menu.add_separator()
         self.view_menu.add_command(
@@ -2911,12 +2926,15 @@ class UIComponents:
         remaining_duration = self.controller.model.get_latest_remaining_duration(
             task['task_id']
         )
-        display_text = f'{task_id} - {description}'
+        base_text = (
+            f'{task_id} - {description}'
+            if self.show_task_names_var.get()
+            else f'{task_id}'
+        )
+        display_text = base_text
 
         if remaining_duration is not None and task_state != 'done':
-            display_text = (
-                f'{task_id} - {description} ({remaining_duration}/{task["duration"]})'
-            )
+            display_text = f'{base_text} ({remaining_duration}/{task["duration"]})'
 
         # Variables to store IDs
         text_id = None
@@ -2967,10 +2985,21 @@ class UIComponents:
                 tags=('task', 'url', f'task_{task_id}'),
             )
 
-            # Bind click event to open the URL
+            # Double-click (not a plain click) opens the URL: task_canvas
+            # already has an unconditional, canvas-wide <ButtonPress-1>
+            # binding for select/drag/resize (on_task_press), which fires
+            # for every click regardless of what item is under it. A plain
+            # <Button-1> tag_bind here would fire *in addition* to that on
+            # every single click of this text - not instead of it - so a
+            # single click on a URL task would always launch a browser
+            # alongside whatever selection/drag it was actually meant to
+            # start. Double-click has no such competing binding on
+            # task_canvas, so it's free to mean "open" the same way it
+            # conventionally does for a hyperlink elsewhere (Ctrl+Click was
+            # not an option - it already means multi-select here).
             self.controller.task_canvas.tag_bind(
                 text_id,
-                '<Button-1>',
+                '<Double-Button-1>',
                 lambda e, url=task['url']: self.open_url(url),
             )
         else:

@@ -136,7 +136,8 @@ class TaskOperations:
             ):
                 # 'target' (a bullseye) reads as "aim here to drag out a
                 # link" much better than a plain pointing hand, which is
-                # already used for the "click to open" URL case below.
+                # already used for the "double-click to open" URL case
+                # below.
                 self.controller.task_canvas.config(cursor='target')
                 self.controller.hover_status.config(
                     text=f'Hover: Connector (Task {task_id}) - drag to link',
@@ -212,7 +213,7 @@ class TaskOperations:
                     ):
                         self.controller.task_canvas.config(cursor='hand2')
                         self.controller.hover_status.config(
-                            text=f'Hover: Task {task_id} URL - click to open',
+                            text=f'Hover: Task {task_id} URL - double-click to open',
                             bg='#cfe2ff',
                         )
                         self.controller.hover_highlight_id = (
@@ -291,9 +292,9 @@ class TaskOperations:
                 task_id = task['task_id']
                 if task_id in self.controller.ui.task_ui_elements:
                     text_id = self.controller.ui.task_ui_elements[task_id]['text']
-                    self.controller.task_canvas.itemconfig(
-                        text_id, text=f'{task_id} - {new_name}'
-                    )
+                    show_names = self.controller.ui.show_task_names_var.get()
+                    new_text = f'{task_id} - {new_name}' if show_names else f'{task_id}'
+                    self.controller.task_canvas.itemconfig(text_id, text=new_text)
 
     def edit_task_url(self, task=None):
         """Edit the url of the selected task"""

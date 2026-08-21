@@ -1058,9 +1058,16 @@ class ExportOperations:
                     text_x = task_x + (task_width / 2)
                     text_y = task_y + (task_height / 2)
 
+                    show_names = (
+                        not hasattr(self.controller.ui, 'show_task_names_var')
+                        or self.controller.ui.show_task_names_var.get()
+                    )
+                    task_text = (
+                        f'{task_id} - {description}' if show_names else f'{task_id}'
+                    )
                     draw.text(
                         (text_x, text_y),
-                        f'{task_id} - {description}',
+                        task_text,
                         fill='black',
                         font=font,
                         anchor='mm',

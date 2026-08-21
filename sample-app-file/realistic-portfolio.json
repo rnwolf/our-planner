@@ -6,7 +6,7 @@
       "col": 2,
       "duration": 2,
       "description": "Analysis",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-1",
       "resources": {
         "20": 1.0
       },
@@ -52,7 +52,7 @@
       "col": 4,
       "duration": 1,
       "description": "Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-3",
       "resources": {
         "9": 1.0
       },
@@ -104,7 +104,7 @@
       "col": 4,
       "duration": 3,
       "description": "Build",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-2",
       "resources": {
         "5": 1.0
       },
@@ -156,7 +156,7 @@
       "col": 9,
       "duration": 1,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-4",
       "resources": {
         "9": 1.0
       },
@@ -213,7 +213,7 @@
       "col": 10,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-5",
       "resources": {
         "17": 1.0
       },
@@ -478,7 +478,7 @@
       "col": 4,
       "duration": 2,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-13",
       "resources": {
         "14": 1.0
       },
@@ -524,7 +524,7 @@
       "col": 10,
       "duration": 4,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-15",
       "resources": {
         "5": 1.0
       },
@@ -576,7 +576,7 @@
       "col": 10,
       "duration": 6,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-14",
       "resources": {
         "4": 1.0
       },
@@ -628,7 +628,7 @@
       "col": 16,
       "duration": 2,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-16",
       "resources": {
         "4": 1.0
       },
@@ -685,7 +685,7 @@
       "col": 18,
       "duration": 3,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-17",
       "resources": {
         "9": 1.0
       },
@@ -737,7 +737,7 @@
       "col": 23,
       "duration": 1,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-18",
       "resources": {
         "21": 1.0
       },
@@ -789,7 +789,7 @@
       "col": 24,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-19",
       "resources": {
         "18": 1.0
       },
@@ -1245,7 +1245,7 @@
       "col": 16,
       "duration": 3,
       "description": "Discovery",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-30",
       "resources": {
         "21": 1.0
       },
@@ -1291,7 +1291,7 @@
       "col": 19,
       "duration": 5,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-31",
       "resources": {
         "13": 1.0
       },
@@ -1343,7 +1343,7 @@
       "col": 24,
       "duration": 2,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-33",
       "resources": {
         "1": 1.0
       },
@@ -1395,7 +1395,7 @@
       "col": 24,
       "duration": 4,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-32",
       "resources": {
         "2": 1.0
       },
@@ -1447,7 +1447,7 @@
       "col": 24,
       "duration": 6,
       "description": "Build-C",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-34",
       "resources": {
         "7": 1.0
       },
@@ -1499,7 +1499,7 @@
       "col": 30,
       "duration": 3,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-35",
       "resources": {
         "2": 1.0
       },
@@ -1561,7 +1561,7 @@
       "col": 33,
       "duration": 2,
       "description": "Security Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-36",
       "resources": {
         "9": 1.0
       },
@@ -1613,7 +1613,7 @@
       "col": 33,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-37",
       "resources": {
         "10": 1.0
       },
@@ -1665,7 +1665,7 @@
       "col": 35,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-38",
       "resources": {
         "21": 1.0
       },
@@ -1722,7 +1722,7 @@
       "col": 37,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-39",
       "resources": {
         "18": 1.0
       },
@@ -2120,7 +2120,7 @@
       "col": 16,
       "duration": 2,
       "description": "Discovery",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-52",
       "resources": {
         "21": 1.0
       },
@@ -2166,7 +2166,7 @@
       "col": 18,
       "duration": 8,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-53",
       "resources": {
         "13": 1.0
       },
@@ -2218,7 +2218,7 @@
       "col": 26,
       "duration": 5,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-55",
       "resources": {
         "8": 1.0
       },
@@ -2270,7 +2270,7 @@
       "col": 26,
       "duration": 3,
       "description": "Build-C",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-56",
       "resources": {
         "6": 1.0
       },
@@ -2322,7 +2322,7 @@
       "col": 26,
       "duration": 5,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-54",
       "resources": {
         "4": 1.0
       },
@@ -2374,7 +2374,7 @@
       "col": 31,
       "duration": 3,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-57",
       "resources": {
         "4": 1.0
       },
@@ -2436,7 +2436,7 @@
       "col": 34,
       "duration": 5,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-59",
       "resources": {
         "12": 1.0
       },
@@ -2488,7 +2488,7 @@
       "col": 34,
       "duration": 1,
       "description": "Security Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-58",
       "resources": {
         "10": 1.0
       },
@@ -2540,7 +2540,7 @@
       "col": 39,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-60",
       "resources": {
         "21": 1.0
       },
@@ -2597,7 +2597,7 @@
       "col": 41,
       "duration": 2,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-61",
       "resources": {
         "16": 1.0
       },
@@ -3520,7 +3520,7 @@
       "col": 26,
       "duration": 3,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-77",
       "resources": {
         "13": 1.0
       },
@@ -3566,7 +3566,7 @@
       "col": 29,
       "duration": 2,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-79",
       "resources": {
         "1": 1.0
       },
@@ -3618,7 +3618,7 @@
       "col": 30,
       "duration": 4,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-78",
       "resources": {
         "5": 1.0
       },
@@ -3670,7 +3670,7 @@
       "col": 34,
       "duration": 1,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-80",
       "resources": {
         "5": 1.0
       },
@@ -3727,7 +3727,7 @@
       "col": 35,
       "duration": 1,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-81",
       "resources": {
         "12": 1.0
       },
@@ -3779,7 +3779,7 @@
       "col": 37,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-82",
       "resources": {
         "21": 1.0
       },
@@ -3831,7 +3831,7 @@
       "col": 39,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-83",
       "resources": {
         "16": 1.0
       },
@@ -4144,7 +4144,7 @@
       "col": 37,
       "duration": 3,
       "description": "Discovery",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-93",
       "resources": {
         "21": 1.0
       },
@@ -4190,7 +4190,7 @@
       "col": 40,
       "duration": 1,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-94",
       "resources": {
         "14": 1.0
       },
@@ -4242,7 +4242,7 @@
       "col": 45,
       "duration": 4,
       "description": "Build-C",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-97",
       "resources": {
         "4": 1.0
       },
@@ -4294,7 +4294,7 @@
       "col": 45,
       "duration": 5,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-95",
       "resources": {
         "3": 1.0
       },
@@ -4346,7 +4346,7 @@
       "col": 47,
       "duration": 3,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-96",
       "resources": {
         "7": 1.0
       },
@@ -4398,7 +4398,7 @@
       "col": 51,
       "duration": 3,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-98",
       "resources": {
         "3": 1.0
       },
@@ -4460,7 +4460,7 @@
       "col": 54,
       "duration": 1,
       "description": "Security Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-99",
       "resources": {
         "9": 1.0
       },
@@ -4512,7 +4512,7 @@
       "col": 54,
       "duration": 4,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-100",
       "resources": {
         "12": 1.0
       },
@@ -4564,7 +4564,7 @@
       "col": 58,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-101",
       "resources": {
         "21": 1.0
       },
@@ -4621,7 +4621,7 @@
       "col": 60,
       "duration": 2,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-102",
       "resources": {
         "16": 1.0
       },
@@ -5598,7 +5598,7 @@
       "col": 33,
       "duration": 2,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-118",
       "resources": {
         "15": 1.0
       },
@@ -5644,7 +5644,7 @@
       "col": 38,
       "duration": 4,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-120",
       "resources": {
         "2": 1.0
       },
@@ -5696,7 +5696,7 @@
       "col": 39,
       "duration": 2,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-119",
       "resources": {
         "3": 1.0
       },
@@ -5748,7 +5748,7 @@
       "col": 42,
       "duration": 1,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-121",
       "resources": {
         "3": 1.0
       },
@@ -5805,7 +5805,7 @@
       "col": 43,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-122",
       "resources": {
         "12": 1.0
       },
@@ -5857,7 +5857,7 @@
       "col": 45,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-123",
       "resources": {
         "22": 1.0
       },
@@ -5909,7 +5909,7 @@
       "col": 47,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-124",
       "resources": {
         "17": 1.0
       },
@@ -6209,7 +6209,7 @@
       "col": 41,
       "duration": 1,
       "description": "Analysis",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-134",
       "resources": {
         "21": 1.0
       },
@@ -6255,7 +6255,7 @@
       "col": 44,
       "duration": 5,
       "description": "Build",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-135",
       "resources": {
         "1": 1.0
       },
@@ -6307,7 +6307,7 @@
       "col": 44,
       "duration": 1,
       "description": "Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-136",
       "resources": {
         "10": 1.0
       },
@@ -6359,7 +6359,7 @@
       "col": 51,
       "duration": 4,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-137",
       "resources": {
         "10": 1.0
       },
@@ -6416,7 +6416,7 @@
       "col": 55,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-138",
       "resources": {
         "17": 1.0
       },
@@ -6700,7 +6700,7 @@
       "col": 51,
       "duration": 2,
       "description": "Analysis",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-146",
       "resources": {
         "21": 1.0
       },
@@ -6746,7 +6746,7 @@
       "col": 53,
       "duration": 3,
       "description": "Build",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-147",
       "resources": {
         "8": 1.0
       },
@@ -6798,7 +6798,7 @@
       "col": 53,
       "duration": 2,
       "description": "Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-148",
       "resources": {
         "11": 1.0
       },
@@ -6850,7 +6850,7 @@
       "col": 56,
       "duration": 1,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-149",
       "resources": {
         "11": 1.0
       },
@@ -6907,7 +6907,7 @@
       "col": 57,
       "duration": 2,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-150",
       "resources": {
         "16": 1.0
       },
@@ -7166,7 +7166,7 @@
       "col": 58,
       "duration": 3,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-158",
       "resources": {
         "15": 1.0
       },
@@ -7212,7 +7212,7 @@
       "col": 61,
       "duration": 3,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-159",
       "resources": {
         "5": 1.0
       },
@@ -7264,7 +7264,7 @@
       "col": 61,
       "duration": 3,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-160",
       "resources": {
         "6": 1.0
       },
@@ -7316,7 +7316,7 @@
       "col": 66,
       "duration": 2,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-161",
       "resources": {
         "5": 1.0
       },
@@ -7373,7 +7373,7 @@
       "col": 68,
       "duration": 3,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-162",
       "resources": {
         "11": 1.0
       },
@@ -7425,7 +7425,7 @@
       "col": 71,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-163",
       "resources": {
         "21": 1.0
       },
@@ -7477,7 +7477,7 @@
       "col": 73,
       "duration": 2,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-164",
       "resources": {
         "17": 1.0
       },
@@ -7915,7 +7915,7 @@
       "col": 66,
       "duration": 3,
       "description": "Analysis",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-175",
       "resources": {
         "22": 1.0
       },
@@ -7961,7 +7961,7 @@
       "col": 69,
       "duration": 3,
       "description": "Build",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-176",
       "resources": {
         "8": 1.0
       },
@@ -8013,7 +8013,7 @@
       "col": 69,
       "duration": 1,
       "description": "Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-177",
       "resources": {
         "9": 1.0
       },
@@ -8065,7 +8065,7 @@
       "col": 72,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-178",
       "resources": {
         "9": 1.0
       },
@@ -8122,7 +8122,7 @@
       "col": 74,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-179",
       "resources": {
         "16": 1.0
       },
@@ -8387,7 +8387,7 @@
       "col": 72,
       "duration": 3,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-187",
       "resources": {
         "13": 1.0
       },
@@ -8433,7 +8433,7 @@
       "col": 75,
       "duration": 4,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-188",
       "resources": {
         "8": 1.0
       },
@@ -8485,7 +8485,7 @@
       "col": 75,
       "duration": 6,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-189",
       "resources": {
         "4": 1.0
       },
@@ -8537,7 +8537,7 @@
       "col": 81,
       "duration": 4,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-190",
       "resources": {
         "8": 1.0
       },
@@ -8594,7 +8594,7 @@
       "col": 85,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-191",
       "resources": {
         "10": 1.0
       },
@@ -8646,7 +8646,7 @@
       "col": 87,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-192",
       "resources": {
         "21": 1.0
       },
@@ -8698,7 +8698,7 @@
       "col": 89,
       "duration": 2,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-193",
       "resources": {
         "18": 1.0
       },
@@ -9167,7 +9167,7 @@
       "col": 76,
       "duration": 1,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-204",
       "resources": {
         "13": 1.0
       },
@@ -9213,7 +9213,7 @@
       "col": 79,
       "duration": 3,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-206",
       "resources": {
         "3": 1.0
       },
@@ -9265,7 +9265,7 @@
       "col": 79,
       "duration": 5,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-205",
       "resources": {
         "4": 1.0
       },
@@ -9317,7 +9317,7 @@
       "col": 84,
       "duration": 3,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-207",
       "resources": {
         "4": 1.0
       },
@@ -9374,7 +9374,7 @@
       "col": 87,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-208",
       "resources": {
         "9": 1.0
       },
@@ -9426,7 +9426,7 @@
       "col": 89,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-209",
       "resources": {
         "22": 1.0
       },
@@ -9478,7 +9478,7 @@
       "col": 91,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-210",
       "resources": {
         "17": 1.0
       },
@@ -9775,7 +9775,7 @@
       "col": 82,
       "duration": 3,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-220",
       "resources": {
         "14": 1.0
       },
@@ -9821,7 +9821,7 @@
       "col": 85,
       "duration": 3,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-221",
       "resources": {
         "4": 1.0
       },
@@ -9873,7 +9873,7 @@
       "col": 86,
       "duration": 3,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-222",
       "resources": {
         "6": 1.0
       },
@@ -9925,7 +9925,7 @@
       "col": 89,
       "duration": 3,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-223",
       "resources": {
         "4": 1.0
       },
@@ -9982,7 +9982,7 @@
       "col": 92,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-224",
       "resources": {
         "9": 1.0
       },
@@ -10023,7 +10023,7 @@
       "col": 94,
       "duration": 2,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-225",
       "resources": {
         "22": 1.0
       },
@@ -10064,7 +10064,7 @@
       "col": 96,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-226",
       "resources": {
         "18": 1.0
       },
@@ -10306,7 +10306,7 @@
       "col": 83,
       "duration": 2,
       "description": "Analysis",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-236",
       "resources": {
         "20": 1.0
       },
@@ -10352,7 +10352,7 @@
       "col": 86,
       "duration": 4,
       "description": "Build",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-237",
       "resources": {
         "2": 1.0
       },
@@ -10404,7 +10404,7 @@
       "col": 85,
       "duration": 1,
       "description": "Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-238",
       "resources": {
         "12": 1.0
       },
@@ -10456,7 +10456,7 @@
       "col": 90,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-239",
       "resources": {
         "12": 1.0
       },
@@ -10502,7 +10502,7 @@
       "col": 92,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-240",
       "resources": {
         "16": 1.0
       },
@@ -10715,7 +10715,7 @@
       "col": 94,
       "duration": 1,
       "description": "Analysis",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-248",
       "resources": {
         "21": 1.0
       },
@@ -10745,7 +10745,7 @@
       "col": 95,
       "duration": 1,
       "description": "Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-250",
       "resources": {
         "10": 1.0
       },
@@ -10781,7 +10781,7 @@
       "col": 95,
       "duration": 2,
       "description": "Build",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-249",
       "resources": {
         "8": 1.0
       },
@@ -10817,7 +10817,7 @@
       "col": 97,
       "duration": 1,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-251",
       "resources": {
         "10": 1.0
       },
@@ -10858,7 +10858,7 @@
       "col": 98,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-252",
       "resources": {
         "18": 1.0
       },
@@ -10962,7 +10962,7 @@
       "col": 100,
       "duration": 2,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-260",
       "resources": {
         "13": 1.0
       },
@@ -10992,7 +10992,7 @@
       "col": 102,
       "duration": 3,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-261",
       "resources": {
         "3": 1.0
       },
@@ -11028,7 +11028,7 @@
       "col": 103,
       "duration": 2,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-262",
       "resources": {
         "2": 1.0
       },
@@ -11064,7 +11064,7 @@
       "col": 107,
       "duration": 2,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-263",
       "resources": {
         "3": 1.0
       },
@@ -11105,7 +11105,7 @@
       "col": 109,
       "duration": 1,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-264",
       "resources": {
         "12": 1.0
       },
@@ -11141,7 +11141,7 @@
       "col": 110,
       "duration": 1,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-265",
       "resources": {
         "22": 1.0
       },
@@ -11177,7 +11177,7 @@
       "col": 111,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-266",
       "resources": {
         "18": 1.0
       },
@@ -11281,7 +11281,7 @@
       "col": 107,
       "duration": 1,
       "description": "Discovery",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-276",
       "resources": {
         "20": 1.0
       },
@@ -11311,7 +11311,7 @@
       "col": 108,
       "duration": 2,
       "description": "Design",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-277",
       "resources": {
         "14": 1.0
       },
@@ -11347,7 +11347,7 @@
       "col": 114,
       "duration": 3,
       "description": "Build-B",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-279",
       "resources": {
         "2": 1.0
       },
@@ -11383,7 +11383,7 @@
       "col": 115,
       "duration": 4,
       "description": "Build-A",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-278",
       "resources": {
         "7": 1.0
       },
@@ -11419,7 +11419,7 @@
       "col": 116,
       "duration": 3,
       "description": "Build-C",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-280",
       "resources": {
         "4": 1.0
       },
@@ -11455,7 +11455,7 @@
       "col": 121,
       "duration": 2,
       "description": "Integration",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-281",
       "resources": {
         "7": 1.0
       },
@@ -11501,7 +11501,7 @@
       "col": 123,
       "duration": 1,
       "description": "Security Review",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-282",
       "resources": {
         "9": 1.0
       },
@@ -11537,7 +11537,7 @@
       "col": 123,
       "duration": 2,
       "description": "Test",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-283",
       "resources": {
         "11": 1.0
       },
@@ -11573,7 +11573,7 @@
       "col": 125,
       "duration": 1,
       "description": "UAT",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-284",
       "resources": {
         "20": 1.0
       },
@@ -11614,7 +11614,7 @@
       "col": 126,
       "duration": 1,
       "description": "Deploy",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-285",
       "resources": {
         "16": 1.0
       },
@@ -11820,7 +11820,7 @@
       "col": 65,
       "duration": 1,
       "description": "Tune batch job schedule #1",
-      "url": "",
+      "url": "https://tracker.example.com/browse/PORT-301",
       "resources": {
         "12": 1.0
       },
@@ -11849,7 +11849,7 @@
         {
           "date": "2026-07-28T00:00:00",
           "remaining_duration": 0,
-          "reason": "Multitasking"
+          "reason": "Task Variability"
         }
       ],
       "baseline": null,
@@ -11858,18 +11858,18 @@
     },
     {
       "task_id": 302,
-      "row": 58,
-      "col": 86,
-      "duration": 3,
-      "description": "Archive old records #2",
-      "url": "",
+      "row": 56,
+      "col": 23,
+      "duration": 2,
+      "description": "Tune batch job schedule #2",
+      "url": "https://tracker.example.com/browse/PORT-302",
       "resources": {
-        "26": 1.0
+        "24": 1.0
       },
       "predecessors": [],
       "tags": [
         "backlog",
-        "P2"
+        "P3"
       ],
       "color": "LightYellow",
       "notes": [],
@@ -11877,21 +11877,21 @@
       "chain_id": null,
       "type": "task",
       "state": "done",
-      "realistic_duration": 3,
+      "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-08-17T00:00:00",
-      "actual_end_date": "2026-08-20T00:00:00",
+      "actual_start_date": "2026-06-15T00:00:00",
+      "actual_end_date": "2026-06-17T00:00:00",
       "fullkit_date": "2026-05-23T00:00:00",
       "remaining_duration_history": [
         {
-          "date": "2026-08-17T00:00:00",
-          "remaining_duration": 3,
+          "date": "2026-06-15T00:00:00",
+          "remaining_duration": 2,
           "reason": "On Time"
         },
         {
-          "date": "2026-08-20T00:00:00",
+          "date": "2026-06-17T00:00:00",
           "remaining_duration": 0,
-          "reason": "Multitasking"
+          "reason": "On Time"
         }
       ],
       "baseline": null,
@@ -11900,13 +11900,13 @@
     },
     {
       "task_id": 303,
-      "row": 45,
-      "col": 113,
-      "duration": 1,
-      "description": "Rotate API keys #3",
-      "url": "",
+      "row": 39,
+      "col": 79,
+      "duration": 2,
+      "description": "Validate backup restore #3",
+      "url": "https://tracker.example.com/browse/PORT-303",
       "resources": {
-        "13": 1.0
+        "7": 1.0
       },
       "predecessors": [],
       "tags": [
@@ -11918,469 +11918,20 @@
       "project_id": 37,
       "chain_id": null,
       "type": "task",
-      "state": "planning",
-      "realistic_duration": 1,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 304,
-      "row": 45,
-      "col": 93,
-      "duration": 2,
-      "description": "Rebuild stale cache #4",
-      "url": "",
-      "resources": {
-        "13": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 305,
-      "row": 51,
-      "col": 108,
-      "duration": 3,
-      "description": "Review pull request backlog #5",
-      "url": "",
-      "resources": {
-        "19": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 306,
-      "row": 61,
-      "col": 10,
-      "duration": 1,
-      "description": "Update runbook #6",
-      "url": "",
-      "resources": {
-        "29": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 1,
-      "optimal_duration": null,
-      "actual_start_date": "2026-06-02T00:00:00",
-      "actual_end_date": "2026-06-03T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-06-02T00:00:00",
-          "remaining_duration": 1,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-06-03T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Task Variability"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 307,
-      "row": 45,
-      "col": 66,
-      "duration": 2,
-      "description": "Retire legacy endpoint #7",
-      "url": "",
-      "resources": {
-        "13": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
       "state": "done",
       "realistic_duration": 2,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-28T00:00:00",
-      "actual_end_date": "2026-07-30T00:00:00",
+      "actual_start_date": "2026-08-10T00:00:00",
+      "actual_end_date": "2026-08-12T00:00:00",
       "fullkit_date": "2026-05-23T00:00:00",
       "remaining_duration_history": [
         {
-          "date": "2026-07-28T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-07-30T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Task Variability"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 308,
-      "row": 47,
-      "col": 96,
-      "duration": 1,
-      "description": "Draft Q3 status update #8",
-      "url": "",
-      "resources": {
-        "15": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 1,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 309,
-      "row": 42,
-      "col": 31,
-      "duration": 2,
-      "description": "Retire legacy endpoint #9",
-      "url": "",
-      "resources": {
-        "10": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-06-23T00:00:00",
-      "actual_end_date": "2026-06-25T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-06-23T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-06-25T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Task Variability"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 310,
-      "row": 45,
-      "col": 8,
-      "duration": 1,
-      "description": "Onboard new vendor feed #10",
-      "url": "",
-      "resources": {
-        "13": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 1,
-      "optimal_duration": null,
-      "actual_start_date": "2026-05-31T00:00:00",
-      "actual_end_date": "2026-06-01T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-05-31T00:00:00",
-          "remaining_duration": 1,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-06-01T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Parkinson's Law"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 311,
-      "row": 38,
-      "col": 16,
-      "duration": 2,
-      "description": "Update training material #11",
-      "url": "",
-      "resources": {
-        "6": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-06-08T00:00:00",
-      "actual_end_date": "2026-06-10T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-06-08T00:00:00",
+          "date": "2026-08-10T00:00:00",
           "remaining_duration": 2,
           "reason": "Waiting for Resource"
         },
         {
-          "date": "2026-06-10T00:00:00",
-          "remaining_duration": 0,
-          "reason": "On Time"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 312,
-      "row": 48,
-      "col": 71,
-      "duration": 2,
-      "description": "Patch security advisory #12",
-      "url": "",
-      "resources": {
-        "16": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-02T00:00:00",
-      "actual_end_date": "2026-08-04T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-02T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-04T00:00:00",
-          "remaining_duration": 0,
-          "reason": "On Time"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 313,
-      "row": 62,
-      "col": 126,
-      "duration": 2,
-      "description": "Correct mislabeled SKUs #13",
-      "url": "",
-      "resources": {
-        "30": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 314,
-      "row": 33,
-      "col": 47,
-      "duration": 3,
-      "description": "Reconcile ledger discrepancy #14",
-      "url": "",
-      "resources": {
-        "1": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-07-09T00:00:00",
-      "actual_end_date": "2026-07-12T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-07-09T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-07-12T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Task Variability"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 315,
-      "row": 42,
-      "col": 3,
-      "duration": 4,
-      "description": "Retire legacy endpoint #15",
-      "url": "",
-      "resources": {
-        "10": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-05-26T00:00:00",
-      "actual_end_date": "2026-05-30T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-05-26T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-05-30T00:00:00",
+          "date": "2026-08-12T00:00:00",
           "remaining_duration": 0,
           "reason": "Multitasking"
         }
@@ -12390,42 +11941,11 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 316,
-      "row": 60,
-      "col": 141,
-      "duration": 3,
-      "description": "Update data dictionary #16",
-      "url": "",
-      "resources": {
-        "28": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 317,
+      "task_id": 304,
       "row": 34,
       "col": 74,
       "duration": 2,
-      "description": "Review access request #17",
+      "description": "Triage incoming defects #4",
       "url": "",
       "resources": {
         "2": 1.0
@@ -12433,7 +11953,7 @@
       "predecessors": [],
       "tags": [
         "backlog",
-        "P3"
+        "P2"
       ],
       "color": "LightYellow",
       "notes": [],
@@ -12463,242 +11983,43 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 318,
-      "row": 53,
-      "col": 9,
-      "duration": 4,
-      "description": "Update data dictionary #18",
-      "url": "",
-      "resources": {
-        "21": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-06-01T00:00:00",
-      "actual_end_date": "2026-06-05T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-06-01T00:00:00",
-          "remaining_duration": 2,
-          "reason": "Waiting for Resource"
-        },
-        {
-          "date": "2026-06-05T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Unplanned Events"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 319,
-      "row": 59,
-      "col": 129,
-      "duration": 3,
-      "description": "Prepare audit evidence #19",
-      "url": "",
-      "resources": {
-        "27": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": null,
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 320,
-      "row": 48,
-      "col": 1,
-      "duration": 3,
-      "description": "Answer customer escalation #20",
-      "url": "",
-      "resources": {
-        "16": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-05-24T00:00:00",
-      "actual_end_date": "2026-05-27T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-05-24T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-05-27T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Parkinson's Law"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 321,
-      "row": 43,
-      "col": 86,
-      "duration": 5,
-      "description": "Fix broken report export #21",
-      "url": "",
-      "resources": {
-        "11": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-17T00:00:00",
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-17T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-21T00:00:00",
-          "remaining_duration": 1,
-          "reason": "Parkinson's Law"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 322,
-      "row": 37,
-      "col": 66,
+      "task_id": 305,
+      "row": 47,
+      "col": 95,
       "duration": 1,
-      "description": "Correct mislabeled SKUs #22",
-      "url": "",
+      "description": "Patch security advisory #5",
+      "url": "https://tracker.example.com/browse/PORT-305",
       "resources": {
-        "5": 1.0
+        "15": 1.0
       },
       "predecessors": [],
       "tags": [
         "backlog",
-        "P3"
+        "P2"
       ],
       "color": "LightYellow",
       "notes": [],
       "project_id": 37,
       "chain_id": null,
       "type": "task",
-      "state": "done",
+      "state": "planning",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-28T00:00:00",
-      "actual_end_date": "2026-07-29T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-07-28T00:00:00",
-          "remaining_duration": 1,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-07-29T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Waiting for Resource"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 323,
-      "row": 46,
-      "col": 94,
-      "duration": 2,
-      "description": "Tune batch job schedule #23",
-      "url": "",
-      "resources": {
-        "14": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 2,
-      "optimal_duration": null,
       "actual_start_date": null,
       "actual_end_date": null,
-      "fullkit_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
       "remaining_duration_history": [],
       "baseline": null,
       "buffer_size_history": [],
       "fever_chart_history": []
     },
     {
-      "task_id": 324,
+      "task_id": 306,
       "row": 41,
-      "col": 68,
-      "duration": 4,
-      "description": "Fix broken report export #24",
-      "url": "",
+      "col": 72,
+      "duration": 3,
+      "description": "Update runbook #6",
+      "url": "https://tracker.example.com/browse/PORT-306",
       "resources": {
         "9": 1.0
       },
@@ -12706,581 +12027,6 @@
       "tags": [
         "backlog",
         "P3"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-07-30T00:00:00",
-      "actual_end_date": "2026-08-03T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-07-30T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-03T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Parkinson's Law"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 325,
-      "row": 59,
-      "col": 98,
-      "duration": 2,
-      "description": "Rotate API keys #25",
-      "url": "",
-      "resources": {
-        "27": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 326,
-      "row": 59,
-      "col": 74,
-      "duration": 3,
-      "description": "Correct mislabeled SKUs #26",
-      "url": "",
-      "resources": {
-        "27": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P3"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-05T00:00:00",
-      "actual_end_date": "2026-08-08T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-05T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-08T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Task Variability"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 327,
-      "row": 58,
-      "col": 79,
-      "duration": 2,
-      "description": "Rotate API keys #27",
-      "url": "",
-      "resources": {
-        "26": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-10T00:00:00",
-      "actual_end_date": "2026-08-12T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-10T00:00:00",
-          "remaining_duration": 2,
-          "reason": "Waiting for Resource"
-        },
-        {
-          "date": "2026-08-12T00:00:00",
-          "remaining_duration": 0,
-          "reason": "On Time"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 328,
-      "row": 54,
-      "col": 96,
-      "duration": 1,
-      "description": "Prepare audit evidence #28",
-      "url": "",
-      "resources": {
-        "22": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 1,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 329,
-      "row": 38,
-      "col": 117,
-      "duration": 3,
-      "description": "Investigate slow query #29",
-      "url": "",
-      "resources": {
-        "6": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 330,
-      "row": 37,
-      "col": 69,
-      "duration": 5,
-      "description": "Review access request #30",
-      "url": "",
-      "resources": {
-        "5": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-07-31T00:00:00",
-      "actual_end_date": "2026-08-05T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-07-31T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-05T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Parkinson's Law"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 331,
-      "row": 46,
-      "col": 29,
-      "duration": 3,
-      "description": "Clarify requirements #31",
-      "url": "",
-      "resources": {
-        "14": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-06-21T00:00:00",
-      "actual_end_date": "2026-06-24T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-06-21T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-06-24T00:00:00",
-          "remaining_duration": 0,
-          "reason": "On Time"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 332,
-      "row": 54,
-      "col": 66,
-      "duration": 2,
-      "description": "Review pull request backlog #32",
-      "url": "",
-      "resources": {
-        "22": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-07-28T00:00:00",
-      "actual_end_date": "2026-07-30T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-07-28T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-07-30T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Task Variability"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 333,
-      "row": 57,
-      "col": 6,
-      "duration": 2,
-      "description": "Draft Q3 status update #33",
-      "url": "",
-      "resources": {
-        "25": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": "2026-05-29T00:00:00",
-      "actual_end_date": "2026-05-31T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-05-29T00:00:00",
-          "remaining_duration": 3,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-05-31T00:00:00",
-          "remaining_duration": 0,
-          "reason": "On Time"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 334,
-      "row": 51,
-      "col": 82,
-      "duration": 3,
-      "description": "Update training material #34",
-      "url": "",
-      "resources": {
-        "19": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-08-13T00:00:00",
-      "actual_end_date": "2026-08-16T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-08-13T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-08-16T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Parkinson's Law"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 335,
-      "row": 50,
-      "col": 14,
-      "duration": 2,
-      "description": "Retire legacy endpoint #35",
-      "url": "",
-      "resources": {
-        "18": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-06-06T00:00:00",
-      "actual_end_date": "2026-06-08T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-06-06T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-06-08T00:00:00",
-          "remaining_duration": 0,
-          "reason": "Waiting for Resource"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 336,
-      "row": 48,
-      "col": 64,
-      "duration": 1,
-      "description": "Review access request #36",
-      "url": "",
-      "resources": {
-        "16": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "done",
-      "realistic_duration": 2,
-      "optimal_duration": null,
-      "actual_start_date": "2026-07-26T00:00:00",
-      "actual_end_date": "2026-07-27T00:00:00",
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [
-        {
-          "date": "2026-07-26T00:00:00",
-          "remaining_duration": 2,
-          "reason": "On Time"
-        },
-        {
-          "date": "2026-07-27T00:00:00",
-          "remaining_duration": 0,
-          "reason": "On Time"
-        }
-      ],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 337,
-      "row": 44,
-      "col": 126,
-      "duration": 3,
-      "description": "Prepare audit evidence #37",
-      "url": "",
-      "resources": {
-        "12": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 338,
-      "row": 40,
-      "col": 134,
-      "duration": 3,
-      "description": "Update data dictionary #38",
-      "url": "",
-      "resources": {
-        "8": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P2"
-      ],
-      "color": "LightYellow",
-      "notes": [],
-      "project_id": 37,
-      "chain_id": null,
-      "type": "task",
-      "state": "planning",
-      "realistic_duration": 3,
-      "optimal_duration": null,
-      "actual_start_date": null,
-      "actual_end_date": null,
-      "fullkit_date": "2026-05-23T00:00:00",
-      "remaining_duration_history": [],
-      "baseline": null,
-      "buffer_size_history": [],
-      "fever_chart_history": []
-    },
-    {
-      "task_id": 339,
-      "row": 39,
-      "col": 72,
-      "duration": 3,
-      "description": "Clarify requirements #39",
-      "url": "",
-      "resources": {
-        "7": 1.0
-      },
-      "predecessors": [],
-      "tags": [
-        "backlog",
-        "P1"
       ],
       "color": "LightYellow",
       "notes": [],
@@ -13310,14 +12056,233 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 340,
-      "row": 58,
-      "col": 41,
+      "task_id": 307,
+      "row": 47,
+      "col": 96,
+      "duration": 3,
+      "description": "Answer customer escalation #7",
+      "url": "https://tracker.example.com/browse/PORT-307",
+      "resources": {
+        "15": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 308,
+      "row": 56,
+      "col": 98,
       "duration": 2,
-      "description": "Update supplier price list #40",
+      "description": "Rotate API keys #8",
+      "url": "https://tracker.example.com/browse/PORT-308",
+      "resources": {
+        "24": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 309,
+      "row": 46,
+      "col": 73,
+      "duration": 1,
+      "description": "Update data dictionary #9",
       "url": "",
       "resources": {
-        "26": 1.0
+        "14": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-08-04T00:00:00",
+      "actual_end_date": "2026-08-05T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-04T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-05T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 310,
+      "row": 36,
+      "col": 26,
+      "duration": 3,
+      "description": "Rebuild stale cache #10",
+      "url": "https://tracker.example.com/browse/PORT-310",
+      "resources": {
+        "4": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-06-18T00:00:00",
+      "actual_end_date": "2026-06-21T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-06-18T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-06-21T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 311,
+      "row": 48,
+      "col": 115,
+      "duration": 2,
+      "description": "Refresh dashboard widget #11",
+      "url": "",
+      "resources": {
+        "16": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 312,
+      "row": 33,
+      "col": 47,
+      "duration": 4,
+      "description": "Triage incoming defects #12",
+      "url": "https://tracker.example.com/browse/PORT-312",
+      "resources": {
+        "1": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-09T00:00:00",
+      "actual_end_date": "2026-07-13T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-09T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-13T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Task Variability"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 313,
+      "row": 51,
+      "col": 78,
+      "duration": 1,
+      "description": "Retire legacy endpoint #13",
+      "url": "https://tracker.example.com/browse/PORT-313",
+      "resources": {
+        "19": 1.0
       },
       "predecessors": [],
       "tags": [
@@ -13332,19 +12297,19 @@
       "state": "done",
       "realistic_duration": 1,
       "optimal_duration": null,
-      "actual_start_date": "2026-07-03T00:00:00",
-      "actual_end_date": "2026-07-05T00:00:00",
+      "actual_start_date": "2026-08-09T00:00:00",
+      "actual_end_date": "2026-08-10T00:00:00",
       "fullkit_date": "2026-05-23T00:00:00",
       "remaining_duration_history": [
         {
-          "date": "2026-07-03T00:00:00",
+          "date": "2026-08-09T00:00:00",
           "remaining_duration": 1,
           "reason": "On Time"
         },
         {
-          "date": "2026-07-05T00:00:00",
+          "date": "2026-08-10T00:00:00",
           "remaining_duration": 0,
-          "reason": "Other / Unexplained"
+          "reason": "On Time"
         }
       ],
       "baseline": null,
@@ -13352,14 +12317,202 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 341,
-      "row": 60,
-      "col": 120,
-      "duration": 1,
-      "description": "Handle GDPR request #41",
+      "task_id": 314,
+      "row": 55,
+      "col": 91,
+      "duration": 3,
+      "description": "Review pull request backlog #14",
+      "url": "https://tracker.example.com/browse/PORT-314",
+      "resources": {
+        "23": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 315,
+      "row": 45,
+      "col": 60,
+      "duration": 2,
+      "description": "Update data dictionary #15",
       "url": "",
       "resources": {
-        "28": 1.0
+        "13": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-22T00:00:00",
+      "actual_end_date": "2026-07-24T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-22T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-24T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Unplanned Events"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 316,
+      "row": 54,
+      "col": 138,
+      "duration": 2,
+      "description": "Handle GDPR request #16",
+      "url": "https://tracker.example.com/browse/PORT-316",
+      "resources": {
+        "22": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 317,
+      "row": 33,
+      "col": 65,
+      "duration": 3,
+      "description": "Correct mislabeled SKUs #17",
+      "url": "https://tracker.example.com/browse/PORT-317",
+      "resources": {
+        "1": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-27T00:00:00",
+      "actual_end_date": "2026-07-30T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-27T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-30T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Parkinson's Law"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 318,
+      "row": 59,
+      "col": 82,
+      "duration": 3,
+      "description": "Onboard new vendor feed #18",
+      "url": "https://tracker.example.com/browse/PORT-318",
+      "resources": {
+        "27": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-08-13T00:00:00",
+      "actual_end_date": "2026-08-16T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-13T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-16T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Multitasking"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 319,
+      "row": 37,
+      "col": 66,
+      "duration": 4,
+      "description": "Investigate payment mismatch #19",
+      "url": "https://tracker.example.com/browse/PORT-319",
+      "resources": {
+        "5": 1.0
       },
       "predecessors": [],
       "tags": [
@@ -13371,8 +12524,50 @@
       "project_id": 37,
       "chain_id": null,
       "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-28T00:00:00",
+      "actual_end_date": "2026-08-01T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-28T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-01T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Multitasking"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 320,
+      "row": 62,
+      "col": 107,
+      "duration": 2,
+      "description": "Correct mislabeled SKUs #20",
+      "url": "https://tracker.example.com/browse/PORT-320",
+      "resources": {
+        "30": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
       "state": "planning",
-      "realistic_duration": 1,
+      "realistic_duration": 2,
       "optimal_duration": null,
       "actual_start_date": null,
       "actual_end_date": null,
@@ -13383,14 +12578,45 @@
       "fever_chart_history": []
     },
     {
-      "task_id": 342,
-      "row": 40,
-      "col": 103,
-      "duration": 1,
-      "description": "Correct mislabeled SKUs #42",
-      "url": "",
+      "task_id": 321,
+      "row": 37,
+      "col": 124,
+      "duration": 2,
+      "description": "Handle GDPR request #21",
+      "url": "https://tracker.example.com/browse/PORT-321",
       "resources": {
-        "8": 1.0
+        "5": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 322,
+      "row": 37,
+      "col": 138,
+      "duration": 1,
+      "description": "Clean up test data #22",
+      "url": "https://tracker.example.com/browse/PORT-322",
+      "resources": {
+        "5": 1.0
       },
       "predecessors": [],
       "tags": [
@@ -13408,6 +12634,780 @@
       "actual_start_date": null,
       "actual_end_date": null,
       "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 323,
+      "row": 54,
+      "col": 136,
+      "duration": 2,
+      "description": "Update runbook #23",
+      "url": "https://tracker.example.com/browse/PORT-323",
+      "resources": {
+        "22": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 324,
+      "row": 45,
+      "col": 55,
+      "duration": 1,
+      "description": "Reconcile ledger discrepancy #24",
+      "url": "https://tracker.example.com/browse/PORT-324",
+      "resources": {
+        "13": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-17T00:00:00",
+      "actual_end_date": "2026-07-18T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-17T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-18T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Task Variability"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 325,
+      "row": 38,
+      "col": 117,
+      "duration": 3,
+      "description": "Triage incoming defects #25",
+      "url": "https://tracker.example.com/browse/PORT-325",
+      "resources": {
+        "6": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 326,
+      "row": 59,
+      "col": 32,
+      "duration": 3,
+      "description": "Support store rollout #26",
+      "url": "https://tracker.example.com/browse/PORT-326",
+      "resources": {
+        "27": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-06-24T00:00:00",
+      "actual_end_date": "2026-06-27T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-06-24T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-06-27T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Waiting for Resource"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 327,
+      "row": 41,
+      "col": 120,
+      "duration": 2,
+      "description": "Update training material #27",
+      "url": "https://tracker.example.com/browse/PORT-327",
+      "resources": {
+        "9": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 328,
+      "row": 57,
+      "col": 6,
+      "duration": 1,
+      "description": "Onboard new vendor feed #28",
+      "url": "https://tracker.example.com/browse/PORT-328",
+      "resources": {
+        "25": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-05-29T00:00:00",
+      "actual_end_date": "2026-05-30T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-05-29T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-05-30T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 329,
+      "row": 42,
+      "col": 94,
+      "duration": 3,
+      "description": "Rotate API keys #29",
+      "url": "https://tracker.example.com/browse/PORT-329",
+      "resources": {
+        "10": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 330,
+      "row": 59,
+      "col": 79,
+      "duration": 1,
+      "description": "Respond to compliance query #30",
+      "url": "https://tracker.example.com/browse/PORT-330",
+      "resources": {
+        "27": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-08-10T00:00:00",
+      "actual_end_date": "2026-08-11T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-10T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-11T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 331,
+      "row": 44,
+      "col": 126,
+      "duration": 3,
+      "description": "Prepare audit evidence #31",
+      "url": "https://tracker.example.com/browse/PORT-331",
+      "resources": {
+        "12": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": null,
+      "remaining_duration_history": [],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 332,
+      "row": 59,
+      "col": 59,
+      "duration": 4,
+      "description": "Clean up test data #32",
+      "url": "https://tracker.example.com/browse/PORT-332",
+      "resources": {
+        "27": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-21T00:00:00",
+      "actual_end_date": "2026-07-25T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-21T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-25T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Task Variability"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 333,
+      "row": 39,
+      "col": 72,
+      "duration": 3,
+      "description": "Update supplier price list #33",
+      "url": "https://tracker.example.com/browse/PORT-333",
+      "resources": {
+        "7": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-08-03T00:00:00",
+      "actual_end_date": "2026-08-06T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-03T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-06T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Parkinson's Law"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 334,
+      "row": 62,
+      "col": 69,
+      "duration": 3,
+      "description": "Retire legacy endpoint #34",
+      "url": "",
+      "resources": {
+        "30": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-31T00:00:00",
+      "actual_end_date": "2026-08-03T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-31T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-03T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 335,
+      "row": 52,
+      "col": 6,
+      "duration": 2,
+      "description": "Investigate payment mismatch #35",
+      "url": "https://tracker.example.com/browse/PORT-335",
+      "resources": {
+        "20": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-05-29T00:00:00",
+      "actual_end_date": "2026-05-31T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-05-29T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-05-31T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 336,
+      "row": 39,
+      "col": 2,
+      "duration": 3,
+      "description": "Draft Q3 status update #36",
+      "url": "https://tracker.example.com/browse/PORT-336",
+      "resources": {
+        "7": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-05-25T00:00:00",
+      "actual_end_date": "2026-05-28T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-05-25T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-05-28T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Other / Unexplained"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 337,
+      "row": 50,
+      "col": 49,
+      "duration": 4,
+      "description": "Rotate API keys #37",
+      "url": "https://tracker.example.com/browse/PORT-337",
+      "resources": {
+        "18": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 3,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-11T00:00:00",
+      "actual_end_date": "2026-07-15T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-11T00:00:00",
+          "remaining_duration": 3,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-15T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Task Variability"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 338,
+      "row": 51,
+      "col": 65,
+      "duration": 1,
+      "description": "Triage incoming defects #38",
+      "url": "https://tracker.example.com/browse/PORT-338",
+      "resources": {
+        "19": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-27T00:00:00",
+      "actual_end_date": "2026-07-28T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-27T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-07-28T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 339,
+      "row": 50,
+      "col": 87,
+      "duration": 2,
+      "description": "Answer customer escalation #39",
+      "url": "https://tracker.example.com/browse/PORT-339",
+      "resources": {
+        "18": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P2"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-08-18T00:00:00",
+      "actual_end_date": "2026-08-20T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-08-18T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-20T00:00:00",
+          "remaining_duration": 0,
+          "reason": "Multitasking"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 340,
+      "row": 36,
+      "col": 30,
+      "duration": 1,
+      "description": "Respond to compliance query #40",
+      "url": "",
+      "resources": {
+        "4": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P3"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": "2026-06-22T00:00:00",
+      "actual_end_date": "2026-06-23T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-06-22T00:00:00",
+          "remaining_duration": 1,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-06-23T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 341,
+      "row": 37,
+      "col": 69,
+      "duration": 2,
+      "description": "Correct mislabeled SKUs #41",
+      "url": "https://tracker.example.com/browse/PORT-341",
+      "resources": {
+        "5": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "done",
+      "realistic_duration": 2,
+      "optimal_duration": null,
+      "actual_start_date": "2026-07-31T00:00:00",
+      "actual_end_date": "2026-08-02T00:00:00",
+      "fullkit_date": "2026-05-23T00:00:00",
+      "remaining_duration_history": [
+        {
+          "date": "2026-07-31T00:00:00",
+          "remaining_duration": 2,
+          "reason": "On Time"
+        },
+        {
+          "date": "2026-08-02T00:00:00",
+          "remaining_duration": 0,
+          "reason": "On Time"
+        }
+      ],
+      "baseline": null,
+      "buffer_size_history": [],
+      "fever_chart_history": []
+    },
+    {
+      "task_id": 342,
+      "row": 59,
+      "col": 119,
+      "duration": 1,
+      "description": "Fix broken report export #42",
+      "url": "https://tracker.example.com/browse/PORT-342",
+      "resources": {
+        "27": 1.0
+      },
+      "predecessors": [],
+      "tags": [
+        "backlog",
+        "P1"
+      ],
+      "color": "LightYellow",
+      "notes": [],
+      "project_id": 37,
+      "chain_id": null,
+      "type": "task",
+      "state": "planning",
+      "realistic_duration": 1,
+      "optimal_duration": null,
+      "actual_start_date": null,
+      "actual_end_date": null,
+      "fullkit_date": "2026-05-23T00:00:00",
       "remaining_duration_history": [],
       "baseline": null,
       "buffer_size_history": [],
@@ -13569,7 +13569,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/priya-nair",
       "emails": ""
     },
     {
@@ -13726,7 +13726,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/tom-whitfield",
       "emails": ""
     },
     {
@@ -13883,7 +13883,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/aisha-rahman",
       "emails": ""
     },
     {
@@ -14040,7 +14040,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/ben-carter",
       "emails": ""
     },
     {
@@ -14197,7 +14197,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/yuki-tanaka",
       "emails": ""
     },
     {
@@ -14354,7 +14354,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/liam-oconnor",
       "emails": ""
     },
     {
@@ -14511,7 +14511,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/fatima-al-sayed",
       "emails": ""
     },
     {
@@ -14668,7 +14668,7 @@
         "dev"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/marcus-webb",
       "emails": ""
     },
     {
@@ -14825,7 +14825,7 @@
         "qa"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/elena-popescu",
       "emails": ""
     },
     {
@@ -14982,7 +14982,7 @@
         "qa"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/noah-fischer",
       "emails": ""
     },
     {
@@ -15139,7 +15139,7 @@
         "qa"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/grace-okafor",
       "emails": ""
     },
     {
@@ -15296,7 +15296,7 @@
         "qa"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/ravi-deshmukh",
       "emails": ""
     },
     {
@@ -15453,7 +15453,7 @@
         "designer"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/sofia-rossi",
       "emails": ""
     },
     {
@@ -15610,7 +15610,7 @@
         "designer"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/owen-bennett",
       "emails": ""
     },
     {
@@ -15767,7 +15767,7 @@
         "designer"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/mei-lin",
       "emails": ""
     },
     {
@@ -15924,7 +15924,7 @@
         "devops"
       ],
       "works_weekends": true,
-      "url": "",
+      "url": "https://directory.example.com/people/hassan-farouk",
       "emails": ""
     },
     {
@@ -16081,7 +16081,7 @@
         "devops"
       ],
       "works_weekends": true,
-      "url": "",
+      "url": "https://directory.example.com/people/ingrid-larsen",
       "emails": ""
     },
     {
@@ -16238,7 +16238,7 @@
         "devops"
       ],
       "works_weekends": true,
-      "url": "",
+      "url": "https://directory.example.com/people/cody-nguyen",
       "emails": ""
     },
     {
@@ -16395,7 +16395,7 @@
         "ba"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/dana-kowalski",
       "emails": ""
     },
     {
@@ -16552,7 +16552,7 @@
         "ba"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/ahmed-siddiqui",
       "emails": ""
     },
     {
@@ -16709,7 +16709,7 @@
         "ba"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/rosa-martinez",
       "emails": ""
     },
     {
@@ -16866,7 +16866,7 @@
         "ba"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/jack-sullivan",
       "emails": ""
     },
     {
@@ -17023,7 +17023,7 @@
         "lead"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/helen-zhao",
       "emails": ""
     },
     {
@@ -17180,7 +17180,7 @@
         "lead"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/victor-adeyemi",
       "emails": ""
     },
     {
@@ -17337,7 +17337,7 @@
         "lead"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/claire-dubois",
       "emails": ""
     },
     {
@@ -17494,7 +17494,7 @@
         "architect"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/samuel-osei",
       "emails": ""
     },
     {
@@ -17651,7 +17651,7 @@
         "architect"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/nina-petrova",
       "emails": ""
     },
     {
@@ -17808,7 +17808,7 @@
         "data"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/leo-fontaine",
       "emails": ""
     },
     {
@@ -17965,7 +17965,7 @@
         "data"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/amara-chukwu",
       "emails": ""
     },
     {
@@ -18122,7 +18122,7 @@
         "data"
       ],
       "works_weekends": false,
-      "url": "",
+      "url": "https://directory.example.com/people/piotr-nowak",
       "emails": ""
     }
   ],
