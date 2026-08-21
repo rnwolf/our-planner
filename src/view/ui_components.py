@@ -24,6 +24,7 @@ from src.model.dependency_notation import (
 from src.model.task_resource_model import (
     classify_fever_chart_zone,
     fever_chart_display_point,
+    fever_chart_title_lines,
 )
 
 # Wrap width for the task name at the top of the task tooltip - a plain
@@ -2397,8 +2398,8 @@ class UIComponents:
         max_consumption = max([p[2] for p in points] + [100.0])
         y_max = max(100.0, ((max_consumption // 20) + 2) * 20)
 
-        chart_x0, chart_y0 = x0 + 50, y0 + 34
-        chart_w, chart_h = width - 70, height - 74
+        chart_x0, chart_y0 = x0 + 50, y0 + 47
+        chart_w, chart_h = width - 70, height - 87
 
         def to_px(progress_pct, consumption_pct):
             px = chart_x0 + (progress_pct / 100.0) * chart_w
@@ -2409,10 +2410,18 @@ class UIComponents:
         def boundary(x_pct, intercept):
             return max(0.0, min(y_max, slope * x_pct + intercept))
 
-        # Title
-        title = f'{buffer_task["task_id"]} - {buffer_task["description"]}'
+        # Title - project name above the buffer name, so a chart saved to
+        # disk is self-identifying (Stage 22)
+        project_name, buffer_title = fever_chart_title_lines(buffer_task, project)
         canvas.create_text(
-            x0 + width / 2, y0, text=title, font=('Arial', 10, 'bold'), anchor='n'
+            x0 + width / 2, y0, text=project_name, font=('Arial', 8), anchor='n'
+        )
+        canvas.create_text(
+            x0 + width / 2,
+            y0 + 13,
+            text=buffer_title,
+            font=('Arial', 10, 'bold'),
+            anchor='n',
         )
 
         # Zone bands (green / yellow / red), as three filled quadrilaterals
@@ -2472,7 +2481,7 @@ class UIComponents:
         )
         canvas.create_text(
             x0 + 10,
-            y0 + 22,
+            chart_y0 - 12,
             text='% buffer consumed',
             font=('Arial', 8),
             anchor='nw',

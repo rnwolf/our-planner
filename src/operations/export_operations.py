@@ -50,6 +50,7 @@ def _draw_fever_chart_image(
     from src.model.task_resource_model import (
         classify_fever_chart_zone,
         fever_chart_display_point,
+        fever_chart_title_lines,
     )
 
     slope = project.get('fever_chart_slope', 0.55)
@@ -84,9 +85,22 @@ def _draw_fever_chart_image(
     def boundary(x_pct, intercept):
         return max(0.0, min(y_max, slope * x_pct + intercept))
 
-    title = f'{buffer_task["task_id"]} - {buffer_task["description"]}'
+    # Project name above the buffer name, so a chart saved to disk is
+    # self-identifying (Stage 22)
+    project_name, buffer_title = fever_chart_title_lines(buffer_task, project)
     draw.text(
-        (x0 + width / 2, y0 + 20), title, fill='black', font=title_font, anchor='ma'
+        (x0 + width / 2, y0 + 20),
+        project_name,
+        fill='black',
+        font=small_font,
+        anchor='ma',
+    )
+    draw.text(
+        (x0 + width / 2, y0 + 55),
+        buffer_title,
+        fill='black',
+        font=title_font,
+        anchor='ma',
     )
 
     y_at_0 = boundary(0, yellow_intercept)
@@ -1496,11 +1510,17 @@ class ExportOperations:
         """Export one buffer's fever chart to a high-resolution PNG file -
         the single-chart counterpart to `export_fever_charts`' bulk export.
         """
+        safe_project = ''.join(c if c.isalnum() else '_' for c in project['name'])
+        safe_desc = ''.join(
+            c if c.isalnum() else '_' for c in buffer_task['description']
+        )
         file_path = filedialog.asksaveasfilename(
             defaultextension='.png',
             filetypes=[('PNG files', '*.png'), ('All files', '*.*')],
             title='Export Fever Chart',
-            initialfile=f'fever_chart_{buffer_task["task_id"]}.png',
+            initialfile=(
+                f'{safe_project}_fever_chart_{buffer_task["task_id"]}_{safe_desc}.png'
+            ),
         )
         if not file_path:
             return False

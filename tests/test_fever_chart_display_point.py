@@ -3,7 +3,10 @@ consumption_pct math that used to be hand-copied identically into three
 places (on-screen chart, PNG export, CSV export) with no shared test.
 """
 
-from src.model.task_resource_model import fever_chart_display_point
+from src.model.task_resource_model import (
+    fever_chart_display_point,
+    fever_chart_title_lines,
+)
 
 
 class TestFeverChartDisplayPoint:
@@ -34,3 +37,12 @@ class TestFeverChartDisplayPoint:
         entry = {'cpsl': 10, 'ppf': 5, 'forecast_lateness': -2}
         _, consumption_pct = fever_chart_display_point(entry, 5)
         assert consumption_pct == -40.0
+
+
+class TestFeverChartTitleLines:
+    def test_project_name_and_buffer_title(self):
+        buffer_task = {'task_id': 5, 'description': 'Project buffer'}
+        project = {'name': 'Sample Project'}
+        project_name, buffer_title = fever_chart_title_lines(buffer_task, project)
+        assert project_name == 'Sample Project'
+        assert buffer_title == '5 - Project buffer'

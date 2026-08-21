@@ -125,6 +125,16 @@ def fever_chart_display_point(
     return progress_pct, consumption_pct
 
 
+def fever_chart_title_lines(
+    buffer_task: TaskDict, project: ProjectDict
+) -> Tuple[str, str]:
+    """(project_name, buffer_title) for a fever chart's two-line title -
+    project name on top so charts saved to disk are self-identifying, since
+    both fever chart renderers otherwise show only the buffer's id/name.
+    """
+    return project['name'], f'{buffer_task["task_id"]} - {buffer_task["description"]}'
+
+
 class TaskResourceModel:
     def __init__(self):
         self._initialize_state()
