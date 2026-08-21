@@ -229,8 +229,18 @@ class TaskResourceManager:
         # After UI creation but before update_view
         self.ui.update_menu_commands()
 
+        # Safety net for a versioned project: captures any pending edit
+        # before the window actually closes, so quitting mid-edit can't
+        # lose it - a no-op for an ordinary (non-versioned) project.
+        self.root.protocol('WM_DELETE_WINDOW', self._on_close)
+
         # Render initial state
         self.update_view()
+
+    def _on_close(self):
+        """WM_DELETE_WINDOW handler - see its registration above."""
+        self.version_control_ops.maybe_autosave_checkpoint()
+        self.root.destroy()
 
     def toggle_notes_panel(self):
         """Toggle the visibility of the notes panel."""

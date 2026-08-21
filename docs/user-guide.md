@@ -55,6 +55,21 @@ Where it shows up:
 
 **File → Recent** lists the 5 most recently opened/saved files, most recent first and numbered `1`–`5`. Open the submenu and press the number key to reopen one without going through the file picker again.
 
+## Versioned Project Folders
+
+our-planner has no undo of any kind for a plain project file — a mistake sticks unless you remembered to Save As under a new name first. **File → New Versioned Project...** creates an opt-in alternative: a fresh, empty directory backed by a real local git repository, giving you fine-grained undo/redo plus deliberate save points. A plain **File → Open/Save** project is completely unaffected — versioning only ever applies to a directory you deliberately create this way (or later reopen the tracked file from), never to a folder the app decides to adopt on its own.
+
+Once a project is versioned (the window title shows `[versioned]`):
+
+- **Every meaningful edit is autosaved automatically** to a local `autosave` branch — no action needed, and nothing to remember to save. A pure display toggle (e.g. Show Tags on Tasks) never creates a commit; only a real change to the project does.
+- **Edit → Undo (Ctrl+Z) / Redo (Ctrl+Y)** step one autosaved edit at a time, exactly like a conventional editor's undo/redo. Making a new edit after undoing discards whatever you'd undone past, the same as any other app.
+- **Edit → Jump to Version...** lists the autosave history with real timestamps (e.g. "the version from before lunch") and jumps straight to one, rather than stepping through Undo repeatedly.
+- **File → Save Version...** is a deliberate checkpoint: it squashes every autosaved edit since the last checkpoint into one clean, optionally-named commit on the `main` branch, so `main`'s history stays a short, meaningful list of real versions rather than every individual edit. There's nothing to save if nothing changed since the last checkpoint.
+
+**Disaster recovery is manual, by design.** This app never pushes anywhere on your behalf. To back up a versioned project off your machine, open a terminal in the workspace folder and add a normal git remote yourself — `git remote add origin <url>` then `git push origin main` — the same way you would for any other git repository. Only `main`'s checkpoints are meant to be pushed; the `autosave` branch is purely local, fine-grained scratch history.
+
+If `git` isn't installed, or has no `user.name`/`user.email` configured, **New Versioned Project...** tells you so up front rather than creating a half-working workspace.
+
 ## Keyboard shortcuts
 
 - **Ctrl+A**: Select all visible tasks
@@ -64,3 +79,4 @@ Where it shows up:
 - **Arrow keys**: Scroll the task grid
 - **Ctrl+Plus / Ctrl+Minus / Ctrl+0**: Zoom in, zoom out, reset zoom
 - **Ctrl+E**: Open the export dialog
+- **Ctrl+Z / Ctrl+Y**: Undo / Redo the last autosaved edit — versioned projects only (see [Versioned Project Folders](#versioned-project-folders))

@@ -289,12 +289,51 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
   1-5, most recent first - open the submenu and press the number key
   to reopen one without using the file picker.
 
+## Versioned Project Folders
+
+There is no undo for a plain project file - a mistake sticks unless you
+remembered to Save As under a new name first. File > New Versioned
+Project... creates an opt-in alternative: a fresh, empty directory backed
+by a real local git repository, giving fine-grained undo/redo plus
+deliberate save points. A plain File > Open/Save project is completely
+unaffected - versioning only ever applies to a directory you deliberately
+create this way (or later reopen the tracked file from), never to a
+folder the app decides to adopt on its own.
+
+Once a project is versioned (the window title shows "[versioned]"):
+
+- Every meaningful edit is autosaved automatically to a local "autosave"
+  branch - nothing to remember to save. A pure display toggle never
+  creates a commit, only a real change to the project does.
+- Edit > Undo (Ctrl+Z) / Redo (Ctrl+Y) step one autosaved edit at a time,
+  like a conventional editor. A new edit made after undoing discards
+  whatever was undone past.
+- Edit > Jump to Version... lists the autosave history with real
+  timestamps and jumps straight to one, instead of stepping through Undo
+  repeatedly.
+- File > Save Version... is a deliberate checkpoint: it squashes every
+  autosaved edit since the last checkpoint into one clean, optionally
+  named commit on the "main" branch, keeping main's history a short list
+  of real versions rather than every individual edit.
+
+Disaster recovery is manual, by design - this app never pushes anywhere
+on your behalf. To back up a versioned project, open a terminal in the
+workspace folder and add a normal git remote yourself (`git remote add
+origin <url>`, then `git push origin main`) - only main's checkpoints are
+meant to be pushed, autosave is purely local scratch history.
+
+If git isn't installed, or has no user.name/user.email configured, New
+Versioned Project... says so up front rather than creating a half-working
+workspace.
+
 ## Keyboard Shortcuts
 
 - Ctrl+0: Reset zoom
 - Ctrl+A: Select all tasks
 - Esc: Clear selections
 - Ctrl+E: Open export dialog
+- Ctrl+Z / Ctrl+Y: Undo / Redo the last autosaved edit - versioned
+  projects only
         """
 
         text_area.insert(tk.END, documentation)
