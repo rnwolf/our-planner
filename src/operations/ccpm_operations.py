@@ -61,7 +61,7 @@ class CcpmOperations:
 
     # ------------------------------------------------------------ mapping
 
-    def build_network_data(self, project_id):
+    def build_network_data(self, project_id, account_for_other_projects=True):
         """Map one project onto the ccpm-scheduler JSON exchange format.
 
         Returns (data, warnings, anchor): `data` is the dict `ccpm_scheduler.
@@ -71,6 +71,13 @@ class CcpmOperations:
         start) — calendar windows in `data` are anchor-relative, and a
         schedule built from `data` must be shifted by +anchor to land back
         on the timeline.
+
+        Resources are global across projects, so a resource exported here
+        may already be committed to tasks in OTHER projects over the same
+        days. When `account_for_other_projects` (the default), each
+        resource's exported capacity is reduced by its load from every
+        other project's tasks before encoding, so the scheduler doesn't
+        plan against capacity that's already spoken for elsewhere.
         """
         warnings = []
         exported = {}  # task_id -> task
@@ -138,12 +145,35 @@ class CcpmOperations:
 
         anchor = min((t['col'] for t in exported.values()), default=0)
 
+        other_loading = {}
+        if account_for_other_projects:
+            other_tasks = [
+                t for t in self.model.tasks if t.get('project_id') != project_id
+            ]
+            other_loading = self.model.calculate_resource_loading(other_tasks)
+
         resources_out, calendar_out = [], []
         for rid in sorted(resource_ids):
             resource = self.model.get_resource_by_id(rid)
             if resource is None:
                 continue
-            base, windows = self._encode_capacity(resource['capacity'])
+            capacity = resource['capacity']
+            other_load = other_loading.get(rid)
+            reduced_days = 0
+            if other_load:
+                effective = []
+                for day, cap in enumerate(capacity):
+                    load = other_load[day] if day < len(other_load) else 0.0
+                    if load > 0:
+                        reduced_days += 1
+                    effective.append(max(0.0, cap - load))
+                capacity = effective
+            if reduced_days:
+                warnings.append(
+                    f"resource '{resource['name']}' capacity reduced on "
+                    f'{reduced_days} day(s) by commitments in other projects'
+                )
+            base, windows = self._encode_capacity(capacity)
             resources_out.append(
                 {
                     'id': str(rid),
@@ -204,7 +234,9 @@ class CcpmOperations:
 
     # ------------------------------------------------------------ core flows
 
-    def schedule_project_core(self, project_id, new_project_name=None):
+    def schedule_project_core(
+        self, project_id, new_project_name=None, account_for_other_projects=True
+    ):
         """Validate + schedule one project and import the result as a new
         project. Returns a dict:
           ok False -> {'ok', 'issues': [{'code','message',...}], 'warnings'}
@@ -218,7 +250,9 @@ class CcpmOperations:
             validate_network,
         )
 
-        data, warnings, anchor = self.build_network_data(project_id)
+        data, warnings, anchor = self.build_network_data(
+            project_id, account_for_other_projects=account_for_other_projects
+        )
         if not data['tasks']:
             return {
                 'ok': False,
@@ -480,8 +514,14 @@ class CcpmOperations:
         project = self._pick_project('Schedule with CCPM')
         if not project:
             return
+        account_for_other_projects = self._confirm_schedule_options(project)
+        if account_for_other_projects is None:
+            return
         try:
-            result = self.schedule_project_core(project['id'])
+            result = self.schedule_project_core(
+                project['id'],
+                account_for_other_projects=account_for_other_projects,
+            )
         except Exception as e:
             self._show_result_dialog('CCPM Error', f'Scheduling failed: {e}')
             return
@@ -623,6 +663,43 @@ class CcpmOperations:
             dialog.destroy()
 
         listbox.bind('<Double-Button-1>', ok)
+        buttons = tk.Frame(dialog)
+        buttons.pack(pady=8)
+        tk.Button(buttons, text='OK', width=8, command=ok).pack(side='left', padx=4)
+        tk.Button(buttons, text='Cancel', width=8, command=dialog.destroy).pack(
+            side='left', padx=4
+        )
+        dialog.wait_window()
+        return chosen[0] if chosen else None
+
+    def _confirm_schedule_options(self, project):
+        """Schedule with CCPM's own confirmation step: lets the user turn
+        off the other-projects capacity reduction (build_network_data's
+        account_for_other_projects) for this run. Returns the chosen bool,
+        or None if the user cancelled."""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('CCPM Scheduling Options')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        tk.Label(dialog, text=f"Schedule '{project['name']}' with CCPM").pack(
+            padx=10, pady=(10, 4), anchor='w'
+        )
+
+        account_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            dialog,
+            text='Account for capacity already committed to other projects',
+            variable=account_var,
+        ).pack(padx=10, pady=(0, 8), anchor='w')
+
+        chosen = []
+
+        def ok(_event=None):
+            chosen.append(account_var.get())
+            dialog.destroy()
+
+        dialog.bind('<Return>', ok)
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
         buttons = tk.Frame(dialog)
         buttons.pack(pady=8)
         tk.Button(buttons, text='OK', width=8, command=ok).pack(side='left', padx=4)

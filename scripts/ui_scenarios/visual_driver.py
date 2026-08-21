@@ -100,14 +100,21 @@ class VisualDriver(ScenarioDriver):
         self.root.after(delay_ms, answer)
 
     def _arm_project_picker(
-        self, expected_title: str, project_name: str | None, delay_ms: int = 350
+        self,
+        expected_title: str,
+        project_name: str | None,
+        delay_ms: int = 350,
+        then=None,
     ):
         """Same idea as _arm_askstring, for
         CcpmOperations._pick_project's hand-built Toplevel (project
         listbox + OK/Cancel) - only shown when more than one project
         exists. Selects `project_name`'s row if given, otherwise leaves
         whatever's pre-selected (the model's default project) alone, then
-        clicks OK."""
+        clicks OK. `then`, if given, runs right after - e.g. arming the
+        next dialog this picker's own OK click is about to pop, since a
+        fresh root.after() scheduled beforehand would race the picker's
+        own (unpredictable) close time instead of following it."""
 
         def answer():
             dialog = self._find_toplevel(expected_title)
@@ -117,6 +124,27 @@ class VisualDriver(ScenarioDriver):
                 listbox.selection_clear(0, tk.END)
                 listbox.selection_set(names.index(project_name))
             time.sleep(self.pace / 2)
+            self._find_button(dialog, 'OK').invoke()
+            if then is not None:
+                then()
+
+        self.root.after(delay_ms, answer)
+
+    def _arm_schedule_options(
+        self, account_for_other_projects: bool = True, delay_ms: int = 350
+    ):
+        """Same idea as _arm_project_picker, for
+        CcpmOperations._confirm_schedule_options's hand-built 'CCPM
+        Scheduling Options' Toplevel (checkbox + OK/Cancel) - pops
+        unconditionally after schedule_with_ccpm's project is settled.
+        Leaves the checkbox at its own default (checked) unless
+        `account_for_other_projects` is False, then clicks OK."""
+
+        def answer():
+            dialog = self._find_toplevel('CCPM Scheduling Options')
+            if not account_for_other_projects:
+                self._find_widgets(dialog, tk.Checkbutton)[0].invoke()
+                time.sleep(self.pace / 2)
             self._find_button(dialog, 'OK').invoke()
 
         self.root.after(delay_ms, answer)
@@ -372,7 +400,11 @@ class VisualDriver(ScenarioDriver):
 
     # -- CCPM --------------------------------------------------------------
 
-    def schedule_with_ccpm(self, project_name: str | None = None) -> str:
+    def schedule_with_ccpm(
+        self,
+        project_name: str | None = None,
+        account_for_other_projects: bool = True,
+    ) -> str:
         """File -> Schedule with CCPM..., via a real, visible menu popup.
         The result is CcpmOperations._show_result_dialog - a hand-built
         Toplevel with grab_set() but no wait_window(), so the call returns
@@ -387,7 +419,11 @@ class VisualDriver(ScenarioDriver):
         With more than one project, _pick_project pops its own real,
         blocking (wait_window()) chooser first - menu.invoke() below won't
         return until that's answered, so arm it before invoking, the same
-        as every other real dialog this driver drives."""
+        as every other real dialog this driver drives. Either way,
+        _confirm_schedule_options then pops its own 'CCPM Scheduling
+        Options' Toplevel unconditionally - chained off the picker's own
+        answer (via `then`) when both appear, since its close time isn't
+        predictable enough to arm on a fixed delay computed up front."""
         self.assert_menu_path_has('File', 'Schedule with CCPM...')
 
         menu = self.app.ui.file_menu
@@ -396,7 +432,15 @@ class VisualDriver(ScenarioDriver):
         self._beat()
 
         if len(self.model.projects) > 1:
-            self._arm_project_picker('Schedule with CCPM', project_name)
+            self._arm_project_picker(
+                'Schedule with CCPM',
+                project_name,
+                then=lambda: self._arm_schedule_options(
+                    account_for_other_projects, delay_ms=10
+                ),
+            )
+        else:
+            self._arm_schedule_options(account_for_other_projects)
 
         menu.invoke('Schedule with CCPM...')
         menu.unpost()

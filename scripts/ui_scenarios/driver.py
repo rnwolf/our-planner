@@ -410,7 +410,11 @@ class ScenarioDriver:
 
     # -- CCPM --------------------------------------------------------------
 
-    def schedule_with_ccpm(self, project_name: str | None = None) -> str:
+    def schedule_with_ccpm(
+        self,
+        project_name: str | None = None,
+        account_for_other_projects: bool = True,
+    ) -> str:
         """File -> Schedule with CCPM.... Returns the result dialog's text
         (raises with it on failure) - schedule_with_ccpm shows its own
         scrollable Toplevel (CcpmOperations._show_result_dialog) rather
@@ -427,8 +431,22 @@ class ScenarioDriver:
         (confirmed working the same way in visual_driver.py's dialogs), so
         arm an answer that way rather than trying to patch it. Pass
         `project_name` to pick a specific row; left as None, whatever's
-        already selected (the model's default project) is accepted as-is."""
+        already selected (the model's default project) is accepted as-is.
+
+        Either way, CcpmOperations._confirm_schedule_options then pops its
+        own 'CCPM Scheduling Options' Toplevel (checkbox + OK/Cancel),
+        unconditionally - armed the same way, chained after the picker's
+        own answer when both appear so the options dialog isn't looked for
+        before it exists. `account_for_other_projects` (default True,
+        matching the checkbox's own default) controls whether that box is
+        left checked or unchecked before clicking OK."""
         self.assert_menu_path_has('File', 'Schedule with CCPM...')
+
+        def answer_options():
+            dialog = self._find_toplevel('CCPM Scheduling Options')
+            if not account_for_other_projects:
+                self._find_widgets(dialog, tk.Checkbutton)[0].invoke()
+            self._find_button(dialog, 'OK').invoke()
 
         if len(self.model.projects) > 1:
 
@@ -440,8 +458,11 @@ class ScenarioDriver:
                     listbox.selection_clear(0, tk.END)
                     listbox.selection_set(names.index(project_name))
                 self._find_button(dialog, 'OK').invoke()
+                self.root.after(10, answer_options)
 
             self.root.after(10, answer_picker)
+        else:
+            self.root.after(10, answer_options)
 
         self.app.ccpm_ops.schedule_with_ccpm()
         self.pump()

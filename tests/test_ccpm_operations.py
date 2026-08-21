@@ -114,6 +114,54 @@ class TestBuildNetworkData:
             {'resource_id': '2', 'from': 2, 'to': 4, 'capacity': 0}
         ]
 
+    def test_reduces_capacity_for_other_project_commitments(self):
+        """Resource A (id 1) is fully booked on another project for the
+        first 5 days - that should show up as a reduced-capacity calendar
+        window here, with a warning naming the resource."""
+        model, project_id, ids, ops = make_worked_example()
+        other = model.add_project('Other Project')
+        model.add_task(
+            row=1,
+            col=0,
+            duration=5,
+            description='Elsewhere',
+            resources={1: 1.0},
+            predecessors=[],
+            project_id=other['id'],
+        )
+        data, warnings, _ = ops.build_network_data(project_id)
+        assert {'resource_id': '1', 'from': 0, 'to': 5, 'capacity': 0} in (
+            data.get('calendar') or []
+        )
+        assert any(
+            "resource 'Resource A' capacity reduced on 5 day(s)" in w for w in warnings
+        )
+
+    def test_other_project_commitments_ignored_when_disabled(self):
+        model, project_id, ids, ops = make_worked_example()
+        other = model.add_project('Other Project')
+        model.add_task(
+            row=1,
+            col=0,
+            duration=5,
+            description='Elsewhere',
+            resources={1: 1.0},
+            predecessors=[],
+            project_id=other['id'],
+        )
+        data, warnings, _ = ops.build_network_data(
+            project_id, account_for_other_projects=False
+        )
+        assert 'calendar' not in data
+        assert not any('other projects' in w for w in warnings)
+
+    def test_no_reduction_without_other_project_load(self):
+        model, project_id, ids, ops = make_worked_example()
+        model.add_project('Other Project')  # no tasks - nothing to reduce
+        data, warnings, _ = ops.build_network_data(project_id)
+        assert 'calendar' not in data
+        assert not any('other projects' in w for w in warnings)
+
 
 class TestScheduleProjectCore:
     def test_schedules_and_imports_as_new_project(self):
@@ -210,6 +258,31 @@ class TestScheduleProjectCore:
         result = ops.schedule_project_core(empty['id'])
         assert not result['ok']
         assert result['issues'][0]['code'] == 'E_EMPTY_PROJECT'
+
+    def test_account_for_other_projects_changes_schedule(self):
+        """Resource A booked elsewhere for the first 15 days pushes this
+        project's promise date out when the reduction is applied, and
+        leaves it untouched when it's turned off."""
+        model, project_id, ids, ops = make_worked_example()
+        other = model.add_project('Other Project')
+        model.add_task(
+            row=1,
+            col=0,
+            duration=15,
+            description='Elsewhere',
+            resources={1: 1.0},
+            predecessors=[],
+            project_id=other['id'],
+        )
+        result_on = ops.schedule_project_core(project_id, new_project_name='On')
+        result_off = ops.schedule_project_core(
+            project_id, new_project_name='Off', account_for_other_projects=False
+        )
+        assert result_on['ok'], result_on.get('issues')
+        assert result_off['ok'], result_off.get('issues')
+        assert result_on['stats'].promise_day > result_off['stats'].promise_day
+        assert any('capacity reduced' in w for w in result_on['warnings'])
+        assert not any('capacity reduced' in w for w in result_off['warnings'])
 
     def test_duplicate_name_gets_suffix(self):
         model, project_id, _, ops = make_worked_example()
