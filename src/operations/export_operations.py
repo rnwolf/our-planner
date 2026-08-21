@@ -49,15 +49,17 @@ def _draw_fever_chart_image(
     """
     from src.model.task_resource_model import (
         classify_fever_chart_zone,
+        declutter_label_positions,
         fever_chart_display_point,
         fever_chart_title_lines,
+        sorted_fever_chart_history,
     )
 
     slope = project.get('fever_chart_slope', 0.55)
     yellow_intercept = project.get('fever_chart_yellow_intercept', 10.0)
     red_intercept = project.get('fever_chart_red_intercept', 27.0)
 
-    history = buffer_task.get('fever_chart_history', [])
+    history = sorted_fever_chart_history(buffer_task)
     baseline = buffer_task.get('baseline')
     buffer_baseline_duration = (
         baseline['duration'] if baseline else buffer_task['duration']
@@ -180,21 +182,33 @@ def _draw_fever_chart_image(
         )
         return
 
-    prev_px = None
+    pixel_points = []
     for date_str, progress_pct, consumption_pct in points:
         px, py = to_px(progress_pct, max(0.0, consumption_pct))
-        if prev_px is not None:
-            draw.line([prev_px, (px, py)], fill='black', width=3)
         zone = classify_fever_chart_zone(
             progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
         )
+        pixel_points.append((date_str, px, py, zone))
+
+    # Dates are chronological (sorted_fever_chart_history) but can still
+    # land close together in pixel space - declutter the labels
+    # independently of the dots/line, which keep their true positions.
+    label_anchors = [(px, py - 25) for _, px, py, _ in pixel_points]
+    label_positions = declutter_label_positions(label_anchors, box_w=70, box_h=22)
+
+    prev_px = None
+    for (date_str, px, py, zone), (lx, ly) in zip(
+        pixel_points, label_positions, strict=True
+    ):
+        if prev_px is not None:
+            draw.line([prev_px, (px, py)], fill='black', width=3)
         dot_color = {'green': '#2E7D32', 'yellow': '#F9A825', 'red': '#C62828'}[zone]
         r = 10
         draw.ellipse(
             [px - r, py - r, px + r, py + r], fill=dot_color, outline='black', width=2
         )
         date_label = datetime.datetime.fromisoformat(date_str).strftime('%m-%d')
-        draw.text((px, py - 25), date_label, fill='black', font=small_font, anchor='ma')
+        draw.text((lx, ly), date_label, fill='black', font=small_font, anchor='ma')
         prev_px = (px, py)
 
 

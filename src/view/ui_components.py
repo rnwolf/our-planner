@@ -23,8 +23,10 @@ from src.model.dependency_notation import (
 )
 from src.model.task_resource_model import (
     classify_fever_chart_zone,
+    declutter_label_positions,
     fever_chart_display_point,
     fever_chart_title_lines,
+    sorted_fever_chart_history,
 )
 
 # Wrap width for the task name at the top of the task tooltip - a plain
@@ -2379,7 +2381,7 @@ class UIComponents:
         yellow_intercept = project.get('fever_chart_yellow_intercept', 10.0)
         red_intercept = project.get('fever_chart_red_intercept', 27.0)
 
-        history = buffer_task.get('fever_chart_history', [])
+        history = sorted_fever_chart_history(buffer_task)
         baseline = buffer_task.get('baseline')
         buffer_baseline_duration = (
             baseline['duration'] if baseline else buffer_task['duration']
@@ -2498,25 +2500,86 @@ class UIComponents:
             return
 
         # Trajectory: connect points in order, color each dot by its zone
-        prev_px = None
+        pixel_points = []
         for date_str, progress_pct, consumption_pct in points:
             px, py = to_px(progress_pct, max(0.0, consumption_pct))
+            zone = classify_fever_chart_zone(
+                progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
+            )
+            pixel_points.append((date_str, progress_pct, consumption_pct, px, py, zone))
+
+        # Dates are chronological (sorted_fever_chart_history) but can still
+        # land close together in pixel space - declutter the labels
+        # independently of the dots/line, which keep their true positions.
+        label_anchors = [(px, py - 10) for _, _, _, px, py, _ in pixel_points]
+        label_positions = declutter_label_positions(label_anchors, box_w=32, box_h=11)
+
+        prev_px = None
+        for (date_str, progress_pct, consumption_pct, px, py, zone), (lx, ly) in zip(
+            pixel_points, label_positions, strict=True
+        ):
             if prev_px is not None:
                 canvas.create_line(
                     prev_px[0], prev_px[1], px, py, fill='black', width=1.5
                 )
-            zone = classify_fever_chart_zone(
-                progress_pct, consumption_pct, slope, yellow_intercept, red_intercept
-            )
             dot_color = {'green': '#2E7D32', 'yellow': '#F9A825', 'red': '#C62828'}[
                 zone
             ]
-            canvas.create_oval(
+            dot_id = canvas.create_oval(
                 px - 4, py - 4, px + 4, py + 4, fill=dot_color, outline='black'
             )
             date_label = datetime.fromisoformat(date_str).strftime('%m-%d')
-            canvas.create_text(px, py - 10, text=date_label, font=('Arial', 7))
+            canvas.create_text(lx, ly, text=date_label, font=('Arial', 7))
+            canvas.tag_bind(
+                dot_id,
+                '<Button-1>',
+                lambda event, d=date_str, p=progress_pct, c=consumption_pct, z=zone: (
+                    self._show_fever_chart_point_detail(buffer_task, d, p, c, z)
+                ),
+            )
             prev_px = (px, py)
+
+    def _show_fever_chart_point_detail(
+        self, buffer_task, date_str, progress_pct, consumption_pct, zone
+    ):
+        """Click handler for a fever chart dot - shows the date, its
+        Progress %/Consumption %/Zone, and whichever reason/note (if any)
+        was recorded against this buffer's own protected chain on that
+        date, since most fever_chart_history points come from project-wide
+        recomputes with no reason attributable to this specific buffer.
+        """
+        date_label = datetime.fromisoformat(date_str).strftime('%Y-%m-%d')
+        reasons = self.model.get_buffer_update_reasons(buffer_task['task_id'])
+        matching = [entry for entry in reasons if entry['date'] == date_str]
+
+        lines = [
+            f'Date: {date_label}',
+            f'Progress: {progress_pct:.1f}%',
+            f'Consumption: {consumption_pct:.1f}%',
+            f'Zone: {zone}',
+            '',
+        ]
+        if matching:
+            for entry in matching:
+                lines.append(
+                    f'{entry["task_description"]}: {entry["remaining_duration"]}d remaining'
+                )
+                if entry.get('reason'):
+                    lines.append(f'  Reason: {entry["reason"]}')
+                if entry.get('note'):
+                    lines.append(f'  Note: {entry["note"]}')
+        else:
+            lines.append(
+                'No status update with a reason/note was recorded against '
+                "this buffer's own chain on this date - this point comes "
+                'from a project-wide recompute triggered elsewhere.'
+            )
+
+        messagebox.showinfo(
+            'Fever Chart Point',
+            '\n'.join(lines),
+            parent=self.controller.root,
+        )
 
     def draw_resource_grid(self):
         """Draw the resource loading grid with wider label column"""

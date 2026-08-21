@@ -135,6 +135,69 @@ def fever_chart_title_lines(
     return project['name'], f'{buffer_task["task_id"]} - {buffer_task["description"]}'
 
 
+def sorted_fever_chart_history(buffer_task: TaskDict) -> List[FeverChartHistoryEntry]:
+    """buffer_task['fever_chart_history'], chronologically sorted and
+    collapsed to one entry per calendar date (the last one recorded that
+    day wins) - snapshots are appended in call order, not date order
+    (capture_fever_chart_snapshot fires on every project-wide status
+    update, not just ones on this buffer's own chain), and a single day can
+    log more than one snapshot; only the day's final state matters for
+    reading the trend on a fever chart.
+    """
+    by_date = {
+        entry['date']: entry for entry in buffer_task.get('fever_chart_history', [])
+    }
+    return [by_date[d] for d in sorted(by_date)]
+
+
+def declutter_label_positions(
+    anchors: List[Tuple[float, float]], box_w: float, box_h: float
+) -> List[Tuple[float, float]]:
+    """Nudge label anchor points that would visually overlap (given each
+    label's approximate box size) apart - tries directly above the point
+    first (a fever chart's default label position), then below, then
+    further above/below with growing offsets, picking the first candidate
+    that doesn't collide with an already-placed label. Both fever chart
+    renderers need this once dates are sorted/deduped, since two genuinely
+    different dates can still land close together in pixel space (e.g.
+    several early updates all near 0% progress).
+    """
+    placed: List[Tuple[float, float, float, float]] = []
+    result: List[Tuple[float, float]] = []
+    candidate_offsets = [
+        0.0,
+        -box_h,
+        box_h,
+        -2 * box_h,
+        2 * box_h,
+        -3 * box_h,
+        3 * box_h,
+    ]
+
+    for x, y in anchors:
+        for dy in candidate_offsets:
+            cy = y + dy
+            box = (x - box_w / 2, cy - box_h / 2, x + box_w / 2, cy + box_h / 2)
+            if not any(_boxes_overlap(box, other) for other in placed):
+                placed.append(box)
+                result.append((x, cy))
+                break
+        else:
+            box = (x - box_w / 2, y - box_h / 2, x + box_w / 2, y + box_h / 2)
+            placed.append(box)
+            result.append((x, y))
+
+    return result
+
+
+def _boxes_overlap(
+    a: Tuple[float, float, float, float], b: Tuple[float, float, float, float]
+) -> bool:
+    ax0, ay0, ax1, ay1 = a
+    bx0, by0, bx1, by1 = b
+    return ax0 < bx1 and ax1 > bx0 and ay0 < by1 and ay1 > by0
+
+
 class TaskResourceModel:
     def __init__(self):
         self._initialize_state()
