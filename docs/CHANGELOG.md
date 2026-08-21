@@ -1,4 +1,50 @@
 
+    ## [0.1.25] - 2026-08-21
+    ### Added
+    - Versioned Project Folders: File > New Versioned Project... creates a git-backed workspace
+      with automatic autosave on every meaningful edit (including on app close), Edit >
+      Undo/Redo (Ctrl+Z/Ctrl+Y) stepping one autosave commit at a time, Edit > Jump to
+      Version... to return straight to any earlier autosave point, and File > Save Version...
+      to checkpoint the current state as a single named commit on main. Ordinary (non-workspace)
+      projects are entirely unaffected. Documented in the user guide's new "Versioned Project
+      Folders" section and in-app Help > Documentation.
+    - Reports > Resource Over-Allocation...: a By Resource / By Tag view of every overloaded
+      resource or role across all projects plus backlog work, with worst-first sorting and
+      drill-down into each contributing task (flagged Critical/Non-Critical/Unscheduled). Edit
+      Task Resources also gained an inline tag filter alongside the existing name search.
+    - "Schedule with CCPM..." gained an "Account for capacity already committed to other
+      projects" option (checked by default), so scheduling no longer plans against a shared
+      resource's full raw capacity when it's already committed elsewhere.
+    - Home/Page Up/Page Down keyboard navigation on the task grid (re-center on today / scroll
+      half a viewport vertically).
+    - View > Show Task Names toggle: show just the task id instead of the full description when
+      it doesn't fit its box, on-screen and in PDF/PNG export.
+    - A realistic large sample portfolio (`sample-app-file/realistic-portfolio.json`, 19
+      projects/218 tasks/30 resources) and its generator, exercising CCPM scheduling, buffer
+      consumption, resource contention, and full-kit readiness with genuine (not hand-faked)
+      outcomes - documented in a new Sample Portfolio Walkthrough doc page.
+    ### Fixed
+    - "Schedule with CCPM..."'s result/error dialog is now a resizable, scrollable window
+      instead of an auto-sizing messagebox, and validation issues reference tasks/resources by
+      name instead of raw internal ids.
+    - Fever chart date labels are now drawn in chronological order with collision avoidance
+      (previously could zig-zag and overlap), on-screen points are clickable to show the
+      recorded reason/note, and each chart now also shows its project name.
+    - A near-zero-duration (fully consumed) buffer's hit zone and stacking order no longer lose
+      out to an overlapping successor task on hover/click/right-click.
+    - A URL task's plain click no longer also opens the link in a browser tab (moved to
+      double-click); resource tag editing moved into a proper Tags tab in Edit Resources instead
+      of an unreachable right-click-on-empty-tags path.
+    - A real drag-to-create bug: dragging out a brand-new task right after creating another one
+      could silently move the previous task instead of sizing the new one.
+    - The File menu's Save and Schedule with CCPM... mnemonics no longer collide.
+    - Generated/imported CCPM schedules no longer force a 'ccpm' tag onto every task.
+    - `docs/CHANGELOG.md` (not the repo-root copy) is now the single source of truth, fixing
+      drift between the two.
+    ### Removed
+    - The legacy Network menu and its classic critical-path analysis - superseded by CCPM
+      scheduling and unrelated to CCPM's own critical chain logic.
+
     ## [0.1.24] - 2026-08-18
     ### Added
     - Keyboard-only accessibility across the whole app: Alt-mnemonics and Ctrl accelerators on
