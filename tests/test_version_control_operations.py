@@ -5,10 +5,19 @@ own docstring for the design.
 """
 
 import json
+import os
 import tkinter as tk
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+# CI's headless runner (even under Xvfb) reliably aborts the whole process
+# (Fatal Python error: Aborted) on the first real Tk widget these two tests
+# create - a real display is required to drive the actual Jump to Version
+# dialog, so they only run where one is genuinely available.
+requires_real_display = pytest.mark.skipif(
+    os.environ.get('CI') == 'true', reason='needs a real display, not just Xvfb'
+)
 
 from src.model.task_resource_model import TaskResourceModel
 from src.operations.version_control_operations import (
@@ -628,6 +637,7 @@ class TestJumpToVersion:
 
         ops.jump_to_version()  # must not raise - nothing to do
 
+    @requires_real_display
     def test_jump_to_the_oldest_commit_reloads_its_content(self, real_workspace):
         ops, controller, model, workspace = real_workspace
         model.add_task(row=1, col=0, duration=3, description='Task A')
@@ -656,6 +666,7 @@ class TestJumpToVersion:
         assert len(model.tasks) == 0
         assert controller.version_control.history_cursor_sha == initial_sha
 
+    @requires_real_display
     def test_cancel_leaves_everything_unchanged(self, real_workspace):
         ops, controller, model, workspace = real_workspace
         model.add_task(row=1, col=0, duration=3, description='Task A')
