@@ -310,13 +310,11 @@ class CcpmOperations:
             source = None
             if row_dict['id'].isdigit():
                 source = source_by_id.get(int(row_dict['id']))
-            tags = ['ccpm']
+            tags = []
             if source is not None:
                 task['color'] = source['color']
                 task['notes'] = [dict(n) for n in source.get('notes') or []]
-                tags += [t for t in source.get('tags') or [] if t != 'ccpm']
-            # 'ccpm' on every created row (buffers too) so the whole
-            # generated network is selectable via the tag filter
+                tags = [t for t in source.get('tags') or [] if t != 'ccpm']
             self.model.set_task_tags(task['task_id'], tags)
 
         return {

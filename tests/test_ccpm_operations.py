@@ -316,7 +316,7 @@ class TestAnchoring:
 
 
 class TestMetadataCarryOver:
-    def test_color_tags_notes_and_ccpm_tag(self):
+    def test_color_tags_and_notes(self):
         model, project_id, ids, ops = make_worked_example()
         src = next(t for t in model.tasks if t['task_id'] == ids['B'])
         src['color'] = 'Tomato'
@@ -333,17 +333,14 @@ class TestMetadataCarryOver:
 
         build = new_tasks['Build']
         assert build['color'] == 'Tomato'
-        assert set(build['tags']) == {'ccpm', 'phase1', 'important'}
+        assert set(build['tags']) == {'phase1', 'important'}
         assert [n['text'] for n in build['notes']] == ['watch the vendor lead time']
         # notes are copies, not shared references
         assert build['notes'] is not src['notes']
         assert build['notes'][0] is not src['notes'][0]
 
-        # every generated row carries the ccpm tag, buffers included
-        assert all('ccpm' in t['tags'] for t in new_tasks.values())
-        assert 'ccpm' in new_tasks['Project buffer']['tags']
-        # source tasks untouched
-        assert 'ccpm' not in src['tags']
+        # buffers have no source task, so they carry no tags
+        assert new_tasks['Project buffer']['tags'] == []
 
     def test_rows_placed_below_source_project(self):
         model, project_id, ids, ops = make_worked_example()
@@ -473,8 +470,7 @@ class TestStage19ExportColumns:
 
 class TestStage19ImportTagsColour:
     """Stage 19: optional tags / colour columns on schedule.csv import
-    ('color' accepted as an alias; every imported row gets the 'ccpm' tag,
-    matching the in-process Schedule-with-CCPM flow)."""
+    ('color' accepted as an alias)."""
 
     def make_file_ops(self):
         from src.operations.file_operations import FileOperations
@@ -509,13 +505,13 @@ class TestStage19ImportTagsColour:
         tasks = {
             t['description']: t for t in model.tasks if t['project_id'] == project['id']
         }
-        assert tasks['Spec']['tags'] == ['ccpm', 'alpha', 'beta']
+        assert tasks['Spec']['tags'] == ['alpha', 'beta']
         assert tasks['Spec']['color'] == 'salmon'
         assert tasks['Build']['color'] == '#ff0000'
-        assert tasks['Build']['tags'] == ['ccpm']
-        assert tasks['Test']['tags'] == ['ccpm']
+        assert tasks['Build']['tags'] == []
+        assert tasks['Test']['tags'] == []
 
-    def test_ccpm_tag_not_duplicated(self):
+    def test_stray_ccpm_tag_in_csv_is_stripped(self):
         model, file_ops = self.make_file_ops()
         project = model.add_project('Imported')
         rows = [
@@ -529,7 +525,7 @@ class TestStage19ImportTagsColour:
         ]
         file_ops._import_schedule_tasks(rows, {}, project['id'])
         task = next(t for t in model.tasks if t['project_id'] == project['id'])
-        assert task['tags'] == ['ccpm', 'alpha']
+        assert task['tags'] == ['alpha']
 
     def test_export_import_round_trip_preserves_tags_and_colour(self, tmp_path):
         """tasks.csv column names match what the import reads, so a network
@@ -553,7 +549,7 @@ class TestStage19ImportTagsColour:
         project = model2.add_project('Round trip')
         file_ops._import_schedule_tasks(rows, {}, project['id'])
         spec = next(t for t in model2.tasks if t['description'] == 'Spec')
-        assert spec['tags'] == ['ccpm', 'alpha']
+        assert spec['tags'] == ['alpha']
         assert spec['color'] == 'salmon'
 
 
