@@ -5,6 +5,7 @@ own docstring for the design.
 """
 
 import json
+import tkinter as tk
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -595,3 +596,85 @@ class TestUndoRedo:
         main_commits = git_helper.log(workspace, DEFAULT_MAIN_BRANCH)
         assert [c.message for c in main_commits] == ['v1', 'Initial commit']
         assert git_helper.is_clean(workspace)
+
+
+def _find_toplevel(root, title):
+    for w in root.winfo_children():
+        if isinstance(w, tk.Toplevel) and w.title() == title:
+            return w
+    raise AssertionError(f'no {title!r} dialog found')
+
+
+def _find_widgets(parent, cls):
+    found = []
+    for child in parent.winfo_children():
+        if isinstance(child, cls):
+            found.append(child)
+        found.extend(_find_widgets(child, cls))
+    return found
+
+
+def _find_button(parent, text):
+    for button in _find_widgets(parent, tk.Button):
+        if button.cget('text') == text:
+            return button
+    raise AssertionError(f'no button labeled {text!r} found')
+
+
+class TestJumpToVersion:
+    def test_noop_when_not_versioned(self):
+        ops, controller, _model = _ops()
+        controller.version_control = None
+
+        ops.jump_to_version()  # must not raise - nothing to do
+
+    def test_jump_to_the_oldest_commit_reloads_its_content(self, real_workspace):
+        ops, controller, model, workspace = real_workspace
+        model.add_task(row=1, col=0, duration=3, description='Task A')
+        ops.maybe_autosave_checkpoint()
+        initial_sha = git_helper.log(workspace, DEFAULT_AUTOSAVE_BRANCH)[-1].sha
+
+        root = tk.Tk()
+        try:
+            controller.root = root
+
+            def answer():
+                dialog = _find_toplevel(root, 'Jump to Version')
+                listbox = _find_widgets(dialog, tk.Listbox)[0]
+                # Oldest commit ("Initial commit") is the last row - the
+                # dialog lists most-recent first, matching git log's order.
+                listbox.selection_clear(0, tk.END)
+                listbox.selection_set(tk.END)
+                _find_button(dialog, 'Jump').invoke()
+
+            root.after(50, answer)
+            ops.jump_to_version()
+            root.update()
+        finally:
+            root.destroy()
+
+        assert len(model.tasks) == 0
+        assert controller.version_control.history_cursor_sha == initial_sha
+
+    def test_cancel_leaves_everything_unchanged(self, real_workspace):
+        ops, controller, model, workspace = real_workspace
+        model.add_task(row=1, col=0, duration=3, description='Task A')
+        ops.maybe_autosave_checkpoint()
+        cursor_before = controller.version_control.history_cursor_sha
+
+        root = tk.Tk()
+        try:
+            controller.root = root
+
+            def answer():
+                dialog = _find_toplevel(root, 'Jump to Version')
+                _find_button(dialog, 'Cancel').invoke()
+
+            root.after(50, answer)
+            ops.jump_to_version()
+            root.update()
+        finally:
+            root.destroy()
+
+        assert controller.version_control.history_cursor_sha == cursor_before
+        assert [t['description'] for t in model.tasks] == ['Task A']

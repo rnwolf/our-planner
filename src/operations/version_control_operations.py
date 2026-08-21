@@ -14,6 +14,7 @@ this app's own source checkout) for a versioned workspace.
 
 import json
 import os
+import tkinter as tk
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -441,3 +442,64 @@ class VersionControlOperations:
         if hasattr(self.controller.ui, 'update_notes_panel'):
             self.controller.ui.update_notes_panel()
         self.controller.update_view()
+
+    # ------------------------------------------------------------ jump to version
+
+    def jump_to_version(self):
+        """Edit -> Jump to Version...: lists autosave's own commits by
+        human-readable timestamp (the "go back to before lunch" case) and
+        jumps straight to the chosen one - the same content reload as
+        undo/redo (_load_commit), just arriving in one step instead of
+        several. A no-op when the project isn't versioned."""
+        vc = self.controller.version_control
+        if vc is None:
+            return
+        # Captures any in-flight edit first, same reason as undo/redo.
+        self.maybe_autosave_checkpoint()
+        try:
+            commits = git_helper.log(vc.workspace_dir, vc.autosave_branch)
+        except git_helper.GitError as e:
+            messagebox.showerror(
+                'Jump to Version Failed', f'Could not read history: {e}'
+            )
+            return
+
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Jump to Version')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        tk.Label(dialog, text='Autosave history (most recent first):').pack(
+            padx=10, pady=(10, 4), anchor='w'
+        )
+        listbox = tk.Listbox(dialog, width=60, height=min(len(commits), 15))
+        for commit in commits:
+            when = datetime.fromisoformat(commit.timestamp).strftime(
+                '%b %d, %Y %I:%M %p'
+            )
+            current = ' (current)' if commit.sha == vc.history_cursor_sha else ''
+            listbox.insert(tk.END, f'{when} — {commit.message}{current}')
+        listbox.pack(padx=10, pady=(0, 8), fill='both', expand=True)
+        current_index = next(
+            (i for i, c in enumerate(commits) if c.sha == vc.history_cursor_sha), 0
+        )
+        listbox.selection_set(current_index)
+        listbox.see(current_index)
+
+        chosen = []
+
+        def ok(_event=None):
+            selection = listbox.curselection()
+            if selection:
+                chosen.append(commits[selection[0]].sha)
+            dialog.destroy()
+
+        listbox.bind('<Double-Button-1>', ok)
+        buttons = tk.Frame(dialog)
+        buttons.pack(pady=8)
+        tk.Button(buttons, text='Jump', width=8, command=ok).pack(side='left', padx=4)
+        tk.Button(buttons, text='Cancel', width=8, command=dialog.destroy).pack(
+            side='left', padx=4
+        )
+        dialog.wait_window()
+        if chosen:
+            self._load_commit(chosen[0])

@@ -468,6 +468,11 @@ class UIComponents:
             accelerator='Ctrl+Y',
             command=self.controller.version_control_ops.redo,
         )
+        self.edit_menu.add_command(
+            label='Jump to Version...',
+            underline=mnemonic('Jump to Version...', 'Jump'),
+            command=self.controller.version_control_ops.jump_to_version,
+        )
         self.edit_menu.add_separator()
 
         # Task submenu (Alt+E, T) - keyboard access to the same "Edit Task
@@ -815,13 +820,18 @@ class UIComponents:
     def refresh_edit_menu_state(self):
         """Edit menu's own postcommand: Undo/Redo are enabled only while
         the open project is versioned AND there's actually somewhere for
-        them to go (not already at the oldest/newest autosave commit)."""
+        them to go (not already at the oldest/newest autosave commit).
+        Jump to Version... only needs the project to be versioned at all."""
         vc_ops = self.controller.version_control_ops
+        versioned = self.controller.version_control is not None
         self.edit_menu.entryconfig(
             'Undo', state=tk.NORMAL if vc_ops.can_undo() else tk.DISABLED
         )
         self.edit_menu.entryconfig(
             'Redo', state=tk.NORMAL if vc_ops.can_redo() else tk.DISABLED
+        )
+        self.edit_menu.entryconfig(
+            'Jump to Version...', state=tk.NORMAL if versioned else tk.DISABLED
         )
 
     def refresh_file_menu_state(self):
