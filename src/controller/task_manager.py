@@ -481,10 +481,18 @@ class TaskResourceManager:
         # A zero (or near-zero) duration task - e.g. a fully-consumed buffer
         # (Stage 7) - would otherwise render as a zero-width box: invisible,
         # and impossible to right-click since the hit-test (x1 < x < x2)
-        # can never match. Enforce a small minimum so it still shows up as a
-        # thin marker and stays clickable, without changing the underlying
+        # can never match. Enforce a minimum so it still shows up as a thin
+        # marker and stays clickable, without changing the underlying
         # `duration` used for scheduling.
-        min_width = 6
+        #
+        # A fixed few-pixel minimum isn't enough on its own: the left/right
+        # edge-resize zones (on_task_press/on_task_hover) use
+        # connector_hit_radius(), which grows with zoom (8-20px) - so a
+        # box any narrower than twice that is entirely edge, with no body
+        # zone left for a plain hover/click/right-click to land on at all.
+        # Give the body as much room as each edge zone gets, so the two
+        # edges and the body are each individually as easy to aim for.
+        min_width = self.connector_hit_radius() * 3
         if width < min_width:
             width = min_width
         x2 = x1 + width
