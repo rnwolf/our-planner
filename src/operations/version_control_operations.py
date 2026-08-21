@@ -39,6 +39,9 @@ class VersionControlState:
     tracked_file: str
     autosave_branch: str = DEFAULT_AUTOSAVE_BRANCH
     main_branch: str = DEFAULT_MAIN_BRANCH
+    # Set once a git failure happens mid-session, so a broken autosave
+    # doesn't pop a fresh warning on every subsequent edit.
+    autosave_disabled: bool = False
 
     @property
     def tracked_path(self) -> Path:
@@ -76,6 +79,45 @@ class VersionControlOperations:
             autosave_branch=manifest.get('autosave_branch', DEFAULT_AUTOSAVE_BRANCH),
             main_branch=manifest.get('main_branch', DEFAULT_MAIN_BRANCH),
         )
+
+    # ------------------------------------------------------------ autosave
+
+    def maybe_autosave_checkpoint(self):
+        """Commits the current model state to the autosave branch if it's
+        actually different from what's already committed there. A no-op
+        when the open project isn't a versioned workspace.
+
+        Called from every point an edit might just have happened
+        (controller.update_view, on_task_release's drag/resize tail) plus
+        every session-ending action (save_file, and later undo/redo/
+        save_version) as a safety net for any edit path that reaches
+        neither of those two. Safe to call redundantly from all of them:
+        git's own diff decides whether anything is actually committed, so
+        a no-op call (a pure view toggle, a click with no drag) costs one
+        cheap diff check and produces zero commits - this is what makes
+        several overlapping call sites safe instead of noisy, rather than
+        needing to classify every model-mutating call site by hand (see
+        this feature's design plan for why that classification approach
+        was rejected)."""
+        vc = self.controller.version_control
+        if vc is None or vc.autosave_disabled:
+            return
+        try:
+            self.model.save_to_file(str(vc.tracked_path))
+            git_helper.add(vc.workspace_dir, [vc.tracked_file])
+            if git_helper.diff_cached_is_empty(vc.workspace_dir):
+                return
+            message = f'Autosave {datetime.now().isoformat(timespec="seconds")}'
+            git_helper.commit(vc.workspace_dir, message)
+        except git_helper.GitError as e:
+            vc.autosave_disabled = True
+            messagebox.showwarning(
+                'Autosave Disabled',
+                f'Autosave stopped working for this session and has been '
+                f'disabled: {e}\n\nYour edits are still in the app - use '
+                'File > Save to write them to disk, but they will not be '
+                'versioned until you reopen this project.',
+            )
 
     # ------------------------------------------------------------ UI flow
 

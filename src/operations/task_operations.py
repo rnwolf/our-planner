@@ -4240,6 +4240,11 @@ class TaskOperations:
 
         # Update resource loading
         self.controller.update_resource_loading()
+        # Autosave chokepoint #2 of 2: drag/resize on the canvas mutates
+        # task['row']/'col'/'duration' directly and redraws via
+        # update_resource_loading, not update_view - so it needs its own
+        # call here (see maybe_autosave_checkpoint's own docstring).
+        self.controller.version_control_ops.maybe_autosave_checkpoint()
 
     def on_right_click(self, event):
         """Handle right-click to show context menu without changing selection"""

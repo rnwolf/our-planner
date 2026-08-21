@@ -447,6 +447,11 @@ class TaskResourceManager:
         self.update_multi_select_status()
         self.update_default_project_status()
         self.ui.update_setdate_display()
+        # Autosave chokepoint #1 of 2 (see maybe_autosave_checkpoint's own
+        # docstring): covers most edits, since nearly every mutating
+        # operation redraws via this method - a no-op when the project
+        # isn't a versioned workspace, or when nothing actually changed.
+        self.version_control_ops.maybe_autosave_checkpoint()
 
     def update_resource_loading(self):
         """Recompute resource loading (honoring the load scope) and redraw

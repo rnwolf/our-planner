@@ -157,6 +157,11 @@ class FileOperations:
 
     def save_file(self):
         """Save the current tasks to a file"""
+        # Safety net for any edit path the two autosave chokepoints (see
+        # maybe_autosave_checkpoint's docstring) don't reach - captures a
+        # pending edit no later than the next explicit Save. A no-op
+        # unless the project is a versioned workspace.
+        self.controller.version_control_ops.maybe_autosave_checkpoint()
         if self.model.current_file_path:
             if self.model.save_to_file(self.model.current_file_path):
                 add_recent_file(self.model.current_file_path)
