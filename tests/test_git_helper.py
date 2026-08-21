@@ -100,16 +100,6 @@ def test_checkout_file_content_reads_historical_blob_without_moving_head(repo):
     assert (repo / 'project.json').read_text() == '{"v": 2}'
 
 
-def test_diff_cached_is_empty_true_with_nothing_staged(repo):
-    assert git_helper.diff_cached_is_empty(repo) is True
-
-
-def test_diff_cached_is_empty_false_after_staging_a_change(repo):
-    (repo / 'project.json').write_text('{"v": 2}')
-    git_helper.add(repo, ['project.json'])
-    assert git_helper.diff_cached_is_empty(repo) is False
-
-
 def test_merge_squash_then_reset_branch_collapses_autosave_onto_main(repo):
     git_helper.create_branch(repo, 'autosave')
     git_helper.checkout(repo, 'autosave')
@@ -161,3 +151,25 @@ def test_is_clean_false_with_unstaged_changes(repo):
 def test_commit_raises_git_error_when_nothing_staged(repo):
     with pytest.raises(git_helper.GitError):
         git_helper.commit(repo, 'Nothing to commit')
+
+
+def test_reset_branch_refuses_the_current_branch(repo):
+    """git itself refuses `branch -f` on the checked-out branch (confirmed
+    live) - reset_hard exists specifically for that case instead."""
+    first_sha = git_helper.log(repo, 'main')[0].sha
+    with pytest.raises(git_helper.GitError):
+        git_helper.reset_branch(repo, 'main', first_sha)
+
+
+def test_reset_hard_moves_the_current_branch_and_working_tree(repo):
+    first_sha = git_helper.log(repo, 'main')[0].sha
+    (repo / 'project.json').write_text('{"v": 2}')
+    git_helper.add(repo, ['project.json'])
+    git_helper.commit(repo, 'Second commit')
+
+    git_helper.reset_hard(repo, first_sha)
+
+    assert git_helper.log(repo, 'main')[0].sha == first_sha
+    assert (repo / 'project.json').read_text() == '{"v": 1}'
+    assert git_helper.is_clean(repo)
+    assert git_helper.current_branch(repo) == 'main'

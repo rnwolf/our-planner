@@ -446,8 +446,29 @@ class UIComponents:
         )
 
         # Edit menu (Alt+E)
-        self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.edit_menu = tk.Menu(
+            self.menu_bar, tearoff=0, postcommand=self.refresh_edit_menu_state
+        )
         self.menu_bar.add_cascade(label='Edit', menu=self.edit_menu, underline=0)
+
+        # Undo/Redo (versioned projects only - see refresh_edit_menu_state):
+        # git-backed, stepping one autosave commit at a time. At the top,
+        # above Task, matching the universal convention.
+        self.edit_menu.add_command(
+            label='Undo',
+            underline=mnemonic('Undo', 'Undo'),
+            accelerator='Ctrl+Z',
+            command=self.controller.version_control_ops.undo,
+        )
+        self.edit_menu.add_command(
+            label='Redo',
+            # 'R' is Edit Resources...'s mnemonic below - anchor to the
+            # 2nd letter instead so the two don't collide.
+            underline=mnemonic('Redo', 'Redo', 'd'),
+            accelerator='Ctrl+Y',
+            command=self.controller.version_control_ops.redo,
+        )
+        self.edit_menu.add_separator()
 
         # Task submenu (Alt+E, T) - keyboard access to the same "Edit Task
         # ..." commands the right-click context menu offers, for editing
@@ -791,6 +812,18 @@ class UIComponents:
         # Add Help menu
         self.help_menu = HelpMenu(self.controller, self.controller.root, self.menu_bar)
 
+    def refresh_edit_menu_state(self):
+        """Edit menu's own postcommand: Undo/Redo are enabled only while
+        the open project is versioned AND there's actually somewhere for
+        them to go (not already at the oldest/newest autosave commit)."""
+        vc_ops = self.controller.version_control_ops
+        self.edit_menu.entryconfig(
+            'Undo', state=tk.NORMAL if vc_ops.can_undo() else tk.DISABLED
+        )
+        self.edit_menu.entryconfig(
+            'Redo', state=tk.NORMAL if vc_ops.can_redo() else tk.DISABLED
+        )
+
     def refresh_file_menu_state(self):
         """File menu's own postcommand: enables Save Version... only while
         the open project is a versioned workspace - save_version() itself
@@ -1107,6 +1140,16 @@ class UIComponents:
         )
         self.controller.root.bind(
             '<Control-Shift-S>', lambda e: self.controller.file_ops.save_file_as()
+        )
+
+        # Undo/Redo (Ctrl+Z/Ctrl+Y) - both no-ops when the project isn't a
+        # versioned workspace, or already at the oldest/newest commit (see
+        # VersionControlOperations.undo/redo).
+        self.controller.root.bind(
+            '<Control-z>', lambda e: self.controller.version_control_ops.undo()
+        )
+        self.controller.root.bind(
+            '<Control-y>', lambda e: self.controller.version_control_ops.redo()
         )
 
     def create_resource_grid_frame(self):

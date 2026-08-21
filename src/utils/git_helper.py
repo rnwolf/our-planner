@@ -127,8 +127,20 @@ def merge_abort(path: Path) -> None:
 
 def reset_branch(path: Path, branch: str, to_ref: str) -> None:
     """Force-moves `branch`'s tip to `to_ref` without checking it out -
-    used to collapse autosave back onto main's new tip after a squash."""
+    used to collapse autosave back onto main's new tip after a squash.
+    Only valid for a branch OTHER than the one currently checked out - git
+    refuses this on the current branch (confirmed live: "cannot force
+    update the branch ... used by worktree"); use reset_hard for that
+    case instead."""
     _run(path, ['branch', '-f', branch, to_ref])
+
+
+def reset_hard(path: Path, ref: str) -> None:
+    """Moves the CURRENTLY CHECKED OUT branch to `ref` and overwrites the
+    working tree/index to match - the counterpart to reset_branch for the
+    one case it can't handle. Used to discard autosave's redo-able future
+    when a genuine new edit happens after the user has undone past it."""
+    _run(path, ['reset', '--hard', ref])
 
 
 def log(path: Path, branch: str) -> list[CommitInfo]:
@@ -152,13 +164,3 @@ def current_branch(path: Path) -> Optional[str]:
 
 def is_clean(path: Path) -> bool:
     return _run(path, ['status', '--porcelain']).stdout.strip() == ''
-
-
-def diff_cached_is_empty(path: Path) -> bool:
-    """Whether nothing is staged - `git diff --cached --quiet` exits 0
-    when clean, 1 when there's a staged change; used to decide whether an
-    autosave write actually changed anything worth committing."""
-    result = _run(path, ['diff', '--cached', '--quiet'], check=False)
-    if result.returncode not in (0, 1):
-        raise GitError(f'git diff --cached --quiet failed: {result.stderr.strip()}')
-    return result.returncode == 0
