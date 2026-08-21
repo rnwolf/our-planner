@@ -144,6 +144,39 @@ class HelpMenu:
 - Use the Network menu to run Critical Path Analysis
 - The critical path shows the shortest possible project duration
 
+## Scheduling with CCPM
+
+### Schedule with CCPM...
+Validates the project's network, builds a critical-chain schedule
+in-process, and imports the result as a NEW project next to the
+source - the source project is left untouched, so a hand-drawn plan
+and the CCPM-scheduled version can be compared side by side.
+
+Resources are shared across every project in the file, so a resource
+being scheduled here may already be committed to tasks in OTHER
+projects over the same days. Before scheduling, a CCPM Scheduling
+Options dialog offers "Account for capacity already committed to
+other projects", checked by default: with it on, each resource's
+exported capacity is reduced by its load from every other project's
+tasks first, so the new schedule doesn't plan against capacity
+someone else already has a claim on - any resource actually reduced
+this way is named in the result dialog's Notes. Uncheck it to
+schedule against each resource's full nominal capacity instead,
+ignoring other projects entirely (the previous behaviour, still
+available for when a resource pool genuinely isn't shared, or for
+comparing against the unconstrained plan).
+
+See Reports > Resource Over-Allocation... for the read-only,
+whole-portfolio view of the same cross-project contention this
+option feeds directly into scheduling.
+
+### Export CCPM Network...
+Writes the same network as tasks.csv/resources.csv/calendar.csv for
+the external ccpm-scheduler CLI - a manual round trip; bring the
+result back with Import CCPM Schedule... below. Applies the same
+other-projects capacity reduction unconditionally, since this flow
+has no dialog step to offer the choice in.
+
 ## Importing Your Project
 
 ### Import CCPM Schedule...
