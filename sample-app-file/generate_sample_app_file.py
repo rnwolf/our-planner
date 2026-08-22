@@ -557,6 +557,114 @@ def sample_task_outcome(
     return actual_duration, reason
 
 
+# -- task notes ----------------------------------------------------------
+# Free-text, timestamped commentary (task['notes'] - distinct from the
+# reason/note pair record_remaining_duration logs to remaining_duration_
+# history) that the Add Task Note dialog writes, and that the Resource
+# Schedule report's "Include task notes" option reads. Not every task gets
+# one - a demo file wants a realistic, occasional scattering, the same way
+# a real team doesn't narrate every single task.
+#
+# model.add_note_to_task() (task_resource_model.py) always stamps real
+# wall-clock time - correct for a live user typing a note right now, wrong
+# for this generator's backdated history - so notes are appended directly
+# below with a timestamp keyed off the simulated day (the same
+# model.get_date_for_day(day) conversion record_status's model.setdate
+# assignments already use), not add_note_to_task() itself.
+
+START_NOTE_PROBABILITY = 0.15
+OUTCOME_NOTE_PROBABILITY = 0.30
+TROUBLED_OUTCOME_NOTE_PROBABILITY = 0.55
+
+START_NOTE_TEMPLATES = [
+    'Kicked off - team is up to speed on scope.',
+    'Underway - nothing blocking at the outset.',
+    'Picking this up now, dependencies look clear.',
+]
+DELAYED_START_NOTE_TEMPLATES = [
+    "Starting later than planned - resourcing wasn't free until now.",
+    "Slipped the planned start, waiting on the assigned person's availability.",
+]
+
+# Keyed by the same reason strings as TASK_OUTCOME_PROFILES, so a note
+# always elaborates on the exact reason record_status just logged rather
+# than risking a mismatched narrative. {project}/{name} are filled from
+# the roster/portfolio at random - close enough for a demo file without
+# threading the *actual* other-project/other-person through every caller.
+OUTCOME_NOTE_TEMPLATES = {
+    'On Time': [
+        'Went smoothly, no surprises.',
+        'Straightforward once we got into it.',
+    ],
+    'Task Variability': [
+        'Took longer than the estimate once we hit the edge cases.',
+        'Scope was fuzzier than assumed going in.',
+    ],
+    'Multitasking': [
+        'Kept getting pulled onto {project} in parallel - lost time to '
+        'context switching.',
+        'Split attention with another commitment this week.',
+    ],
+    'Waiting for Resource': [
+        'Blocked for a couple of days waiting on {name} to free up.',
+        'Had to wait on environment/access before this could really start.',
+    ],
+    "Parkinson's Law": [
+        'Ran right up to the wire - probably could have been tighter.',
+        'Stretched to fill the time available.',
+    ],
+    'Unplanned Events': [
+        'Production incident pulled the team off this for a day.',
+        'An unrelated dependency surfaced mid-task.',
+    ],
+    'Other / Unexplained': [
+        'Not entirely sure why this slipped - worth a look in retro.',
+    ],
+}
+
+
+def add_backdated_note(model: TaskResourceModel, task, day: int, text: str) -> None:
+    """Appends a note stamped with the simulated `day` rather than real
+    wall-clock time - see the module comment above for why this can't
+    just call model.add_note_to_task()."""
+    task.setdefault('notes', []).append(
+        {'timestamp': model.get_date_for_day(day).isoformat(), 'text': text}
+    )
+
+
+def maybe_add_progress_notes(
+    model: TaskResourceModel,
+    task,
+    actual_start: int,
+    outcome_day: int,
+    outcome_reason: str,
+    delayed: bool,
+    severity: float,
+    rng: random.Random,
+) -> None:
+    """Probabilistically logs a start note (at actual_start) and/or an
+    outcome note (at outcome_day) against `task`, so a demo of the
+    Resource Schedule report's "Include task notes" option - and of a
+    task carrying more than one timestamped note - doesn't need every
+    note added by hand. Troubled projects (see TROUBLED_PROJECT_*) get
+    more to say, hence the higher outcome-note probability."""
+    if rng.random() < START_NOTE_PROBABILITY:
+        pool = DELAYED_START_NOTE_TEMPLATES if delayed else START_NOTE_TEMPLATES
+        add_backdated_note(model, task, actual_start, rng.choice(pool))
+
+    outcome_probability = (
+        TROUBLED_OUTCOME_NOTE_PROBABILITY
+        if severity > 1.0
+        else OUTCOME_NOTE_PROBABILITY
+    )
+    if rng.random() < outcome_probability:
+        template = rng.choice(OUTCOME_NOTE_TEMPLATES[outcome_reason])
+        text = template.format(
+            project=rng.choice(PROJECT_NAMES), name=rng.choice(ROSTER)[0]
+        )
+        add_backdated_note(model, task, outcome_day, text)
+
+
 def simulate_progress(
     model: TaskResourceModel,
     task_ops: TaskOperations,
@@ -614,6 +722,16 @@ def simulate_progress(
         record_status(model, task_ops, task, duration, start_reason)
         model.setdate = model.get_date_for_day(actual_end)
         record_status(model, task_ops, task, 0, outcome_reason)
+        maybe_add_progress_notes(
+            model,
+            task,
+            actual_start,
+            actual_end,
+            outcome_reason,
+            delayed,
+            severity,
+            rng,
+        )
     elif actual_start < today_day < actual_end:
         # Genuinely in progress right now.
         model.setdate = model.get_date_for_day(actual_start)
@@ -621,6 +739,9 @@ def simulate_progress(
         model.setdate = model.get_date_for_day(today_day)
         remaining = max(1, actual_end - today_day)
         record_status(model, task_ops, task, remaining, outcome_reason)
+        maybe_add_progress_notes(
+            model, task, actual_start, today_day, outcome_reason, delayed, severity, rng
+        )
     # else: starts in the future - stays untouched in 'planning'.
 
 
@@ -902,10 +1023,13 @@ def main():
 
     task_count = len(model.tasks)
     buffer_count = sum(1 for t in model.tasks if t.get('type') != 'task')
+    note_count = sum(len(t.get('notes', [])) for t in model.tasks)
+    noted_task_count = sum(1 for t in model.tasks if t.get('notes'))
     print(
         f'\nSaved {OUTPUT_PATH} - {len(model.projects)} projects, '
         f'{task_count} tasks ({buffer_count} buffers), '
-        f'{len(model.resources)} resources.'
+        f'{len(model.resources)} resources, '
+        f'{note_count} notes on {noted_task_count} tasks.'
     )
 
 
