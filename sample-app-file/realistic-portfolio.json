@@ -17750,7 +17750,7 @@
     }
   ],
   "days": 145,
-  "max_rows": 50,
+  "max_rows": 60,
   "start_date": "2026-05-24T00:00:00",
   "setdate": "2026-08-22T00:00:00",
   "projects": [

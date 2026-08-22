@@ -314,6 +314,12 @@ def build_draft_network(
 # from neighbours that are also currently in execution.
 ROW_GAP = 3
 
+# A little breathing room below the very last row a task actually uses,
+# once the grid gets grown to fit at main()'s end - see the comment
+# there for why the grid can otherwise end up too short in the first
+# place (build_backlog's per-resource lanes are the usual culprit).
+GRID_ROW_MARGIN = 2
+
 
 def pack_rows(
     row_occupied: dict[int, list[tuple[int, int]]],
@@ -1089,6 +1095,32 @@ def main():
     # above, which moved model.setdate around a lot.
     model.setdate = today
 
+    # The task grid only ever scrolls to model.max_rows (task_manager.py/
+    # ui_components.py size the canvas off it directly) - a task whose row
+    # lands at or past it is placed but permanently unreachable, off the
+    # bottom of the grid. build_backlog's per-resource lanes are the usual
+    # culprit: backlog_row_start + row_by_resource[resource_id] can run
+    # past max_rows once enough mini-projects have pushed the backlog's
+    # starting row down, and nothing upstream caps it against the grid's
+    # own size. Grow the grid to fit instead of just hoping it already
+    # does, then check it actually worked before trusting the save.
+    if model.tasks:
+        max_task_row = max(t['row'] for t in model.tasks)
+        required_rows = max_task_row + 1 + GRID_ROW_MARGIN
+        if required_rows > model.max_rows:
+            print(
+                f'\nGrid grown from {model.max_rows} to {required_rows} rows '
+                f'(highest task row used: {max_task_row})'
+            )
+            model.max_rows = required_rows
+
+    off_grid = [t for t in model.tasks if t['row'] >= model.max_rows]
+    assert not off_grid, (
+        f'{len(off_grid)} task(s) still off the bottom of the grid '
+        f'(max_rows={model.max_rows}): '
+        f'{[(t["task_id"], t["description"], t["row"]) for t in off_grid]}'
+    )
+
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     ok = model.save_to_file(str(OUTPUT_PATH))
     assert ok, 'save_to_file failed'
@@ -1103,7 +1135,8 @@ def main():
         f'{task_count} tasks ({buffer_count} buffers), '
         f'{len(model.resources)} resources, '
         f'{note_count} notes on {noted_task_count} tasks, '
-        f'{tagged_task_count} tasks tagged ({len(model.all_tags)} distinct tags).'
+        f'{tagged_task_count} tasks tagged ({len(model.all_tags)} distinct tags), '
+        f'grid rows 0..{model.max_rows - 1}.'
     )
 
 
