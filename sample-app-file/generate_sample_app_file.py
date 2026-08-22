@@ -171,6 +171,33 @@ PROJECT_NAMES = [
     'Analytics Dashboard V2',
 ]
 
+# Business area each project belongs to - applied as a tag to every task
+# in it, so "filter the task grid to everything touching compliance"
+# (or any other area) works across the whole portfolio, not just within
+# one project. Curated by hand to match what each project name actually
+# implies, rather than assigned at random.
+PROJECT_DOMAINS = {
+    'Customer Portal Refresh': 'customer',
+    'Invoice Automation': 'finance',
+    'Warehouse Mobile App': 'operations',
+    'Payments Gateway Upgrade': 'finance',
+    'Onboarding Redesign': 'customer',
+    'Fleet Tracking Rollout': 'operations',
+    'Supplier Data Migration': 'operations',
+    'Loyalty Programme Revamp': 'customer',
+    'Returns Workflow': 'operations',
+    'Store Inventory Sync': 'operations',
+    'HR Self-Service Portal': 'internal',
+    'Contract Renewal Tool': 'internal',
+    'Pricing Engine Update': 'finance',
+    'Field Service App': 'operations',
+    'Compliance Reporting Suite': 'compliance',
+    'Order Tracking Redesign': 'customer',
+    'Vendor Onboarding Flow': 'operations',
+    'Analytics Dashboard V2': 'internal',
+}
+assert set(PROJECT_DOMAINS) == set(PROJECT_NAMES)
+
 
 def working_capacity(role: str) -> bool:
     return role in WEEKEND_ROLES
@@ -226,6 +253,7 @@ def build_draft_network(
     shape_name: str,
     team: dict[str, list[int]],
     start_col: int,
+    domain: str,
     rng: random.Random,
 ) -> list[int]:
     """Creates one rolling-wave draft network for `shape_name`, wired
@@ -233,7 +261,14 @@ def build_draft_network(
     created task ids in shape order (topological, since every shape
     lists a task after all of its own predecessors). `row` is a
     placeholder (0) throughout - the draft is deleted right after
-    scheduling, see assign_project_rows() for the rows that matter."""
+    scheduling, see assign_project_rows() for the rows that matter.
+
+    Each task is tagged with its own role and the project's business
+    domain (see PROJECT_DOMAINS) - both survive the delete-and-reschedule
+    round trip the same way url does (schedule_project_core carries a
+    source task's tags across onto its scheduled replacement), so a
+    scheduled project's tasks are already tag-filterable by discipline or
+    business area without any further tagging pass."""
     name_to_id: dict[str, int] = {}
     role_cursor: dict[str, int] = {}
     task_ids = []
@@ -254,6 +289,7 @@ def build_draft_network(
             predecessors=[{'id': name_to_id[p], 'type': 'FS', 'lag': 0} for p in preds],
             color=ROLE_COLOR[role],
             project_id=project_id,
+            tags=[role, domain],
         )
         # Set post-creation (task_id isn't known until add_task returns) -
         # this url string survives the draft's own delete-and-reschedule
@@ -745,6 +781,39 @@ def simulate_progress(
     # else: starts in the future - stays untouched in 'planning'.
 
 
+# Only meaningful once a project has real scheduler output to draw on
+# (chain_id/is_critical), so this is a separate pass from the role/domain
+# tags build_draft_network sets at draft time - see
+# apply_schedule_based_tags.
+AT_RISK_TAG_PROBABILITY = 0.4
+
+
+def apply_schedule_based_tags(
+    model: TaskResourceModel,
+    scheduled_tasks: list,
+    troubled: bool,
+    rng: random.Random,
+) -> None:
+    """Two more tag dimensions, on top of the role/domain tags
+    build_draft_network already set, that only exist once real scheduler
+    output does: 'critical-path' for every task on the project's critical
+    chain (a genuine cross-portfolio "show me only critical-path work"
+    filter - the Critical chain's own colour is only ever a per-project
+    visual cue, not something the task grid can filter by across several
+    projects at once), and - on a random subset of a troubled project's
+    tasks, not the whole project - 'at-risk', so filtering by it actually
+    narrows things down rather than just restating "this project is
+    troubled" on every one of its rows."""
+    for task in scheduled_tasks:
+        if task.get('type') != 'task':
+            continue
+        chain = model.get_chain_by_id(task.get('chain_id'))
+        if chain and chain.get('is_critical'):
+            model.add_tags_to_task(task['task_id'], ['critical-path'])
+        if troubled and rng.random() < AT_RISK_TAG_PROBABILITY:
+            model.add_tags_to_task(task['task_id'], ['at-risk'])
+
+
 def build_mini_project(
     model: TaskResourceModel,
     ccpm_ops: CcpmOperations,
@@ -765,7 +834,7 @@ def build_mini_project(
     assert draft is not None, f'duplicate project name {draft_name!r}'
     team = pick_team(by_role, shape_name, rng)
     draft_task_ids = build_draft_network(
-        model, draft['id'], shape_name, team, start_col, rng
+        model, draft['id'], shape_name, team, start_col, PROJECT_DOMAINS[name], rng
     )
 
     result = ccpm_ops.schedule_project_core(draft['id'], new_project_name=name)
@@ -797,6 +866,8 @@ def build_mini_project(
 
     troubled = status != 'future' and rng.random() < TROUBLED_PROJECT_PROBABILITY
     severity = TROUBLED_PROJECT_SEVERITY if troubled else 1.0
+
+    apply_schedule_based_tags(model, scheduled_tasks, troubled, rng)
 
     if status != 'future':
         model.setdate = model.get_date_for_day(max(0, start_col_actual - 1))
@@ -1025,11 +1096,13 @@ def main():
     buffer_count = sum(1 for t in model.tasks if t.get('type') != 'task')
     note_count = sum(len(t.get('notes', [])) for t in model.tasks)
     noted_task_count = sum(1 for t in model.tasks if t.get('notes'))
+    tagged_task_count = sum(1 for t in model.tasks if t.get('tags'))
     print(
         f'\nSaved {OUTPUT_PATH} - {len(model.projects)} projects, '
         f'{task_count} tasks ({buffer_count} buffers), '
         f'{len(model.resources)} resources, '
-        f'{note_count} notes on {noted_task_count} tasks.'
+        f'{note_count} notes on {noted_task_count} tasks, '
+        f'{tagged_task_count} tasks tagged ({len(model.all_tags)} distinct tags).'
     )
 
 
