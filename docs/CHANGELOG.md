@@ -1,4 +1,32 @@
 
+    ## [0.1.29] - 2026-08-22
+    ### Added
+    - Reports > Resource Schedule...: per-resource in-flight/upcoming task list with CCPM
+      relay-baton context (who hands a resource's next task off to them, who they hand it to
+      next), an optional task-notes column, and a downloadable CSV - aggregated across every
+      project like Resource Over-Allocation, with a project dropping out automatically once
+      every one of its tasks is done.
+    - Filter > Filter Tasks by Resource..., and the "Filter Tasks by ..." menu entries are now
+      sorted alphabetically.
+    - Help > Report Issues, linking to the GitHub issues page.
+    - The About dialog now links to the project's own GitHub repo and credits ccpm-scheduler,
+      the critical-chain scheduling engine behind Schedule with CCPM.../Export CCPM Network....
+    - `sample-app-file/generate_sample_app_file.py` now adds realistic, backdated task notes
+      and tags (role, business domain, critical-chain, at-risk) to the generated portfolio, and
+      grows the task grid to fit every task's row before saving, checked rather than assumed.
+    ### Changed
+    - The application's displayed name is "Our-Planner" everywhere now (window title, About/
+      Documentation dialogs, PDF export metadata) - it was still showing the old "Task Resource
+      Manager" name from before the project was renamed.
+    - The app now launches to the same blank slate File > New produces - no pre-seeded demo
+      tasks, only the one default resource - now that its features are stable enough not to
+      need a first-run demo.
+    ### Fixed
+    - Enter did nothing when a dialog's Save/Cancel/Apply/Clear/Add/Close button had focus -
+      fixed across the Add Task Note, Edit Task Tags, About, and every Filter menu dialog, each
+      of which also gained an Alt+letter keyboard shortcut for its buttons.
+    - Help > Website pointed at the project's old, pre-rename repository name.
+
     ## [0.1.28] - 2026-08-21
     ### Added
     - Versioned Project Folders: File > New Versioned Project... creates a git-backed workspace
