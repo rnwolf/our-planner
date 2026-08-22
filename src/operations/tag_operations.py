@@ -108,8 +108,11 @@ class TagsDialog(tk.Toplevel):
         self.tag_entry.bind('<Return>', self.add_tag)
 
         # Add button for new tag
-        self.add_button = tk.Button(input_frame, text='Add', command=self.add_tag)
+        self.add_button = tk.Button(
+            input_frame, text='Add', underline=0, command=self.add_tag
+        )
         self.add_button.pack(side=tk.LEFT)
+        self.add_button.bind('<Return>', self.add_tag)
 
         # Suggestions for common tags
         # Suggestions section in the TagsDialog.create_widgets method
@@ -208,6 +211,8 @@ class TagsDialog(tk.Toplevel):
         self.bind('<Alt-S>', lambda e: self.save_tags())
         self.bind('<Alt-c>', lambda e: self.destroy())
         self.bind('<Alt-C>', lambda e: self.destroy())
+        self.bind('<Alt-a>', self.add_tag)
+        self.bind('<Alt-A>', self.add_tag)
 
         # Populate with current tags
         self.refresh_tag_display()
