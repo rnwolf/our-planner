@@ -43,11 +43,11 @@ class TestHelpMenu:
         self.menu_bar.add_cascade.assert_called_once()
 
         # Check that the correct menu items were added
-        assert self.mock_menu.add_command.call_count == 4, (
-            'Expected 3 menu items to be added'
+        assert self.mock_menu.add_command.call_count == 5, (
+            'Expected 5 menu items to be added'
         )
 
-        # Verify the first call was for the Website menu item
+        # Verify the first call was for the Documentation menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[0]
         assert kwargs['label'] == 'Documentation', (
             f"Expected 'Documentation' but got {kwargs['label']}"
@@ -59,12 +59,18 @@ class TestHelpMenu:
             f"Expected 'Website' but got {kwargs['label']}"
         )
 
-        # Verify the third call was for the About menu item
+        # Verify the third call was for the Report Issues menu item
         args, kwargs = self.mock_menu.add_command.call_args_list[2]
+        assert kwargs['label'] == 'Report Issues', (
+            f"Expected 'Report Issues' but got {kwargs['label']}"
+        )
+
+        # Verify the fourth call was for the About menu item
+        args, kwargs = self.mock_menu.add_command.call_args_list[3]
         assert kwargs['label'] == 'About', f"Expected 'About' but got {kwargs['label']}"
 
-        # Verify the fourth call was for the Debug menu item
-        args, kwargs = self.mock_menu.add_command.call_args_list[3]
+        # Verify the fifth call was for the Debug menu item
+        args, kwargs = self.mock_menu.add_command.call_args_list[4]
         assert kwargs['label'] == 'Debug', f"Expected 'Debug' but got {kwargs['label']}"
 
     @patch('webbrowser.open')
@@ -73,4 +79,12 @@ class TestHelpMenu:
         self.help_menu.open_website()
         mock_webbrowser_open.assert_called_once_with(
             'https://github.com/rnwolf/our-planner'
+        )
+
+    @patch('webbrowser.open')
+    def test_open_report_issues(self, mock_webbrowser_open):
+        """Test that open_report_issues opens the correct URL."""
+        self.help_menu.open_report_issues()
+        mock_webbrowser_open.assert_called_once_with(
+            'https://github.com/rnwolf/our-planner/issues'
         )

@@ -42,6 +42,11 @@ class HelpMenu:
             command=self.open_website,
         )
         self.help_menu.add_command(
+            label='Report Issues',
+            underline=mnemonic('Report Issues', 'Report'),
+            command=self.open_report_issues,
+        )
+        self.help_menu.add_command(
             label='About',
             underline=mnemonic('About', 'About'),
             command=self.show_about,
@@ -349,6 +354,11 @@ workspace.
     def open_website(self):
         """Open the project website in the default browser."""
         webbrowser.open('https://github.com/rnwolf/our-planner')
+
+    def open_report_issues(self):
+        """Open the GitHub issues page in the default browser, so users
+        can report bugs or request features directly."""
+        webbrowser.open('https://github.com/rnwolf/our-planner/issues')
 
     def show_about(self):
         """Show the About dialog."""
