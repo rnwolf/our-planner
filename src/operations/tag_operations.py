@@ -184,15 +184,30 @@ class TagsDialog(tk.Toplevel):
                 ),
             )
 
-        # Button frame - increased padding to ensure visibility
+        # Button frame - increased padding to ensure visibility. Cancel
+        # packed first (side=RIGHT lands it rightmost) then Save, and the
+        # Alt-s/Alt-c mnemonics below - same order and keyboard shortcuts
+        # as the Add Task Note dialog, for consistency across the app's
+        # Save/Cancel dialogs.
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(20, 10))
 
-        save_button = tk.Button(button_frame, text='Save', command=self.save_tags)
-        save_button.pack(side=tk.RIGHT, padx=5)
-
-        cancel_button = tk.Button(button_frame, text='Cancel', command=self.destroy)
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=0, command=self.destroy
+        )
         cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        save_button = tk.Button(
+            button_frame, text='Save', underline=0, command=self.save_tags
+        )
+        save_button.pack(side=tk.RIGHT, padx=5)
+        save_button.bind('<Return>', lambda e: save_button.invoke())
+
+        self.bind('<Alt-s>', lambda e: self.save_tags())
+        self.bind('<Alt-S>', lambda e: self.save_tags())
+        self.bind('<Alt-c>', lambda e: self.destroy())
+        self.bind('<Alt-C>', lambda e: self.destroy())
 
         # Populate with current tags
         self.refresh_tag_display()
