@@ -796,20 +796,21 @@ def apply_schedule_based_tags(
 ) -> None:
     """Two more tag dimensions, on top of the role/domain tags
     build_draft_network already set, that only exist once real scheduler
-    output does: 'critical-path' for every task on the project's critical
-    chain (a genuine cross-portfolio "show me only critical-path work"
-    filter - the Critical chain's own colour is only ever a per-project
-    visual cue, not something the task grid can filter by across several
-    projects at once), and - on a random subset of a troubled project's
-    tasks, not the whole project - 'at-risk', so filtering by it actually
-    narrows things down rather than just restating "this project is
-    troubled" on every one of its rows."""
+    output does: 'critical-chain' for every task on the project's
+    critical chain (CCPM's own term for it, and a genuine cross-portfolio
+    "show me only critical-chain work" filter - the Critical chain's own
+    colour is only ever a per-project visual cue, not something the task
+    grid can filter by across several projects at once), and - on a
+    random subset of a troubled project's tasks, not the whole project -
+    'at-risk', so filtering by it actually narrows things down rather
+    than just restating "this project is troubled" on every one of its
+    rows."""
     for task in scheduled_tasks:
         if task.get('type') != 'task':
             continue
         chain = model.get_chain_by_id(task.get('chain_id'))
         if chain and chain.get('is_critical'):
-            model.add_tags_to_task(task['task_id'], ['critical-path'])
+            model.add_tags_to_task(task['task_id'], ['critical-chain'])
         if troubled and rng.random() < AT_RISK_TAG_PROBABILITY:
             model.add_tags_to_task(task['task_id'], ['at-risk'])
 
