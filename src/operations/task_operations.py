@@ -4877,11 +4877,13 @@ class TaskOperations:
             button_frame, text='Cancel', underline=0, command=dialog.destroy
         )
         cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
 
         save_button = tk.Button(
             button_frame, text='Save', underline=0, command=save_note
         )
         save_button.pack(side=tk.RIGHT, padx=5)
+        save_button.bind('<Return>', lambda e: save_button.invoke())
 
         # Make dialog modal
         dialog.wait_visibility()
@@ -4993,12 +4995,17 @@ class TaskOperations:
 
         # Add buttons - same keyboard mnemonics as the single-task note
         # dialog: Alt+S saves, Alt+C cancels, even from the text area
-        tk.Button(
+        cancel_button = tk.Button(
             button_frame, text='Cancel', underline=0, command=dialog.destroy
-        ).pack(side=tk.RIGHT, padx=5)
-        tk.Button(button_frame, text='Save', underline=0, command=save_note).pack(
-            side=tk.RIGHT, padx=5
         )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        save_button = tk.Button(
+            button_frame, text='Save', underline=0, command=save_note
+        )
+        save_button.pack(side=tk.RIGHT, padx=5)
+        save_button.bind('<Return>', lambda e: save_button.invoke())
 
         # Make dialog modal
         dialog.wait_visibility()
