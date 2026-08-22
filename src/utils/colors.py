@@ -1,5 +1,5 @@
 """
-Color definitions for Task Resource Manager.
+Color definitions for Our-Planner.
 Contains a list of web color names that can be used for tasks.
 """
 

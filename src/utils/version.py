@@ -1,5 +1,5 @@
 """
-Version utilities for the Task Resource Manager application.
+Version utilities for the Our-Planner application.
 
 This module provides functions for accessing version information.
 """

@@ -474,7 +474,7 @@ class ExportOperations:
                 file_path,
                 pagesize=pdf_size,
                 title=f'Task Resource Plan - {datetime.datetime.now().strftime("%Y-%m-%d")}',
-                author='Task Resource Manager',
+                author='Our-Planner',
             )
 
             # Define styles

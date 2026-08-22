@@ -1,5 +1,5 @@
 """
-Utilities package for Task Resource Manager.
+Utilities package for Our-Planner.
 
 This package contains utility functions and constants.
 """

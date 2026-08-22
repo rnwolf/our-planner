@@ -1,5 +1,5 @@
 """
-Task Resource Manager
+Our-Planner
 
 A Tkinter application for managing tasks and resources with timeline visualization.
 """

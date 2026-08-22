@@ -8,9 +8,9 @@
 
 #!/usr/bin/env python3
 """
-Task Resource Manager - Entry point script
+Our-Planner - Entry point script
 
-This script runs the Task Resource Manager application.
+This script runs the Our-Planner application.
 """
 
 import sys

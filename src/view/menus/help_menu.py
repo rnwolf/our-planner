@@ -1,5 +1,5 @@
 """
-Help menu for Task Resource Manager.
+Help menu for Our-Planner.
 
 This module contains the UI components for the Help menu.
 """
@@ -13,7 +13,7 @@ from src.model.dependency_notation import format_predecessor_notation
 
 
 class HelpMenu:
-    """Implementation of the Help menu for the Task Resource Manager."""
+    """Implementation of the Help menu for Our-Planner."""
 
     def __init__(self, controller, root, menu_bar):
         """Initialize the help menu.
@@ -57,7 +57,7 @@ class HelpMenu:
         """Show the user documentation."""
         # Create a documentation dialog
         doc_dialog = tk.Toplevel(self.root)
-        doc_dialog.title('Task Resource Manager Documentation')
+        doc_dialog.title('Our-Planner Documentation')
         doc_dialog.transient(self.root)
         doc_dialog.grab_set()
         doc_dialog.geometry('700x500')
@@ -77,7 +77,7 @@ class HelpMenu:
         # Add a title
         title_label = tk.Label(
             frame,
-            text='Task Resource Manager Documentation',
+            text='Our-Planner Documentation',
             font=('Arial', 16, 'bold'),
         )
         title_label.pack(pady=(0, 15))
@@ -90,7 +90,7 @@ class HelpMenu:
 
         # Add documentation content
         documentation = """
-# Task Resource Manager - User Guide
+# Our-Planner - User Guide
 
 ## Basic Operations
 
@@ -353,7 +353,7 @@ workspace.
     def show_about(self):
         """Show the About dialog."""
         about_dialog = tk.Toplevel(self.root)
-        about_dialog.title('About Task Resource Manager')
+        about_dialog.title('About Our-Planner')
         about_dialog.transient(self.root)
         about_dialog.grab_set()
 
@@ -369,9 +369,7 @@ workspace.
         frame.pack(fill=tk.BOTH, expand=True)
 
         # Title
-        title_label = tk.Label(
-            frame, text='Task Resource Manager', font=('Arial', 16, 'bold')
-        )
+        title_label = tk.Label(frame, text='Our-Planner', font=('Arial', 16, 'bold'))
         title_label.pack(pady=(0, 10))
 
         # Version information - get from utility function

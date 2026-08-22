@@ -1,5 +1,5 @@
 """
-Controller package for Task Resource Manager.
+Controller package for Our-Planner.
 
 This package contains the controller classes that coordinate
 the model and view components.

@@ -1,5 +1,5 @@
 """
-Menu components for Task Resource Manager.
+Menu components for Our-Planner.
 
 This package contains the menu classes used in the application UI.
 """

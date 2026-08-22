@@ -1,5 +1,5 @@
 """
-View package for Task Resource Manager.
+View package for Our-Planner.
 
 This package contains the UI components and dialog classes.
 """

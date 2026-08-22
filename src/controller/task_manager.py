@@ -24,7 +24,7 @@ class TaskResourceManager:
 
     def __init__(self, root):
         self.root = root
-        self.root.title('Task Resource Manager')
+        self.root.title('Our-Planner')
         self.root.geometry('1000x600')
         # Floor: enough vertical room for timeline + both panes at their
         # 100px minimums + the fixed bars (resource control bar,
@@ -485,9 +485,9 @@ class TaskResourceManager:
 
         # Base title
         if file_path:
-            title = f'Task Resource Manager - {os.path.basename(file_path)}'
+            title = f'Our-Planner - {os.path.basename(file_path)}'
         else:
-            title = 'Task Resource Manager - New Project'
+            title = 'Our-Planner - New Project'
 
         # Add zoom info if requested or if not at 100%
         if show_zoom or self.zoom_level != 1.0:

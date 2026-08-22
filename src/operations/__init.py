@@ -1,5 +1,5 @@
 """
-Operations package for Task Resource Manager.
+Operations package for Our-Planner.
 
 This package contains operations classes that implement
 business logic for the application.

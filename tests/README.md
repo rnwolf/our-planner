@@ -1,6 +1,6 @@
-# Task Resource Manager Tests
+# Our-Planner Tests
 
-This directory contains the tests for the Task Resource Manager application.
+This directory contains the tests for the Our-Planner application.
 
 ## Running Tests
 

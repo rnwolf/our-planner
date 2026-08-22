@@ -1,5 +1,5 @@
 """
-Model package for Task Resource Manager.
+Model package for Our-Planner.
 
 This package contains the data model classes for the application.
 """

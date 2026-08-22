@@ -18,7 +18,7 @@ from src import __version__  # Import the version from your package
 
 def main():
     """
-    Main entry point for the Task Resource Manager application.
+    Main entry point for the Our-Planner application.
 
     Sets up the root window, creates the application instance, and starts the main loop.
     """
@@ -40,7 +40,7 @@ def main():
     if len(sys.argv) == 1:
         root = tk.Tk()
         # Set application title
-        root.title('Task Resource Manager')
+        root.title('Our-Planner')
         # Set window size
         root.geometry('1000x900')
         # Create the main application controller
