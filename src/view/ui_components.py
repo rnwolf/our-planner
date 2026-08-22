@@ -615,21 +615,9 @@ class UIComponents:
         self.filter_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label='Filter', menu=self.filter_menu, underline=1)
 
-        self.filter_menu.add_command(
-            label='Filter Tasks by Tags...',
-            underline=mnemonic('Filter Tasks by Tags...', 'Tags'),
-            command=self.controller.tag_ops.filter_tasks_by_tags,
-        )
-        self.filter_menu.add_command(
-            label='Filter Tasks by Project...',
-            underline=mnemonic('Filter Tasks by Project...', 'Project'),
-            command=self.controller.tag_ops.filter_tasks_by_project,
-        )
-        self.filter_menu.add_command(
-            label='Filter Tasks by State...',
-            underline=mnemonic('Filter Tasks by State...', 'State'),
-            command=self.controller.tag_ops.filter_tasks_by_state,
-        )
+        # 'Filter Tasks by ...' entries are sorted alphabetically by their
+        # filter dimension (Full-Kit Readiness, Planned Start, Project,
+        # Resource, State, Tags) so they're easier to scan for by name.
         self.filter_menu.add_command(
             label='Filter Tasks by Full-Kit Readiness...',
             underline=mnemonic('Filter Tasks by Full-Kit Readiness...', 'Full-Kit'),
@@ -637,10 +625,33 @@ class UIComponents:
         )
         self.filter_menu.add_command(
             label='Filter Tasks by Planned Start...',
-            # the 'l' - 'P' is already "...by Project..." above, 'S' is
-            # already "...by State..." above
+            # the 'l' - 'P' is already "...by Project..." below, 'S' is
+            # already "...by State..." below
             underline=mnemonic('Filter Tasks by Planned Start...', 'Planned', 'l'),
             command=self.controller.tag_ops.filter_tasks_by_start_window,
+        )
+        self.filter_menu.add_command(
+            label='Filter Tasks by Project...',
+            underline=mnemonic('Filter Tasks by Project...', 'Project'),
+            command=self.controller.tag_ops.filter_tasks_by_project,
+        )
+        self.filter_menu.add_command(
+            label='Filter Tasks by Resource...',
+            # the 'o' - 'R' is already "...Resources by Tags..." below,
+            # 'e' is already "Select Tasks by Tags..." below, 's' is
+            # already "...by State..." below
+            underline=mnemonic('Filter Tasks by Resource...', 'Resource', 'o'),
+            command=self.controller.tag_ops.filter_tasks_by_resource,
+        )
+        self.filter_menu.add_command(
+            label='Filter Tasks by State...',
+            underline=mnemonic('Filter Tasks by State...', 'State'),
+            command=self.controller.tag_ops.filter_tasks_by_state,
+        )
+        self.filter_menu.add_command(
+            label='Filter Tasks by Tags...',
+            underline=mnemonic('Filter Tasks by Tags...', 'Tags'),
+            command=self.controller.tag_ops.filter_tasks_by_tags,
         )
         self.filter_menu.add_command(
             label='Filter Resources by Tags...',

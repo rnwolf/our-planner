@@ -635,6 +635,151 @@ class ProjectFilterDialog(tk.Toplevel):
         self.destroy()
 
 
+class ResourceFilterDialog(tk.Toplevel):
+    """Dialog for filtering tasks by assigned resource.
+
+    A task can have more than one resource assigned (see
+    resource_notation.py), so - like TagFilterDialog, unlike
+    ProjectFilterDialog - this is OR logic among checked resources: a
+    task matches if any one of its assigned resources is checked.
+    """
+
+    def __init__(
+        self, parent, title, resources=None, initially_selected=None, on_filter=None
+    ):
+        super().__init__(parent)
+        self.title(title)
+        self.transient(parent)
+        self.grab_set()
+
+        self.resources = resources or []
+        self.initially_selected = set(initially_selected or [])
+        self.on_filter = on_filter
+        self.resource_vars = {}
+
+        x = parent.winfo_x() + 50
+        y = parent.winfo_y() + 50
+        # Starting size only - the measured minsize below stops the
+        # bottom-packed buttons from ever being clipped
+        self.geometry(f'320x400+{x}+{y}')
+
+        self.create_widgets()
+
+        add_resize_handle(self)
+
+        self.wait_visibility()
+        self.focus_set()
+        self.bind('<Escape>', lambda e: self.destroy())
+
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+        x = parent.winfo_rootx() + (parent_width - width) // 2
+        y = parent.winfo_rooty() + (parent_height - height) // 2
+        self.geometry(f'+{x}+{y}')
+
+    def create_widgets(self):
+        main_frame = tk.Frame(self, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(main_frame, text='Select resource(s) to filter by:', anchor='w').pack(
+            fill=tk.X, pady=(0, 10)
+        )
+
+        selection_frame = tk.Frame(main_frame)
+        selection_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        scrollbar = ttk.Scrollbar(selection_frame, orient='vertical')
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Explicit size: a default canvas requests ~380px width, which would
+        # drive the measured minsize past this dialog's width
+        resource_canvas = tk.Canvas(
+            selection_frame,
+            yscrollcommand=scrollbar.set,
+            highlightthickness=1,
+            highlightbackground='gray',
+            width=260,
+            height=150,
+        )
+        resource_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=resource_canvas.yview)
+
+        resource_container = tk.Frame(resource_canvas)
+        resource_canvas_window = resource_canvas.create_window(
+            (0, 0), window=resource_container, anchor='nw'
+        )
+        resource_container.bind(
+            '<Configure>',
+            lambda e: resource_canvas.configure(
+                scrollregion=resource_canvas.bbox('all')
+            ),
+        )
+        resource_canvas.bind(
+            '<Configure>',
+            lambda e: resource_canvas.itemconfig(resource_canvas_window, width=e.width),
+        )
+
+        if not self.resources:
+            tk.Label(resource_container, text='No resources available', fg='gray').pack(
+                anchor='w', padx=5, pady=5
+            )
+        else:
+            for resource in self.resources:
+                label = resource['name']
+                if resource.get('tags'):
+                    label += f' ({", ".join(resource["tags"])})'
+                var = tk.BooleanVar(value=resource['id'] in self.initially_selected)
+                self.resource_vars[resource['id']] = var
+                tk.Checkbutton(
+                    resource_container,
+                    text=label,
+                    variable=var,
+                    anchor='w',
+                ).pack(fill=tk.X, padx=5, pady=1)
+
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=1, command=self.destroy
+        )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        clear_button = tk.Button(
+            button_frame, text='Clear Filter', underline=0, command=self.clear_filter
+        )
+        clear_button.pack(side=tk.RIGHT, padx=5)
+        clear_button.bind('<Return>', lambda e: clear_button.invoke())
+
+        apply_button = tk.Button(
+            button_frame, text='Apply Filter', underline=0, command=self.apply_filter
+        )
+        apply_button.pack(side=tk.RIGHT, padx=5)
+        apply_button.bind('<Return>', lambda e: apply_button.invoke())
+
+        self.bind('<Alt-a>', lambda e: self.apply_filter())
+        self.bind('<Alt-A>', lambda e: self.apply_filter())
+        self.bind('<Alt-c>', lambda e: self.clear_filter())
+        self.bind('<Alt-C>', lambda e: self.clear_filter())
+        self.bind('<Alt-n>', lambda e: self.destroy())
+        self.bind('<Alt-N>', lambda e: self.destroy())
+
+    def apply_filter(self):
+        selected_ids = [rid for rid, var in self.resource_vars.items() if var.get()]
+        if self.on_filter:
+            self.on_filter(selected_ids)
+        self.destroy()
+
+    def clear_filter(self):
+        if self.on_filter:
+            self.on_filter([])
+        self.destroy()
+
+
 class CheckboxListFilterDialog(tk.Toplevel):
     """Generic OR-checkbox filter dialog (Stage 10 Part A) - shared by the
     State and Planned Start Window filters, both of which are a fixed list of
@@ -813,6 +958,12 @@ class TagOperations:
         # selected ids; it ANDs against the tag filter above.
         self.task_project_filters = []
 
+        # Resource filter - list of resource ids. A task can have more
+        # than one resource assigned, so (like the tag filter) this is OR
+        # logic: a task matches if any one of the selected resource ids is
+        # assigned to it. ANDs against every other active task filter.
+        self.task_resource_filters = []
+
         # Resource-side project filter (Stage 21) - a resource matches if
         # it's assigned to >=1 task of a selected project (resources don't
         # belong to projects). ANDs against the resource tag filter.
@@ -955,6 +1106,26 @@ class TagOperations:
 
         self.controller.update_view()
 
+    def filter_tasks_by_resource(self):
+        """Open dialog to filter tasks by assigned resource."""
+        ResourceFilterDialog(
+            self.controller.root,
+            'Filter Tasks by Resource',
+            resources=self.model.resources,
+            initially_selected=self.task_resource_filters,
+            on_filter=self.apply_task_resource_filter,
+        )
+
+    def apply_task_resource_filter(self, resource_ids):
+        """Apply a resource filter to tasks."""
+        self.task_resource_filters = resource_ids
+
+        # Clear multi-selections when filter changes
+        self.controller.selected_tasks = []
+        self.controller.selected_task = None
+
+        self.controller.update_view()
+
     def filter_tasks_by_state(self):
         """Open dialog to filter tasks by derived state (Stage 10 Part A)."""
         CheckboxListFilterDialog(
@@ -1069,9 +1240,10 @@ class TagOperations:
 
     def get_filtered_tasks(self):
         """Get tasks filtered by every active filter dimension - tags,
-        project (Stage 11), and state/full-kit/planned-start-window (Stage 10
-        Part A). Each dimension ANDs against the others; within a dimension
-        that has multiple selectable values, matching any one is enough (OR)."""
+        project (Stage 11), resource, and state/full-kit/planned-start-
+        window (Stage 10 Part A). Each dimension ANDs against the others;
+        within a dimension that has multiple selectable values, matching
+        any one is enough (OR)."""
         if self.task_tag_filters:
             tasks = self.model.get_tasks_by_tags(
                 self.task_tag_filters, match_all=self.task_match_all
@@ -1082,6 +1254,14 @@ class TagOperations:
         if self.task_project_filters:
             tasks = [
                 t for t in tasks if t.get('project_id') in self.task_project_filters
+            ]
+
+        if self.task_resource_filters:
+            selected = set(self.task_resource_filters)
+            tasks = [
+                t
+                for t in tasks
+                if any(int(rid) in selected for rid in (t.get('resources') or {}))
             ]
 
         if self.task_state_filters:
@@ -1155,10 +1335,12 @@ class TagOperations:
         return resources
 
     def clear_task_filters(self):
-        """Clear all task filters (tags, project, state, full-kit, planned start)."""
+        """Clear all task filters (tags, project, resource, state,
+        full-kit, planned start)."""
         self.task_tag_filters = []
         self.task_match_all = False
         self.task_project_filters = []
+        self.task_resource_filters = []
         self.task_state_filters = []
         self.task_fullkit_filter = 'any'
         self.task_start_window_filters = []
@@ -1189,6 +1371,7 @@ class TagOperations:
             or self.resource_tag_filters
             or self.resource_project_filters
             or self.task_project_filters
+            or self.task_resource_filters
             or self.task_state_filters
             or (self.task_fullkit_filter and self.task_fullkit_filter != 'any')
             or self.task_start_window_filters

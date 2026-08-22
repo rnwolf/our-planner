@@ -80,3 +80,67 @@ class TestTagOperations:
         # Clear all filters
         self.tag_ops.resource_tag_filters = []
         assert not self.tag_ops.has_active_filters()
+
+        # Resource filter counts too
+        self.tag_ops.task_resource_filters = [1]
+        assert self.tag_ops.has_active_filters()
+        self.tag_ops.task_resource_filters = []
+        assert not self.tag_ops.has_active_filters()
+
+    def test_get_filtered_tasks_by_resource(self):
+        """Filtering tasks by assigned resource id - OR semantics, since a
+        task can have more than one resource assigned (unlike the project
+        filter, where a task belongs to exactly one project)."""
+        resource_a = self.model.resources[0]
+        resource_b = self.model.resources[1]
+        resource_c = self.model.resources[2]
+
+        self.model.add_task(
+            row=0,
+            col=0,
+            duration=2,
+            description='Solo A',
+            resources={resource_a['id']: 1.0},
+        )
+        self.model.add_task(
+            row=1,
+            col=0,
+            duration=2,
+            description='Solo B',
+            resources={resource_b['id']: 1.0},
+        )
+        self.model.add_task(
+            row=2,
+            col=0,
+            duration=2,
+            description='A and C',
+            resources={resource_a['id']: 0.5, resource_c['id']: 0.5},
+        )
+        self.model.add_task(row=3, col=0, duration=2, description='Unassigned')
+
+        self.tag_ops.task_resource_filters = [resource_a['id']]
+        filtered = self.tag_ops.get_filtered_tasks()
+        assert {t['description'] for t in filtered} == {'Solo A', 'A and C'}
+
+        self.tag_ops.task_resource_filters = [resource_b['id'], resource_c['id']]
+        filtered = self.tag_ops.get_filtered_tasks()
+        assert {t['description'] for t in filtered} == {'Solo B', 'A and C'}
+
+    def test_get_filtered_tasks_by_resource_handles_string_keys(self):
+        """A loaded save file round-trips task['resources'] keys through
+        JSON as strings (same as every other resource-id dict on a task,
+        see calculate_resource_loading's own int(resource_id_str)) - the
+        filter must still match."""
+        resource_a = self.model.resources[0]
+        task = self.model.add_task(
+            row=0,
+            col=0,
+            duration=2,
+            description='Loaded-style task',
+            resources={resource_a['id']: 1.0},
+        )
+        task['resources'] = {str(resource_a['id']): 1.0}
+
+        self.tag_ops.task_resource_filters = [resource_a['id']]
+        filtered = self.tag_ops.get_filtered_tasks()
+        assert [t['description'] for t in filtered] == ['Loaded-style task']
