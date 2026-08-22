@@ -72,5 +72,5 @@ class TestHelpMenu:
         """Test that open_website opens the correct URL."""
         self.help_menu.open_website()
         mock_webbrowser_open.assert_called_once_with(
-            'https://github.com/rnwolf/py_sequencer'
+            'https://github.com/rnwolf/our-planner'
         )

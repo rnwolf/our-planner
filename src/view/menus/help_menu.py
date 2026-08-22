@@ -348,7 +348,7 @@ workspace.
 
     def open_website(self):
         """Open the project website in the default browser."""
-        webbrowser.open('https://github.com/rnwolf/py_sequencer')
+        webbrowser.open('https://github.com/rnwolf/our-planner')
 
     def show_about(self):
         """Show the About dialog."""
@@ -394,6 +394,36 @@ workspace.
             '<Button-1>', lambda e: webbrowser.open('https://www.rnwolf.net')
         )
 
+        # GitHub link
+        github_link = tk.Label(
+            frame,
+            text='our-planner on GitHub',
+            fg='blue',
+            cursor='hand2',
+            font=('Arial', 12, 'underline'),
+        )
+        github_link.pack(pady=5)
+        github_link.bind(
+            '<Button-1>',
+            lambda e: webbrowser.open('https://github.com/rnwolf/our-planner'),
+        )
+
+        # ccpm-scheduler credit - the critical-chain scheduling engine
+        # behind Schedule with CCPM.../Export CCPM Network..., one of the
+        # application's key features
+        ccpm_scheduler_link = tk.Label(
+            frame,
+            text='Critical Chain scheduling powered by ccpm-scheduler',
+            fg='blue',
+            cursor='hand2',
+            font=('Arial', 12, 'underline'),
+        )
+        ccpm_scheduler_link.pack(pady=5)
+        ccpm_scheduler_link.bind(
+            '<Button-1>',
+            lambda e: webbrowser.open('https://github.com/rnwolf/ccpm-scheduler'),
+        )
+
         # link to license
         license_link = tk.Label(
             frame,
@@ -410,11 +440,20 @@ workspace.
             ),
         )
 
-        # Close button
+        # Close button - <Return> invokes it while it has focus, and
+        # Alt+C works from anywhere in the dialog, same convention as the
+        # Add Task Note / Edit Task Tags dialogs' Save/Cancel/Add buttons
         close_button = tk.Button(
-            frame, text='Close', command=about_dialog.destroy, width=10
+            frame,
+            text='Close',
+            underline=0,
+            command=about_dialog.destroy,
+            width=10,
         )
         close_button.pack(pady=(20, 0))
+        close_button.bind('<Return>', lambda e: close_button.invoke())
+        about_dialog.bind('<Alt-c>', lambda e: about_dialog.destroy())
+        about_dialog.bind('<Alt-C>', lambda e: about_dialog.destroy())
 
         # Bind Escape key to close dialog
         about_dialog.bind('<Escape>', lambda e: about_dialog.destroy())
