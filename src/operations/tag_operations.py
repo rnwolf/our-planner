@@ -467,22 +467,37 @@ class TagFilterDialog(tk.Toplevel):
         )
         self.selected_label.pack(fill=tk.X)
 
-        # Buttons
+        # Buttons - <Return> invokes whichever one has focus, and
+        # Alt+A/C/N work from anywhere in the dialog (e.g. while a
+        # checkbox has focus), same convention as the other filter/edit
+        # dialogs in this module.
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
         filter_button = tk.Button(
-            button_frame, text='Apply Filter', command=self.apply_filter
+            button_frame, text='Apply Filter', underline=0, command=self.apply_filter
         )
         filter_button.pack(side=tk.RIGHT, padx=5)
+        filter_button.bind('<Return>', lambda e: filter_button.invoke())
 
         clear_button = tk.Button(
-            button_frame, text='Clear Filters', command=self.clear_filters
+            button_frame, text='Clear Filters', underline=0, command=self.clear_filters
         )
         clear_button.pack(side=tk.RIGHT, padx=5)
+        clear_button.bind('<Return>', lambda e: clear_button.invoke())
 
-        cancel_button = tk.Button(button_frame, text='Cancel', command=self.destroy)
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=1, command=self.destroy
+        )
         cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        self.bind('<Alt-a>', lambda e: self.apply_filter())
+        self.bind('<Alt-A>', lambda e: self.apply_filter())
+        self.bind('<Alt-c>', lambda e: self.clear_filters())
+        self.bind('<Alt-C>', lambda e: self.clear_filters())
+        self.bind('<Alt-n>', lambda e: self.destroy())
+        self.bind('<Alt-N>', lambda e: self.destroy())
 
     def update_selected_tags(self):
         """Update the list of selected tags based on checkboxes."""
@@ -610,18 +625,36 @@ class ProjectFilterDialog(tk.Toplevel):
                     anchor='w',
                 ).pack(fill=tk.X, padx=5, pady=1)
 
+        # <Return> invokes whichever button has focus, and Alt+A/C/N work
+        # from anywhere in the dialog, same convention as the other
+        # filter/edit dialogs in this module.
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
-        tk.Button(button_frame, text='Apply Filter', command=self.apply_filter).pack(
-            side=tk.RIGHT, padx=5
+        apply_button = tk.Button(
+            button_frame, text='Apply Filter', underline=0, command=self.apply_filter
         )
-        tk.Button(button_frame, text='Clear Filter', command=self.clear_filter).pack(
-            side=tk.RIGHT, padx=5
+        apply_button.pack(side=tk.RIGHT, padx=5)
+        apply_button.bind('<Return>', lambda e: apply_button.invoke())
+
+        clear_button = tk.Button(
+            button_frame, text='Clear Filter', underline=0, command=self.clear_filter
         )
-        tk.Button(button_frame, text='Cancel', command=self.destroy).pack(
-            side=tk.RIGHT, padx=5
+        clear_button.pack(side=tk.RIGHT, padx=5)
+        clear_button.bind('<Return>', lambda e: clear_button.invoke())
+
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=1, command=self.destroy
         )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        self.bind('<Alt-a>', lambda e: self.apply_filter())
+        self.bind('<Alt-A>', lambda e: self.apply_filter())
+        self.bind('<Alt-c>', lambda e: self.clear_filter())
+        self.bind('<Alt-C>', lambda e: self.clear_filter())
+        self.bind('<Alt-n>', lambda e: self.destroy())
+        self.bind('<Alt-N>', lambda e: self.destroy())
 
     def apply_filter(self):
         selected_ids = [pid for pid, var in self.project_vars.items() if var.get()]
@@ -842,18 +875,36 @@ class CheckboxListFilterDialog(tk.Toplevel):
                 fill=tk.X, padx=5, pady=1
             )
 
+        # <Return> invokes whichever button has focus, and Alt+A/C/N work
+        # from anywhere in the dialog, same convention as the other
+        # filter/edit dialogs in this module.
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
-        tk.Button(button_frame, text='Apply Filter', command=self.apply_filter).pack(
-            side=tk.RIGHT, padx=5
+        apply_button = tk.Button(
+            button_frame, text='Apply Filter', underline=0, command=self.apply_filter
         )
-        tk.Button(button_frame, text='Clear Filter', command=self.clear_filter).pack(
-            side=tk.RIGHT, padx=5
+        apply_button.pack(side=tk.RIGHT, padx=5)
+        apply_button.bind('<Return>', lambda e: apply_button.invoke())
+
+        clear_button = tk.Button(
+            button_frame, text='Clear Filter', underline=0, command=self.clear_filter
         )
-        tk.Button(button_frame, text='Cancel', command=self.destroy).pack(
-            side=tk.RIGHT, padx=5
+        clear_button.pack(side=tk.RIGHT, padx=5)
+        clear_button.bind('<Return>', lambda e: clear_button.invoke())
+
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=1, command=self.destroy
         )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        self.bind('<Alt-a>', lambda e: self.apply_filter())
+        self.bind('<Alt-A>', lambda e: self.apply_filter())
+        self.bind('<Alt-c>', lambda e: self.clear_filter())
+        self.bind('<Alt-C>', lambda e: self.clear_filter())
+        self.bind('<Alt-n>', lambda e: self.destroy())
+        self.bind('<Alt-N>', lambda e: self.destroy())
 
     def apply_filter(self):
         selected = [key for key, var in self.option_vars.items() if var.get()]
@@ -924,15 +975,28 @@ class FullKitFilterDialog(tk.Toplevel):
                 main_frame, text=label, variable=self.choice, value=value, anchor='w'
             ).pack(fill=tk.X, padx=5, pady=1)
 
+        # <Return> invokes whichever button has focus, and Alt+A/C work
+        # from anywhere in the dialog, same convention as the other
+        # filter/edit dialogs in this module.
         button_frame = tk.Frame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
 
-        tk.Button(button_frame, text='Apply Filter', command=self.apply_filter).pack(
-            side=tk.RIGHT, padx=5
+        apply_button = tk.Button(
+            button_frame, text='Apply Filter', underline=0, command=self.apply_filter
         )
-        tk.Button(button_frame, text='Cancel', command=self.destroy).pack(
-            side=tk.RIGHT, padx=5
+        apply_button.pack(side=tk.RIGHT, padx=5)
+        apply_button.bind('<Return>', lambda e: apply_button.invoke())
+
+        cancel_button = tk.Button(
+            button_frame, text='Cancel', underline=0, command=self.destroy
         )
+        cancel_button.pack(side=tk.RIGHT, padx=5)
+        cancel_button.bind('<Return>', lambda e: cancel_button.invoke())
+
+        self.bind('<Alt-a>', lambda e: self.apply_filter())
+        self.bind('<Alt-A>', lambda e: self.apply_filter())
+        self.bind('<Alt-c>', lambda e: self.destroy())
+        self.bind('<Alt-C>', lambda e: self.destroy())
 
     def apply_filter(self):
         if self.on_filter:
