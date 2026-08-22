@@ -220,8 +220,11 @@ class TaskResourceManager:
         # Add status bar for showing filter information
         self.create_status_bar()
 
-        # Create sample tasks in the model
-        self.model.create_sample_tasks()
+        # Launch opens to the same blank slate as File > New (see
+        # TaskResourceModel.trim_to_first_resource) - no pre-seeded sample
+        # tasks, and only the one default resource rather than __init__'s
+        # full startup sample pool.
+        self.model.trim_to_first_resource()
 
         # After UI creation but before update_view
         self.ui.update_menu_commands()

@@ -1503,6 +1503,16 @@ class TaskResourceModel:
         self.resources = [r for r in self.resources if r['id'] != resource_id]
         return True
 
+    def trim_to_first_resource(self) -> None:
+        """Drop every resource but the first (Resource A on a freshly
+        constructed model). __init__ pre-seeds 10 resources (Resource
+        A..J) as sample data for a first-time user to explore in the
+        resource grid - a genuine blank slate (a fresh app launch, or
+        File > New) needs only the one, so both call this rather than
+        each keeping their own copy of the trim loop."""
+        for resource in list(self.resources[1:]):
+            self.remove_resource(resource['id'])
+
     def update_resource_name(self, resource_id: int, new_name: str) -> bool:
         """Update the name of a resource."""
         # Check if the new name already exists
@@ -1930,64 +1940,6 @@ class TaskResourceModel:
             return False
 
     # Add tags to existing tasks during sample creation
-    def create_sample_tasks(self) -> None:
-        """Create some sample tasks for demo purposes."""
-        # Get resource IDs for easier reference
-        resource_a_id = self.resources[0]['id']  # Resource A
-        resource_b_id = self.resources[1]['id']  # Resource B
-        resource_c_id = self.resources[2]['id']  # Resource C
-        resource_d_id = self.resources[3]['id']  # Resource D
-
-        # Add tasks with fractional resource allocations, tags, and colors
-        self.add_task(
-            row=1,
-            col=5,
-            duration=5,
-            description='Task A',
-            resources={resource_a_id: 0.5, resource_b_id: 1.5},
-            url='https://www.google.com',
-            tags=['important', 'phase1'],
-            color='LightBlue',  # Add color attribute
-        )
-        self.add_task(
-            row=2,
-            col=12,
-            duration=4,
-            description='Task B',
-            resources={resource_a_id: 1.0, resource_b_id: 0.75, resource_c_id: 0.25},
-            url='https://www.google.com',
-            tags=['phase1'],
-            color='LightGreen',  # Add color attribute
-        )
-        self.add_task(
-            row=3,
-            col=2,
-            duration=3,
-            description='Task C',
-            resources={resource_a_id: 2.0},
-            url='https://www.google.com',
-            tags=['phase2', 'critical'],
-            color='Salmon',  # Add color attribute
-        )
-        self.add_task(
-            row=4,
-            col=1,
-            duration=2,
-            description='Task D',
-            resources={resource_a_id: 0.5, resource_d_id: 0.5},
-            tags=['phase2'],
-            color='Gold',  # Add color attribute
-        )
-
-        # Add tags to resources as well
-        self.set_resource_tags(resource_a_id, ['team1', 'developer'])
-        self.set_resource_tags(resource_b_id, ['team1', 'designer'])
-        self.set_resource_tags(resource_c_id, ['team2', 'developer'])
-        self.set_resource_tags(resource_d_id, ['team2', 'qa'])
-
-        # Make sure all_tags is updated
-        self.refresh_all_tags()
-
     def set_task_color(self, task_id: int, color: str) -> bool:
         """Set the color for a specific task.
 

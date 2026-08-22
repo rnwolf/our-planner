@@ -85,8 +85,7 @@ class FileOperations:
             'Are you sure you want to create a new project? All unsaved changes will be lost.',
         ):
             self.model.reset()
-            for resource in list(self.model.resources[1:]):
-                self.model.remove_resource(resource['id'])
+            self.model.trim_to_first_resource()
             # A new blank project is never a versioned workspace, even if
             # the one just left behind was.
             self.controller.version_control_ops.detect_workspace(None)
