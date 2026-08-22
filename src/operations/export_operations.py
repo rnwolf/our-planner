@@ -1867,6 +1867,174 @@ class ExportOperations:
             )
             return False
 
+    def export_resource_schedule(self, include_notes=False):
+        """Export the Resource Schedule report (Reports > Resource
+        Schedule...) to CSV - one flat row per (resource, task) assignment,
+        in-flight and upcoming interleaved under a Section column, so the
+        file can be filtered per resource or used as-is to distribute a
+        schedule to each resource individually.
+
+        Spans every project (no project selector, same convention as the
+        dialog it's downloaded from) - each row carries its own Project
+        column instead.
+
+        Reuses report_ops.compute_resource_schedule rather than re-deriving
+        the same rows independently, so the CSV can never disagree with
+        what the report dialog it was downloaded from actually showed
+        (same reasoning as export_status_update_log).
+        """
+        buckets = self.controller.report_ops.compute_resource_schedule(
+            include_notes=include_notes
+        )
+        if not buckets:
+            messagebox.showinfo(
+                'No Schedule Data Found',
+                'There are no in-flight or upcoming resource assignments to '
+                'export (within the currently active Filter menu scope, if '
+                'any).',
+                parent=self.controller.root,
+            )
+            return False
+
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_path = filedialog.asksaveasfilename(
+            defaultextension='.csv',
+            filetypes=[('CSV files', '*.csv'), ('All files', '*.*')],
+            title='Export Resource Schedule',
+            initialfile=f'resource_schedule_{timestamp}.csv',
+        )
+        if not file_path:
+            return False
+
+        try:
+            import csv
+
+            fieldnames = [
+                'Resource Name',
+                'Resource Email',
+                'Section',
+                'Project',
+                'Project URL',
+                'Task ID',
+                'Task Description',
+                'Task URL',
+                'Allocation',
+                'Planned Start',
+                'Planned End',
+                'Latest Remaining Duration',
+                'Progress %',
+                'Latest Status Date',
+                'Latest Status Note',
+                'Baton From',
+                'Baton From Emails',
+                'Baton To',
+                'Baton To Emails',
+                'Needs Attention',
+            ]
+            if include_notes:
+                fieldnames.append('Notes')
+
+            row_count = 0
+            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+
+                for bucket in buckets:
+                    for row in bucket['in_flight']:
+                        writer.writerow(
+                            self._resource_schedule_csv_row(
+                                bucket, row, 'In Flight', include_notes
+                            )
+                        )
+                        row_count += 1
+                    for row in bucket['upcoming']:
+                        writer.writerow(
+                            self._resource_schedule_csv_row(
+                                bucket, row, 'Upcoming', include_notes
+                            )
+                        )
+                        row_count += 1
+
+            messagebox.showinfo(
+                'Export Complete',
+                f'Exported {row_count} resource schedule row(s) to:\n{file_path}',
+                parent=self.controller.root,
+            )
+            return True
+
+        except Exception as e:
+            messagebox.showerror(
+                'Export Error',
+                f'Error exporting resource schedule: {e}',
+                parent=self.controller.root,
+            )
+            return False
+
+    def _resource_schedule_csv_row(self, bucket, row, section, include_notes):
+        """Build one CSV row dict for export_resource_schedule, shared
+        between the in-flight and upcoming branches above."""
+
+        def format_baton(entries):
+            if not entries:
+                return ''
+            parts = []
+            for e in entries:
+                if e['needs_attention']:
+                    parts.append(f'⚠ {e["message"]}')
+                elif e['resources']:
+                    names = ', '.join(r['resource_name'] for r in e['resources'])
+                    parts.append(f"{names} — '{e['task_description']}'")
+                else:
+                    parts.append(e['message'])
+            return '; '.join(parts)
+
+        def format_baton_emails(entries):
+            emails = []
+            for entry in entries:
+                if entry['needs_attention']:
+                    continue
+                emails.extend(
+                    r['resource_email']
+                    for r in entry['resources']
+                    if r['resource_email']
+                )
+            return '; '.join(emails)
+
+        baton_from = row.get('baton_from', [])
+        baton_to = row.get('baton_to', [])
+        needs_attention = any(e['needs_attention'] for e in baton_from + baton_to)
+
+        csv_row = {
+            'Resource Name': bucket['resource_name'],
+            'Resource Email': bucket['resource_email'],
+            'Section': section,
+            'Project': row['project_name'],
+            'Project URL': row['project_url'],
+            'Task ID': row['task_id'],
+            'Task Description': row['task_description'],
+            'Task URL': row['task_url'],
+            'Allocation': row['allocation'],
+            'Planned Start': row['planned_start_date'][:10],
+            'Planned End': row['planned_end_date'][:10],
+            'Latest Remaining Duration': row.get('latest_remaining_duration', ''),
+            'Progress %': (
+                row['progress_pct'] if row.get('progress_pct') is not None else ''
+            ),
+            'Latest Status Date': row.get('latest_status_date', '') or '',
+            'Latest Status Note': row.get('latest_status_note', ''),
+            'Baton From': format_baton(baton_from),
+            'Baton From Emails': format_baton_emails(baton_from),
+            'Baton To': format_baton(baton_to),
+            'Baton To Emails': format_baton_emails(baton_to),
+            'Needs Attention': 'Yes' if needs_attention else '',
+        }
+        if include_notes:
+            notes = row.get('notes') or []
+            csv_row['Notes'] = ' | '.join(
+                f'{n["timestamp"]}: {n["text"]}' for n in notes
+            )
+        return csv_row
+
     # def export_to_csv(self):
     #     """Export task and resource data to CSV."""
     #     # For a full implementation, we would:

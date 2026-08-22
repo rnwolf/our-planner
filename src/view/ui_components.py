@@ -791,6 +791,11 @@ class UIComponents:
                 self.controller.report_ops.view_resource_overallocation_report()
             ),
         )
+        self.reports_menu.add_command(
+            label='Resource Schedule...',
+            underline=mnemonic('Resource Schedule...', 'Schedule'),
+            command=lambda: self.controller.report_ops.view_resource_schedule_report(),
+        )
 
         # Network Graph (Stage 18) - the interactive dependency-graph view
         # from the external ccpm-scheduler, for any set of tasks

@@ -7,6 +7,7 @@ from tkinter import font as tkfont
 from tkinter import ttk, messagebox
 
 from src.model.dependency_notation import format_predecessor_notation
+from src.model.task_resource_model import BUFFER_TASK_TYPES
 from src.operations.task_operations import OptionSelectDialog
 from src.utils.tk_helpers import add_resize_handle, mnemonic
 
@@ -646,6 +647,449 @@ class ReportOperations:
             command=dialog.destroy,
         )
         close_button.pack(pady=(10, 0))
+        close_button.bind('<Return>', lambda e: dialog.destroy())
+        dialog.bind('<Alt-c>', lambda e: dialog.destroy())
+
+        rebuild()
+
+        add_resize_handle(dialog)
+
+    # ---- Resource Schedule report -----------------------------------------
+    # Per-resource "what am I on right now, what's next" - in-flight tasks
+    # with their latest status update, upcoming tasks with the CCPM relay
+    # baton context (who hands off to this resource, who this resource
+    # hands off to next), downloadable so it can be distributed to each
+    # resource individually. Spans every project like Resource Over-
+    # Allocation - no project selector - since a resource's real schedule
+    # isn't confined to one project.
+
+    def _describe_baton_task(self, resolved):
+        """Render one resolved baton hop (see _resolve_baton_from/_to) into
+        a display-ready dict. `resolved` is the actual task to report - a
+        buffer's terminal/merge task, already resolved by the caller - or
+        None if that resolution itself failed (an ambiguous/buffer-less
+        merge, per get_buffer_merge_task's own docstring). Either that, or
+        a resolved task with no resource assigned, is something a human
+        needs to fix, not something to silently step past - so both cases
+        come back flagged rather than the walk continuing further."""
+        if resolved is None:
+            return {
+                'needs_attention': True,
+                'task_id': None,
+                'task_description': None,
+                'task_url': None,
+                'message': 'Buffer has no resolvable terminal/merge task — check manually.',
+                'resources': [],
+            }
+
+        resource_allocations = resolved.get('resources') or {}
+        if not resource_allocations:
+            return {
+                'needs_attention': True,
+                'task_id': resolved['task_id'],
+                'task_description': resolved['description'],
+                'task_url': resolved.get('url', ''),
+                'message': f"'{resolved['description']}' has no resource assigned",
+                'resources': [],
+            }
+
+        resources = []
+        for resource_id in resource_allocations:
+            resource = self.model.get_resource_by_id(resource_id)
+            if resource:
+                resources.append(
+                    {
+                        'resource_name': resource['name'],
+                        'resource_email': resource.get('emails', ''),
+                    }
+                )
+        return {
+            'needs_attention': False,
+            'task_id': resolved['task_id'],
+            'task_description': resolved['description'],
+            'task_url': resolved.get('url', ''),
+            'message': '',
+            'resources': resources,
+        }
+
+    def _resolve_baton_from(self, task):
+        """Who hands the baton to `task`: each direct predecessor, with a
+        buffer predecessor resolved to its terminal task (the last real
+        work task before the buffer) since buffers themselves never carry
+        a resource."""
+        results = []
+        for entry in task.get('predecessors', []):
+            predecessor = self.model.get_task(entry['id'])
+            if predecessor is None:
+                continue
+            if predecessor.get('type') in BUFFER_TASK_TYPES:
+                resolved = self.model.get_buffer_terminal_task(predecessor['task_id'])
+            else:
+                resolved = predecessor
+            results.append(self._describe_baton_task(resolved))
+        return results
+
+    def _resolve_baton_to(self, task):
+        """Who `task` hands the baton to: each direct successor, with a
+        feeding-buffer successor resolved to its merge task (the
+        critical-chain task the buffer protects) since buffers themselves
+        never carry a resource.
+
+        A project-buffer successor is not the same kind of hop: a project
+        buffer has no merge task by definition - it protects the project's
+        finish date, not a merge into another chain - so reaching one isn't
+        a problem to flag, it's simply the end of the line."""
+        results = []
+        for link in self.model.get_successor_links(task['task_id']):
+            successor = self.model.get_task(link['task_id'])
+            if successor is None:
+                continue
+            successor_type = successor.get('type')
+            if successor_type == 'project_buffer':
+                results.append(
+                    {
+                        'needs_attention': False,
+                        'task_id': None,
+                        'task_description': None,
+                        'task_url': None,
+                        'message': 'End of project (protected by the project buffer)',
+                        'resources': [],
+                    }
+                )
+            elif successor_type in BUFFER_TASK_TYPES:
+                resolved = self.model.get_buffer_merge_task(successor['task_id'])
+                results.append(self._describe_baton_task(resolved))
+            else:
+                results.append(self._describe_baton_task(successor))
+        return results
+
+    def compute_resource_schedule(self, include_notes=False):
+        """The extractor half of the Resource Schedule report. Returns a
+        list of per-resource dicts, sorted by resource name:
+        `{'resource_id', 'resource_name', 'resource_email', 'in_flight',
+        'upcoming'}`, scoped to whatever filters are currently active on
+        the Filter menu. A resource only appears if it has at least one
+        in-flight or upcoming task in scope.
+
+        Deliberately NOT project-scoped, same rationale as Resource
+        Over-Allocation: a resource's real schedule spans every project, so
+        there's no project selector - each row carries its own
+        project_name/project_url instead, since one resource's tasks can
+        span several projects at once. A project drops out of the report
+        on its own once every one of its tasks is done (state 'complete'),
+        with no separate bookkeeping needed - it simply stops contributing
+        any in-flight/upcoming rows.
+
+        Split/scaled allocation needs no special handling here: a resource
+        spread across several simultaneous tasks simply produces one row
+        per task, each carrying that task's own allocation fraction from
+        `task['resources']` - the exact number already answers "how much
+        of this resource is on this task".
+        """
+        tasks = [
+            t
+            for t in self.controller.tag_ops.get_filtered_tasks()
+            if t.get('type') == 'task'
+        ]
+
+        by_resource: dict[int, dict] = {}
+        in_scope_task_ids = []
+
+        for task in tasks:
+            state = self.model.get_task_state(task)
+            if state not in ('in_progress', 'not_started'):
+                continue
+            resource_allocations = task.get('resources') or {}
+            if not resource_allocations:
+                continue
+
+            in_scope_task_ids.append(task['task_id'])
+            start_date = self.model.get_date_for_day(task['col']).isoformat()
+            end_date = self.model.get_date_for_day(
+                task['col'] + task['duration']
+            ).isoformat()
+            task_project = self.model.get_project_by_id(task.get('project_id'))
+
+            for resource_id, allocation in resource_allocations.items():
+                resource = self.model.get_resource_by_id(resource_id)
+                if not resource:
+                    continue
+                bucket = by_resource.setdefault(
+                    resource_id,
+                    {
+                        'resource_id': resource_id,
+                        'resource_name': resource['name'],
+                        'resource_email': resource.get('emails', ''),
+                        'in_flight': [],
+                        'upcoming': [],
+                    },
+                )
+                row = {
+                    'task_id': task['task_id'],
+                    'task_description': task['description'],
+                    'task_url': task.get('url', ''),
+                    'project_name': task_project['name']
+                    if task_project
+                    else '(No Project)',
+                    'project_url': task_project.get('url', '') if task_project else '',
+                    'allocation': allocation,
+                    'planned_start_date': start_date,
+                    'planned_end_date': end_date,
+                }
+                if state == 'in_progress':
+                    row['latest_remaining_duration'] = (
+                        self.model.get_latest_remaining_duration(task['task_id'])
+                    )
+                    progress = self.model.get_task_progress_fraction(task['task_id'])
+                    row['progress_pct'] = (
+                        round(progress * 100) if progress is not None else None
+                    )
+                    history = task.get('remaining_duration_history', [])
+                    if history:
+                        latest = max(
+                            enumerate(history),
+                            key=lambda indexed: (indexed[1]['date'], indexed[0]),
+                        )[1]
+                        row['latest_status_date'] = latest['date']
+                        row['latest_status_note'] = latest.get('note', '')
+                    else:
+                        row['latest_status_date'] = None
+                        row['latest_status_note'] = ''
+                    bucket['in_flight'].append(row)
+                else:
+                    row['baton_from'] = self._resolve_baton_from(task)
+                    row['baton_to'] = self._resolve_baton_to(task)
+                    bucket['upcoming'].append(row)
+
+        if include_notes and in_scope_task_ids:
+            notes_by_task: dict[int, list] = {}
+            for note in self.model.get_all_notes_for_tasks(in_scope_task_ids):
+                notes_by_task.setdefault(note['task_id'], []).append(
+                    {'timestamp': note['timestamp'], 'text': note['text']}
+                )
+            # get_all_notes_for_tasks sorts newest-first (for its own
+            # drill-down UI); a status report reads better as a timeline,
+            # so re-sort each task's own notes oldest-first, matching every
+            # other history-listing report in this module (e.g.
+            # compute_status_update_log).
+            for task_notes in notes_by_task.values():
+                task_notes.sort(key=lambda n: n['timestamp'])
+            for bucket in by_resource.values():
+                for row in bucket['in_flight'] + bucket['upcoming']:
+                    row['notes'] = notes_by_task.get(row['task_id'], [])
+
+        for bucket in by_resource.values():
+            bucket['in_flight'].sort(key=lambda r: r['planned_start_date'])
+            bucket['upcoming'].sort(key=lambda r: r['planned_start_date'])
+
+        return sorted(by_resource.values(), key=lambda b: b['resource_name'])
+
+    def _format_baton_entries(self, entries):
+        """Render a list of _describe_baton_task (or the project-buffer
+        end-of-line) results as one line of text for the detail panel/CSV."""
+        if not entries:
+            return '(none)'
+        parts = []
+        for entry in entries:
+            if entry['needs_attention']:
+                parts.append(f'⚠ {entry["message"]}')
+            elif entry['resources']:
+                names = ', '.join(r['resource_name'] for r in entry['resources'])
+                parts.append(f"{names} — '{entry['task_description']}'")
+            else:
+                parts.append(entry['message'])
+        return '; '.join(parts)
+
+    def view_resource_schedule_report(self):
+        """Reports > Resource Schedule... - for each resource, its
+        in-flight tasks (with the latest status update) and upcoming tasks
+        (with who hands them the relay baton next and who they hand it to),
+        so this can be reviewed on screen or downloaded and sent to each
+        resource individually.
+
+        Spans every project (no project selector) - same convention as
+        Resource Over-Allocation, since a resource's real schedule isn't
+        confined to one project. A project simply stops appearing once
+        every one of its tasks is done."""
+        dialog = tk.Toplevel(self.controller.root)
+        dialog.title('Resource Schedule')
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+        dialog.geometry('700x560')
+
+        frame = tk.Frame(dialog, padx=10, pady=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(
+            frame,
+            text='Resource Schedule',
+            font=('Arial', 10, 'bold'),
+            wraplength=660,
+        ).pack(fill=tk.X, pady=(0, 10))
+
+        if self.controller.tag_ops.has_active_filters():
+            tk.Label(
+                frame,
+                text='(Scoped to the currently active Filter menu selection)',
+                font=('Arial', 8, 'italic'),
+                fg='gray',
+            ).pack(anchor='w', pady=(0, 5))
+
+        include_notes_var = tk.BooleanVar(value=False)
+
+        tree_frame = tk.Frame(frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True)
+        scrollbar = ttk.Scrollbar(tree_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        tree = ttk.Treeview(
+            tree_frame,
+            columns=('project', 'section', 'dates', 'allocation'),
+            yscrollcommand=scrollbar.set,
+            height=16,
+        )
+        tree.heading('#0', text='Resource / Task')
+        tree.heading('project', text='Project')
+        tree.heading('section', text='Section')
+        tree.heading('dates', text='Planned Dates')
+        tree.heading('allocation', text='Alloc')
+        tree.column('project', width=140)
+        tree.column('section', width=90, anchor='center')
+        tree.column('dates', width=170)
+        tree.column('allocation', width=60, anchor='e')
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=tree.yview)
+
+        detail = tk.Label(frame, text='', anchor='w', justify=tk.LEFT, wraplength=600)
+
+        row_by_item: dict[str, dict] = {}
+
+        def on_select(event=None):
+            item_id = tree.focus()
+            row = row_by_item.get(item_id)
+            if not row:
+                detail.config(text='')
+                return
+            lines = [f'{row["task_description"]} ({row["task_url"] or "no URL"})']
+            if 'latest_remaining_duration' in row:
+                pct = row.get('progress_pct')
+                pct_text = f'{pct}%' if pct is not None else 'n/a'
+                lines.append(
+                    f'Progress: {pct_text} · '
+                    f'Remaining: {row["latest_remaining_duration"]}d · '
+                    f'Last update: {row.get("latest_status_date") or "n/a"}'
+                )
+                if row.get('latest_status_note'):
+                    lines.append(f'Note: {row["latest_status_note"]}')
+            if 'baton_from' in row:
+                lines.append(
+                    'Baton from: ' + self._format_baton_entries(row['baton_from'])
+                )
+                lines.append('Baton to: ' + self._format_baton_entries(row['baton_to']))
+            if include_notes_var.get() and row.get('notes'):
+                lines.append('Notes:')
+                for note in row['notes']:
+                    lines.append(f'  {note["timestamp"]}: {note["text"]}')
+            detail.config(text='\n'.join(lines))
+
+        tree.bind('<<TreeviewSelect>>', on_select)
+
+        def rebuild():
+            tree.delete(*tree.get_children())
+            row_by_item.clear()
+            buckets = self.compute_resource_schedule(
+                include_notes=include_notes_var.get()
+            )
+            if not buckets:
+                tree.insert('', tk.END, text='No in-flight or upcoming tasks found.')
+                detail.config(text='')
+                return
+            for bucket in buckets:
+                parent = tree.insert(
+                    '',
+                    tk.END,
+                    text=f'{bucket["resource_name"]} '
+                    f'({bucket["resource_email"] or "no email"})',
+                    open=True,
+                )
+                for row in bucket['in_flight']:
+                    item_id = tree.insert(
+                        parent,
+                        tk.END,
+                        text=row['task_description'],
+                        values=(
+                            row['project_name'],
+                            'In Flight',
+                            f'{row["planned_start_date"][:10]} → '
+                            f'{row["planned_end_date"][:10]}',
+                            row['allocation'],
+                        ),
+                    )
+                    row_by_item[item_id] = row
+                for row in bucket['upcoming']:
+                    flagged = any(
+                        e['needs_attention']
+                        for e in row['baton_from'] + row['baton_to']
+                    )
+                    label = ('⚠ ' if flagged else '') + row['task_description']
+                    item_id = tree.insert(
+                        parent,
+                        tk.END,
+                        text=label,
+                        values=(
+                            row['project_name'],
+                            'Upcoming',
+                            f'{row["planned_start_date"][:10]} → '
+                            f'{row["planned_end_date"][:10]}',
+                            row['allocation'],
+                        ),
+                    )
+                    row_by_item[item_id] = row
+            detail.config(text='')
+
+        detail.pack(anchor='w', fill=tk.X, pady=(5, 5))
+
+        include_notes_check = tk.Checkbutton(
+            frame,
+            text='Include task notes',
+            variable=include_notes_var,
+            underline=mnemonic('Include task notes', 'Include'),
+            command=rebuild,
+        )
+        include_notes_check.pack(anchor='w', pady=(0, 5))
+        dialog.bind(
+            '<Alt-i>',
+            lambda e: (include_notes_var.set(not include_notes_var.get()), rebuild()),
+        )
+
+        button_frame = tk.Frame(frame)
+        button_frame.pack(pady=(10, 0))
+
+        download_button = tk.Button(
+            button_frame,
+            text='Download Data (CSV)...',
+            underline=mnemonic('Download Data (CSV)...', 'Download'),
+            command=lambda: self.controller.export_ops.export_resource_schedule(
+                include_notes=include_notes_var.get()
+            ),
+        )
+        download_button.pack(side=tk.LEFT, padx=5)
+        download_button.bind('<Return>', lambda e: download_button.invoke())
+        dialog.bind(
+            '<Alt-d>',
+            lambda e: self.controller.export_ops.export_resource_schedule(
+                include_notes=include_notes_var.get()
+            ),
+        )
+
+        close_button = tk.Button(
+            button_frame,
+            text='Close',
+            underline=mnemonic('Close', 'Close'),
+            command=dialog.destroy,
+        )
+        close_button.pack(side=tk.LEFT, padx=5)
         close_button.bind('<Return>', lambda e: dialog.destroy())
         dialog.bind('<Alt-c>', lambda e: dialog.destroy())
 
