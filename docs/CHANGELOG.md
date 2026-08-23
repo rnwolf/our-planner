@@ -1,4 +1,12 @@
 
+    ## [0.1.30] - 2026-08-23
+    ### Changed
+    - New Network menu, between Projects and Reports, gathers everything about a project's
+      network in one place: Import CCPM Schedule..., Import Network (Import Resources.../Import
+      Resource Calendars.../Import Tasks...), Export CCPM Network..., Schedule with CCPM..., and
+      Export... - all moved out of the File menu, which now only covers the file itself (New/
+      Open/Save/Recent/Versioned Projects/Exit).
+
     ## [0.1.29] - 2026-08-22
     ### Added
     - Reports > Resource Schedule...: per-resource in-flight/upcoming task list with CCPM
