@@ -6,7 +6,7 @@ Two flows over one export mapping:
   calendar as the CSV input files the external `ccpm-scheduler` CLI consumes
   (see `docs/file-structure.md`), for the manual round trip:
   export, schedule outside, bring the result back with the already-built
-  `File → Import CCPM Schedule...`.
+  `Network → Import CCPM Schedule...`.
 
 - **Schedule with CCPM...** does the whole trip in-process using the
   `ccpm_scheduler` library: build the network, validate (structured issues
@@ -475,7 +475,7 @@ class CcpmOperations:
     # ------------------------------------------------------------ UI flows
 
     def export_ccpm_network(self):
-        """File → Export CCPM Network... : pick a project and a folder, write
+        """Network → Export CCPM Network... : pick a project and a folder, write
         the scheduler's input CSVs there."""
         project = self._pick_project('Export CCPM Network')
         if not project:
@@ -505,11 +505,11 @@ class CcpmOperations:
             + (' --calendar calendar.csv' if has_calendar else '')
             + f' --buffer-method {method}'
             + ' --out-dir plan\n\nthen bring the result back via '
-            "'File → Import CCPM Schedule...'." + note,
+            "'Network → Import CCPM Schedule...'." + note,
         )
 
     def schedule_with_ccpm(self):
-        """File → Schedule with CCPM... : validate + schedule the picked
+        """Network → Schedule with CCPM... : validate + schedule the picked
         project in-process and import the result as a new project."""
         project = self._pick_project('Schedule with CCPM')
         if not project:

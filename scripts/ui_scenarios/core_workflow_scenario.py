@@ -119,7 +119,7 @@ def run_scenario(driver):
         driver.assign_resource(task, resources[role], allocation=1.0)
         print(f'  {task["description"]}: {role} ({task["resources"]})')
 
-    step('8. File > Schedule with CCPM...')
+    step('8. Network > Schedule with CCPM...')
     # Two projects exist by this point (the 'Sample Project' File > New
     # leaves behind, and 'Core Workflow Demo') - capture every id that
     # exists right before scheduling so the lookup below can't mistake

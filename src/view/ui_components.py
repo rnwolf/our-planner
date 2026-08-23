@@ -9,6 +9,7 @@ from typing import Optional
 import webbrowser
 from datetime import datetime, timedelta
 from src.view.menus.help_menu import HelpMenu
+from src.view.menus.network_menu import NetworkMenu
 from src.utils.app_settings import load_settings
 from src.utils.colors import (
     COLOR_NAMES,
@@ -382,65 +383,9 @@ class UIComponents:
         )
         self.file_menu.add_separator()
         self.file_menu.add_command(
-            label='Import CCPM Schedule...',
-            underline=mnemonic('Import CCPM Schedule...', 'Import'),
-            command=self.controller.file_ops.import_ccpm_schedule,
-        )
-
-        # Import Network: a plain, unscheduled reference network (tasks with
-        # predecessor_ids/resource_ids, no start/finish yet) - Import CCPM
-        # Schedule above needs an already-scheduled schedule.csv, which this
-        # doesn't have. Three deliberately separate steps, in the order they
-        # must run: resources, then their calendars, then tasks (each task's
-        # resource_ids must already exist).
-        self.import_network_menu = tk.Menu(self.file_menu, tearoff=0)
-        self.file_menu.add_cascade(
-            label='Import Network',
-            menu=self.import_network_menu,
-            # the 'w' - 'I' is already Import CCPM Schedule's mnemonic above
-            underline=mnemonic('Import Network', 'Network', 'w'),
-        )
-        self.import_network_menu.add_command(
-            label='Import Resources...',
-            underline=mnemonic('Import Resources...', 'Resources'),
-            command=self.controller.file_ops.import_resources,
-        )
-        self.import_network_menu.add_command(
-            label='Import Resource Calendars...',
-            underline=mnemonic('Import Resource Calendars...', 'Calendars'),
-            command=self.controller.file_ops.import_resource_calendars,
-        )
-        self.import_network_menu.add_command(
-            label='Import Tasks...',
-            underline=mnemonic('Import Tasks...', 'Tasks'),
-            command=self.controller.file_ops.import_tasks,
-        )
-
-        self.file_menu.add_command(
-            label='Export CCPM Network...',
-            underline=mnemonic('Export CCPM Network...', 'CCPM'),
-            command=self.controller.ccpm_ops.export_ccpm_network,
-        )
-        self.file_menu.add_command(
-            label='Schedule with CCPM...',
-            # 'S' is Save's mnemonic above - use 'h' instead so File's
-            # underlines don't collide.
-            underline=mnemonic('Schedule with CCPM...', 'Schedule', 'h'),
-            command=self.controller.ccpm_ops.schedule_with_ccpm,
-        )
-        self.file_menu.add_separator()
-        self.file_menu.add_command(
             label='Exit',
-            underline=mnemonic('Exit', 'Exit', 'x'),  # 'E' is Export's mnemonic below
+            underline=mnemonic('Exit', 'Exit'),  # 'E' is free now Export... moved out
             command=self.controller.root.quit,
-        )
-
-        # Add separator and export commands
-        self.file_menu.add_separator()
-        self.file_menu.add_command(
-            label='Export...',
-            underline=mnemonic('Export...', 'Export'),
-            command=self.controller.export_ops.open_export_dialog,
         )
 
         # Edit menu (Alt+E)
@@ -770,6 +715,11 @@ class UIComponents:
             command=lambda: self.controller.task_ops.manage_projects_dialog(
                 parent=self.controller.root
             ),
+        )
+
+        # Add Network menu
+        self.network_menu = NetworkMenu(
+            self.controller, self.controller.root, self.menu_bar
         )
 
         # Reports menu (Stage 10 Part B) - a single home for every report

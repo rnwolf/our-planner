@@ -325,8 +325,8 @@ class ScenarioDriver:
 
     def assert_menu_path_has(self, *path: str) -> tk.Menu:
         """Confirms a full menu-bar path exists and is wired up, e.g.
-        `assert_menu_path_has('File', 'Import Network', 'Import Resources...')`
-        walks menu_bar -> the 'File' cascade -> the 'Import Network'
+        `assert_menu_path_has('Network', 'Import Network', 'Import Resources...')`
+        walks menu_bar -> the 'Network' cascade -> the 'Import Network'
         cascade -> asserts 'Import Resources...' is a real entry there.
         Returns the menu containing the final path segment, so a scenario
         can go on to invoke it (e.g. `.invoke(label)`) instead of calling
@@ -422,7 +422,7 @@ class ScenarioDriver:
         project_name: str | None = None,
         account_for_other_projects: bool = True,
     ) -> str:
-        """File -> Schedule with CCPM.... Returns the result dialog's text
+        """Network -> Schedule with CCPM.... Returns the result dialog's text
         (raises with it on failure) - schedule_with_ccpm shows its own
         scrollable Toplevel (CcpmOperations._show_result_dialog) rather
         than a plain messagebox, so this reads that dialog's ScrolledText
@@ -447,7 +447,7 @@ class ScenarioDriver:
         before it exists. `account_for_other_projects` (default True,
         matching the checkbox's own default) controls whether that box is
         left checked or unchecked before clicking OK."""
-        self.assert_menu_path_has('File', 'Schedule with CCPM...')
+        self.assert_menu_path_has('Network', 'Schedule with CCPM...')
 
         def answer_options():
             dialog = self._find_toplevel('CCPM Scheduling Options')

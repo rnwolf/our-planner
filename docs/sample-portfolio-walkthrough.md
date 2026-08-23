@@ -28,7 +28,7 @@ way a real portfolio actually competes for the same people:
 
 - **19 mini-projects**, each a small rolling-wave network (`small`/`medium`/
   `large` shapes — Analysis/Build/Test/Deploy and variants) scheduled for
-  real through **File → Schedule with CCPM...**, with a team kept constant
+  real through **Network → Schedule with CCPM...**, with a team kept constant
   for the life of the project. Buffer sizes, the critical chain, and the
   feeding-buffer merge points are all genuine scheduler output, not
   hand-picked numbers.
@@ -186,7 +186,7 @@ row would ever show as red.
 Ben Carter's double-booking exists here because both mini-projects were
 scheduled independently, each unaware of the other's claim on him — this
 file predates **Account for capacity already committed to other projects**,
-the option now offered by **File → Schedule with CCPM...** (see
+the option now offered by **Network → Schedule with CCPM...** (see
 [User Guide → Scheduling with CCPM](user-guide.md#scheduling-with-ccpm)).
 Re-scheduling either project with that option checked would reduce his
 exported capacity by the other project's load over the clashing days,

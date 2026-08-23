@@ -12,23 +12,23 @@ It currently follows what I consider normal practice for desktop GUI application
 1. **Add dependencies**: Click the connector circle on the right edge of a task and drag to another task
 1. **Edit task details**: Right-click on a task and select from the context menu
 1. **Zoom in and out**: See details and overview with Ctrl+Scroll-wheel to zoom in and out
-1. **Export your data**: Use the File menu to export your data in various formats
+1. **Export your data**: Use the Network menu to export your data in various formats
 
 ## Export files
 
-**File → Export... → CSV** writes three files (columns aligned with the ccpm-scheduler vocabulary):
+**Network → Export... → CSV** writes three files (columns aligned with the ccpm-scheduler vocabulary):
 
 - `..._tasks.csv` — `id, name, project, chain, row, start_day, start_date, end_date, duration, realistic_duration, optimal_duration, predecessor_ids, resource_ids, tags, colour, url`. `start_day` is the absolute timeline day (day 0 = timeline start). `resource_ids` uses `id:allocation` tokens: `5:2;7` means 2 units of resource 5 and 1 unit (the default) of resource 7. `predecessor_ids` uses the same link notation as the app's dialogs (`3;5:SS+2`).
 - `..._resources.csv` — `id, name, capacity, tags` (capacity = the resource's usual per-day value).
 - `..._resource_loading.csv` — per-day loading, capacity, and utilization for each resource.
 
-**File → Export CCPM Network...** writes the ccpm-scheduler input files (`tasks.csv`, `resources.csv`, `calendar.csv`) plus optional `tags`/`colour` columns; any export notes go to a `notes.txt` alongside them. **File → Import CCPM Schedule...** reads those tags/colours back if the `schedule.csv` carries them, and tags every imported row `ccpm`.
+**Network → Export CCPM Network...** writes the ccpm-scheduler input files (`tasks.csv`, `resources.csv`, `calendar.csv`) plus optional `tags`/`colour` columns; any export notes go to a `notes.txt` alongside them. **Network → Import CCPM Schedule...** reads those tags/colours back if the `schedule.csv` carries them, and tags every imported row `ccpm`.
 
 ## Scheduling with CCPM
 
-**File → Schedule with CCPM...** validates a project's network, builds a critical-chain schedule in-process, and imports the result as a new project next to the source — the source is left untouched, so a hand-drawn plan and the CCPM-scheduled version can be compared side by side.
+**Network → Schedule with CCPM...** validates a project's network, builds a critical-chain schedule in-process, and imports the result as a new project next to the source — the source is left untouched, so a hand-drawn plan and the CCPM-scheduled version can be compared side by side.
 
-Resources are shared globally across every project in a plan file, so a resource being scheduled here may already be committed to tasks in *other* projects over the same days. Before scheduling, a **CCPM Scheduling Options** dialog offers **Account for capacity already committed to other projects**, checked by default: with it on, each resource's exported capacity is reduced by its load from every other project's tasks first, so the new schedule doesn't plan against capacity someone else already has a claim on — any resource actually reduced this way is named in the result dialog's Notes. Unchecking it schedules against each resource's full nominal capacity instead, ignoring other projects entirely (the previous behaviour, still available for when a resource pool genuinely isn't shared, or for comparing against the unconstrained plan). **File → Export CCPM Network...** applies the same reduction unconditionally, since that flow has no dialog step to offer the choice in.
+Resources are shared globally across every project in a plan file, so a resource being scheduled here may already be committed to tasks in *other* projects over the same days. Before scheduling, a **CCPM Scheduling Options** dialog offers **Account for capacity already committed to other projects**, checked by default: with it on, each resource's exported capacity is reduced by its load from every other project's tasks first, so the new schedule doesn't plan against capacity someone else already has a claim on — any resource actually reduced this way is named in the result dialog's Notes. Unchecking it schedules against each resource's full nominal capacity instead, ignoring other projects entirely (the previous behaviour, still available for when a resource pool genuinely isn't shared, or for comparing against the unconstrained plan). **Network → Export CCPM Network...** applies the same reduction unconditionally, since that flow has no dialog step to offer the choice in.
 
 See [Sample Portfolio Walkthrough → Resource Over-Allocation](sample-portfolio-walkthrough.md#resource-over-allocation-is-this-actually-a-problem) for the read-only, whole-portfolio view of the same cross-project contention this option feeds directly into scheduling.
 

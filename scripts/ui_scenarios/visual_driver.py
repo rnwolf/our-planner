@@ -412,7 +412,7 @@ class VisualDriver(ScenarioDriver):
         project_name: str | None = None,
         account_for_other_projects: bool = True,
     ) -> str:
-        """File -> Schedule with CCPM..., via a real, visible menu popup.
+        """Network -> Schedule with CCPM..., via a real, visible menu popup.
         The result is CcpmOperations._show_result_dialog - a hand-built
         Toplevel with grab_set() but no wait_window(), so the call returns
         as soon as it's built, not once it's closed - reads its real
@@ -431,9 +431,9 @@ class VisualDriver(ScenarioDriver):
         Options' Toplevel unconditionally - chained off the picker's own
         answer (via `then`) when both appear, since its close time isn't
         predictable enough to arm on a fixed delay computed up front."""
-        self.assert_menu_path_has('File', 'Schedule with CCPM...')
+        self.assert_menu_path_has('Network', 'Schedule with CCPM...')
 
-        menu = self.app.ui.file_menu
+        menu = self.app.ui.network_menu.network_menu
         x, y = self.root.winfo_rootx() + 20, self.root.winfo_rooty() + 20
         menu.tk_popup(x, y)
         self._beat()

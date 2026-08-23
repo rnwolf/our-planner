@@ -185,7 +185,7 @@ the external ccpm-scheduler tool, alongside its `resources.csv` and
 optional `calendar.csv`. It's brought in as a new project.
 
 ### Import Network (a reference network with no schedule yet)
-Use File > Import Network for a plain task/resource network that
+Use Network > Import Network for a plain task/resource network that
 hasn't been scheduled yet (no start/finish days) - e.g. bringing in a
 reference network to look at, or to schedule from within our-planner.
 This is THREE separate steps, and they must be run IN THIS ORDER:
@@ -252,7 +252,7 @@ This is THREE separate steps, and they must be run IN THIS ORDER:
 
 ## Exporting Your Project
 
-- Use the File > Export menu to save your project in various formats:
+- Use the Network > Export menu to save your project in various formats:
   - PDF: Complete report with tasks, resources, and loading
   - PNG: Image of the current view
   - CSV: Spreadsheet-compatible data tables (the counterpart to Import

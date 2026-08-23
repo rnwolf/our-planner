@@ -503,7 +503,7 @@ class FileOperations:
 
     # -------------------------------------------------- Import Network Data
     #
-    # Three separate, deliberately sequential actions (File > Import Network)
+    # Three separate, deliberately sequential actions (Network > Import Network)
     # for round-tripping a *reference* network - one that may not be
     # CCPM-scheduled yet, so import_ccpm_schedule() above (which requires an
     # already-scheduled schedule.csv) doesn't fit. Unlike that importer,
@@ -517,7 +517,7 @@ class FileOperations:
     # capacity/tags) is left exactly as it is.
 
     def import_resources(self):
-        """File > Import Network > Import Resources...: create or update
+        """Network > Import Network > Import Resources...: create or update
         resources from a resources.csv, matched by id. A brand-new id gets
         the imported capacity (default 1.0) as its starting per-day array.
         An id that already exists has name/url/emails updated (only for
@@ -663,7 +663,7 @@ class FileOperations:
         )
 
     def import_resource_calendars(self):
-        """File > Import Network > Import Resource Calendars...: apply
+        """Network > Import Network > Import Resource Calendars...: apply
         per-day capacity overrides from a calendar.csv (half-open
         `[from, to)` ranges, same shape import_ccpm_schedule's own
         calendar.csv uses) to resources that already exist. Resources must
@@ -758,7 +758,7 @@ class FileOperations:
         )
 
     def import_tasks(self):
-        """File > Import Network > Import Tasks...: create or update tasks
+        """Network > Import Network > Import Tasks...: create or update tasks
         from a tasks.csv, matched by id. A brand-new id is placed via a
         plain ASAP layout computed from predecessor links (no resource
         leveling, no CCPM buffers - this is a reference network, not a
