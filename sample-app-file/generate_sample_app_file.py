@@ -210,6 +210,7 @@ def working_capacity(role: str) -> bool:
 # tracker/directory link would.
 TRACKER_URL = 'https://tracker.example.com/browse/PORT-{n}'
 DIRECTORY_URL = 'https://directory.example.com/people/{slug}'
+EMAIL_ADDRESS = '{slug}@example.com'
 
 
 def slugify_name(name: str) -> str:
@@ -220,6 +221,13 @@ def slugify_name(name: str) -> str:
     return re.sub(r'\s+', '-', cleaned.strip())
 
 
+def email_local_part(name: str) -> str:
+    """A dot-joined variant of slugify_name for an email address's local
+    part, so "Liam O'Connor" reads as liam.oconnor rather than
+    liam-oconnor - matches the usual firstname.lastname convention."""
+    return slugify_name(name).replace('-', '.')
+
+
 def build_roster(model: TaskResourceModel) -> dict[str, list[int]]:
     """Adds all 30 resources, returns role -> [resource_id, ...]."""
     by_role: dict[str, list[int]] = {}
@@ -228,6 +236,7 @@ def build_roster(model: TaskResourceModel) -> dict[str, list[int]]:
             name,
             works_weekends=working_capacity(role),
             url=DIRECTORY_URL.format(slug=slugify_name(name)),
+            emails=EMAIL_ADDRESS.format(slug=email_local_part(name)),
         )
         assert resource is not None, f'duplicate resource name {name!r}'
         resource['tags'] = [role]
