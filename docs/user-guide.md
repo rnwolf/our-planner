@@ -57,14 +57,18 @@ Where it shows up:
 
 ## Versioned Project Folders
 
-our-planner has no undo of any kind for a plain project file — a mistake sticks unless you remembered to Save As under a new name first. **File → New Versioned Project...** creates an opt-in alternative: a fresh, empty directory backed by a real local git repository, giving you fine-grained undo/redo plus deliberate save points. A plain **File → Open/Save** project is completely unaffected — versioning only ever applies to a directory you deliberately create this way (or later reopen the tracked file from), never to a folder the app decides to adopt on its own.
+our-planner has no undo of any kind for a plain project file — a mistake sticks unless you remembered to Save As under a new name first. **File → New Versioned Project...** creates an opt-in alternative: a fresh, empty directory backed by a real local git repository, giving you fine-grained undo/redo plus deliberate save points. A plain **File → Open/Save** project is completely unaffected — versioning only ever applies to a directory you deliberately create this way, never to a folder the app decides to adopt on its own.
+
+**Reopening a versioned project later needs no special step.** Use **File → Open...** (or **File → Recent**) on its `project.json` exactly as you would for a plain file. our-planner recognizes the workspace automatically from a `.our-planner-workspace.json` marker file sitting next to it (only in that exact directory — a marker in a parent folder doesn't count) and re-activates versioning right away: the window title shows `[versioned]` again and Undo/Redo/Jump to Version/Save Version... light back up in the Edit and File menus. There's no separate "open versioned project" command.
 
 Once a project is versioned (the window title shows `[versioned]`):
 
 - **Every meaningful edit is autosaved automatically** to a local `autosave` branch — no action needed, and nothing to remember to save. A pure display toggle (e.g. Show Tags on Tasks) never creates a commit; only a real change to the project does.
 - **Edit → Undo (Ctrl+Z) / Redo (Ctrl+Y)** step one autosaved edit at a time, exactly like a conventional editor's undo/redo. Making a new edit after undoing discards whatever you'd undone past, the same as any other app.
-- **Edit → Jump to Version...** lists the autosave history with real timestamps (e.g. "the version from before lunch") and jumps straight to one, rather than stepping through Undo repeatedly.
+- **Edit → Jump to Version...** lists `autosave`'s fine-grained edit history with real timestamps (e.g. "the version from before lunch") in a pick list and jumps straight to the one you choose, rather than stepping through Undo repeatedly. This is scoped to `autosave` only — it does not list or restore `main`'s deliberate `Save Version...` checkpoints (see below).
 - **File → Save Version...** is a deliberate checkpoint: it squashes every autosaved edit since the last checkpoint into one clean, optionally-named commit on the `main` branch, so `main`'s history stays a short, meaningful list of real versions rather than every individual edit. There's nothing to save if nothing changed since the last checkpoint.
+
+To browse or restore one of `main`'s named checkpoints, there's currently no in-app equivalent of Jump to Version — open a terminal in the workspace folder and run `git log main` to see them, then `git checkout <commit> -- project.json` (followed by reopening the file in our-planner) to restore one.
 
 **Disaster recovery is manual, by design.** This app never pushes anywhere on your behalf. To back up a versioned project off your machine, open a terminal in the workspace folder and add a normal git remote yourself — `git remote add origin <url>` then `git push origin main` — the same way you would for any other git repository. Only `main`'s checkpoints are meant to be pushed; the `autosave` branch is purely local, fine-grained scratch history.
 

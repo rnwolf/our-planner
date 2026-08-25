@@ -296,8 +296,16 @@ Project... creates an opt-in alternative: a fresh, empty directory backed
 by a real local git repository, giving fine-grained undo/redo plus
 deliberate save points. A plain File > Open/Save project is completely
 unaffected - versioning only ever applies to a directory you deliberately
-create this way (or later reopen the tracked file from), never to a
-folder the app decides to adopt on its own.
+create this way, never to a folder the app decides to adopt on its own.
+
+Reopening a versioned project later needs no special step. Use File >
+Open... (or File > Recent) on its project.json exactly as you would for
+a plain file - our-planner recognizes the workspace automatically from a
+.our-planner-workspace.json marker file sitting next to it (only in that
+exact directory) and re-activates versioning right away: the window
+title shows "[versioned]" again and Undo/Redo/Jump to Version/Save
+Version... light back up. There's no separate "open versioned project"
+command.
 
 Once a project is versioned (the window title shows "[versioned]"):
 
@@ -307,13 +315,21 @@ Once a project is versioned (the window title shows "[versioned]"):
 - Edit > Undo (Ctrl+Z) / Redo (Ctrl+Y) step one autosaved edit at a time,
   like a conventional editor. A new edit made after undoing discards
   whatever was undone past.
-- Edit > Jump to Version... lists the autosave history with real
-  timestamps and jumps straight to one, instead of stepping through Undo
-  repeatedly.
+- Edit > Jump to Version... lists autosave's fine-grained edit history
+  with real timestamps in a pick list and jumps straight to the one you
+  choose, instead of stepping through Undo repeatedly. Scoped to
+  autosave only - it does not list or restore main's deliberate Save
+  Version... checkpoints (see below).
 - File > Save Version... is a deliberate checkpoint: it squashes every
   autosaved edit since the last checkpoint into one clean, optionally
   named commit on the "main" branch, keeping main's history a short list
   of real versions rather than every individual edit.
+
+To browse or restore one of main's named checkpoints, there's currently
+no in-app equivalent of Jump to Version - open a terminal in the
+workspace folder and run `git log main` to see them, then `git checkout
+<commit> -- project.json` (then reopen the file in our-planner) to
+restore one.
 
 Disaster recovery is manual, by design - this app never pushes anywhere
 on your behalf. To back up a versioned project, open a terminal in the
